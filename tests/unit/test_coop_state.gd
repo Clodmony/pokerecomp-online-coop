@@ -56,6 +56,14 @@ func test_a_unique_encounter_has_one_active_instance_per_campaign() -> void:
 	assert_false(campaign.claim_encounter("trainer:brock", "b4"), "beaten for good")
 
 
+func test_a_fresh_campaign_begins_after_oaks_intro() -> void:
+	var campaign := PokeCoopCampaign.create("c1", &"red", "sha")
+	PokeCoopPolicy.start_campaign(campaign)
+
+	assert_true(campaign.has_flag(0x00), "EVENT_FOLLOWED_OAK_INTO_LAB: the north exit stays open")
+	assert_true(campaign.has_flag(0x22), "EVENT_GOT_STARTER: the lab hands out no second one")
+
+
 func test_a_team_holds_six_and_a_uid_is_never_handed_out_twice() -> void:
 	var player := PokeCoopPlayer.create("p1", "RED", 100)
 	var uids: Dictionary = {}

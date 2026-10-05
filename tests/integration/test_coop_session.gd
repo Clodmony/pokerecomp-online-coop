@@ -291,6 +291,25 @@ func test_a_lost_controller_pauses_only_their_battle() -> void:
 	assert_eq(int(_red.battle(battle_id)["revision"]), revision + 1)
 
 
+func test_a_new_player_joins_with_the_starter_they_chose_in_pallet_town() -> void:
+	_host.allow_new_players = true
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, 3)
+	var green: PokeCoopClient = PokeCoopClient.over(link)
+	green.greet("GREEN", _data.id, _data.sha1, "", Fixture.CHARMANDER)
+	_clients.append(green)
+	_pump()
+
+	var player: PokeCoopPlayer = _host.player(green.player_id)
+	assert_eq(player.name, "GREEN")
+	assert_eq(player.team.size(), 1)
+	var starter: Gen2SaveMon = player.team[0]["mon"]
+	assert_eq([starter.species, starter.level], [Fixture.CHARMANDER, PokeCoopPolicy.STARTER_LEVEL])
+	assert_eq(starter.ot_id, player.trainer_id, "the player is its trainer, not a trade")
+	assert_eq(player.map, PokeCoopPolicy.START_MAP)
+	assert_eq(player.cell, PokeCoopPolicy.START_CELLS[2], "a third player takes the third spot")
+
+
 func test_a_client_with_another_cartridge_is_told_why_and_let_go() -> void:
 	var link := PokeCoopTransport.new()
 	PokeCoopTransport.link(_host.transport, link, 3)

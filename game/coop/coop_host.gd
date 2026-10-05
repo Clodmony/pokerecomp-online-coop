@@ -138,7 +138,11 @@ func _hello(peer: int, message: Dictionary) -> void:
 		if not allow_new_players:
 			refusal = &"unknown_player"
 		else:
+			var joined_before: int = players.size()
 			joining = add_player(String(message.get("name", "")), seeds.randi() & 0xFFFF)
+			PokeCoopPolicy.set_up_new_player(
+				data, joining, int(message.get("starter", 0)), joined_before
+			)
 	if refusal == &"" and joining.connected:
 		refusal = &"already_connected"
 	if refusal != &"":
