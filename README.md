@@ -1,3 +1,12 @@
+> [!IMPORTANT]
+> **pokerecomp-coop: built entirely with AI.** This is a private fork of
+> [Decryptu/pokerecomp](https://github.com/Decryptu/pokerecomp) that adds a
+> cooperative two-player Red/Blue campaign. The whole co-op project, meaning
+> every change in this fork after upstream commit `696d1c9`, is written by an AI
+> coding agent (Claude, by Anthropic) directed by the repository owner. Upstream
+> pokerecomp and its history belong to its own authors and keep their MIT
+> licence. Everything below this notice is upstream's README.
+
 <p align="center">
   <img src="assets/brand/banner.png" alt="pokerecomp" width="820">
 </p>
