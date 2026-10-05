@@ -20,6 +20,10 @@ Read before working:
 
 ## Hard rules
 
+- **GitHub is paused.** Until the owner says otherwise: no `git push`, no `gh`,
+  no issues, pull requests, comments, CI runs or settings changes. Commit on
+  local branches and verify with a local Godot 4.8-dev4. The `origin` push URL
+  is disabled locally to enforce this.
 - The repository stays **private**. Never publish releases, Pages sites,
   packages, store builds or artifacts. The release and export-template
   workflows are guarded to run only in `Decryptu/pokerecomp` and are disabled
@@ -88,8 +92,8 @@ godot --headless --path . --quit-after 30
 ```
 
 The fork's CI (`ci.yml`) runs the import, the whole suite, the boot smoke test
-and the co-op ENet demo on every pull request, so a pushed draft PR is a
-verification run even without a local Godot.
+and the co-op ENet demo on every pull request. While GitHub is paused, run the
+same steps locally instead.
 
 ## Where co-op code lives
 
