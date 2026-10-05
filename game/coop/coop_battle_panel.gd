@@ -176,7 +176,7 @@ func _menu_text() -> String:
 func _battle_rows(view: Dictionary) -> Array:
 	match String(view.get("phase", "")):
 		"action":
-			return _move_rows(view) + _switch_rows(view, "switch") + [
+			return _move_rows(view) + _switch_rows(view, "switch") + _item_rows(view) + [
 				{"text": "RUN", "command": {"type": "run"}, "suggest": "run", "value": 0},
 			]
 		"send_out":
@@ -222,6 +222,42 @@ func _switch_rows(view: Dictionary, kind: String) -> Array:
 	return rows
 
 
+## This player's bag: a ball once per participant it could be caught for, which
+## is how a catch names its recipient, and anything else usable on the one out.
+func _item_rows(view: Dictionary) -> Array:
+	var rows: Array = []
+	var bag: Dictionary = client.me().get("items", {})
+	var numbers: Array = bag.keys()
+	numbers.sort()
+	for item: Variant in numbers:
+		var held: String = "%s x%d" % [_item_name(int(item)), int(bag[item])]
+		if Gen2WorldPartyHost.is_ball(data, int(item)):
+			if not bool(view.get("trainer", false)):
+				rows.append_array(_ball_rows(view, int(item), held))
+		elif int(data.item(int(item)).get("battle_menu", Gen2Layout.ITEMMENU_NOUSE)) != Gen2Layout.ITEMMENU_NOUSE:
+			rows.append({
+				"text": "USE %s on %s" % [held, _mon_line(_active(view))],
+				"command": {"type": "item", "item": int(item), "target": int(view["active"])},
+				"suggest": "item", "value": int(item),
+			})
+	return rows
+
+
+func _ball_rows(view: Dictionary, ball: int, held: String) -> Array:
+	var rows: Array = []
+	for player_id: Variant in view.get("participants", []):
+		rows.append({
+			"text": "THROW %s for %s" % [held, _name(player_id)],
+			"command": {"type": "item", "item": ball, "recipient": String(player_id)},
+			"suggest": "item", "value": ball,
+		})
+	return rows
+
+
+func _item_name(item: int) -> String:
+	return String(data.item(item).get("name", "ITEM %d" % item)) if data != null else "ITEM %d" % item
+
+
 func _learn_rows(view: Dictionary) -> Array:
 	var rows: Array = []
 	var moves: Array = _active(view).get("moves", [])
@@ -257,6 +293,8 @@ func _battle_text(view: Dictionary) -> String:
 	lines.append(_turn_line(view))
 	if String(view.get("outcome", "")).is_empty():
 		lines.append_array(_row_lines(view))
+	elif not String(view.get("caught_for", "")).is_empty():
+		lines.append("Caught for %s! Press A to close." % _name(view["caught_for"]))
 	else:
 		lines.append("Battle over: %s. Press A to close." % String(view["outcome"]).to_upper())
 	lines.append(_status_line())

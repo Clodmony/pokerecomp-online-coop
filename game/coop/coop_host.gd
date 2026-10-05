@@ -362,6 +362,8 @@ func _finish(session: PokeCoopBattleSession) -> void:
 			holder.absorb_battle_mon(String(row["uid"]), row["mon"])
 	var encounter_id: String = String(session.encounter.get("id", ""))
 	var unique: bool = _is_unique(session.encounter)
+	if outcome == PokeCoopBattleSession.CAUGHT:
+		_file_catch(session.catch)
 	if outcome == &"won":
 		_pay(session)
 		if unique:
@@ -379,6 +381,26 @@ func _finish(session: PokeCoopBattleSession) -> void:
 	final_view["evolvable"] = session.evolvable_uids()
 	_finished.append(final_view)
 	battles.erase(session.id)
+
+
+## The wild a ball held, filed once with its recipient as its trainer: the team
+## if there is room, else the box, and caught in their own Pokédex.
+func _file_catch(caught: Dictionary) -> void:
+	var recipient: PokeCoopPlayer = player(String(caught.get("recipient", "")))
+	var wild: Gen2BattleMon = caught.get("mon", null)
+	if recipient == null or wild == null:
+		return
+	var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(wild)
+	saved.ot_id = recipient.trainer_id
+	saved.original_trainer = recipient.name
+	saved.caught_level = wild.level
+	if recipient.add_mon(saved).is_empty():
+		recipient.store_mon(saved)
+	var species: int = wild.persistent_species()
+	recipient.apply_world_patch({
+		"caught_species": {"set": {species: true}, "erase": []},
+		"seen_species": {"set": {species: true}, "erase": []},
+	})
 
 
 func _pay(session: PokeCoopBattleSession) -> void:
