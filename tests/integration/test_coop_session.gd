@@ -236,6 +236,32 @@ func test_a_trainer_victory_sets_the_shared_flag_once_for_both_players() -> void
 	assert_eq(_red.last_rejection(), &"encounter_taken", "and stays beaten")
 
 
+func test_a_caught_pokemon_is_filed_once_with_the_player_it_was_caught_for() -> void:
+	_host.player(_red.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	var throw: Dictionary = {
+		"type": "command", "battle": battle_id, "seq": 50,
+		"command": {
+			"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL,
+			"recipient": _blue.player_id, "revision": int(_red.battle(battle_id)["revision"]),
+		},
+	}
+	_send(func() -> void: _red.transport.send(PokeCoopTransport.HOST_PEER, throw))
+	_send(func() -> void: _red.transport.send(PokeCoopTransport.HOST_PEER, throw))
+
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	assert_eq(String(_red.battle(battle_id)["outcome"]), "caught")
+	assert_eq(blue.team.size(), 3, "one catch, delivered once")
+	var caught: Gen2SaveMon = blue.team[2]["mon"]
+	assert_eq(caught.species, Fixture.BULBASAUR)
+	assert_eq(caught.ot_id, blue.trainer_id, "Blue is its trainer")
+	assert_true((blue.world_part()["caught_species"] as Dictionary).has(Fixture.BULBASAUR))
+	assert_eq(_host.player(_red.player_id).team.size(), 2)
+	assert_eq(_host.player(_red.player_id).item_count(Gen2WorldPartyHost.ITEM_MASTER_BALL), 0)
+
+
 func test_a_message_delivered_twice_is_applied_once() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)

@@ -13,6 +13,8 @@ const OVER: StringName = &"over"
 
 const JOINED: StringName = &"coop_joined"
 const ITEM_USED: StringName = &"coop_item_used"
+const BALL_THROWN: StringName = &"coop_ball_thrown"
+const CAUGHT: StringName = &"caught"
 const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out"]
 
 var id: String = ""
@@ -25,6 +27,8 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var revision: int = 0
 var suggestions: Dictionary = {}
 var last_events: Array = []
+## Who a caught wild goes to and the wild itself, once a ball has held.
+var catch: Dictionary = {}
 var _pending_joins: Array = []
 var _absent: Dictionary = {}
 
@@ -89,7 +93,7 @@ func _enlist(player: PokeCoopPlayer, fighters: Dictionary) -> Array[int]:
 
 
 func phase() -> StringName:
-	if battle.is_over():
+	if battle.is_over() or not catch.is_empty():
 		return OVER
 	if battle.must_learn_move(Gen2Battle.PLAYER):
 		return AWAITING_LEARN
@@ -203,7 +207,7 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 	if player.item_count(item) <= 0:
 		return _refused(&"item_not_held")
 	if Gen2WorldPartyHost.is_ball(battle.data, item):
-		return _refused(&"capture_not_supported")
+		return _throw_ball(player, item, String(command.get("recipient", player.player_id)))
 	var used: Dictionary = battle.use_bag_item(
 		item, int(command.get("target", -1)), int(command.get("move_slot", -1))
 	)
@@ -215,6 +219,29 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 	events.append_array(used.get("events", []) as Array)
 	if not battle.is_over():
 		events.append_array(battle.take_actions(Gen2Battle.use_item(item), _enemy_action()))
+	return _done(events)
+
+
+## `ItemUseBall` with the catch rolled on the host. The thrower names who the
+## catch is for, one of the participants; a held ball ends the battle.
+func _throw_ball(player: PokeCoopPlayer, ball: int, recipient: String) -> Dictionary:
+	if battle.is_trainer_battle:
+		return _refused(&"trainer_pokemon")
+	if not participants.has(recipient):
+		return _refused(&"invalid_recipient")
+	var wild: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
+	var roll: Dictionary = Gen2WorldPartyHost.roll_capture(
+		battle.data, wild, ball, rng, battle.battle_type, battle.mon(Gen2Battle.PLAYER)
+	)
+	player.take_item(ball)
+	var events: Array = [{
+		"type": BALL_THROWN, "player": player.player_id, "ball": ball, "recipient": recipient,
+		"caught": bool(roll.get("caught", false)), "wobbles": int(roll.get("wobbles", 0)),
+	}]
+	if bool(roll.get("caught", false)):
+		catch = {"recipient": recipient, "mon": wild}
+		return _done(events)
+	events.append_array(battle.take_actions(Gen2Battle.use_item(ball), _enemy_action()))
 	return _done(events)
 
 
@@ -325,6 +352,8 @@ func suggest(player_id: String, suggestion: Dictionary) -> StringName:
 
 
 func outcome() -> StringName:
+	if not catch.is_empty():
+		return CAUGHT
 	if not battle.is_over():
 		return &""
 	if battle.is_draw():
@@ -365,6 +394,7 @@ func view() -> Dictionary:
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
+		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 	}
 
 
