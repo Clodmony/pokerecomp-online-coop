@@ -27,7 +27,8 @@ Read before working:
 - Never push to `upstream`. Its push URL is disabled on purpose. Never
   force-push over existing work.
 - Never commit or upload ROMs, saves, extracted cartridge content, credentials
-  or local caches. Tests use the synthetic cache in
+  or local caches. Screenshots of the game show cartridge graphics: keep them
+  local, never in commits, issues or pull requests. Tests use the synthetic cache in
   `tests/unit/battle_fixture.gd`. A check that needs a real cartridge asks the
   owner to supply it locally and never downloads one.
 - Work on feature branches (`coop/<topic>`) and open **draft** pull requests
@@ -71,6 +72,14 @@ godot --headless --path . -s res://tools/coop_session.gd -- demo
 godot --headless --path . -s res://tools/coop_session.gd -- host 24680
 godot --headless --path . -s res://tools/coop_session.gd -- client 127.0.0.1 24680 p1
 
+# The real game with a locally imported Red dump (never committed):
+godot --headless --path . -s res://tools/import_rom.gd -- "/path/to/Pokemon Red.gb"
+godot --headless --path . -s res://tools/coop_session.gd -- host 24680 red
+godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p1 red   # window 1
+godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p2 red   # window 2
+# In a window, SELECT opens the session menu (fight, join, save). Scripted runs:
+#   keys=SELECT,A,D,A   capture=/tmp/shot.png@600
+
 # Engine-free gates (version, release notes, comment ceiling); also the pre-push hook.
 tools/release.sh --gates
 
@@ -96,7 +105,10 @@ verification run even without a local Godot.
 | `game/coop/coop_transport.gd` | `PokeCoopTransport`: message transport base and in-memory loopback |
 | `game/coop/coop_enet_transport.gd` | `PokeCoopEnetTransport`: LAN/direct-IP over ENet |
 | `game/coop/coop_save.gd` | `PokeCoopSave`: versioned campaign file |
-| `tools/coop_session.gd` | `demo`, `host` and `client` runners |
+| `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
+| `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu and co-op battle overlay over the world screen |
+| `tools/coop_session.gd` | `demo`, `host [port] [game]` and `client` runners |
+| `tools/coop_play.gd` | one player's window on the real world screen |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/integration/test_coop_session.gd` | co-op tests |
 
 ## Conventions specific to the fork

@@ -6,7 +6,9 @@ what is blocked. Verification levels are kept apart on purpose:
 - **static**: written and read, not executed;
 - **tests**: GUT suites passing on Godot 4.8-dev4 (CI or local);
 - **socket**: the ENet demo or separate processes over localhost;
-- **played**: people played it in the real game screens.
+- **screens (scripted)**: two real game windows on the owner's imported Red
+  cartridge, driven by scripted button presses and checked from screenshots;
+- **played**: people played it by hand.
 
 ## Baseline
 
@@ -16,71 +18,95 @@ what is blocked. Verification levels are kept apart on purpose:
 | Import, GUT, boot smoke on `main` | Passed: 184 scripts, 4812 tests, 135416 asserts, 381.6 s; boot smoke passed | fork CI run 37376496611 (`main` = baseline plus workflow guard and README notice) |
 | Engine-free gates | Passed | `tools/release.sh --gates`, local |
 
-## Verification runs for slice 1 (2026-10-06)
+## Verification runs (2026-10-06)
 
 | Run | Result |
 |---|---|
-| CI run 37380076818 (PR #58, before the shutdown fix) | Import passed; GUT 4837/4837 passed; boot smoke passed; ENet demo 15/16, failing "host shutdown ends both clients" (fixed, see D18) |
-| Local, Godot 4.8-dev4 x86_64 (same engine commit `b56a91878` as CI) | Full suite before the last comment-ceiling update: 4836/4837, the one failure being the comment ceiling (41087 over 41085), since raised. After the fixes: co-op suites 25/25 (`test_coop_state` 6, `test_coop_battle` 10, `test_coop_session` 9), `test_source_budget` 4/4 |
-| Local ENet demo, x86_64 | 16/16 steps, three runs in a row |
-| Local ENet demo, x86_32 build | 16/16 steps, five runs in a row |
-| Local separate processes | `host` and two `client` processes on 127.0.0.1: both welcomed, each lists the other as nearby once both are connected |
-| CI on the final commit | see the PR checks |
+| CI run 37380076818 (first slice push) | Import, GUT 4837/4837, boot smoke passed; ENet demo 15/16, shutdown step failed (fixed, D18) |
+| CI run 37381224660 (slice before the real screens) | All four steps passed: GUT 4837/4837, demo 16/16 |
+| Local x86_64, after the real-screen work | Co-op suites 27/27 (`test_coop_state` 6, `test_coop_battle` 10, `test_coop_session` 11); `test_smoke` 2/2; `test_source_budget` 4/4; ENet demo 16/16 |
+| Local ENet demo | 16/16, repeated: 3 runs on x86_64, 5 on the x86_32 build |
+| Separate processes, synthetic | `host` plus two `client` processes on 127.0.0.1: both welcomed, each lists the other once both are connected |
+| Separate processes, Red | `host red` refuses a client with another cartridge and tells it why (`refused: content_mismatch`); a Red client joins |
+| Screens (scripted), Red | Host `red` plus two `coop_play.gd` windows, see below |
+| CI on the final commit | see the pull request's checks |
+
+### What the scripted Red windows showed
+
+Screenshots were taken locally and are not committed (they show cartridge
+graphics).
+
+1. RED's and BLUE's windows open on Pallet Town at their own doorsteps; each
+   draws the other player in that player's colour.
+2. BLUE walks left; RED's window shows the move and the new facing; BLUE's own
+   window agrees on the cell (13,6 to 11,6).
+3. RED starts a wild Pidgey battle from the session menu; BLUE's window shows
+   RED with the "!" emote at the encounter spot.
+4. BLUE joins from its session menu: both panels list Charmander and Pidgey
+   [RED] and Squirtle and Rattata [BLUE]; RED's panel says YOUR TURN.
+5. BLUE moves its cursor: RED's panel marks FIGHT EMBER `<- BLUE` with the
+   revision unchanged.
+6. RED switches to BLUE's Squirtle: RED's panel says BLUE DECIDES, BLUE's says
+   YOUR TURN at revision 2 with Squirtle's moves. BLUE's world did not move
+   while its panel was open.
+7. Both players fight separate wild battles at once and win; RED saves from the
+   session menu. The file holds RED's Charmander at 1012 exp, 24/34 HP and 7
+   SCRATCH PP spent, BLUE's Squirtle at 1005 exp and 2 TACKLE PP spent, both
+   benches untouched. A restarted `host red` reloads it and a client rejoins.
 
 ## Slice 1 acceptance criteria
 
-| # | Criterion | Status | Evidence |
-|---|---|---|---|
-| 1 | Two client instances connect to a host | tests, socket | `test_coop_session.gd`; demo; separate processes |
-| 2 | Each controls a separate player and sees the other on the same map | tests, socket; not drawn on screen | `test_two_clients_each_move_their_own_player_and_see_each_other_on_one_map`; separate processes |
-| 3 | One player battles while the other explores | tests, socket | `test_one_player_battles_while_the_other_explores_and_starts_their_own`; demo |
-| 4 | The second player starts an independent battle | tests, socket | same test; `test_two_battles_interleaved_play_out_as_if_each_ran_alone`; demo |
-| 5 | A free player requests to join an ongoing battle | tests, socket | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out`; demo |
-| 6 | Joining happens at the next safe turn boundary | tests | `test_a_join_asked_during_a_forced_replacement_waits_for_the_turn_boundary` |
-| 7 | Both owners' Pokémon appear in the shared roster | tests, socket | `test_two_full_teams_fill_a_roster_of_twelve_and_each_team_stays_at_six`; demo |
-| 8 | Switching Pokémon transfers turn control to its owner | tests, socket | `test_the_turn_belongs_to_the_owner_of_the_pokemon_that_is_out`; demo |
-| 9 | The other player's advisory selection is visible without executing | tests, socket; cursor not drawn | `test_a_suggestion_never_acts_and_is_gone_after_the_next_command`; demo |
-| 10 | Results update the correct Pokémon and player records | tests, socket | `test_battle_results_land_on_each_owners_own_pokemon`, `test_each_owner_keeps_the_experience_their_pokemon_earned`; demo |
-| 11 | A trainer victory updates a shared flag exactly once | tests, socket | `test_a_trainer_victory_sets_the_shared_flag_once_for_both_players`; demo |
-| 12 | Save and reload at a safe checkpoint keeps both players and progress | tests, socket | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone`; demo |
+| # | Criterion | Status |
+|---|---|---|
+| 1 | Two client instances connect to a host | tests, socket, screens (scripted) |
+| 2 | Each controls a separate player and sees the other on the same map | tests, socket, screens (scripted) |
+| 3 | One player battles while the other explores | tests, socket, screens (scripted) |
+| 4 | The second player starts an independent battle | tests, socket, screens (scripted) |
+| 5 | A free player requests to join an ongoing battle | tests, socket, screens (scripted) |
+| 6 | Joining happens at the next safe turn boundary | tests |
+| 7 | Both owners' Pokémon appear in the shared roster | tests, socket, screens (scripted) |
+| 8 | Switching Pokémon transfers turn control to its owner | tests, socket, screens (scripted) |
+| 9 | The other player's advisory selection is visible without executing | tests, socket, screens (scripted) |
+| 10 | Results update the correct Pokémon and player records | tests, socket, screens (scripted) |
+| 11 | A trainer victory updates a shared flag exactly once | tests, socket (synthetic trainer); Brock offered on Red but not fought in a window |
+| 12 | Save and reload at a safe checkpoint keeps both players and progress | tests, socket, screens (scripted) |
 
-The milestone is **not complete**. Every criterion works through the host and
-client objects over real sockets with synthetic content, but none of it is
-wired into the game's world or battle screens and none has been **played**.
-Showing remote players, a co-op battle panel and the advisory cursor on screen
-is #13 and needs a locally supplied Red or Blue dump.
+Every criterion has passed at the test level and in at least one run over
+real sockets, and all but 6 and 11 were seen in the real game windows. Nobody
+has **played** it by hand yet.
 
 ## Implemented
 
-- Campaign and player state with stable ids and exactly-once commits (#2).
-- Allied roster up to twelve with per-owner traded experience (#3).
-- Battle sessions: derived controller, revision-stamped commands, items from the
-  acting player's bag, enemy replacement and Gen 1 trainer AI (#4).
-- Suggestions (#5), joins at boundaries (#6), per-owner results (#7), unique
-  encounters and story commits (#8).
-- Host, client, in-memory and ENet transports, sequence numbers (#9, #10).
-- Versioned campaign save at checkpoints (#11).
-- Controller-loss pause, reconnect by player id, graceful host shutdown (#12).
-- `tools/coop_session.gd` with `demo`, `host` and `client`; CI runs the demo.
+- Campaign and player state, exactly-once commits, versioned save (#2, #11).
+- Allied roster up to twelve, per-owner experience, battle sessions with
+  ownership-based turns, suggestions, joins, results, story commits (#3 to #8).
+- Host, client, loopback and ENet transports; graceful shutdown and refusal (#9, #10, #12).
+- Real screens: other players as world actors, the co-op battle panel and the
+  session menu, `tools/coop_play.gd`, and a Red host mode in
+  `tools/coop_session.gd` (#13).
 
 ## Incomplete
 
-- Real screens (#13): no sprite for the other player, no co-op battle panel.
-- World simulation is not shared: the host accepts adjacent steps and warps
-  without collision checks (#22); encounters are registered, not generated (#25).
-- Captures are refused in shared sessions (#35). Evolution after battle is only
-  reported (`evolvable` uids), not run (#37).
+- A window's world runs on a save built at launch: its party, bag and money
+  menus do not follow co-op results until it restarts, and its story flags are
+  not the campaign's (#17, #18).
+- The host does not check collision and trusts reported warps (#22); encounters
+  are a fixed offer from the host tool, not generated from walking (#25).
+- The battle is a text panel, not the battle screen (#26). The panel offers
+  moves, switches, run, send-out, learn and Mimic; items work over the protocol
+  but are not offered in the panel.
+- Captures are refused in shared battles (#35); evolution is only reported (#37).
 - Gen 2 enemy AI in sessions is a random usable move (#27).
-- The `client` tool mode only connects and prints; scripted multi-process play
-  is #47.
+- Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
+  `palette` key for Generation 1 trainers (#59).
 
 ## Blocked
 
-- Nothing blocks the next step. Verifying it in the real screens needs a
-  cartridge dump the owner supplies locally.
+- Nothing.
 
 ## Next concrete step
 
-Import a Red or Blue dump locally, then put a `PokeCoopClient` into
-`Gen2WorldScreen`: draw remote players from `state.players` on the current map
-and add a battle panel fed by the session view (#13).
+Play a session by hand in two windows (commands in `AGENTS.md`) and file what
+feels wrong. Then start #16 and #17: classify the world state fields and run the
+window's world against a projection of the campaign and its player, so menus
+and story flags follow the host.

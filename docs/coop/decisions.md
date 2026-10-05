@@ -99,8 +99,8 @@ so no session state is ever persisted. Recovery between checkpoints is #39.
 ## D13. Comment ceiling raised for the co-op subsystem (2026-10-05)
 
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
-new subsystem. It was raised once to 41087 for `game/coop` and
-`tools/coop_session.gd`. Co-op code keeps upstream's comment style: only facts
+new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
+of the real-screen slice. Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -135,3 +135,32 @@ dropping undelivered packets when the disconnect arrives in the same poll; this
 was not confirmed in the engine source. The host now sends
 `ended`, ignores further messages, and closes once every client has left or
 after a two-second grace; a client closes its side on `ended`.
+
+## D19. Remote players are world actors (2026-10-06)
+
+Upstream's mod actor seam (`Gen2ModHost.register_world_actor`, documented in
+`docs/MODS.md`) already draws extra sprites with the map's objects, sorted by
+row, with SMOOTH SCROLL and emotes. `PokeCoopRemoteActor` uses it, so the world
+screen needed no change. Its `advance_frame` also reports the local position.
+
+## D20. Each window explores its own world until the host simulates one (2026-10-06)
+
+`tools/coop_play.gd` opens the unchanged world screen on a save built from the
+player's host record. The host trusts warps that world reports and checks only
+step length; local wild encounters and trainer sight are off, and battles come
+from the session menu. Cost: collision is not checked by the host, and the
+window's own party, bag and money are a copy taken at launch, so its menus do
+not follow co-op results until the window restarts (#17, #18, #22).
+
+## D21. A refused client is told why before it is let go (2026-10-06)
+
+The lost-notice problem behind D18 also hid hello refusals over ENet. The host
+sends the refusal and drops the peer after the same grace; a client closes on
+a refused hello and keeps the reason.
+
+## D22. The co-op battle panel is an overlay, not the battle screen (2026-10-06)
+
+The slice shows a shared battle as a text panel over the frozen world: roster
+with owners, who decides, the partner's suggestion marked on the list. Driving
+`Gen2BattleScreen` from session events is #26. The panel takes the eight
+buttons through `PokeButton`, so keyboard, pad and touch all reach it.
