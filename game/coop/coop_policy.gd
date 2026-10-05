@@ -33,11 +33,6 @@ static func prize_split(total: int, participants: Array, initiator: String) -> D
 	return out
 
 
-## Losing costs each participant half of their own money, as a blackout does.
-static func blackout_cost(money: int) -> int:
-	return money / 2
-
-
 ## A late joiner starts with shared progress, no Pokémon and starting money.
 static func new_player_money() -> int:
 	return NEW_PLAYER_MONEY

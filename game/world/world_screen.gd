@@ -2183,6 +2183,14 @@ func _nuzlocke_ends_here(save: Gen2SaveData) -> bool:
 		and not Gen2WorldPartyHost.party_has_fit_mon(save)
 
 
+## `Script_BattleWhiteout` for a battle the world did not run itself: a co-op
+## battle lost on its host. Nothing happens while somebody can still fight.
+func white_out() -> void:
+	var save: Gen2SaveData = active_save()
+	if _world != null and save != null and not Gen2WorldPartyHost.party_has_fit_mon(save):
+		_start_whiteout()
+
+
 ## `Script_BattleWhiteout` and `OverworldWhiteoutScript`, which differ only in
 ## the screen they came from: both fall into `Script_Whiteout`, so the text and
 ## everything behind it is one sequence here.
