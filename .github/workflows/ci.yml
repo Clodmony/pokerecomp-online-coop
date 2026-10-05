@@ -83,3 +83,12 @@ jobs:
         env:
           GODOT_CAP: 180
         run: tools/ci_godot.sh ~/godot/godot --headless --path . --quit-after 30
+
+      # The co-op slice over real localhost ENet sockets; fails on the first failed step.
+      - name: Co-op demo over ENet
+        env:
+          GODOT_CAP: 180
+          GODOT_DONE: "coop demo: all"
+        run: |
+          tools/ci_godot.sh ~/godot/godot --headless --path . \
+            -s res://tools/coop_session.gd -- demo
