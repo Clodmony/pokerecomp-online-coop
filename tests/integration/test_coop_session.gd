@@ -401,6 +401,71 @@ func test_a_heal_and_a_deposit_made_in_a_window_reach_the_host() -> void:
 	assert_eq(String(player.box[0]["uid"]), bench_uid, "the deposited Pokémon kept its uid")
 
 
+## What the world hands a takeover when it opens a battle of its own.
+func _opened_by_world(link: PokeCoopWorldLink, enemy: Gen2Party) -> Dictionary:
+	var party: Gen2Party = Gen2SaveBattleAdapter.to_battle_party(_data, link.save)
+	var battle: Gen2Battle = Gen2Battle.create_parties(_data, party, enemy, RandomNumberGenerator.new())
+	battle.battle_reward = 50
+	return {
+		"battle": battle, "player_party": party, "enemy_party": enemy, "data": _data,
+		"summary": {"battle_kind": &"wild", "trainer_class": 0, "trainer_index": 0},
+	}
+
+
+func _take_over(client: PokeCoopClient, context: Dictionary, results: Array) -> Node:
+	var bridge: Node = PokeCoopBattleTakeover.over(client, _data).create_battle()
+	add_child_autofree(bridge)
+	bridge.connect("finished", func(result: Dictionary) -> void: results.append(result))
+	bridge.call("start", context)
+	_pump()
+	return bridge
+
+
+func test_a_battle_the_world_opens_is_fought_on_the_host_and_hands_back_the_party() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var context: Dictionary = _opened_by_world(red, Gen2Party.of(
+		Gen2BattleMon.create(_data, Fixture.BULBASAUR, 2, [Fixture.GROWL])
+	))
+	var results: Array = []
+	var bridge: Node = _take_over(_red, context, results)
+	var battle_id: String = _battle_of(_red)
+	assert_ne(battle_id, "", "the host runs the fight")
+	assert_eq((context["battle"] as Gen2Battle).battle_reward, 0, "the host pays, not the world")
+
+	_fight_out(battle_id)
+	bridge.call("_process", 0.0)
+
+	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(
+		(context["player_party"] as Gen2Party).mons[0].exp,
+		_host.player(_red.player_id).team[0]["mon"].exp,
+		"the world commits the host's result"
+	)
+
+
+func test_the_world_whites_out_its_own_player_and_the_host_does_not_charge_twice() -> void:
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var context: Dictionary = _opened_by_world(blue, Gen2Party.of(
+		Gen2BattleMon.create(_data, Fixture.GEODUDE, 90, [Fixture.SLASH])
+	))
+	var results: Array = []
+	var bridge: Node = _take_over(_blue, context, results)
+
+	_fight_out(_battle_of(_blue))
+	bridge.call("_process", 0.0)
+
+	assert_eq(results, [{"outcome": &"lost"}])
+	assert_eq(_host.player(_blue.player_id).money, PokeCoopPolicy.NEW_PLAYER_MONEY)
+
+
+func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.save.world = Gen2WorldSnapshot.new()
+	_pump()
+
+	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
+
+
 func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:
 	_host.shutdown()
 	_pump()

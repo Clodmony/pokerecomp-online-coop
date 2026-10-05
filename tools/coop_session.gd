@@ -17,6 +17,11 @@ const SAVE_PATH: String = "user://coop_demo_campaign.json"
 ## `constants/event_constants.asm` at the pinned pokered commit, and Pallet Town's
 ## two doorsteps. Brock is trainer class 34, party 0.
 const EVENT_BEAT_BROCK: int = 0x77
+## The host hands out starters itself, so Oak's intro counts as done: without
+## these Pallet Town's north exit runs it and the lab gives a second starter.
+## EVENT_FOLLOWED_OAK_INTO_LAB, _2, OAK_ASKED_TO_CHOOSE_MON, GOT_STARTER and
+## BATTLED_RIVAL_IN_OAKS_LAB.
+const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
 const BROCK_CLASS: int = 34
 const PALLET_RED: Vector2i = Vector2i(5, 6)
 const PALLET_BLUE: Vector2i = Vector2i(13, 6)
@@ -142,6 +147,7 @@ func _start_host(port: int, game: String) -> void:
 	_host.save_path = path
 	if loaded.is_empty():
 		_cartridge_players()
+		campaign.commit("intro:starters_given", {"flags": INTRO_DONE_FLAGS})
 	else:
 		_host.adopt_players(loaded["players"])
 	_cartridge_encounters()
