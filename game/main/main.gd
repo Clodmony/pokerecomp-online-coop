@@ -98,6 +98,8 @@ func _build() -> void:
 	_settings.appearance_changed.connect(_reload_appearance)
 	_shell.add_page(&"settings", "Settings", &"settings", _settings)
 
+	_shell.add_page(&"coop", "Co-op", &"pad", PokeCoopPage.create(_palette, self))
+
 	_about = Gen2AboutPage.create(_palette, self)
 	_about.update_check_requested.connect(check_for_updates)
 	_shell.add_page(&"about", "About", &"about", _about)

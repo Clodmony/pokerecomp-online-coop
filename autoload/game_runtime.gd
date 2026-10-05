@@ -93,6 +93,8 @@ var _loaded_mods: Array = []
 ## machine with one screen, which is every desktop and most phones.
 var _second_screen: Gen2SecondScreen = null
 var _second_screen_host: Gen2SecondScreenHost = null
+## The co-op run this device is in, or null for single player.
+var coop: PokeCoopSession = null
 
 
 ## Loads installed mods before any screen exists.
@@ -204,6 +206,8 @@ func second_screen() -> Gen2SecondScreen:
 func _process(_delta: float) -> void:
 	if _second_screen != null:
 		_second_screen.refresh()
+	if coop != null:
+		coop.process()
 
 
 ## Puts the app block's window and frame-rate settings into the engine. The
