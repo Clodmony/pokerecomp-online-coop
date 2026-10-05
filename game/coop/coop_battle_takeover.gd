@@ -69,8 +69,9 @@ class Bridge extends Node:
 	func _process(_delta: float) -> void:
 		if _done:
 			return
-		if _refused():
-			_finish(&"ran")
+		var refusal: StringName = _refusal()
+		if refusal != &"":
+			_finish(&"won" if refusal == &"encounter_done" else &"ran")
 			return
 		if _battle_id.is_empty():
 			_battle_id = _new_battle()
@@ -79,11 +80,13 @@ class Bridge extends Node:
 			_take_party()
 			_finish(StringName(outcome) if outcome in ["won", "lost"] else &"ran")
 
-	func _refused() -> bool:
+	## Why the host refused this fight, or empty. A trainer the campaign has
+	## already beaten counts as beaten here too.
+	func _refusal() -> StringName:
 		for rejection: Dictionary in client.rejections:
 			if int(rejection.get("seq", -1)) == _seq:
-				return true
-		return false
+				return StringName(rejection.get("reason", &"refused"))
+		return &""
 
 	func _new_battle() -> String:
 		for battle_id: String in client.battles:

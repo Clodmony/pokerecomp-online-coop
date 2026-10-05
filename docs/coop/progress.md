@@ -110,8 +110,6 @@ has **played** it by hand yet.
 - Co-op still starts from `tools/coop_play.gd`, not from the game's launcher (#18, #42).
 - The host does not check collision and trusts reported warps, world patches
   and the enemies a window's world prepared (#22, #25).
-- Trainers fought from a window are not unique-claimed: two players can fight
-  the same trainer at once (L1).
 - A world SAVE the host refuses (a battle is running) still says "saved" in the
   window (L2).
 - The battle is a text panel, not the battle screen (#26). The panel offers
