@@ -3,25 +3,20 @@ extends SceneTree
 ## One co-op player's window on the real world screen, against a host started
 ## with `tools/coop_session.gd -- host [port] <game>` and a locally imported cartridge:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## SELECT opens the session menu. `keys=R,R,SELECT,A` presses buttons once the
-## world is up, `-` waiting a slot; `capture=<png>@<frames>` writes the window to a
-## PNG outside the project.
+## The same session the launcher's Co-op tab opens. SELECT opens the session menu.
+## `keys=R,R,SELECT,A` presses buttons once the world is up, `-` waiting a slot;
+## `capture=<png>@<frames>` writes the window to a PNG outside the project.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
-const LOCAL_ACTOR: StringName = &"coop_players"
-const LOCAL_TAKEOVER: StringName = &"coop_battles"
 const KEYS: Dictionary = {
 	"U": PokeButton.UP, "D": PokeButton.DOWN, "L": PokeButton.LEFT, "R": PokeButton.RIGHT,
 	"A": PokeButton.A, "B": PokeButton.B, "START": PokeButton.START, "SELECT": PokeButton.SELECT,
 	"-": PokeButton.NONE,
 }
 
-var _client: PokeCoopClient = null
-var _data: GameData = null
+var _session: PokeCoopSession = null
 var _screen: Gen2WorldScreen = null
-var _panel: PokeCoopBattlePanel = null
-var _link: PokeCoopWorldLink = null
 var _player_id: String = ""
 var _keys: Array = []
 var _captures: Array = []
@@ -42,14 +37,15 @@ func _initialize() -> void:
 	var port: int = int(positional[1]) if has_port else PokeCoopEnetTransport.DEFAULT_PORT
 	_player_id = positional[2 if has_port else 1]
 	var game_at: int = 3 if has_port else 2
-	_data = GameData.open(StringName(positional[game_at] if positional.size() > game_at else "red"))
-	var link: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(positional[0], port)
-	if _data == null or link == null:
+	var data: GameData = GameData.open(
+		StringName(positional[game_at] if positional.size() > game_at else "red")
+	)
+	_session = PokeCoopSession.joining(data, positional[0], port, _player_id.to_upper(), 0, _player_id)
+	if _session == null:
 		push_error("coop play: no imported cache for that game, or no connection")
 		quit(1)
 		return
-	_client = PokeCoopClient.over(link)
-	_client.greet(_player_id, _data.id, _data.sha1, _player_id)
+	Gen2GameRuntime.instance().coop = _session
 
 
 func _read_option(arg: String) -> bool:
@@ -68,78 +64,22 @@ func _read_option(arg: String) -> bool:
 
 
 func _process(_delta: float) -> bool:
-	if _client == null:
+	if _session == null:
 		return false
-	_client.poll()
-	if _link != null:
-		_link.advance()
-	if not _client.ended_reason.is_empty():
-		print("coop play: session ended (%s)" % _client.ended_reason)
+	if not _session.ended_reason().is_empty():
+		print("coop play: session ended (%s)" % _session.ended_reason())
 		quit(0)
 		return false
-	if _screen == null and not _client.me().is_empty():
-		_launch()
+	if _screen == null and _session.is_ready():
+		_screen = _session.open_world()
+		root.add_child(_screen)
+		current_scene = _screen
+		print("coop play: %s on map %s at %s" % [_player_id, _screen.map_group, _screen.start_cell])
 	if _screen != null:
 		_frames += 1
-		_hold_world_under_panel()
 		_drive_keys()
 		_capture_due()
 	return false
-
-
-## The world walks on held directions, not only on press events, so it stands
-## still for as long as the panel is open rather than relying on the panel
-## swallowing presses.
-func _hold_world_under_panel() -> void:
-	var mode: Node.ProcessMode = Node.PROCESS_MODE_DISABLED if _panel.is_open() \
-		else Node.PROCESS_MODE_INHERIT
-	if _screen.process_mode != mode:
-		_screen.process_mode = mode
-
-
-func _launch() -> void:
-	var view: Dictionary = (_client.state.get("players", {}) as Dictionary).get(_player_id, {})
-	var save: Gen2SaveData = _local_save(_client.me())
-	Gen2ModHost.instance().register_world_actor(LOCAL_ACTOR, PokeCoopRemoteActor.over(_client))
-	Gen2ModHost.instance().register_battle_takeover(
-		LOCAL_TAKEOVER, PokeCoopBattleTakeover.over(_client, _data)
-	)
-	_screen = (load("res://game/world/world_screen.tscn") as PackedScene).instantiate() as Gen2WorldScreen
-	var map: Vector2i = view.get("map", Vector2i.ZERO)
-	_screen.map_group = map.x
-	_screen.map_number = map.y
-	_screen.start_cell = view.get("cell", Vector2i.ZERO)
-	_screen.set_data(_data)
-	_screen.set_save(save)
-	Gen2ModHost.instance().created_save(save)
-	Gen2ModHost.instance().activate_save(save)
-	root.add_child(_screen)
-	current_scene = _screen
-	var world: Gen2WorldAPI = _screen.get("_world")
-	if world != null:
-		_link = PokeCoopWorldLink.over(_client, world.state, save, _data)
-	var layer := CanvasLayer.new()
-	layer.layer = 20
-	root.add_child(layer)
-	_panel = PokeCoopBattlePanel.over(_client, _data)
-	layer.add_child(_panel)
-	print("coop play: %s on map %s at %s" % [_player_id, map, view.get("cell")])
-
-
-## The world screen explores on a save of its own, built from this player's
-## record and kept in step with it by [PokeCoopWorldLink].
-func _local_save(me: Dictionary) -> Gen2SaveData:
-	var save := Gen2SaveData.new()
-	save.game_id = _data.id
-	save.rom_sha1 = _data.sha1
-	save.player_name = String(me.get("name", _player_id))
-	save.player_id = int(me.get("trainer_id", 0))
-	save.run_rules = Gen2Rules.new()
-	for row: Dictionary in me.get("party", []):
-		var mon: Gen2SaveMon = Gen2SaveMon.from_dict(row["mon"])
-		if mon != null:
-			save.party.append(mon)
-	return save
 
 
 func _drive_keys() -> void:

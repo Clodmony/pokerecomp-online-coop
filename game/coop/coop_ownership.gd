@@ -69,7 +69,7 @@ const GAME_RUNTIME: Dictionary = {
 	"selected_game_id": LOCAL, "selected_save_slot": LOCAL, "pending_new_game_slot": LOCAL,
 	"pending_new_game_label": LOCAL, "pending_new_game_challenge": LOCAL, "_save": LOCAL,
 	"_save_key": LOCAL, "_loaded_mods": LOCAL, "_second_screen": LOCAL,
-	"_second_screen_host": LOCAL,
+	"_second_screen_host": LOCAL, "coop": LOCAL,
 }
 
 
