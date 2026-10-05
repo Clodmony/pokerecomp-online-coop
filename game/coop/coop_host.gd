@@ -6,6 +6,8 @@ extends RefCounted
 ## answers every connected client with the state they may see.
 
 const PROTOCOL: int = 1
+## A walk step, or a ledge hop over the cell between.
+const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
 
 var data: GameData = null
@@ -19,6 +21,7 @@ var allow_new_players: bool = false
 var seeds: RandomNumberGenerator = RandomNumberGenerator.new()
 var ended: bool = false
 var _closing_at: int = -1
+var _refused_peers: Dictionary = {}
 var _peers: Dictionary = {}
 var _last_seq: Dictionary = {}
 var _finished: Array = []
@@ -69,8 +72,9 @@ func poll() -> void:
 		var kind: StringName = StringName(event["kind"])
 		if kind == PokeCoopTransport.DISCONNECTED:
 			_on_disconnected(peer)
-		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0:
+		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0 and not _refused_peers.has(peer):
 			_on_message(peer, event["message"])
+	_drop_refused()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
 		transport.close()
 		ended = true
@@ -101,7 +105,7 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),
-				int(message.get("facing", sender.facing)))
+				int(message.get("facing", sender.facing)), bool(message.get("warp", false)))
 		"start_battle":
 			return start_battle(sender, String(message.get("encounter", "")))
 		"command":
@@ -129,7 +133,7 @@ func _hello(peer: int, message: Dictionary) -> void:
 		refusal = &"already_connected"
 	if refusal != &"":
 		transport.send(peer, _rejected(-1, refusal))
-		transport.drop(peer)
+		_refused_peers[peer] = Time.get_ticks_msec() + SHUTDOWN_GRACE_MSEC
 		return
 	_peers[peer] = joining.player_id
 	joining.connected = true
@@ -151,7 +155,16 @@ func _hello_refusal(message: Dictionary) -> StringName:
 	return &""
 
 
+## A refused client is let go after the grace a refusal needs to arrive.
+func _drop_refused() -> void:
+	for peer: int in _refused_peers.keys():
+		if Time.get_ticks_msec() >= int(_refused_peers[peer]):
+			_refused_peers.erase(peer)
+			transport.drop(peer)
+
+
 func _on_disconnected(peer: int) -> void:
+	_refused_peers.erase(peer)
 	var leaving: PokeCoopPlayer = player(String(_peers.get(peer, "")))
 	_peers.erase(peer)
 	if leaving == null:
@@ -164,12 +177,16 @@ func _on_disconnected(peer: int) -> void:
 		broadcast()
 
 
-## A step on the current map or a warp to another. Collision and warp checks wait
-## for the shared world simulation.
-func step(mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int) -> StringName:
+## A step on the current map, or a [param warp] the client's own world made.
+## Collision and warp checks wait for the shared world simulation, so a warp is
+## trusted until then.
+func step(
+	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
+) -> StringName:
 	if not mover.is_free():
 		return &"in_battle"
-	if to_map == mover.map and absi(to_cell.x - mover.cell.x) + absi(to_cell.y - mover.cell.y) > 1:
+	var distance: int = absi(to_cell.x - mover.cell.x) + absi(to_cell.y - mover.cell.y)
+	if not warp and to_map == mover.map and distance > MAX_STEP_CELLS:
 		return &"not_adjacent"
 	mover.place(to_map, to_cell, toward)
 	return &""
@@ -321,12 +338,18 @@ func broadcast() -> void:
 			"battle": session.id, "encounter": String(session.encounter.get("id", "")),
 			"participants": session.participants.duplicate(), "phase": session.phase(),
 		})
+	var offered: Array = []
+	for encounter_id: String in encounters:
+		offered.append({
+			"id": encounter_id,
+			"label": String((encounters[encounter_id] as Dictionary).get("label", encounter_id)),
+		})
 	for peer: int in _peers:
 		var viewer: PokeCoopPlayer = player(String(_peers[peer]))
 		transport.send(peer, {
 			"type": "state", "campaign": campaign.summary(), "players": everyone,
 			"you": viewer.private_view(), "nearby": nearby(viewer), "battles": running,
-			"last_seq": int(_last_seq.get(viewer.player_id, 0)),
+			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
 		})
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):
