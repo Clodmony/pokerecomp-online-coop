@@ -5,7 +5,9 @@
 > every change in this fork after upstream commit `696d1c9`, is written by an AI
 > coding agent (Claude, by Anthropic) directed by the repository owner. Upstream
 > pokerecomp and its history belong to its own authors and keep their MIT
-> licence. Everything below this notice is upstream's README.
+> licence. The co-op design, status and agent instructions are in
+> [docs/coop/](docs/coop/progress.md) and [AGENTS.md](AGENTS.md). Everything
+> below this notice is upstream's README.
 
 <p align="center">
   <img src="assets/brand/banner.png" alt="pokerecomp" width="820">
