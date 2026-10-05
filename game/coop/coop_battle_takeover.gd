@@ -8,6 +8,8 @@ extends RefCounted
 
 var client: PokeCoopClient = null
 var data: GameData = null
+## The battles the world opened itself, whose evolutions it runs itself.
+var claimed: Dictionary = {}
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -23,7 +25,7 @@ func takes_battle(context: Dictionary) -> bool:
 
 
 func create_battle() -> Node:
-	return Bridge.new(client, data)
+	return Bridge.new(self)
 
 
 ## The world's battle Node: asks the host for the fight, waits for its outcome,
@@ -33,15 +35,17 @@ class Bridge extends Node:
 
 	var client: PokeCoopClient = null
 	var data: GameData = null
+	var _owner: PokeCoopBattleTakeover = null
 	var _context: Dictionary = {}
 	var _known: Array = []
 	var _battle_id: String = ""
 	var _seq: int = -1
 	var _done: bool = false
 
-	func _init(session: PokeCoopClient, game_data: GameData) -> void:
-		client = session
-		data = game_data
+	func _init(takeover: PokeCoopBattleTakeover) -> void:
+		_owner = takeover
+		client = takeover.client
+		data = takeover.data
 		process_mode = Node.PROCESS_MODE_ALWAYS
 
 	func start(context: Dictionary) -> void:
@@ -75,6 +79,8 @@ class Bridge extends Node:
 			return
 		if _battle_id.is_empty():
 			_battle_id = _new_battle()
+			if not _battle_id.is_empty():
+				_owner.claimed[_battle_id] = true
 		var outcome: String = String(client.battle(_battle_id).get("outcome", ""))
 		if not _battle_id.is_empty() and not outcome.is_empty():
 			_take_party()

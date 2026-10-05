@@ -95,6 +95,11 @@ func _pull_world() -> void:
 	_dirty = false
 
 
+## The host's uid for each row of the window's party, as last pulled.
+func uids() -> Array:
+	return _uids.duplicate()
+
+
 func _is_free() -> bool:
 	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(client.player_id, {})
 	return String(view.get("battle", "")).is_empty()
