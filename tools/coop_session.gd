@@ -249,7 +249,7 @@ func _save_matches() -> bool:
 
 func _finish(code: int) -> void:
 	if _host != null:
-		_host.shutdown()
+		_host.shutdown("host_shutdown", 0)
 	RomCache.clear(_directory)
 	if _mode == "demo" and FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))

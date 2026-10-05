@@ -260,6 +260,7 @@ func test_a_lost_controller_pauses_only_their_battle() -> void:
 	_pump()
 
 	assert_true(bool(_host.battles[battle_id].is_paused()))
+	assert_false(_blue.nearby().has(_red.player_id), "nobody is drawn for a player who left")
 	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0))
 	assert_eq(_host.player(_blue.player_id).cell, Vector2i(6, 6), "Blue's exploration goes on")
 
@@ -278,3 +279,4 @@ func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:
 	assert_eq(_red.ended_reason, "host_shutdown")
 	assert_eq(_blue.ended_reason, "host_shutdown")
 	assert_false(_red.connected)
+	assert_true(_host.ended, "closed once both clients had left")

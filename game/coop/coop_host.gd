@@ -6,6 +6,7 @@ extends RefCounted
 ## answers every connected client with the state they may see.
 
 const PROTOCOL: int = 1
+const SHUTDOWN_GRACE_MSEC: int = 2000
 
 var data: GameData = null
 var campaign: PokeCoopCampaign = null
@@ -17,6 +18,7 @@ var save_path: String = ""
 var allow_new_players: bool = false
 var seeds: RandomNumberGenerator = RandomNumberGenerator.new()
 var ended: bool = false
+var _closing_at: int = -1
 var _peers: Dictionary = {}
 var _last_seq: Dictionary = {}
 var _finished: Array = []
@@ -67,8 +69,11 @@ func poll() -> void:
 		var kind: StringName = StringName(event["kind"])
 		if kind == PokeCoopTransport.DISCONNECTED:
 			_on_disconnected(peer)
-		elif kind == PokeCoopTransport.MESSAGE:
+		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0:
 			_on_message(peer, event["message"])
+	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
+		transport.close()
+		ended = true
 
 
 func _on_message(peer: int, message: Dictionary) -> void:
@@ -155,7 +160,8 @@ func _on_disconnected(peer: int) -> void:
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
 			session.set_absent(leaving.player_id, true)
-	broadcast()
+	if _closing_at < 0:
+		broadcast()
 
 
 ## A step on the current map or a warp to another. Collision and warp checks wait
@@ -293,13 +299,16 @@ func save_checkpoint() -> StringName:
 	return &"" if PokeCoopSave.write(save_path, campaign, players.values()) == OK else &"save_failed"
 
 
-func shutdown(reason: String = "host_shutdown") -> void:
-	if ended:
+## Tells every client the session is over, then closes once they have all left
+## or [param grace_msec] has passed: a socket closed at once can lose the notice.
+func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE_MSEC) -> void:
+	if ended or _closing_at >= 0:
 		return
 	for peer: int in _peers:
 		transport.send(peer, {"type": "ended", "reason": reason})
-	transport.close()
-	ended = true
+	_closing_at = Time.get_ticks_msec() + maxi(grace_msec, 0)
+	if grace_msec <= 0:
+		poll()
 
 
 func broadcast() -> void:
@@ -328,12 +337,13 @@ func broadcast() -> void:
 	_finished.clear()
 
 
-## Everybody else on [param viewer]'s map who is out exploring there.
+## Everybody else connected and out exploring on [param viewer]'s map.
 func nearby(viewer: PokeCoopPlayer) -> Array[String]:
 	var out: Array[String] = []
 	for player_id: String in players:
 		var other: PokeCoopPlayer = player(player_id)
-		if other != viewer and other.map == viewer.map and other.return_point.is_empty():
+		if other != viewer and other.connected and other.map == viewer.map \
+				and other.return_point.is_empty():
 			out.append(player_id)
 	return out
 
