@@ -99,7 +99,7 @@ so no session state is ever persisted. Recovery between checkpoints is #39.
 ## D13. Comment ceiling raised for the co-op subsystem (2026-10-05)
 
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
-new subsystem. It was raised once to 41085 for `game/coop` and
+new subsystem. It was raised once to 41087 for `game/coop` and
 `tools/coop_session.gd`. Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
@@ -126,3 +126,12 @@ session refuses ball items rather than guessing an owner.
 German Red/Blue is #50, with `einstein95/pokered-de` (linked at the end of the
 brief) as the reference disassembly. It is not a prerequisite for the first
 slice.
+
+## D18. Shutdown waits for clients to leave (2026-10-06)
+
+An `ended` notice sent just before the host closed never reached the clients,
+in local runs and in CI run 37380076818. The likely cause is the ENet client
+dropping undelivered packets when the disconnect arrives in the same poll; this
+was not confirmed in the engine source. The host now sends
+`ended`, ignores further messages, and closes once every client has left or
+after a two-second grace; a client closes its side on `ended`.

@@ -24,8 +24,8 @@ never identity.
 ## Exploration
 
 - Players explore independently, on the same map or on different maps.
-- Players on the same map see each other. A player who left their map to join a
-  battle elsewhere is not shown there until they return.
+- Connected players on the same map see each other. A player who left their
+  map to join a battle elsewhere, or who is disconnected, is not shown there.
 - The host is authoritative for every position. The first slice accepts a step
   to an adjacent cell or a warp to another map; collision and warp validation
   arrive with the shared world simulation (#22).
@@ -79,8 +79,9 @@ never identity.
   battle is disconnected, that battle is paused; everything else, including the
   other player's exploration and battles, continues. A disconnected participant
   who is not the current controller does not pause the battle.
-- Host shutdown sends every client an `ended` message and closes the session.
-  Host migration is out of scope.
+- Host shutdown sends every client an `ended` message, stops accepting
+  commands, and closes once every client has left or after a short grace
+  period. Host migration is out of scope.
 - Clients import compatible content locally. Cartridge identity (game id and
   SHA-1) must match the host's; no ROM or extracted content is transmitted.
 
