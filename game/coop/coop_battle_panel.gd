@@ -17,6 +17,7 @@ var _cursor: int = 0
 var _menu_open: bool = false
 var _dismissed: Dictionary = {}
 var _shown: String = ""
+var _turn_key: String = ""
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattlePanel:
@@ -72,6 +73,10 @@ func _process(_delta: float) -> void:
 	var view: Dictionary = battle_view()
 	if not view.is_empty():
 		_menu_open = false
+	var turn_key: String = "%s/%s" % [view.get("battle", ""), view.get("controller", "")]
+	if turn_key != _turn_key:
+		_turn_key = turn_key
+		_cursor = 0
 	_rows = _battle_rows(view) if not view.is_empty() else (_menu_rows() if _menu_open else [])
 	_cursor = clampi(_cursor, 0, maxi(_rows.size() - 1, 0))
 	var text: String = _battle_text(view) if not view.is_empty() else (_menu_text() if _menu_open else "")
