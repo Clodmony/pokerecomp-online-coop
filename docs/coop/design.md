@@ -26,9 +26,15 @@ never identity.
 - Players explore independently, on the same map or on different maps.
 - Connected players on the same map see each other. A player who left their
   map to join a battle elsewhere, or who is disconnected, is not shown there.
-- The host is authoritative for every position. The first slice accepts a step
-  to an adjacent cell or a warp to another map; collision and warp validation
-  arrive with the shared world simulation (#22).
+- The host keeps every position. Until the shared world simulation (#22) each
+  window walks its own world: the host accepts a step of up to two cells (a
+  ledge hop) on the same map and trusts a warp the client's world reports.
+  Collision is the client's own until then.
+- In a co-op window the local world's own wild encounters and trainer sight are
+  off; battles start from the session menu (SELECT) with encounters the host
+  offers, until the host generates them (#25).
+- Each player is drawn in one colour in every window, by their place in the
+  session; a player in a battle wears the "!" emote where the battle started.
 
 ## Battles
 
@@ -49,6 +55,7 @@ never identity.
   player's Pokémon hands control to that player. A question about one Pokémon
   (replacing it after a faint, a move it wants to learn, Mimic) goes to the
   owner of that Pokémon; the replacement may be any standing allied Pokémon.
+- While the co-op panel is open the player's own world stands still.
 - The other participant can move an advisory cursor and send a suggestion
   (move, switch, item, run, send out). A suggestion is shown to the battle's
   participants, never executes, never consumes a turn and is cleared when the

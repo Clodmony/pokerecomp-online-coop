@@ -61,8 +61,9 @@ Further findings that shape the design:
    team of at most six `{uid, Gen2SaveMon}` rows, box, bag, money, map, cell,
    facing, return point, battle id and connection flag. Uids are
    `<player id>:<serial>` and never reused.
-3. **World simulation**: not yet shared. The host keeps positions and accepts
-   adjacent steps and warps; #22 moves `Gen2WorldApi` to per-player actors.
+3. **World simulation**: not yet shared. Each window runs the unchanged world
+   on its own save; the host keeps positions, checks step length and trusts
+   reported warps (D20). #22 moves `Gen2WorldApi` to per-player actors.
 4. **Battle sessions** (`PokeCoopBattleSession`): wraps one `Gen2Battle` with
    its own seeded generator and a revision that advances on every accepted
    decision. The controller is derived, never stored: the owner of the active
@@ -71,9 +72,17 @@ Further findings that shape the design:
    `Gen1TrainerAI.select_slot`. Joins queue and apply at the next boundary by
    appending to the allied party (`Gen2Party.add_members`). Results are grouped
    by owner and uid; evolvable Pokémon are reported by uid.
-5. **Client presentation** (`PokeCoopClient`): sends numbered intentions, keeps
-   the last state and battle views. No game rule runs on the client. The real
-   world and battle screens are not connected yet (#13).
+5. **Client presentation**: `PokeCoopClient` sends numbered intentions and keeps
+   the last state and battle views; no game rule runs on it.
+   `PokeCoopRemoteActor` is registered as a world actor (D19): it draws the
+   other connected players on the current map, eased between cells, in a fixed
+   colour each, with the "!" emote while they battle, and reports this player's
+   position. `PokeCoopBattlePanel` is a `PanelContainer` on a `CanvasLayer` over
+   the world: SELECT opens the session menu (fight an offered encounter, join a
+   running battle, save), and a shared battle shows the roster with owners, who
+   decides and the partner's suggestion (D22). `tools/coop_play.gd` assembles a
+   window: data from the local cache, the world screen on a local save, the
+   actor, the panel, and the world held still while the panel is open.
 6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version`, the
    campaign section and one section per player, written atomically through a
    temporary file. Refuses unknown kinds and newer versions.
@@ -90,7 +99,7 @@ Peer 1 is the host.
 | Client to host | Fields |
 |---|---|
 | `hello` | `protocol`, `game_id`, `rom_sha1`, `player_id`, `name` (no `seq`) |
-| `move` | `seq`, `map`, `cell`, `facing` |
+| `move` | `seq`, `map`, `cell`, `facing`, `warp` (the client's world changed map or jumped) |
 | `start_battle` | `seq`, `encounter` (an id registered on the host) |
 | `command` | `seq`, `battle`, `command` (`type`, `revision`, and `slot`, `index`, `item`, `target`, `move_slot`, `forget_slot` or `choice`) |
 | `suggest` | `seq`, `battle`, `suggestion` (`type`, `value`) |
@@ -100,12 +109,13 @@ Peer 1 is the host.
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
-| `state` | `campaign` summary, `players` (public views), `you` (private view), `nearby`, `battles` (running), `last_seq` |
+| `state` | `campaign` summary, `players` (public views), `you` (private view, with the player's own `party` rows), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 
-On shutdown the host sends `ended`, ignores further messages and closes once all
+A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
+after `SHUTDOWN_GRACE_MSEC`. On shutdown the host sends `ended`, ignores further messages and closes once all
 clients have left or `SHUTDOWN_GRACE_MSEC` has passed; a client closes on
 `ended`. Sequence numbers are per player and strictly increasing; the host refuses a
 number it has already seen (`duplicate`) and tells a reconnecting client where
@@ -132,14 +142,13 @@ Kept small so upstream merges stay cheap (#14):
 
 In order of the backlog:
 
-1. Connect the slice to the real screens with a locally imported cartridge:
-   remote player sprites, a co-op battle panel (#13).
-2. Classify every `Gen2WorldState`, `Gen2WorldSnapshot`, `Gen2SaveData` and
+1. Classify every `Gen2WorldState`, `Gen2WorldSnapshot`, `Gen2SaveData` and
    `Gen2GameRuntime` field (#16), then run the existing world logic against a
    campaign-plus-player projection whose writes split back to their owners
-   (#17), and give `Gen2GameRuntime` a co-op mode (#18).
-3. Per-player actors in a host-side world per active map (#22), with
+   (#17), and give `Gen2GameRuntime` a co-op mode (#18), so a window's menus
+   follow its player's host record.
+2. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
-4. Drive `Gen2BattleScreen` from session events (#26) and share the enemy AI
-   choice between the screen and sessions (#27).
-5. Route map-script flags and badges through campaign commits (#32).
+3. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,
+   and share the enemy AI choice between the screen and sessions (#27).
+4. Route map-script flags and badges through campaign commits (#32).
