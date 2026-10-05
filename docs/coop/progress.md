@@ -5,8 +5,8 @@ what is blocked. Verification levels are kept apart on purpose:
 
 - **static**: written and read, not executed;
 - **tests**: GUT suites passing on Godot 4.8-dev4 (CI or local);
-- **socket**: the ENet demo passing over localhost;
-- **played**: two people or two windows played it in the real game screens.
+- **socket**: the ENet demo or separate processes over localhost;
+- **played**: people played it in the real game screens.
 
 ## Baseline
 
@@ -15,29 +15,40 @@ what is blocked. Verification levels are kept apart on purpose:
 | Upstream commit | `696d1c9a1d345ae08fd7febac8aa320aed6608b5` (0.1.72) | `upstream/main` on 2026-10-05 |
 | Import, GUT, boot smoke on `main` | Passed: 184 scripts, 4812 tests, 135416 asserts, 381.6 s; boot smoke passed | fork CI run 37376496611 (`main` = baseline plus workflow guard and README notice) |
 | Engine-free gates | Passed | `tools/release.sh --gates`, local |
-| Local Godot | Not installed on the development machine; verification runs in the fork's CI | |
+
+## Verification runs for slice 1 (2026-10-06)
+
+| Run | Result |
+|---|---|
+| CI run 37380076818 (PR #58, before the shutdown fix) | Import passed; GUT 4837/4837 passed; boot smoke passed; ENet demo 15/16, failing "host shutdown ends both clients" (fixed, see D18) |
+| Local, Godot 4.8-dev4 x86_64 (same engine commit `b56a91878` as CI) | Full suite before the last comment-ceiling update: 4836/4837, the one failure being the comment ceiling (41087 over 41085), since raised. After the fixes: co-op suites 25/25 (`test_coop_state` 6, `test_coop_battle` 10, `test_coop_session` 9), `test_source_budget` 4/4 |
+| Local ENet demo, x86_64 | 16/16 steps, three runs in a row |
+| Local ENet demo, x86_32 build | 16/16 steps, five runs in a row |
+| Local separate processes | `host` and two `client` processes on 127.0.0.1: both welcomed, each lists the other as nearby once both are connected |
+| CI on the final commit | see the PR checks |
 
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
-| 1 | Two client instances connect to a host | tests, socket: pending CI | `test_coop_session.gd`, `coop_session.gd demo` |
-| 2 | Each controls a separate player and sees the other on the same map | tests: pending CI; rendering not done | `test_two_clients_each_move_their_own_player_and_see_each_other_on_one_map` |
-| 3 | One player battles while the other explores | tests: pending CI | `test_one_player_battles_while_the_other_explores_and_starts_their_own` |
-| 4 | The second player starts an independent battle | tests: pending CI | same test; `test_two_battles_interleaved_play_out_as_if_each_ran_alone` |
-| 5 | A free player requests to join an ongoing battle | tests: pending CI | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out` |
-| 6 | Joining happens at the next safe turn boundary | tests: pending CI | `test_a_join_asked_during_a_forced_replacement_waits_for_the_turn_boundary` |
-| 7 | Both owners' Pokémon appear in the shared roster | tests: pending CI | `test_two_full_teams_fill_a_roster_of_twelve_and_each_team_stays_at_six` |
-| 8 | Switching Pokémon transfers turn control to its owner | tests: pending CI | `test_the_turn_belongs_to_the_owner_of_the_pokemon_that_is_out` |
-| 9 | The other player's advisory selection is visible without executing | tests: pending CI; cursor not drawn | `test_a_suggestion_never_acts_and_is_gone_after_the_next_command` |
-| 10 | Results update the correct Pokémon and player records | tests: pending CI | `test_battle_results_land_on_each_owners_own_pokemon`, `test_each_owner_keeps_the_experience_their_pokemon_earned` |
-| 11 | A trainer victory updates a shared flag exactly once | tests: pending CI | `test_a_trainer_victory_sets_the_shared_flag_once_for_both_players` |
-| 12 | Save and reload at a safe checkpoint keeps both players and progress | tests: pending CI | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone` |
+| 1 | Two client instances connect to a host | tests, socket | `test_coop_session.gd`; demo; separate processes |
+| 2 | Each controls a separate player and sees the other on the same map | tests, socket; not drawn on screen | `test_two_clients_each_move_their_own_player_and_see_each_other_on_one_map`; separate processes |
+| 3 | One player battles while the other explores | tests, socket | `test_one_player_battles_while_the_other_explores_and_starts_their_own`; demo |
+| 4 | The second player starts an independent battle | tests, socket | same test; `test_two_battles_interleaved_play_out_as_if_each_ran_alone`; demo |
+| 5 | A free player requests to join an ongoing battle | tests, socket | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out`; demo |
+| 6 | Joining happens at the next safe turn boundary | tests | `test_a_join_asked_during_a_forced_replacement_waits_for_the_turn_boundary` |
+| 7 | Both owners' Pokémon appear in the shared roster | tests, socket | `test_two_full_teams_fill_a_roster_of_twelve_and_each_team_stays_at_six`; demo |
+| 8 | Switching Pokémon transfers turn control to its owner | tests, socket | `test_the_turn_belongs_to_the_owner_of_the_pokemon_that_is_out`; demo |
+| 9 | The other player's advisory selection is visible without executing | tests, socket; cursor not drawn | `test_a_suggestion_never_acts_and_is_gone_after_the_next_command`; demo |
+| 10 | Results update the correct Pokémon and player records | tests, socket | `test_battle_results_land_on_each_owners_own_pokemon`, `test_each_owner_keeps_the_experience_their_pokemon_earned`; demo |
+| 11 | A trainer victory updates a shared flag exactly once | tests, socket | `test_a_trainer_victory_sets_the_shared_flag_once_for_both_players`; demo |
+| 12 | Save and reload at a safe checkpoint keeps both players and progress | tests, socket | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone`; demo |
 
-The slice is **not complete**: every criterion is exercised through the host
-and client objects, not through the game's world and battle screens, and none
-has been played. Rendering remote players, a co-op battle panel and the
-advisory cursor on screen is #13 and needs a locally supplied Red or Blue dump.
+The milestone is **not complete**. Every criterion works through the host and
+client objects over real sockets with synthetic content, but none of it is
+wired into the game's world or battle screens and none has been **played**.
+Showing remote players, a co-op battle panel and the advisory cursor on screen
+is #13 and needs a locally supplied Red or Blue dump.
 
 ## Implemented
 
@@ -49,8 +60,8 @@ advisory cursor on screen is #13 and needs a locally supplied Red or Blue dump.
   encounters and story commits (#8).
 - Host, client, in-memory and ENet transports, sequence numbers (#9, #10).
 - Versioned campaign save at checkpoints (#11).
-- Controller-loss pause, reconnect by player id, host shutdown (#12).
-- `tools/coop_session.gd` with `demo`, `host` and `client`; a CI step runs the demo.
+- Controller-loss pause, reconnect by player id, graceful host shutdown (#12).
+- `tools/coop_session.gd` with `demo`, `host` and `client`; CI runs the demo.
 
 ## Incomplete
 
@@ -60,17 +71,16 @@ advisory cursor on screen is #13 and needs a locally supplied Red or Blue dump.
 - Captures are refused in shared sessions (#35). Evolution after battle is only
   reported (`evolvable` uids), not run (#37).
 - Gen 2 enemy AI in sessions is a random usable move (#27).
-- The `.gd.uid` files for the new scripts are generated by the first editor
-  import and are not committed yet.
-- The `host` and `client` tool modes have not been run as separate processes.
+- The `client` tool mode only connects and prints; scripted multi-process play
+  is #47.
 
 ## Blocked
 
-- Nothing that blocks the next step. Verification of the real screens needs a
+- Nothing blocks the next step. Verifying it in the real screens needs a
   cartridge dump the owner supplies locally.
 
 ## Next concrete step
 
-Import a Red or Blue dump locally, then put a second `PokeCoopClient` into
+Import a Red or Blue dump locally, then put a `PokeCoopClient` into
 `Gen2WorldScreen`: draw remote players from `state.players` on the current map
 and add a battle panel fed by the session view (#13).

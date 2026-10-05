@@ -105,7 +105,9 @@ Peer 1 is the host.
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 
-Sequence numbers are per player and strictly increasing; the host refuses a
+On shutdown the host sends `ended`, ignores further messages and closes once all
+clients have left or `SHUTDOWN_GRACE_MSEC` has passed; a client closes on
+`ended`. Sequence numbers are per player and strictly increasing; the host refuses a
 number it has already seen (`duplicate`) and tells a reconnecting client where
 to continue. Battle commands additionally carry the session revision
 (`stale_revision`). Encounters are registered on the host, never described by a
