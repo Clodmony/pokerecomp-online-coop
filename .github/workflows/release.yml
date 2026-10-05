@@ -27,6 +27,8 @@ env:
 jobs:
   version:
     name: agree on a version
+    # Forks never publish; every later job needs this one.
+    if: github.repository == 'Decryptu/pokerecomp'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.read.outputs.tag }}

@@ -13,12 +13,5 @@ if [ -x "$root/tools/release.sh" ]; then
 	}
 fi
 
-# Keep local-only tool attribution out of public commit history.
-range=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "origin/main")
-found=$(git log --format='%an <%ae>%n%B' "$range..HEAD" 2>/dev/null \
-	| grep -niE 'generated with|co-authored' || true)
-if [ -n "$found" ]; then
-	echo "pre-push: the commits carry an attribution trailer:" >&2
-	echo "$found" | sed 's/^/    /' >&2
-	exit 1
-fi
+# The co-op fork discloses AI authorship (README, docs/coop/), so commits keep
+# their attribution trailers; upstream's trailer check is removed here.
