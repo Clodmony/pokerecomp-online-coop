@@ -186,7 +186,9 @@ exact enemies the world prepared, so tall grass and scripted trainers produce
 joinable co-op battles and encounters no longer need to be off. To avoid paying
 or charging twice the world's prize is zeroed (the host pays its split) and the
 host does not charge the initiator a blackout (their world whites them out).
-Cost: trainers fought this way are not unique-claimed (L1).
+A trainer fought this way is the encounter `trainer:<class>:<index>`: a second
+window walking into it joins the running fight, and once beaten it answers as
+beaten without a fight.
 
 ## D25. The Red demo host marks Oak's intro done (2026-10-06)
 

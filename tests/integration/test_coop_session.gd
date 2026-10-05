@@ -401,14 +401,20 @@ func test_a_heal_and_a_deposit_made_in_a_window_reach_the_host() -> void:
 	assert_eq(String(player.box[0]["uid"]), bench_uid, "the deposited Pokémon kept its uid")
 
 
-## What the world hands a takeover when it opens a battle of its own.
-func _opened_by_world(link: PokeCoopWorldLink, enemy: Gen2Party) -> Dictionary:
+## What the world hands a takeover when it opens a battle of its own; a
+## [param trainer_class] above zero makes it that class's first trainer.
+func _opened_by_world(link: PokeCoopWorldLink, enemy: Gen2Party, trainer_class: int = 0) -> Dictionary:
 	var party: Gen2Party = Gen2SaveBattleAdapter.to_battle_party(_data, link.save)
-	var battle: Gen2Battle = Gen2Battle.create_parties(_data, party, enemy, RandomNumberGenerator.new())
+	var battle: Gen2Battle = Gen2Battle.create_parties(
+		_data, party, enemy, RandomNumberGenerator.new(), trainer_class > 0
+	)
 	battle.battle_reward = 50
 	return {
 		"battle": battle, "player_party": party, "enemy_party": enemy, "data": _data,
-		"summary": {"battle_kind": &"wild", "trainer_class": 0, "trainer_index": 0},
+		"summary": {
+			"battle_kind": &"trainer" if trainer_class > 0 else &"wild",
+			"trainer_class": trainer_class, "trainer_index": 0,
+		},
 	}
 
 
@@ -456,6 +462,43 @@ func test_the_world_whites_out_its_own_player_and_the_host_does_not_charge_twice
 
 	assert_eq(results, [{"outcome": &"lost"}])
 	assert_eq(_host.player(_blue.player_id).money, PokeCoopPolicy.NEW_PLAYER_MONEY)
+
+
+func test_one_trainer_opened_in_two_windows_is_one_battle_both_fight() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var leader: Callable = func() -> Gen2Party:
+		return Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0)
+	var red_results: Array = []
+	var blue_results: Array = []
+	var red_bridge: Node = _take_over(_red, _opened_by_world(red, leader.call(), Fixture.GEN1_LEADER), red_results)
+	var blue_bridge: Node = _take_over(_blue, _opened_by_world(blue, leader.call(), Fixture.GEN1_LEADER), blue_results)
+
+	var battle_id: String = _battle_of(_red)
+	assert_eq(_host.battles.size(), 1, "the second window joined instead of starting another")
+	assert_true((_blue.battle(battle_id).get("participants", []) as Array).has(_blue.player_id))
+	_fight_out(battle_id)
+	red_bridge.call("_process", 0.0)
+	blue_bridge.call("_process", 0.0)
+
+	assert_eq(red_results, [{"outcome": &"won"}])
+	assert_eq(blue_results, [{"outcome": &"won"}])
+	var encounter_id: String = "trainer:%d:0" % Fixture.GEN1_LEADER
+	assert_eq(_host.campaign.encounter_state(encounter_id), PokeCoopCampaign.ENCOUNTER_DONE)
+
+
+func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -> void:
+	var encounter_id: String = "trainer:%d:0" % Fixture.GEN1_LEADER
+	_host.campaign.commit("victory:" + encounter_id, {"defeated": [encounter_id]})
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var results: Array = []
+	var bridge: Node = _take_over(_blue, _opened_by_world(
+		blue, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0), Fixture.GEN1_LEADER
+	), results)
+	bridge.call("_process", 0.0)
+
+	assert_eq(results, [{"outcome": &"won"}])
+	assert_true(_host.battles.is_empty())
 
 
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
