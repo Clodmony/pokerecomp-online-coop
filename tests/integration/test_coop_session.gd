@@ -127,8 +127,8 @@ func test_two_clients_each_move_their_own_player_and_see_each_other_on_one_map()
 	assert_false(_red.nearby().has(_blue.player_id), "Blue left for Route 1")
 	assert_eq(_host.player(_red.player_id).map, PALLET, "Red stayed where Red was")
 
-	_send(func() -> void: _red.step(PALLET, Vector2i(5, 7), 0))
-	assert_eq(_red.last_rejection(), &"not_adjacent", "two cells is not a step")
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 8), 0))
+	assert_eq(_red.last_rejection(), &"not_adjacent", "three cells is neither a step nor a hop")
 
 
 func test_one_player_battles_while_the_other_explores_and_starts_their_own() -> void:
@@ -271,6 +271,33 @@ func test_a_lost_controller_pauses_only_their_battle() -> void:
 	assert_eq(int(view["revision"]), revision)
 	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 1}))
 	assert_eq(int(_red.battle(battle_id)["revision"]), revision + 1)
+
+
+func test_a_client_with_another_cartridge_is_told_why_and_let_go() -> void:
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, 3)
+	var stranger: PokeCoopClient = PokeCoopClient.over(link)
+	stranger.greet("", &"blue", "not-this-cartridge")
+	_clients.append(stranger)
+	_pump()
+
+	assert_eq(stranger.last_rejection(), &"content_mismatch")
+	assert_eq(stranger.ended_reason, "refused: content_mismatch")
+	assert_eq(stranger.player_id, "", "no player was handed out")
+	assert_eq(_host.players.size(), 2)
+
+
+func test_only_plain_data_crosses_the_wire() -> void:
+	var stripped: Dictionary = PokeCoopTransport.decode(PokeCoopTransport.encode({
+		"type": "state", "object": RefCounted.new(), "nested": [Node2D, {"cell": Vector2i(1, 2)}],
+	}))
+	assert_null(stripped["object"], "objects are never encoded")
+	assert_null(stripped["nested"][0])
+	assert_eq(stripped["nested"][1]["cell"], Vector2i(1, 2))
+	assert_null(PokeCoopTransport.decode(var_to_bytes([1, 2])), "only a Dictionary is a message")
+	var oversized := PackedByteArray()
+	oversized.resize(PokeCoopTransport.MAX_PACKET_BYTES + 1)
+	assert_null(PokeCoopTransport.decode(oversized), "too large to trust")
 
 
 func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:

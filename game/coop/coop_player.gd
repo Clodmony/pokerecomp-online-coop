@@ -134,7 +134,10 @@ func private_view() -> Dictionary:
 			"hp": saved.hp, "max_hp": int(saved.stats.get("hp", saved.hp)), "status": saved.status,
 			"exp": saved.exp, "is_egg": saved.is_egg,
 		})
-	return {"team": rows, "box": box.size(), "items": items.duplicate(), "money": money}
+	return {
+		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team),
+		"box": box.size(), "items": items.duplicate(), "money": money,
+	}
 
 
 func to_dict() -> Dictionary:

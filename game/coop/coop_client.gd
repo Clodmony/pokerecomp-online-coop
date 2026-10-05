@@ -57,14 +57,18 @@ func _receive(message: Dictionary) -> void:
 			battles[String(view.get("battle", ""))] = view
 		"rejected":
 			rejections.append(message)
+			if int(message.get("seq", 0)) == -1:
+				ended_reason = "refused: %s" % message.get("reason", "")
+				connected = false
+				transport.close()
 		"ended":
 			ended_reason = String(message.get("reason", "ended"))
 			connected = false
 			transport.close()
 
 
-func step(map: Vector2i, cell: Vector2i, facing: int) -> int:
-	return send({"type": "move", "map": map, "cell": cell, "facing": facing})
+func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false) -> int:
+	return send({"type": "move", "map": map, "cell": cell, "facing": facing, "warp": warp})
 
 
 func start_battle(encounter_id: String) -> int:
