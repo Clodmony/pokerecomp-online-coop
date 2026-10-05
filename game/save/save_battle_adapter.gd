@@ -104,22 +104,27 @@ static func from_battle_party(
 		var saved_mon: Gen2SaveMon = from_battle_mon(party.mons[fought])
 		fought += 1
 		if previous != null:
-			saved_mon.ot_id = previous.ot_id
-			saved_mon.pokerus = previous.pokerus
-			saved_mon.caught_time = previous.caught_time
-			saved_mon.caught_gender = previous.caught_gender
-			saved_mon.caught_level = previous.caught_level
-			saved_mon.caught_location = previous.caught_location
-			# `UpdateSpeciesNameIfNotNicknamed`: a party member that evolved
-			# during the battle takes the new species' name unless it was
-			# nicknamed, which is the one thing the old row does not decide.
-			saved_mon.nickname = Gen2Evolution.nickname_after_evolution(
-				party.mons[fought - 1].data, previous.nickname,
-				previous.species, saved_mon.species
-			)
-			saved_mon.original_trainer = previous.original_trainer
+			keep_party_fields(saved_mon, previous, party.mons[fought - 1].data)
 		out.party.append(saved_mon)
 	return out
+
+
+## What a fought Pokemon's row keeps from [param previous], the fields the
+## battle model does not carry.
+static func keep_party_fields(saved: Gen2SaveMon, previous: Gen2SaveMon, data: GameData) -> void:
+	saved.ot_id = previous.ot_id
+	saved.pokerus = previous.pokerus
+	saved.caught_time = previous.caught_time
+	saved.caught_gender = previous.caught_gender
+	saved.caught_level = previous.caught_level
+	saved.caught_location = previous.caught_location
+	# `UpdateSpeciesNameIfNotNicknamed`: a party member that evolved
+	# during the battle takes the new species' name unless it was
+	# nicknamed, which is the one thing the old row does not decide.
+	saved.nickname = Gen2Evolution.nickname_after_evolution(
+		data, previous.nickname, previous.species, saved.species
+	)
+	saved.original_trainer = previous.original_trainer
 
 
 static func from_world_battle(
