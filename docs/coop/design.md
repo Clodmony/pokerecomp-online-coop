@@ -30,9 +30,20 @@ never identity.
   window walks its own world: the host accepts a step of up to two cells (a
   ledge hop) on the same map and trusts a warp the client's world reports.
   Collision is the client's own until then.
-- In a co-op window the local world's own wild encounters and trainer sight are
-  off; battles start from the session menu (SELECT) with encounters the host
-  offers, until the host generates them (#25).
+- Each window's world state follows the ownership table in
+  `PokeCoopOwnership`: story flags, badges, map scenes, toggled objects and the
+  other shared keys are the campaign's and appear in every window; the bag,
+  wallet, step counters, Pokédex and the rest are the player's own. A change
+  made in either window reaches the other as a patch, entry by entry, so two
+  flags set at once both survive.
+- The party a window shows follows the host: battle results replace it, and a
+  heal, a gift, a deposit or a withdrawal made in the window goes to the host.
+  A Pokémon missing from the window's party is kept in the host's box.
+- A wild encounter or a trainer battle the window's own world starts is fought
+  on the host as a co-op battle the partner can join. The world keeps its script
+  branches and its whiteout; the host pays the prize. The session menu still
+  offers the host's own encounters.
+- The world's own SAVE asks the host for a campaign checkpoint.
 - Each player is drawn in one colour in every window, by their place in the
   session; a player in a battle wears the "!" emote where the battle started.
 

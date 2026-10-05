@@ -111,9 +111,13 @@ same steps locally instead.
 | `game/coop/coop_save.gd` | `PokeCoopSave`: versioned campaign file |
 | `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
 | `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu and co-op battle overlay over the world screen |
+| `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
+| `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state and party kept in step with the host |
+| `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |
 | `tools/coop_session.gd` | `demo`, `host [port] [game]` and `client` runners |
 | `tools/coop_play.gd` | one player's window on the real world screen |
-| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/integration/test_coop_session.gd` | co-op tests |
+| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/integration/test_coop_session.gd` | co-op tests |
+| `docs/coop/tracking.md` | issue status kept locally while GitHub is paused |
 
 ## Conventions specific to the fork
 
