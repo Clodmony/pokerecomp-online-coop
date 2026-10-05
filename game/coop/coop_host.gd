@@ -23,6 +23,7 @@ var ended: bool = false
 var _closing_at: int = -1
 var _refused_peers: Dictionary = {}
 var _peers: Dictionary = {}
+var _badge_flags: Array[int] = []
 var _last_seq: Dictionary = {}
 var _finished: Array = []
 
@@ -36,6 +37,7 @@ static func create(
 	out.data = game_data
 	out.campaign = run
 	out.transport = link
+	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	return out
 
 
@@ -116,6 +118,12 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return suggest(sender, battle_id, suggestion if suggestion is Dictionary else {})
 		"join":
 			return join_battle(sender, battle_id)
+		"world":
+			var changes: Variant = message.get("patch", {})
+			return apply_world(sender, changes if changes is Dictionary else {})
+		"party":
+			var rows: Variant = message.get("rows", [])
+			return apply_party(sender, rows if rows is Array else [])
 		"save":
 			return save_checkpoint()
 	return &"unknown_message"
@@ -190,6 +198,23 @@ func step(
 		return &"not_adjacent"
 	mover.place(to_map, to_cell, toward)
 	return &""
+
+
+## A window's world-state patch, the shared half to the campaign and the rest
+## to [param sender]. Trusted until the host simulates the world itself.
+func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
+	var halves: Dictionary = PokeCoopOwnership.route(changes, _badge_flags)
+	campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
+	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
+	return &""
+
+
+## A window's party after a heal, a gift, a deposit or a withdrawal. Refused in
+## a battle, whose results the host writes itself.
+func apply_party(sender: PokeCoopPlayer, rows: Array) -> StringName:
+	if not sender.is_free():
+		return &"in_battle"
+	return &"" if sender.replace_team(rows) else &"invalid_party"
 
 
 func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName:
@@ -344,10 +369,12 @@ func broadcast() -> void:
 			"id": encounter_id,
 			"label": String((encounters[encounter_id] as Dictionary).get("label", encounter_id)),
 		})
+	var shared: Dictionary = campaign.summary()
+	shared["world"] = campaign.world_part(_badge_flags)
 	for peer: int in _peers:
 		var viewer: PokeCoopPlayer = player(String(_peers[peer]))
 		transport.send(peer, {
-			"type": "state", "campaign": campaign.summary(), "players": everyone,
+			"type": "state", "campaign": shared, "players": everyone,
 			"you": viewer.private_view(), "nearby": nearby(viewer), "battles": running,
 			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
 		})
