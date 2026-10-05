@@ -59,6 +59,8 @@ func _receive(message: Dictionary) -> void:
 			rejections.append(message)
 		"ended":
 			ended_reason = String(message.get("reason", "ended"))
+			connected = false
+			transport.close()
 
 
 func step(map: Vector2i, cell: Vector2i, facing: int) -> int:

@@ -8,6 +8,7 @@ const DEFAULT_PORT: int = 24680
 const MAX_CLIENTS: int = 4
 
 var _peer: ENetMultiplayerPeer = null
+var _live: Dictionary = {}
 
 
 static func listen(port: int = DEFAULT_PORT, max_clients: int = MAX_CLIENTS) -> PokeCoopEnetTransport:
@@ -34,15 +35,17 @@ func _watch() -> void:
 
 
 func _on_peer_connected(peer: int) -> void:
+	_live[peer] = true
 	_inbox.append({"kind": CONNECTED, "peer": peer})
 
 
 func _on_peer_disconnected(peer: int) -> void:
+	_live.erase(peer)
 	_inbox.append({"kind": DISCONNECTED, "peer": peer})
 
 
 func send(peer: int, message: Dictionary) -> void:
-	if _peer == null or _peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+	if _peer == null or not _live.has(peer):
 		return
 	_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	_peer.set_target_peer(peer)
@@ -50,7 +53,7 @@ func send(peer: int, message: Dictionary) -> void:
 
 
 func poll() -> Array:
-	if _peer != null:
+	if _peer != null and _peer.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED:
 		_peer.poll()
 		while _peer != null and _peer.get_available_packet_count() > 0:
 			var sender: int = _peer.get_packet_peer()
