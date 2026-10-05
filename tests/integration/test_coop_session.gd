@@ -14,6 +14,7 @@ var _directory: String = ""
 var _data: GameData = null
 var _host: PokeCoopHost = null
 var _clients: Array = []
+var _links: Array = []
 var _red: PokeCoopClient = null
 var _blue: PokeCoopClient = null
 
@@ -41,6 +42,7 @@ func before_each() -> void:
 		"victory_flags": [BEAT_LEADER], "badge": 0,
 	})
 	_clients = []
+	_links = []
 	_red = _connect(1, red.player_id)
 	_blue = _connect(2, blue.player_id)
 
@@ -70,12 +72,28 @@ func _connect(peer: int, player_id: String) -> PokeCoopClient:
 
 
 func _pump() -> void:
-	for _round: int in 3:
+	for _round: int in 4:
 		for client: PokeCoopClient in _clients:
 			client.poll()
+		for link: PokeCoopWorldLink in _links:
+			link.advance()
 		_host.poll()
 	for client: PokeCoopClient in _clients:
 		client.poll()
+
+
+## A window's own world for [param client]: a world state and a save built from
+## its player's record, kept in step by a link.
+func _window(client: PokeCoopClient) -> PokeCoopWorldLink:
+	var state := Gen2WorldState.new()
+	state.gen1 = true
+	var save := Gen2SaveData.new()
+	for row: Dictionary in client.me()["party"]:
+		save.party.append(Gen2SaveMon.from_dict(row["mon"]))
+	var link: PokeCoopWorldLink = PokeCoopWorldLink.over(client, state, save, _data)
+	_links.append(link)
+	_pump()
+	return link
 
 
 func _send(call: Callable) -> void:
@@ -298,6 +316,89 @@ func test_only_plain_data_crosses_the_wire() -> void:
 	var oversized := PackedByteArray()
 	oversized.resize(PokeCoopTransport.MAX_PACKET_BYTES + 1)
 	assert_null(PokeCoopTransport.decode(oversized), "too large to trust")
+
+
+func test_a_story_flag_set_in_one_window_reaches_the_other() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(BEAT_LEADER)
+	_pump()
+
+	assert_true(blue.state.is_event_flag_active(BEAT_LEADER))
+	assert_true(_host.campaign.has_flag(BEAT_LEADER))
+
+
+func test_flags_set_in_both_windows_at_once_both_survive() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(1)
+	blue.state.set_event_flag(2)
+	_pump()
+
+	for link: PokeCoopWorldLink in [red, blue]:
+		assert_true(link.state.is_event_flag_active(1) and link.state.is_event_flag_active(2))
+
+
+func test_a_window_opened_late_takes_the_campaign_and_overwrites_nothing() -> void:
+	_host.campaign.commit("story:early", {"flags": [BEAT_LEADER]})
+	_host.broadcast()
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_pump()
+
+	assert_true(blue.state.is_event_flag_active(BEAT_LEADER), "the window took the flag")
+	assert_true(_host.campaign.has_flag(BEAT_LEADER), "and its blank state erased nothing")
+	assert_eq(blue.state.money(), PokeCoopPolicy.NEW_PLAYER_MONEY, "the wallet is the player's")
+
+
+func test_a_bag_change_stays_with_its_own_player() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.apply_changes({}, {}, {"items": {Fixture.POTION: 2}})
+	_pump()
+
+	assert_eq(_host.player(_red.player_id).item_count(Fixture.POTION), 2)
+	assert_eq(_host.player(_blue.player_id).item_count(Fixture.POTION), 0)
+	assert_eq(blue.state.item_quantity(Fixture.POTION), 0)
+
+
+func test_a_badge_won_in_a_battle_reaches_both_windows() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_send(func() -> void: _red.start_battle("trainer:leader"))
+	_fight_out(_battle_of(_red))
+
+	var boulder: int = Gen2WorldState.gen1_badge_flag(0)
+	assert_true(red.state.is_engine_flag_active(boulder))
+	assert_true(blue.state.is_engine_flag_active(boulder))
+	assert_true(blue.state.is_event_flag_active(BEAT_LEADER))
+
+
+func test_battle_results_come_back_into_the_window_party() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var before: int = red.save.party[0].exp
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	_fight_out(_battle_of(_red))
+
+	assert_gt(red.save.party[0].exp, before)
+	assert_eq(red.save.party[0].exp, _host.player(_red.player_id).team[0]["mon"].exp)
+
+
+func test_a_heal_and_a_deposit_made_in_a_window_reach_the_host() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+	var bench_uid: String = String(player.team[1]["uid"])
+
+	red.save.party[0].hp = 1
+	red.save.party.remove_at(1)
+	for _wait: int in PokeCoopWorldLink.PARTY_CHECK_FRAMES:
+		_pump()
+
+	assert_eq(player.team.size(), 1)
+	assert_eq(player.team[0]["mon"].hp, 1)
+	assert_eq(String(player.box[0]["uid"]), bench_uid, "the deposited Pokémon kept its uid")
 
 
 func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:

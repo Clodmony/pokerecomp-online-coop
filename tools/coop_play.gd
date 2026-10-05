@@ -20,6 +20,7 @@ var _client: PokeCoopClient = null
 var _data: GameData = null
 var _screen: Gen2WorldScreen = null
 var _panel: PokeCoopBattlePanel = null
+var _link: PokeCoopWorldLink = null
 var _player_id: String = ""
 var _keys: Array = []
 var _captures: Array = []
@@ -69,6 +70,8 @@ func _process(_delta: float) -> bool:
 	if _client == null:
 		return false
 	_client.poll()
+	if _link != null:
+		_link.advance()
 	if not _client.ended_reason.is_empty():
 		print("coop play: session ended (%s)" % _client.ended_reason)
 		quit(0)
@@ -112,6 +115,7 @@ func _launch() -> void:
 	if world != null:
 		world.state.set_wild_encounters_off(true)
 		world.state.set_trainer_sightings_off(true)
+		_link = PokeCoopWorldLink.over(_client, world.state, save, _data)
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	root.add_child(layer)
@@ -121,7 +125,7 @@ func _launch() -> void:
 
 
 ## The world screen explores on a save of its own, built from this player's
-## record; the host's copy stays the one that counts.
+## record and kept in step with it by [PokeCoopWorldLink].
 func _local_save(me: Dictionary) -> Gen2SaveData:
 	var save := Gen2SaveData.new()
 	save.game_id = _data.id
