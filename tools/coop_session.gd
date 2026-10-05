@@ -2,10 +2,11 @@ extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id>
+##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
 ## `demo` runs a host and two clients in one process over localhost sockets and
-## exits 0 only when every step of the first co-op slice passed.
+## exits 0 only when every step of the first co-op slice passed. `host red` plays
+## an imported cartridge and keeps its campaign in `user://coop_<game>_campaign.json`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -13,6 +14,16 @@ const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
 const BEAT_LEADER: int = 0x77
 const SAVE_PATH: String = "user://coop_demo_campaign.json"
+## `constants/event_constants.asm` at the pinned pokered commit, and Pallet Town's
+## two doorsteps. Brock is trainer class 34, party 0.
+const EVENT_BEAT_BROCK: int = 0x77
+const BROCK_CLASS: int = 34
+const PALLET_RED: Vector2i = Vector2i(5, 6)
+const PALLET_BLUE: Vector2i = Vector2i(13, 6)
+const CHARMANDER: int = 4
+const SQUIRTLE: int = 7
+const PIDGEY: int = 16
+const RATTATA: int = 19
 
 var _directory: String = ""
 var _data: GameData = null
@@ -35,17 +46,38 @@ func _initialize() -> void:
 	_directory = RomCache.directory_for(
 		StringName("coop%s%d" % [_mode, OS.get_process_id()]), "0123456789abcdef"
 	)
-	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
+	var game: String = _game_arg(args)
+	_data = GameData.open(StringName(game)) if not game.is_empty() \
+		else Fixture.build(_directory, "testgame", RomRegistry.GEN1)
+	if _data == null:
+		push_error("coop: no imported cache for %s" % game)
+		_finish(1)
+		return
 	match _mode:
 		"demo":
 			_start_demo(_port(args, 1))
 		"host":
-			_start_host(_port(args, 1))
+			_start_host(_port(args, 1), game)
 		"client":
 			_start_client(args)
 		_:
 			push_error("usage: demo [port] | host [port] | client <address> [port] <player_id>")
 			_finish(2)
+
+
+## The cartridge: a host's first argument that is not a port, or the argument
+## after a client's player id.
+static func _game_arg(args: PackedStringArray) -> String:
+	if args.is_empty():
+		return ""
+	if args[0] == "host":
+		for index: int in range(1, args.size()):
+			if not args[index].is_valid_int():
+				return args[index]
+	if args[0] == "client":
+		var game_at: int = 4 if args.size() > 2 and args[2].is_valid_int() else 3
+		return args[game_at] if args.size() > game_at else ""
+	return ""
 
 
 static func _port(args: PackedStringArray, at: int) -> int:
@@ -93,17 +125,62 @@ func _dial(address: String, port: int, player_id: String) -> PokeCoopClient:
 	return client
 
 
-func _start_host(port: int) -> void:
-	if not _new_host(port):
+func _start_host(port: int, game: String) -> void:
+	if game.is_empty():
+		if not _new_host(port):
+			_finish(1)
+		return
+	var link: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
+	if link == null:
+		push_error("coop: cannot listen on port %d" % port)
 		_finish(1)
+		return
+	var path: String = "user://coop_%s_campaign.json" % game
+	var loaded: Dictionary = PokeCoopSave.read(path)
+	var campaign: PokeCoopCampaign = loaded.get("campaign", PokeCoopCampaign.create(game, _data.id, _data.sha1))
+	_host = PokeCoopHost.create(_data, campaign, link)
+	_host.save_path = path
+	if loaded.is_empty():
+		_cartridge_players()
+	else:
+		_host.adopt_players(loaded["players"])
+	_cartridge_encounters()
+	print("coop: %s host on port %d, %s campaign %s, players %s" % [
+		game, port, "fresh" if loaded.is_empty() else "reloaded", path, _host.players.keys(),
+	])
+
+
+func _cartridge_players() -> void:
+	var red: PokeCoopPlayer = _host.add_player("RED", 100)
+	red.place(PALLET, PALLET_RED, Gen2WorldSprite.FACING_DOWN)
+	red.add_mon(_saved(CHARMANDER, 12, _data.moves_at_level(CHARMANDER, 12), 100))
+	red.add_mon(_saved(PIDGEY, 9, _data.moves_at_level(PIDGEY, 9), 100))
+	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
+	blue.place(PALLET, PALLET_BLUE, Gen2WorldSprite.FACING_DOWN)
+	blue.add_mon(_saved(SQUIRTLE, 12, _data.moves_at_level(SQUIRTLE, 12), 200))
+	blue.add_mon(_saved(RATTATA, 9, _data.moves_at_level(RATTATA, 9), 200))
+
+
+func _cartridge_encounters() -> void:
+	_host.register_encounter("wild:pidgey", {"species": PIDGEY, "level": 5, "label": "wild PIDGEY L5"})
+	_host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
+	_host.register_encounter("trainer:brock", {
+		"kind": "trainer", "trainer_class": BROCK_CLASS, "trainer_index": 0,
+		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)",
+	})
 
 
 func _start_client(args: PackedStringArray) -> void:
 	if args.size() < 3:
-		push_error("client needs <address> [port] <player_id>")
+		push_error("client needs <address> [port] <player_id> [game]")
 		_finish(2)
 		return
-	_red = _dial(args[1], _port(args, 2), args[args.size() - 1])
+	var has_port: bool = args[2].is_valid_int()
+	if has_port and args.size() < 4:
+		push_error("client needs <address> [port] <player_id> [game]")
+		_finish(2)
+		return
+	_red = _dial(args[1], _port(args, 2), args[3 if has_port else 2])
 	if _red == null:
 		_finish(1)
 
@@ -178,6 +255,9 @@ func _watch_client() -> void:
 		print("coop client: session ended (%s)" % _red.ended_reason)
 		_finish(0)
 		return
+	if _red.last_rejection() != &"" and not _acted.has("refused:%d" % _red.rejections.size()):
+		_acted["refused:%d" % _red.rejections.size()] = true
+		print("coop client: refused (%s)" % _red.last_rejection())
 	var seen: int = _red.state.hash()
 	if not _red.player_id.is_empty() and not _acted.has(seen):
 		_acted[seen] = true
@@ -250,7 +330,8 @@ func _save_matches() -> bool:
 func _finish(code: int) -> void:
 	if _host != null:
 		_host.shutdown("host_shutdown", 0)
-	RomCache.clear(_directory)
+	if DirAccess.dir_exists_absolute(_directory):
+		RomCache.clear(_directory)
 	if _mode == "demo" and FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	quit(code)
