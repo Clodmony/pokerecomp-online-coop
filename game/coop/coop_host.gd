@@ -276,7 +276,6 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	var info: Dictionary = {
 		"id": encounter_id if trainer else "window:%s" % battle_id,
 		"kind": "trainer" if trainer else "wild", "unique": trainer,
-		"window_players": [initiator.player_id],
 		"trainer_class": int(message.get("trainer_class", 0)) if trainer else 0,
 		"trainer_index": int(message.get("trainer_index", 0)),
 	}
@@ -296,10 +295,7 @@ func _join_window_battle(joiner: PokeCoopPlayer, encounter_id: String) -> String
 	for session: PokeCoopBattleSession in battles.values():
 		if String(session.encounter.get("id", "")) != encounter_id:
 			continue
-		var refusal: StringName = session.request_join(data, joiner)
-		if refusal == &"":
-			(session.encounter["window_players"] as Array).append(joiner.player_id)
-		return refusal
+		return session.request_join(data, joiner)
 	return &"encounter_taken"
 
 
@@ -370,11 +366,8 @@ func _finish(session: PokeCoopBattleSession) -> void:
 			campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
-	var whited_out_by_world: Array = session.encounter.get("window_players", [])
 	for participant_id: String in session.participants:
 		var participant: PokeCoopPlayer = player(participant_id)
-		if outcome == &"lost" and not whited_out_by_world.has(participant_id):
-			participant.add_money(-PokeCoopPolicy.blackout_cost(participant.money))
 		participant.battle_id = ""
 		participant.resume_exploration()
 	var final_view: Dictionary = session.view()

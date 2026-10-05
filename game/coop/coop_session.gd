@@ -26,6 +26,7 @@ var _greeting: Dictionary = {}
 var _retry_as_new: bool = false
 var _settled_battles: Dictionary = {}
 var _evolving: Array = []
+var _whiteout_due: bool = false
 
 
 static func campaign_path(game: GameData) -> String:
@@ -128,13 +129,17 @@ func process() -> void:
 		if screen.process_mode != mode:
 			screen.process_mode = mode
 		_collect_evolutions()
-		if not panel.is_open() and not _evolving.is_empty():
+		if not panel.is_open() and _whiteout_due:
+			_whiteout_due = false
+			screen.white_out()
+		elif not panel.is_open() and not _evolving.is_empty():
 			screen.evolve_after_battle(_evolving)
 			_evolving = []
 
 
-## This player's Pokémon a host battle left due to evolve, unless this window's
-## own world opened that battle and runs `EvolveAfterBattle` itself.
+## What a finished host battle owes this window's world: its player's Pokémon
+## due to evolve, or a whiteout after a loss, which costs them half their own
+## money. A battle this window's world opened itself is that world's to settle.
 func _collect_evolutions() -> void:
 	if link == null:
 		return
@@ -145,6 +150,8 @@ func _collect_evolutions() -> void:
 		_settled_battles[battle_id] = true
 		if _takeover != null and _takeover.claimed.has(battle_id):
 			continue
+		if String(view["outcome"]) == "lost":
+			_whiteout_due = true
 		var uids: Array = link.uids()
 		for uid: Variant in view.get("evolvable", []) as Array:
 			var index: int = uids.find(String(uid))
