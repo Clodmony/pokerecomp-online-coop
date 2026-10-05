@@ -1,0 +1,384 @@
+class_name PokeCoopBattleSession
+extends RefCounted
+
+## One battle of a co-op run with its own rng, participants, allied roster and
+## revision. The owner of the Pokémon that is out decides; everybody else in the
+## battle may only suggest. Joins land at a turn boundary.
+
+const AWAITING_ACTION: StringName = &"action"
+const AWAITING_SEND_OUT: StringName = &"send_out"
+const AWAITING_LEARN: StringName = &"learn"
+const AWAITING_MIMIC: StringName = &"mimic"
+const OVER: StringName = &"over"
+
+const JOINED: StringName = &"coop_joined"
+const ITEM_USED: StringName = &"coop_item_used"
+const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out"]
+
+var id: String = ""
+var encounter: Dictionary = {}
+var initiator: String = ""
+var participants: Array[String] = []
+var roster: PokeCoopRoster = PokeCoopRoster.new()
+var battle: Gen2Battle = null
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var revision: int = 0
+var suggestions: Dictionary = {}
+var last_events: Array = []
+var _pending_joins: Array = []
+var _absent: Dictionary = {}
+
+
+static func start(
+	data: GameData, battle_id: String, seed_value: int, player: PokeCoopPlayer,
+	enemy: Gen2Party, encounter_info: Dictionary, badge_mask: int = 0
+) -> PokeCoopBattleSession:
+	if data == null or player == null or enemy == null or not player.is_free():
+		return null
+	var fighters: Dictionary = fighters_of(data, player)
+	if fit_count(fighters) <= 0:
+		return null
+	var out := PokeCoopBattleSession.new()
+	out.id = battle_id
+	out.encounter = encounter_info.duplicate(true)
+	out.initiator = player.player_id
+	out.rng.seed = seed_value
+	var trainer_class: int = int(encounter_info.get("trainer_class", 0))
+	out.battle = Gen2Battle.create_parties(
+		data, Gen2Party.create(fighters["mons"]), enemy, out.rng, trainer_class > 0, badge_mask
+	)
+	if out.battle == null:
+		return null
+	out.battle.battle_style_set = true
+	if trainer_class > 0:
+		out.battle.init_enemy_trainer(trainer_class)
+	out._enlist(player, fighters)
+	return out
+
+
+## The player's team as battlers, eggs left out, with the uid of each.
+static func fighters_of(data: GameData, player: PokeCoopPlayer) -> Dictionary:
+	var mons: Array = []
+	var uids: Array = []
+	for entry: Dictionary in player.team:
+		var saved: Gen2SaveMon = entry["mon"]
+		var fighter: Gen2BattleMon = Gen2SaveBattleAdapter.to_battle_mon(data, saved)
+		if fighter != null:
+			mons.append(fighter)
+			uids.append(String(entry["uid"]))
+	return {"mons": mons, "uids": uids}
+
+
+static func fit_count(fighters: Dictionary) -> int:
+	var out: int = 0
+	for fighter: Gen2BattleMon in fighters["mons"]:
+		if not fighter.is_fainted():
+			out += 1
+	return out
+
+
+func _enlist(player: PokeCoopPlayer, fighters: Dictionary) -> Array[int]:
+	var added: Array[int] = []
+	var mons: Array = fighters["mons"]
+	for index: int in mons.size():
+		added.append(roster.add(player.player_id, String((fighters["uids"] as Array)[index])))
+		battle.owner_trainer_ids[mons[index]] = player.trainer_id
+	participants.append(player.player_id)
+	player.battle_id = id
+	return added
+
+
+func phase() -> StringName:
+	if battle.is_over():
+		return OVER
+	if battle.must_learn_move(Gen2Battle.PLAYER):
+		return AWAITING_LEARN
+	if battle.awaiting_mimic() == Gen2Battle.PLAYER:
+		return AWAITING_MIMIC
+	if battle.awaiting_baton_pass() == Gen2Battle.PLAYER or battle.must_replace(Gen2Battle.PLAYER):
+		return AWAITING_SEND_OUT
+	return AWAITING_ACTION
+
+
+func controller() -> String:
+	if phase() == AWAITING_LEARN:
+		return roster.owner_at(int(battle.pending_learn(Gen2Battle.PLAYER).get("index", -1)))
+	return roster.owner_at(battle.party(Gen2Battle.PLAYER).active)
+
+
+func is_paused() -> bool:
+	return phase() != OVER and _absent.has(controller())
+
+
+func set_absent(player_id: String, absent: bool) -> void:
+	if absent:
+		_absent[player_id] = true
+	else:
+		_absent.erase(player_id)
+
+
+func pending_players() -> Array[String]:
+	var out: Array[String] = []
+	for join: Dictionary in _pending_joins:
+		out.append((join["player"] as PokeCoopPlayer).player_id)
+	return out
+
+
+func involves(player_id: String) -> bool:
+	return participants.has(player_id) or pending_players().has(player_id)
+
+
+func submit(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
+	var refusal: StringName = _refusal(player.player_id, int(command.get("revision", -1)))
+	if refusal != &"":
+		return {"ok": false, "reason": refusal}
+	var applied: Dictionary = _apply(player, command)
+	if not bool(applied.get("ok", false)):
+		return applied
+	var events: Array = applied["events"]
+	_settle(events)
+	_advance(events)
+	return {"ok": true, "events": events}
+
+
+func _refusal(player_id: String, at_revision: int) -> StringName:
+	if not participants.has(player_id):
+		return &"not_a_participant"
+	if phase() == OVER:
+		return &"battle_over"
+	if at_revision != revision:
+		return &"stale_revision"
+	if player_id != controller():
+		return &"not_controller"
+	return &"paused" if is_paused() else &""
+
+
+func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
+	var kind: String = String(command.get("type", ""))
+	match phase():
+		AWAITING_ACTION:
+			return _act(player, kind, command)
+		AWAITING_SEND_OUT:
+			return _send_out(kind, int(command.get("index", -1)))
+		AWAITING_LEARN:
+			return _learn(kind, int(command.get("forget_slot", -1)))
+		AWAITING_MIMIC:
+			if kind == "mimic":
+				var before: int = battle.awaiting_mimic()
+				var events: Array = battle.answer_mimic(int(command.get("choice", -1)))
+				if battle.awaiting_mimic() != before:
+					return _done(events)
+	return _refused(&"invalid_command")
+
+
+func _act(player: PokeCoopPlayer, kind: String, command: Dictionary) -> Dictionary:
+	match kind:
+		"move":
+			var slot: int = int(command.get("slot", -1))
+			if not _move_allowed(slot):
+				return _refused(&"invalid_move")
+			return _done(battle.take_actions(Gen2Battle.use_move(slot), _enemy_action()))
+		"switch":
+			var index: int = int(command.get("index", -1))
+			if not battle.party(Gen2Battle.PLAYER).can_send_out(index):
+				return _refused(&"invalid_switch")
+			return _done(battle.take_actions(Gen2Battle.switch_to(index), _enemy_action()))
+		"item":
+			return _use_item(player, command)
+		"run":
+			return _done(battle.take_actions(Gen2Battle.run_away(), _enemy_action()))
+	return _refused(&"invalid_command")
+
+
+func _move_allowed(slot: int) -> bool:
+	if slot < 0 or slot >= Gen2BattleMon.MAX_MOVES:
+		return false
+	var out_mon: Gen2BattleMon = battle.mon(Gen2Battle.PLAYER)
+	return out_mon.can_use(slot) or out_mon.is_out_of_pp() \
+		or battle.player_menu_skipped() or battle.player_move_menu_skipped()
+
+
+func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
+	var item: int = int(command.get("item", 0))
+	if player.item_count(item) <= 0:
+		return _refused(&"item_not_held")
+	if Gen2WorldPartyHost.is_ball(battle.data, item):
+		return _refused(&"capture_not_supported")
+	var used: Dictionary = battle.use_bag_item(
+		item, int(command.get("target", -1)), int(command.get("move_slot", -1))
+	)
+	if not bool(used.get("ok", false)):
+		return _refused(StringName(used.get("reason", &"item_has_no_effect")))
+	if Gen2WorldPack.can_toss(battle.data, item):
+		player.take_item(item)
+	var events: Array = [{"type": ITEM_USED, "player": player.player_id, "item": item}]
+	events.append_array(used.get("events", []) as Array)
+	if not battle.is_over():
+		events.append_array(battle.take_actions(Gen2Battle.use_item(item), _enemy_action()))
+	return _done(events)
+
+
+func _send_out(kind: String, index: int) -> Dictionary:
+	if kind == "run" and battle.asking_use_next():
+		return _done(battle.answer_use_next(false))
+	if kind != "send_out" or not battle.party(Gen2Battle.PLAYER).can_send_out(index):
+		return _refused(&"invalid_send_out")
+	if battle.awaiting_baton_pass() == Gen2Battle.PLAYER:
+		return _done(battle.pass_to(index))
+	var events: Array = []
+	if battle.asking_use_next():
+		events.append_array(battle.answer_use_next(true))
+	events.append_array(battle.replace_fallen(index))
+	return _done(events)
+
+
+func _learn(kind: String, forget_slot: int) -> Dictionary:
+	var offer: Dictionary = battle.pending_learn(Gen2Battle.PLAYER)
+	var events: Array = []
+	if kind == "learn":
+		events = battle.learn_move(Gen2Battle.PLAYER, forget_slot)
+	elif kind == "decline":
+		events = battle.decline_move(Gen2Battle.PLAYER)
+	if battle.pending_learn(Gen2Battle.PLAYER) == offer:
+		return _refused(&"invalid_learn")
+	return _done(events)
+
+
+## The enemy's own side of a question: its replacement after a faint. SET style
+## means no switch offer is ever raised for the player.
+func _settle(events: Array) -> void:
+	while not battle.is_over() and battle.must_replace(Gen2Battle.ENEMY) \
+			and not battle.must_replace(Gen2Battle.PLAYER):
+		var sent: Array = battle.replace_fallen()
+		events.append_array(sent)
+		if sent.is_empty():
+			return
+
+
+func _advance(events: Array) -> void:
+	revision += 1
+	suggestions.clear()
+	if phase() == AWAITING_ACTION:
+		_apply_joins(events)
+	last_events = events
+
+
+func _enemy_action() -> Dictionary:
+	if battle.is_gen1():
+		return Gen2Battle.use_move(Gen1TrainerAI.select_slot(battle, rng))
+	var foe: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
+	var usable: Array = []
+	for slot: int in foe.moves.size():
+		if foe.can_use(slot):
+			usable.append(slot)
+	return Gen2Battle.use_move(usable[rng.randi_range(0, usable.size() - 1)] if not usable.is_empty() else 0)
+
+
+func request_join(data: GameData, player: PokeCoopPlayer) -> StringName:
+	if phase() == OVER:
+		return &"battle_over"
+	if involves(player.player_id):
+		return &"already_joined"
+	var fighters: Dictionary = fighters_of(data, player)
+	var refusal: StringName = PokeCoopPolicy.may_join(player, fit_count(fighters))
+	if refusal != &"":
+		return refusal
+	var queued: int = 0
+	for join: Dictionary in _pending_joins:
+		queued += ((join["fighters"] as Dictionary)["mons"] as Array).size()
+	if roster.size() + queued + (fighters["mons"] as Array).size() > Gen2Party.MAX_ALLIED_SIZE:
+		return &"roster_full"
+	player.battle_id = id
+	player.suspend_exploration()
+	_pending_joins.append({"player": player, "fighters": fighters})
+	if phase() == AWAITING_ACTION:
+		var events: Array = []
+		_advance(events)
+	return &""
+
+
+func _apply_joins(events: Array) -> void:
+	for join: Dictionary in _pending_joins:
+		var player: PokeCoopPlayer = join["player"]
+		var fighters: Dictionary = join["fighters"]
+		if not battle.party(Gen2Battle.PLAYER).add_members(fighters["mons"]):
+			player.battle_id = ""
+			player.resume_exploration()
+			continue
+		var indices: Array[int] = _enlist(player, fighters)
+		events.append({"type": JOINED, "player": player.player_id, "indices": indices})
+	_pending_joins.clear()
+
+
+func suggest(player_id: String, suggestion: Dictionary) -> StringName:
+	if not participants.has(player_id):
+		return &"not_a_participant"
+	if phase() == OVER:
+		return &"battle_over"
+	if player_id == controller():
+		return &"controller_acts"
+	var kind: String = String(suggestion.get("type", ""))
+	if not SUGGESTION_TYPES.has(kind):
+		return &"invalid_suggestion"
+	suggestions[player_id] = {"type": kind, "value": int(suggestion.get("value", -1)), "revision": revision}
+	return &""
+
+
+func outcome() -> StringName:
+	if not battle.is_over():
+		return &""
+	if battle.is_draw():
+		return &"fled" if battle.has_fled() else &"draw"
+	return &"won" if battle.winner() == Gen2Battle.PLAYER else &"lost"
+
+
+## Each allied Pokémon as the battle left it, grouped by owner: `{player_id: [{uid, mon}]}`.
+func results() -> Dictionary:
+	var out: Dictionary = {}
+	var party: Gen2Party = battle.party(Gen2Battle.PLAYER)
+	for index: int in roster.size():
+		var owner: String = roster.owner_at(index)
+		if not out.has(owner):
+			out[owner] = []
+		(out[owner] as Array).append({"uid": roster.uid_at(index), "mon": party.at(index)})
+	return out
+
+
+func evolvable_uids() -> Array[String]:
+	var out: Array[String] = []
+	for index: int in battle.evolvable_indices():
+		out.append(roster.uid_at(index))
+	return out
+
+
+func view() -> Dictionary:
+	var allies: Array = []
+	var party: Gen2Party = battle.party(Gen2Battle.PLAYER)
+	for index: int in party.size():
+		allies.append(_battler_view(party.at(index)).merged(
+			{"index": index, "owner": roster.owner_at(index), "uid": roster.uid_at(index)}
+		))
+	return {
+		"battle": id, "encounter": String(encounter.get("id", "")), "revision": revision,
+		"phase": phase(), "controller": controller(), "paused": is_paused(),
+		"participants": participants.duplicate(), "pending": pending_players(),
+		"active": party.active, "allies": allies,
+		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
+		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
+	}
+
+
+static func _battler_view(member: Gen2BattleMon) -> Dictionary:
+	return {
+		"species": member.species, "level": member.level, "hp": member.hp,
+		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
+		"pp": member.pp.duplicate(),
+	}
+
+
+static func _done(events: Array) -> Dictionary:
+	return {"ok": true, "events": events}
+
+
+static func _refused(reason: StringName) -> Dictionary:
+	return {"ok": false, "reason": reason}
