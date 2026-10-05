@@ -5,6 +5,7 @@ extends RefCounted
 ## go out as patches and the host's come in as patches against what was last
 ## seen of it, so neither side's change is overwritten by a stale copy. The
 ## party goes out while the player is free and comes back after a co-op battle.
+## The world's own SAVE asks the host for a campaign checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
 
@@ -19,6 +20,7 @@ var _party_seen: Array = []
 var _party_sent: Array = []
 var _uids: Array = []
 var _frames: int = 0
+var _saved_world: Object = null
 
 
 static func over(
@@ -30,6 +32,7 @@ static func over(
 	out.save = local_save
 	out.badge_flags = PokeCoopOwnership.badge_flags(data)
 	out._party_sent = out._local_rows()
+	out._saved_world = local_save.world
 	world_state.changed.connect(out._on_state_changed)
 	return out
 
@@ -50,6 +53,10 @@ func advance() -> void:
 	if _frames % PARTY_CHECK_FRAMES == 0 and _is_free():
 		_push_party()
 	_pull_party()
+	if save.world != _saved_world:
+		_saved_world = save.world
+		_push_party()
+		client.request_save()
 
 
 func _push_world() -> void:
