@@ -109,7 +109,8 @@ func _start_client(args: PackedStringArray) -> void:
 
 
 func _start_demo(port: int) -> void:
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	if not _new_host(port):
 		_finish(1)
 		return
@@ -250,6 +251,6 @@ func _finish(code: int) -> void:
 	if _host != null:
 		_host.shutdown()
 	RomCache.clear(_directory)
-	if _mode == "demo":
+	if _mode == "demo" and FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	quit(code)

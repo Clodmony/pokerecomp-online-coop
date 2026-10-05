@@ -35,17 +35,17 @@ static func create(
 
 
 func add_player(player_name: String, trainer_id: int) -> PokeCoopPlayer:
-	var player := PokeCoopPlayer.create(campaign.take_player_id(), player_name, trainer_id)
-	player.money = PokeCoopPolicy.new_player_money()
-	players[player.player_id] = player
-	return player
+	var created := PokeCoopPlayer.create(campaign.take_player_id(), player_name, trainer_id)
+	created.money = PokeCoopPolicy.new_player_money()
+	players[created.player_id] = created
+	return created
 
 
 func adopt_players(loaded: Array) -> void:
-	for player: PokeCoopPlayer in loaded:
-		player.connected = false
-		player.battle_id = ""
-		players[player.player_id] = player
+	for member: PokeCoopPlayer in loaded:
+		member.connected = false
+		member.battle_id = ""
+		players[member.player_id] = member
 
 
 ## A battle a client may ask for by id: `kind` (`wild` or `trainer`), `species`,

@@ -56,8 +56,8 @@ func _enemy(species: int = Fixture.GEODUDE, level: int = 50, moves: Array = [Fix
 	return Gen2Party.of(Gen2BattleMon.create(_data, species, level, moves))
 
 
-func _start(owner: PokeCoopPlayer, enemy: Gen2Party, seed_value: int = 1, id: String = "b1") -> PokeCoopBattleSession:
-	return PokeCoopBattleSession.start(_data, id, seed_value, owner, enemy, {"id": "wild:test"})
+func _start(lead: PokeCoopPlayer, enemy: Gen2Party, seed_value: int = 1, id: String = "b1") -> PokeCoopBattleSession:
+	return PokeCoopBattleSession.start(_data, id, seed_value, lead, enemy, {"id": "wild:test"})
 
 
 func _act(session: PokeCoopBattleSession, by: PokeCoopPlayer, command: Dictionary) -> Dictionary:
