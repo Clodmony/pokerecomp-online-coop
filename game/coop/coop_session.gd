@@ -24,6 +24,8 @@ var _identity_key: String = ""
 var _identity_saved: String = ""
 var _greeting: Dictionary = {}
 var _retry_as_new: bool = false
+var _settled_battles: Dictionary = {}
+var _evolving: Array = []
 
 
 static func campaign_path(game: GameData) -> String:
@@ -125,6 +127,29 @@ func process() -> void:
 			else Node.PROCESS_MODE_INHERIT
 		if screen.process_mode != mode:
 			screen.process_mode = mode
+		_collect_evolutions()
+		if not panel.is_open() and not _evolving.is_empty():
+			screen.evolve_after_battle(_evolving)
+			_evolving = []
+
+
+## This player's Pokémon a host battle left due to evolve, unless this window's
+## own world opened that battle and runs `EvolveAfterBattle` itself.
+func _collect_evolutions() -> void:
+	if link == null:
+		return
+	for battle_id: String in client.battles:
+		var view: Dictionary = client.battles[battle_id]
+		if _settled_battles.has(battle_id) or String(view.get("outcome", "")).is_empty():
+			continue
+		_settled_battles[battle_id] = true
+		if _takeover != null and _takeover.claimed.has(battle_id):
+			continue
+		var uids: Array = link.uids()
+		for uid: Variant in view.get("evolvable", []) as Array:
+			var index: int = uids.find(String(uid))
+			if index >= 0 and not _evolving.has(index):
+				_evolving.append(index)
 
 
 ## The world screen for this player, built once the host has said who they are.

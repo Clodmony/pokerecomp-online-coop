@@ -6755,6 +6755,17 @@ func _on_pack_evolution(plan: Dictionary, after: Callable) -> void:
 ## [method Gen2Evolution.after_battle]'s list, [param save] the party they are
 ## applied to, and [param after] whatever the caller was doing when the pass
 ## interrupted it, run once the last plan has been answered.
+## `EvolveAfterBattle` for party [param indices] whose battle the world did not
+## run itself: a co-op battle fought on its host.
+func evolve_after_battle(indices: Array) -> void:
+	var save: Gen2SaveData = _injected_save if _injected_save != null else _selected_runtime_save()
+	if _data == null or _world == null or save == null or indices.is_empty():
+		return
+	_open_evolution(
+		Gen2Evolution.after_battle(_data, save, indices, _world.object_time_of_day), save, Callable()
+	)
+
+
 func _open_evolution(plans: Array, save: Gen2SaveData, after: Callable) -> void:
 	if _evolution_host != null or _data == null or plans.is_empty():
 		if after.is_valid():
