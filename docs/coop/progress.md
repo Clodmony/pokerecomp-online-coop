@@ -110,6 +110,7 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: stand-in | RED starts the BROCK fight, BLUE joins, and RED's window is closed on RED's turn: within five seconds BLUE's window shows "PAUSED: waiting for RED to reconnect" and "RED is away. Waiting..."; thirty seconds later "YOUR TURN for RED's POKéMON" and BLUE moves RED's CHARMANDER until the battle ends |
 | Screens (scripted), Red: Mart | BLUE buys a POKé BALL at the Pewter Mart: the window shows ¥3000 then ¥2800, and the host's record of BLUE (echoed in BLUE's own view) reads money 2800 and one POKé BALL |
 | Screens (scripted), Red: portrait | RED's window at 540x960 in the Brock fight: the battle field fills the width at the top and the co-op panel sits under it |
+| Local x86_64, save safety | a second write keeps the first checkpoint as `.bak`, a damaged campaign file is neither read with an engine error nor kept as the backup (unit test); whole suite 4905/4905, ENet demo 16/16, release gates pass |
 | Local x86_64, whole suite after faint sounds | 4904/4904; ENet demo 16/16; release gates pass |
 | Local x86_64, whole suite after the battle stage | 4904/4904; co-op suites 92/92; ENet demo 16/16; boot smoke and release gates pass |
 | Local x86_64, whole suite after thrown balls and battle audio | 4902/4902; co-op suites 90/90; ENet demo 16/16; boot smoke and release gates pass |
@@ -184,8 +185,9 @@ has **played** it by hand yet.
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).
 - The campaign is saved after battles, every thirty seconds of changes, when
-  the host leaves and when a hosting app is paused; there is no recovery
-  journal or save migration yet (#39).
+  the host leaves and when a hosting app is paused, the checkpoint before is
+  kept as `.bak`, and a failed write leaves the old file alone (D40); there is
+  no journal between checkpoints or migration between formats yet (#39).
 - No private desktop or mobile builds yet: this machine has no Godot export
   templates for 4.8-dev4 (#44, #45).
 - Shared NPCs, scripts and cutscenes are not locked while one player uses them;

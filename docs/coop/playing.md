@@ -17,8 +17,9 @@ the cartridge is sent between devices.
    presses **Join**.
 
 The host's device keeps the campaign (`coop_<game>_campaign.json` in the game's
-user folder). A device remembers who it played as on each host, so joining the
-same host again brings the same trainer back.
+user folder), and the checkpoint before the latest beside it as
+`coop_<game>_campaign.json.bak`. A device remembers who it played as on each
+host, so joining the same host again brings the same trainer back.
 
 ## In the world
 

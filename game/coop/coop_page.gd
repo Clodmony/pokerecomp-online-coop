@@ -166,9 +166,10 @@ func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
 	var session: PokeCoopSession = PokeCoopSession.hosting(
 		_data(), port, _player_name(), _starter_species(), _brought()
 	)
+	var kept: String = PokeCoopSession.campaign_path(_data()).get_file() + PokeCoopSave.BACKUP_SUFFIX
 	_begin(session, "Could not host on port %d: is another host running?" % port \
 		if PokeCoopSession.last_failure.is_empty() \
-		else "This device's campaign file could not be read, so it was left as it is.")
+		else "This device's campaign file could not be read, so it was left as it is. The checkpoint before it is %s." % kept)
 
 
 func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
