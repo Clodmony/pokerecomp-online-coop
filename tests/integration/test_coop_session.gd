@@ -908,6 +908,20 @@ func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
 	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
 
 
+func test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle() -> void:
+	var before: Dictionary = PokeCoopSession.partner_states(_red)
+	_send(func() -> void: _blue.start_battle("wild:stall"))
+	var blue: String = String(_red.state["players"][_blue.player_id]["name"])
+	var geodude: String = String(_data.species(Fixture.GEODUDE)["name"])
+	assert_eq(PokeCoopSession.partner_news(before, PokeCoopSession.partner_states(_red), _red, _data),
+		"%s is in a battle against wild %s. SELECT to join." % [blue, geodude])
+
+	var gone: Dictionary = {_blue.player_id: {"name": blue, "connected": false, "battle": ""}}
+	var back: Dictionary = {_blue.player_id: {"name": blue, "connected": true, "battle": ""}}
+	assert_eq(PokeCoopSession.partner_news(back, gone, _red, _data), "%s left the session." % blue)
+	assert_eq(PokeCoopSession.partner_news(gone, back, _red, _data), "%s joined the session." % blue)
+
+
 func test_a_tap_on_a_row_moves_the_cursor_and_a_second_tap_chooses_it() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)

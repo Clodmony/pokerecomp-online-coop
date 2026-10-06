@@ -35,7 +35,8 @@ host, so joining the same host again brings the same trainer back.
 ## Battles
 
 - Wild and trainer battles your world starts are fought on the host, so the
-  partner can join. **SELECT** opens the session menu: join a running battle
+  partner can join; their window says so ("RED is in a battle against wild
+  RATTATA. SELECT to join."), and also when a player joins or leaves. **SELECT** opens the session menu: join a running battle
   (from any map), save the campaign, leave the session.
 - A shared battle is one Pokémon a side, with both teams on your side (up to
   twelve), listed in the panel under each player's name in their colour.
