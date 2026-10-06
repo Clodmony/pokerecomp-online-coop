@@ -17,7 +17,8 @@ const RESUME_REDIAL_MSEC: int = 3000
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
-## Which player this device was on each host, by cartridge, address and port.
+const CAMPAIGNS_DIR: String = "user://coop_campaigns"
+## Which player this device was on each host (by cartridge, address and port) in each campaign.
 static var identity_path: String = "user://coop_identity.json"
 ## Why the last [method hosting] gave nothing back, for the launcher to say.
 static var last_failure: String = ""
@@ -37,6 +38,8 @@ var _identity_key: String = ""
 var _identity_saved: String = ""
 var _greeting: Dictionary = {}
 var _retry_as_new: bool = false
+var _known: Dictionary = {}
+var _campaign_saved: String = ""
 var _settled_battles: Dictionary = {}
 var _evolving: Array = []
 var _whiteout_due: bool = false
@@ -56,33 +59,72 @@ var _dialled_at: int = 0
 var _paused_at: int = 0
 
 
-static func campaign_path(game: GameData) -> String:
-	return "user://coop_%s_campaign.json" % String(game.id)
+static func campaign_path(game: GameData, id: String = "") -> String:
+	return "%s/%s/%s.json" % [CAMPAIGNS_DIR, String(game.id), id if not id.is_empty() else String(game.id)]
+
+
+static func new_campaign_id(game: GameData) -> String:
+	return "%s-%d-%04x" % [String(game.id), int(Time.get_unix_time_from_system()), randi() & 0xFFFF]
+
+
+## This device's campaigns for [param game], the latest saved first.
+static func campaigns(game: GameData) -> Array:
+	move_legacy(game)
+	var folder: String = campaign_path(game).get_base_dir()
+	var out: Array = []
+	for name: String in DirAccess.get_files_at(folder):
+		if not name.ends_with(".json"):
+			continue
+		var path: String = "%s/%s" % [folder, name]
+		var loaded: Dictionary = PokeCoopSave.read(path)
+		var campaign: PokeCoopCampaign = loaded.get("campaign", null)
+		out.append({
+			"id": name.get_basename(), "saved": FileAccess.get_modified_time(path),
+			"title": campaign.title if campaign != null and not campaign.title.is_empty() \
+				else "FIRST CAMPAIGN" if name.get_basename() == String(game.id) else name.get_basename(),
+			"players": (loaded.get("players", []) as Array).map(func(member: PokeCoopPlayer) -> String: return member.name),
+			"badges": String.num_int64(campaign.badges, 2).count("1") if campaign != null else 0, "readable": campaign != null,
+		})
+	out.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return int(first["saved"]) > int(second["saved"]))
+	return out
+
+
+static func move_legacy(game: GameData) -> void:
+	var old: String = "user://coop_%s_campaign.json" % String(game.id)
+	var target: String = campaign_path(game)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(target.get_base_dir()))
+	for suffix: String in ["", PokeCoopSave.BACKUP_SUFFIX]:
+		if FileAccess.file_exists(old + suffix) and not FileAccess.file_exists(target + suffix):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(old + suffix), ProjectSettings.globalize_path(target + suffix))
 
 
 ## This device hosts on [param port] as [param player_name], loading or starting the
 ## campaign; [param brought] is a save a new player brings instead of a starter.
 static func hosting(
-	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null
+	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null,
+	campaign_id: String = "", title: String = ""
 ) -> PokeCoopSession:
 	last_failure = ""
 	if game == null:
 		return null
+	move_legacy(game)
+	var path: String = campaign_path(game, campaign_id)
 	var link_out: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
 	if link_out == null:
 		return null
-	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game))
-	if loaded.is_empty() and FileAccess.file_exists(campaign_path(game)):
+	var loaded: Dictionary = PokeCoopSave.read(path)
+	if loaded.is_empty() and FileAccess.file_exists(path):
 		## Newer, foreign or damaged: never written over with a new campaign.
 		last_failure = "campaign_unreadable"
 		link_out.close()
 		return null
 	var campaign: PokeCoopCampaign = loaded.get("campaign", null)
 	if campaign == null:
-		campaign = PokeCoopCampaign.create(String(game.id), game.id, game.sha1)
+		campaign = PokeCoopCampaign.create(path.get_file().get_basename(), game.id, game.sha1)
+		campaign.title = title
 		PokeCoopPolicy.start_campaign(campaign)
 	var serving: PokeCoopHost = PokeCoopHost.create(game, campaign, link_out)
-	serving.save_path = campaign_path(game)
+	serving.save_path = path
 	serving.allow_new_players = true
 	serving.adopt_players(loaded.get("players", []))
 	var out: PokeCoopSession = _connect(
@@ -95,8 +137,7 @@ static func hosting(
 	return out
 
 
-## [param player_id] reclaims a known player; empty uses the one this device
-## last played as on that host, or asks for a new one.
+## [param player_id] reclaims a player; empty is this device's player in the host's campaign, or a new one.
 static func joining(
 	game: GameData, address: String, port: int, player_name: String, starter: int,
 	player_id: String = "", brought: Gen2SaveData = null
@@ -116,8 +157,9 @@ static func _connect(
 	var out := PokeCoopSession.new()
 	out.data = game
 	out._identity_key = identity_key
-	out._identity_saved = player_id if not player_id.is_empty() else _remembered(identity_key)
-	out._retry_as_new = player_id.is_empty() and not out._identity_saved.is_empty()
+	out._identity_saved = player_id
+	out._known = {} if not player_id.is_empty() else _remembered(identity_key)
+	out._retry_as_new = player_id.is_empty() and not out._known.is_empty()
 	out._greeting = {
 		"address": address, "port": port, "name": player_name, "starter": starter,
 		"save": brought.to_dict() if brought != null else {},
@@ -135,7 +177,7 @@ func _dial(player_id: String) -> bool:
 	client = PokeCoopClient.over(link_in)
 	client.greet(
 		String(_greeting["name"]), data.id, data.sha1, player_id, int(_greeting["starter"]),
-		_greeting["save"] if player_id.is_empty() else {}
+		_greeting["save"] if player_id.is_empty() else {}, _known
 	)
 	return true
 
@@ -161,6 +203,7 @@ func process() -> void:
 	## this one joins as somebody new.
 	if _retry_as_new and client.ended_reason == "refused: already_connected":
 		_retry_as_new = false
+		_known = {}
 		client.transport.close()
 		_dial("")
 		return
@@ -170,9 +213,10 @@ func process() -> void:
 	_keep_connected()
 	_follow_session_end()
 	_advance_links()
-	if not client.player_id.is_empty() and client.player_id != _identity_saved:
+	if not client.player_id.is_empty() and (client.player_id != _identity_saved or client.campaign_id != _campaign_saved):
 		_identity_saved = client.player_id
-		_remember(_identity_key, client.player_id)
+		_campaign_saved = client.campaign_id
+		_remember(_identity_key, client.campaign_id, client.player_id)
 	if screen != null and is_instance_valid(screen) and panel != null:
 		_tend_world()
 
@@ -480,17 +524,20 @@ func _release_seams() -> void:
 		Gen2SaveStore.use_root("")
 
 
-static func _remembered(key: String) -> String:
+static func _remembered(key: String) -> Dictionary:
 	var known: Variant = JSON.parse_string(FileAccess.get_file_as_string(identity_path)) \
 		if FileAccess.file_exists(identity_path) else {}
-	return String((known as Dictionary).get(key, "")) if known is Dictionary else ""
+	var mine: Variant = (known as Dictionary).get(key, {}) if known is Dictionary else {}
+	return mine if mine is Dictionary else {}
 
 
-static func _remember(key: String, player_id: String) -> void:
+static func _remember(key: String, campaign_id: String, player_id: String) -> void:
 	var known: Variant = JSON.parse_string(FileAccess.get_file_as_string(identity_path)) \
 		if FileAccess.file_exists(identity_path) else {}
 	var table: Dictionary = known if known is Dictionary else {}
-	table[key] = player_id
+	var mine: Dictionary = table.get(key, {}) if table.get(key, {}) is Dictionary else {}
+	mine[campaign_id] = player_id
+	table[key] = mine
 	var file: FileAccess = FileAccess.open(identity_path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(table, "\t"))

@@ -162,6 +162,9 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 func _hello(peer: int, message: Dictionary) -> void:
 	var refusal: StringName = _hello_refusal(message)
 	var joining: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("player_id")))
+	var known: Variant = message.get("known", {})
+	if joining == null and known is Dictionary:
+		joining = player(PokeCoopTransport.text((known as Dictionary).get(campaign.campaign_id)))
 	if refusal == &"" and joining == null:
 		joining = _returning(PokeCoopTransport.text(message.get("name")))
 	if refusal == &"" and joining == null:
@@ -192,7 +195,7 @@ func _hello(peer: int, message: Dictionary) -> void:
 	for session: PokeCoopBattleSession in battles.values():
 		session.set_absent(joining.player_id, false)
 	transport.send(peer, {
-		"type": "welcome", "protocol": PROTOCOL, "player_id": joining.player_id,
+		"type": "welcome", "protocol": PROTOCOL, "player_id": joining.player_id, "campaign": campaign.campaign_id,
 		"last_seq": int(_last_seq.get(joining.player_id, 0)),
 	})
 	broadcast()

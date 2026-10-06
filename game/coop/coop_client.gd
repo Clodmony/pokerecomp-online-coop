@@ -19,6 +19,7 @@ var _seq: int = 0
 var _greeting: Dictionary = {}
 ## Battles a view arrived for in this poll: a later revision there adds its events.
 var _fresh: Dictionary = {}
+var campaign_id: String = ""
 var state_at: int = 0
 
 
@@ -32,11 +33,12 @@ static func over(link: PokeCoopTransport) -> PokeCoopClient:
 ## a new player has [param starter] or the save [param brought] as a dictionary.
 func greet(
 	player_name: String, game_id: StringName, rom_sha1: String, id: String = "", starter: int = 0,
-	brought: Dictionary = {}
+	brought: Dictionary = {}, known: Dictionary = {}
 ) -> void:
 	_greeting = {
 		"type": "hello", "protocol": PokeCoopHost.PROTOCOL, "name": player_name,
 		"game_id": String(game_id), "rom_sha1": rom_sha1, "player_id": id, "starter": starter,
+		"known": known,
 	}
 	if not brought.is_empty():
 		_greeting["save"] = brought
@@ -63,6 +65,7 @@ func _receive(message: Dictionary) -> void:
 		"welcome":
 			welcomes += 1
 			player_id = String(message.get("player_id", ""))
+			campaign_id = PokeCoopTransport.text(message.get("campaign"))
 			_seq = maxi(_seq, int(message.get("last_seq", 0)))
 		"state":
 			state = message

@@ -6,7 +6,7 @@ extends SceneTree
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
 ## `demo` runs a host and two clients in one process over localhost sockets and
 ## exits 0 only when every step of the first co-op slice passed. `host red` plays
-## an imported cartridge and keeps its campaign in `user://coop_<game>_campaign.json`.
+## an imported cartridge and keeps its campaign in `user://coop_campaigns/<game>/<game>.json`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -135,7 +135,8 @@ func _start_host(port: int, game: String) -> void:
 		push_error("coop: cannot listen on port %d" % port)
 		_finish(1)
 		return
-	var path: String = "user://coop_%s_campaign.json" % game
+	PokeCoopSession.move_legacy(_data)
+	var path: String = PokeCoopSession.campaign_path(_data)
 	var loaded: Dictionary = PokeCoopSave.read(path)
 	var campaign: PokeCoopCampaign = loaded.get("campaign", PokeCoopCampaign.create(game, _data.id, _data.sha1))
 	_host = PokeCoopHost.create(_data, campaign, link)
