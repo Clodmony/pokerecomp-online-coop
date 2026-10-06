@@ -13,6 +13,8 @@ var battles: Dictionary = {}
 var box: Dictionary = {}
 var rejections: Array = []
 var ended_reason: String = ""
+## How many times the host has welcomed this player, a reconnection included.
+var welcomes: int = 0
 var _seq: int = 0
 var _greeting: Dictionary = {}
 
@@ -55,6 +57,7 @@ func poll() -> void:
 func _receive(message: Dictionary) -> void:
 	match String(message.get("type", "")):
 		"welcome":
+			welcomes += 1
 			player_id = String(message.get("player_id", ""))
 			_seq = maxi(_seq, int(message.get("last_seq", 0)))
 		"state":

@@ -43,7 +43,7 @@ func _report() -> void:
 	var here: Dictionary = {
 		"map": _world.map_id(), "cell": _world.player_cell, "facing": _world.player_facing,
 	}
-	if here == _reported:
+	if here == _reported or not client.connected:
 		return
 	var walked: bool = not _reported.is_empty() and here["map"] == _reported["map"] \
 		and _distance(here["cell"], _reported["cell"]) <= PokeCoopHost.MAX_STEP_CELLS

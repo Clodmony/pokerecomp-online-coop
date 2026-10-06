@@ -31,6 +31,8 @@ var last_events: Array = []
 var catch: Dictionary = {}
 var _pending_joins: Array = []
 var _absent: Dictionary = {}
+var _abandoned: bool = false
+var _members: Dictionary = {}
 
 
 static func start(
@@ -88,15 +90,19 @@ func _enlist(player: PokeCoopPlayer, fighters: Dictionary) -> Array[int]:
 		added.append(roster.add(player.player_id, String((fighters["uids"] as Array)[index])))
 		battle.owner_trainer_ids[mons[index]] = player.trainer_id
 	participants.append(player.player_id)
+	_members[player.player_id] = player
 	player.battle_id = id
 	return added
 
 
+## A move offered on the last knockout is still asked before the battle ends.
 func phase() -> StringName:
+	if _abandoned:
+		return OVER
+	if battle.must_learn_move(Gen2Battle.PLAYER) and catch.is_empty():
+		return AWAITING_LEARN
 	if battle.is_over() or not catch.is_empty():
 		return OVER
-	if battle.must_learn_move(Gen2Battle.PLAYER):
-		return AWAITING_LEARN
 	if battle.awaiting_mimic() == Gen2Battle.PLAYER:
 		return AWAITING_MIMIC
 	if battle.awaiting_baton_pass() == Gen2Battle.PLAYER or battle.must_replace(Gen2Battle.PLAYER):
@@ -132,6 +138,21 @@ func set_absent(player_id: String, absent: bool, since_msec: int = Time.get_tick
 		_absent[player_id] = since_msec
 	else:
 		_absent.erase(player_id)
+
+
+## Ends the battle as fled: everybody left it, or the host is closing.
+func abandon() -> void:
+	_abandoned = true
+
+
+## How long nobody in the battle has been connected, in milliseconds, or -1.
+func everyone_away_for() -> int:
+	var latest: int = -(1 << 62)
+	for player_id: String in participants:
+		if not _absent.has(player_id):
+			return -1
+		latest = maxi(latest, int(_absent[player_id]))
+	return Time.get_ticks_msec() - latest if not participants.is_empty() else -1
 
 
 func pending_players() -> Array[String]:
@@ -242,6 +263,8 @@ func _throw_ball(player: PokeCoopPlayer, ball: int, recipient: String) -> Dictio
 		return _refused(&"trainer_pokemon")
 	if not participants.has(recipient):
 		return _refused(&"invalid_recipient")
+	if not (_members[recipient] as PokeCoopPlayer).has_room():
+		return _refused(&"box_full")
 	var wild: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
 	var roll: Dictionary = Gen2WorldPartyHost.roll_capture(
 		battle.data, wild, ball, rng, battle.battle_type, battle.mon(Gen2Battle.PLAYER)
@@ -365,6 +388,10 @@ func suggest(player_id: String, suggestion: Dictionary) -> StringName:
 
 
 func outcome() -> StringName:
+	if _abandoned:
+		return &"fled"
+	if phase() != OVER:
+		return &""
 	if not catch.is_empty():
 		return CAUGHT
 	if not battle.is_over():
@@ -403,7 +430,7 @@ func view() -> Dictionary:
 	return {
 		"battle": id, "encounter": String(encounter.get("id", "")), "revision": revision,
 		"phase": phase(), "controller": controller(), "paused": is_paused(),
-		"owner": owner_deciding(),
+		"owner": owner_deciding(), "learning": battle.pending_learn(Gen2Battle.PLAYER).duplicate(),
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),

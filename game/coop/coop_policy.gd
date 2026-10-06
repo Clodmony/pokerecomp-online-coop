@@ -136,6 +136,8 @@ static func hand_over(player: PokeCoopPlayer, item: int) -> void:
 static func import_save(
 	save: Gen2SaveData, player: PokeCoopPlayer, story: PokeCoopCampaign, badge_flags: Array[int]
 ) -> void:
+	if save.player_id > 0:
+		player.trainer_id = save.player_id & 0xFFFF
 	var snapshot: Gen2WorldSnapshot = save.world
 	if snapshot != null:
 		var halves: Dictionary = PokeCoopOwnership.route(

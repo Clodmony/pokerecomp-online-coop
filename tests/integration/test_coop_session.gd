@@ -684,10 +684,20 @@ func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -
 
 
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
+	Gen2SaveStore.use_root("user://coop_link_test_saves")
 	var red: PokeCoopWorldLink = _window(_red)
 	red.save.world = Gen2WorldSnapshot.new()
-	_pump()
+	_settle()
+	assert_eq(red.save_seq, -1, "a battle handing the world a new snapshot is no SAVE")
 
+	var path: String = Gen2SaveStore.path_for(red.save.game_id, red.save.rom_sha1, red.save.slot)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+	FileAccess.open(path, FileAccess.WRITE).store_string("{}")
+	_settle()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	Gen2SaveStore.use_root("")
+
+	assert_ne(red.save_seq, -1, "the world wrote its save, so the host was asked")
 	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
 
 
@@ -979,3 +989,144 @@ func test_a_unique_wild_pokemon_caught_stays_caught_for_the_campaign() -> void:
 	assert_eq(String(_red.battle(battle_id)["outcome"]), "caught")
 	assert_eq(_host.campaign.encounter_state("static:test"), PokeCoopCampaign.ENCOUNTER_DONE,
 		"a caught legend does not come back")
+
+
+func test_a_join_still_queued_when_the_battle_ends_is_let_go() -> void:
+	_host.register_encounter("wild:hitter", {"species": Fixture.GEODUDE, "level": 50, "moves": [Fixture.TACKLE]})
+	_send(func() -> void: _red.start_battle("wild:hitter"))
+	var battle_id: String = _battle_of(_red)
+	var session: PokeCoopBattleSession = _host.battles[battle_id]
+	session.battle.player.hp = 1
+	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 1}))
+	assert_eq(session.phase(), PokeCoopBattleSession.AWAITING_SEND_OUT, "Charmander fainted")
+	_send(func() -> void: _blue.join_battle(battle_id))
+	assert_true(session.pending_players().has(_blue.player_id), "queued behind the send-out")
+
+	_host.transport.drop(1)
+	_pump()
+	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+	_host.poll()
+	_pump()
+
+	assert_false(_host.battles.has(battle_id), "nobody was left to fight it")
+	assert_true(_host.player(_blue.player_id).is_free(), "Blue is out of a battle that never took them in")
+	assert_eq(String(_blue.battle(battle_id).get("outcome", "")), "fled", "and was told it ended")
+
+
+func test_a_participant_away_when_the_battle_ended_hears_how_on_coming_back() -> void:
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_host.transport.drop(2)
+	_pump()
+	_fight_out(battle_id)
+	assert_false(_host.battles.has(battle_id), "Red finished it alone")
+
+	_clients.erase(_blue)
+	_blue = _connect(2, _blue.player_id)
+
+	assert_eq(String(_blue.battle(battle_id).get("outcome", "")), "won", "Blue's window is told the result")
+
+
+func test_a_move_offered_on_the_last_knockout_is_asked_before_the_battle_ends() -> void:
+	var red: PokeCoopPlayer = _host.player(_red.player_id)
+	red.team.clear()
+	red.add_mon(_saved(Fixture.GEODUDE, 5, [Fixture.TACKLE, Fixture.EMBER, Fixture.THUNDERBOLT, Fixture.GROWL], 100))
+	_host.register_encounter("wild:magcargo", {"species": Fixture.MAGCARGO, "level": 33, "moves": [Fixture.GROWL]})
+	_send(func() -> void: _red.start_battle("wild:magcargo"))
+	var battle_id: String = _battle_of(_red)
+	(_host.battles[battle_id] as PokeCoopBattleSession).battle.enemy.hp = 1
+	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 0}))
+
+	var view: Dictionary = _red.battle(battle_id)
+	assert_eq(String(view["phase"]), String(PokeCoopBattleSession.AWAITING_LEARN))
+	assert_eq(String(view["outcome"]), "", "not over while the question stands")
+	assert_eq(int((view["learning"] as Dictionary)["move"]), Fixture.SLASH)
+	_send(func() -> void: _red.act(battle_id, {"type": "learn", "forget_slot": 1}))
+
+	assert_eq(String(_red.battle(battle_id)["outcome"]), "won")
+	assert_true((red.team[0]["mon"] as Gen2SaveMon).moves.has(Fixture.SLASH), "Geodude kept the move it learned")
+
+
+func test_a_battle_everyone_left_ends_and_stops_holding_up_saves() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_host.transport.drop(1)
+	_pump()
+	(_host.battles[battle_id] as PokeCoopBattleSession).set_absent(
+		_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC
+	)
+	_host.poll()
+
+	assert_false(_host.battles.has(battle_id))
+	assert_true(_host.player(_red.player_id).is_free())
+	assert_eq(_host.save_checkpoint(), &"", "a SAVE goes through again")
+
+
+func test_closing_the_host_ends_a_running_battle_before_saving() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+
+	_host.shutdown("host_shutdown", 0)
+
+	assert_false(_host.battles.has(battle_id), "no battle is left half fought in the saved campaign")
+	assert_true(_host.player(_red.player_id).is_free())
+	assert_true(FileAccess.file_exists(SAVE_PATH))
+
+
+func test_a_deposit_made_while_the_link_was_down_reaches_the_host_once_it_is_back() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+	var bench_uid: String = String(player.team[1]["uid"])
+	_host.transport.drop(1)
+	_pump()
+	assert_false(_red.connected)
+
+	(red.save.boxes[0] as Gen2SaveBox).put(red.save.party.pop_at(1))
+	_settle()
+	red.save.party[0].hp = 1
+	_settle()
+	PokeCoopTransport.link(_host.transport, _red.transport, 1)
+	_settle()
+
+	assert_eq(player.team.size(), 1)
+	assert_eq(player.team[0]["mon"].hp, 1, "the heal made after the deposit")
+	assert_eq(player.box.size(), 1, "the deposit was neither lost nor copied")
+	assert_eq(String(player.box[0]["uid"]), bench_uid)
+
+
+func test_a_ball_for_a_player_with_no_room_left_is_refused_and_kept() -> void:
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	while blue.add_mon(_saved(Fixture.PIKACHU, 5, [Fixture.TACKLE], 200)) != "":
+		pass
+	while blue.store_mon(_saved(Fixture.PIKACHU, 5, [Fixture.TACKLE], 200)) != "":
+		pass
+	_host.player(_red.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _red.act(battle_id, {
+		"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": _blue.player_id,
+	}))
+
+	assert_eq(_red.last_rejection(), &"box_full", "the cartridge will not throw with nowhere to put it")
+	assert_eq(_host.player(_red.player_id).item_count(Gen2WorldPartyHost.ITEM_MASTER_BALL), 1, "the ball is kept")
+
+
+func test_the_move_question_lists_the_learners_own_moves_and_the_new_one() -> void:
+	var panel: PokeCoopBattlePanel = PokeCoopBattlePanel.over(_red, _data)
+	var view: Dictionary = {
+		"active": 0, "learning": {"index": 1, "move": Fixture.SLASH},
+		"allies": [
+			{"index": 0, "species": Fixture.PIKACHU, "level": 9, "moves": [Fixture.TACKLE]},
+			{"index": 1, "species": Fixture.CHARMANDER, "level": 12, "moves": [Fixture.EMBER, Fixture.GROWL]},
+		],
+	}
+
+	var rows: Array = panel._learn_rows(view)
+
+	var slash: String = String(_data.move(Fixture.SLASH)["name"])
+	assert_eq(rows.size(), 3, "the benched learner's two moves and keeping them")
+	assert_string_contains(String(rows[0]["text"]), String(_data.move(Fixture.EMBER)["name"]))
+	assert_string_contains(String(rows[0]["text"]), slash)
+	panel.free()

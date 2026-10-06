@@ -163,8 +163,12 @@ static func local_addresses() -> PackedStringArray:
 
 
 func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
-	_begin(PokeCoopSession.hosting(_data(), port, _player_name(), _starter_species(), _brought()),
-		"Could not host on port %d: is another host running?" % port)
+	var session: PokeCoopSession = PokeCoopSession.hosting(
+		_data(), port, _player_name(), _starter_species(), _brought()
+	)
+	_begin(session, "Could not host on port %d: is another host running?" % port \
+		if PokeCoopSession.last_failure.is_empty() \
+		else "This device's campaign file could not be read, so it was left as it is.")
 
 
 func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
