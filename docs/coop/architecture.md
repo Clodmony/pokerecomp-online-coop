@@ -117,6 +117,7 @@ Peer 1 is the host.
 | `suggest` | `seq`, `battle`, `suggestion` (`type`, `value`) |
 | `join` | `seq`, `battle` |
 | `save` | `seq` |
+| `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL) or `leave` |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
@@ -126,7 +127,7 @@ Peer 1 is the host.
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
-| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev` and `current_box`), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
@@ -151,6 +152,8 @@ Kept small so upstream merges stay cheap (#14):
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host |
+| `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
+| `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
 | `autoload/game_runtime.gd` | `coop` slot driven from `_process`, closed when the window is |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |

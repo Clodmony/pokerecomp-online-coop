@@ -261,3 +261,19 @@ bag sends the gift to the PC's items. Consumed exchange items (Oak's Parcel,
 the Gold Teeth, the Bike Voucher) and fossils stay with whoever got them: the
 first would be stuck in a partner's bag and the second would duplicate a
 Pokémon.
+
+## D31. Players trade through the cartridge's own Cable Club, swapped on the host (2026-10-06)
+
+Gen 1 trade evolutions need a trade, and the cartridge's Cable Club already
+runs every screen of one through `Gen2LinkTransport`, which upstream left open
+for a network peer. `PokeCoopLinkTransport` is that peer: the partner the host
+names (the other side of an offer, else the first other free player), with
+their party as the host holds it. Two small upstream hooks let the Gen 1 trade
+screen wait on `PENDING` and hear the partner's TRADE or CANCEL; the save-slot
+peer answers at once as before. Once both said TRADE, `PokeCoopTrades` swaps
+the two Pokémon on the host in one step, keeping their uids and applying any
+trade evolution with the same helpers the screen uses, and the campaign is
+saved. Each window's screen commits its own copy for the movie and the
+evolution while its party sync is held, then takes the host's swap, so a
+window that disagrees cannot copy or lose a Pokémon. Remote players are hidden
+in the Cable Club rooms, where the game's own friend sprite is the partner.

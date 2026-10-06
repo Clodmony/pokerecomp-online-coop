@@ -87,6 +87,8 @@ charged twice; the world's SAVE writes the campaign.
 | Local x86_64, `test_coop_device` | a device whose link drops dials again and is the same player; a host that leaves saves both players and the joiner hears `host_shutdown` |
 | Screens (scripted), Red: PC | BLUE deposits RATTATA in Viridian's Pokémon Center PC; the host's campaign file has it in box 1 under its own uid; a new window session's WITHDRAW lists RATTATA L9 |
 | Screens (scripted), Red: story gift | RED talks to Daisy in Blue's house and gets the TOWN MAP; BLUE, out in Pallet Town, opens the bag and finds a TOWN MAP too |
+| Screens (scripted), Red: trade | RED and BLUE talk to Viridian's Cable Club receptionist, enter the Trade Center, see each other's real parties, and trade RATTATA for BLUE's MACHOKE; RED's window plays the trade movie and MACHOKE evolves into MACHAMP; the host's saved campaign has MACHAMP with RED (uid `p2:1`, OT BLUE) and RATTATA with BLUE (uid `p1:2`) |
+| Local x86_64, whole suite after trades | 4879/4879; co-op suites 67/67; ENet demo 16/16; boot smoke and release gates pass |
 | Local x86_64, whole suite after story gifts | 4876/4876; co-op suites 64/64; ENet demo 16/16; release gates pass |
 | Local x86_64, whole suite after the PC sync | 4873/4873; co-op suites 61/61; ENet demo 16/16; release gates pass |
 | Screens (scripted), Red: leaving | RED picks LEAVE SESSION from the SELECT menu: RED's window returns to the launcher, the campaign file holds both players, BLUE's world shows "The session ended: host shutdown." and returns to the launcher three seconds later |

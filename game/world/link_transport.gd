@@ -36,6 +36,10 @@ var peer: Dictionary = {}
 var clock: int = CONNECTION_NOT_ESTABLISHED
 
 
+## A network peer that has not decided yet: the trade screen keeps waiting.
+const PENDING: int = -2
+
+
 ## Which generation the peer's game is. `readmem wOtherPlayerLinkMode` after
 ## `CheckLinkTimeout_Receptionist` is zero for a Game Boy running a Gen 1 game
 ## and non-zero for a Gen 2 one, which is the whole of the "can't link to the
@@ -121,6 +125,16 @@ func choose_trade_slot(context: Dictionary) -> int:
 	if rows <= 0:
 		return -1
 	return clampi(int(context.get("ot_cursor", 0)), 0, rows - 1)
+
+
+## This side's TRADE or CANCEL under `WillBeTradedText`, for a peer that waits on it.
+func answer_trade(_accepted: bool) -> void:
+	pass
+
+
+## The peer's TRADE (1) or CANCEL (0), or [constant PENDING]; a save slot agrees.
+func trade_answer() -> int:
+	return 1
 
 
 ## A peer built from a save slot: the player's other file, which is the only
