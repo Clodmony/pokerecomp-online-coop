@@ -438,3 +438,16 @@ cry or a trainer's Pokémon's fall and thud, and a cry or sound is waited out as
 `PlayCry` does before the next line. Still missing: the trainer's own lines and
 prize money at the end, and the gym leader's fanfare, which needs the world's
 gym marker in the takeover summary.
+
+## D40. The campaign file keeps the checkpoint before it (2026-10-06)
+
+The host already wrote the campaign to a temporary file and renamed it over
+the old one, but it never asked whether the write itself succeeded: a full disk
+would have replaced the campaign with a cut-off file. A failed write now leaves
+the old file alone and reports the error. Before each rename, the file being
+replaced is copied beside it as `<campaign>.bak`, but only if it still reads as
+a campaign, so a damaged file never displaces the last good checkpoint. A
+campaign that cannot be read is still left as it is (D37); the launcher now
+names the backup. A damaged file is read without an engine error. There is
+still no journal between checkpoints and no migration between format versions
+(#39).

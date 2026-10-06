@@ -20,8 +20,9 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _saved(species: int, level: int) -> Gen2SaveMon:
@@ -120,6 +121,23 @@ func test_a_campaign_save_brings_back_both_players_and_the_shared_progress() -> 
 		PokeCoopSave.to_dict(loaded["campaign"], loaded["players"]),
 		PokeCoopSave.to_dict(campaign, [red, blue])
 	)
+
+
+func test_the_checkpoint_before_the_last_is_kept_and_never_replaced_by_a_damaged_one() -> void:
+	var backup: String = SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	var first := PokeCoopCampaign.create("first", _data.id, _data.sha1)
+	assert_eq(PokeCoopSave.write(SAVE_PATH, first, [red]), OK)
+	assert_false(FileAccess.file_exists(backup), "nothing before the first")
+	assert_eq(PokeCoopSave.write(SAVE_PATH, PokeCoopCampaign.create("second", _data.id, _data.sha1), [red]), OK)
+	assert_eq((PokeCoopSave.read(backup)["campaign"] as PokeCoopCampaign).campaign_id, "first")
+
+	var damaged: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	damaged.store_string("{\"kind\": \"pokerecomp-coop-campaign\", \"campa")
+	damaged.close()
+	assert_eq(PokeCoopSave.write(SAVE_PATH, PokeCoopCampaign.create("third", _data.id, _data.sha1), [red]), OK)
+	assert_eq((PokeCoopSave.read(backup)["campaign"] as PokeCoopCampaign).campaign_id, "first", "the damaged file is not kept")
+	assert_eq((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).campaign_id, "third")
 
 
 func test_a_save_from_a_newer_format_or_another_program_is_refused() -> void:

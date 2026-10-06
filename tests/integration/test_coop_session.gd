@@ -49,8 +49,9 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _saved(species: int, level: int, moves: Array, ot: int) -> Gen2SaveMon:

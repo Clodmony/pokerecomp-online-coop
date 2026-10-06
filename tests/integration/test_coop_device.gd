@@ -27,7 +27,8 @@ func after_each() -> void:
 	for session: PokeCoopSession in _sessions:
 		session.close()
 	PokeCoopSession.identity_path = _identity_before
-	for path: String in [IDENTITY, PokeCoopSession.campaign_path(_data)]:
+	var campaign: String = PokeCoopSession.campaign_path(_data)
+	for path: String in [IDENTITY, campaign, campaign + PokeCoopSave.BACKUP_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	RomCache.clear(_directory)
