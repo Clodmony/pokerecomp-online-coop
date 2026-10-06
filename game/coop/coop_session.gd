@@ -321,7 +321,7 @@ func _finish_closing() -> void:
 		runtime.coop = null
 
 
-## The world printed its own "saved" line; a checkpoint the host refused says so.
+## A SAVE the host refused after all (a battle began on the way) says so over the "saved" line.
 func _tell_refused_save() -> void:
 	if _notice != null and _notice.visible and Time.get_ticks_msec() >= _notice_until:
 		_notice.visible = false
@@ -492,6 +492,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	var world: Gen2WorldAPI = screen.get("_world")
 	if world != null:
 		link = PokeCoopWorldLink.over(client, world.state, save, data)
+		screen.save_gate = link.save_refusal
 		cable = PokeCoopLinkTransport.over(client)
 		world.state.set_link_transport(cable)
 	var layer := CanvasLayer.new()
