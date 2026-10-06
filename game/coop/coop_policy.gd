@@ -17,7 +17,6 @@ const START_CELLS: Array[Vector2i] = [
 ## The campaign's story begins after Oak's intro: EVENT_FOLLOWED_OAK_INTO_LAB to
 ## BATTLED_RIVAL_IN_OAKS_LAB at the pinned pokered.
 const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
-## A new player who plays the opening runs a story of their own, unseen, until Oak's lab (D50).
 const PLAY_OPENING: int = -1
 const OPENING_SPEECH: String = "speech"
 const OPENING_PLAYING: String = "playing"
