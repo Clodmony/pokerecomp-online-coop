@@ -55,8 +55,11 @@ static func _distance(first: Vector2i, second: Vector2i) -> int:
 	return absi(first.x - second.x) + absi(first.y - second.y)
 
 
+## Nobody in a Cable Club room, whose own friend sprite is the partner there.
 func _visible() -> Array[String]:
 	var out: Array[String] = []
+	if _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+		return out
 	for player_id: Variant in client.nearby():
 		var view: Dictionary = _view(String(player_id))
 		if not view.is_empty() and view.get("map") == _world.map_id():

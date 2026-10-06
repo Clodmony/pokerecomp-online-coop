@@ -27,6 +27,8 @@ var host: PokeCoopHost = null
 var screen: Gen2WorldScreen = null
 var panel: PokeCoopBattlePanel = null
 var link: PokeCoopWorldLink = null
+var cable: PokeCoopLinkTransport = null
+var _cable_state: Dictionary = {}
 var _identity_key: String = ""
 var _identity_saved: String = ""
 var _greeting: Dictionary = {}
@@ -140,24 +142,37 @@ func process() -> void:
 	_was_ready = _was_ready or is_ready()
 	_keep_connected()
 	_follow_session_end()
-	if link != null:
-		link.advance()
+	_advance_links()
 	if not client.player_id.is_empty() and client.player_id != _identity_saved:
 		_identity_saved = client.player_id
 		_remember(_identity_key, client.player_id)
 	if screen != null and is_instance_valid(screen) and panel != null:
-		var mode: Node.ProcessMode = Node.PROCESS_MODE_DISABLED if panel.is_open() \
-			else Node.PROCESS_MODE_INHERIT
-		if screen.process_mode != mode:
-			screen.process_mode = mode
-		_collect_evolutions()
-		_tell_refused_save()
-		if not panel.is_open() and _whiteout_due:
-			_whiteout_due = false
-			screen.white_out()
-		elif not panel.is_open() and not _evolving.is_empty():
-			screen.evolve_after_battle(_evolving)
-			_evolving = []
+		_tend_world()
+
+
+func _advance_links() -> void:
+	if link != null:
+		link.hold_holdings = screen != null and is_instance_valid(screen) and screen.get("_link_host") != null
+		link.advance()
+	if cable != null and not is_same(client.state, _cable_state):
+		_cable_state = client.state
+		cable.refresh()
+
+
+## The world stands still under the panel and settles its player once it closes.
+func _tend_world() -> void:
+	var mode: Node.ProcessMode = Node.PROCESS_MODE_DISABLED if panel.is_open() \
+		else Node.PROCESS_MODE_INHERIT
+	if screen.process_mode != mode:
+		screen.process_mode = mode
+	_collect_evolutions()
+	_tell_refused_save()
+	if not panel.is_open() and _whiteout_due:
+		_whiteout_due = false
+		screen.white_out()
+	elif not panel.is_open() and not _evolving.is_empty():
+		screen.evolve_after_battle(_evolving)
+		_evolving = []
 
 
 ## A dropped link: dial again as the same player until the host takes them back,
@@ -291,6 +306,8 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	var world: Gen2WorldAPI = screen.get("_world")
 	if world != null:
 		link = PokeCoopWorldLink.over(client, world.state, save, data)
+		cable = PokeCoopLinkTransport.over(client)
+		world.state.set_link_transport(cable)
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS

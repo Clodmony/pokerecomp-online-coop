@@ -698,3 +698,78 @@ func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:
 	assert_eq(_blue.ended_reason, "host_shutdown")
 	assert_false(_red.connected)
 	assert_true(_host.ended, "closed once both clients had left")
+
+
+## Both windows' cables as the Cable Club's trade screen drives them.
+func _cables() -> Array:
+	var cables: Array = []
+	for client: PokeCoopClient in [_red, _blue]:
+		var cable: PokeCoopLinkTransport = PokeCoopLinkTransport.over(client)
+		cable.refresh()
+		cables.append(cable)
+	return cables
+
+
+func test_two_players_trade_at_the_cable_club_and_each_pokemon_keeps_its_uid() -> void:
+	var red_window: PokeCoopWorldLink = _window(_red)
+	var blue_window: PokeCoopWorldLink = _window(_blue)
+	var red: PokeCoopPlayer = _host.player(_red.player_id)
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	var pikachu_uid: String = String(red.team[1]["uid"])
+	var bulbasaur_uid: String = String(blue.team[1]["uid"])
+	var cables: Array = _cables()
+	assert_true((cables[0] as PokeCoopLinkTransport).connected(), "Blue is on the other end of Red's cable")
+
+	assert_eq(cables[0].choose_trade_slot({"slot": 1}), Gen2LinkTransport.PENDING, "Blue has not chosen")
+	_pump()
+	cables[1].refresh()
+	assert_eq(cables[1].choose_trade_slot({"slot": 1}), Gen2LinkTransport.PENDING)
+	_pump()
+	assert_eq([cables[0].choose_trade_slot({}), cables[1].choose_trade_slot({})], [1, 1])
+	cables[0].answer_trade(true)
+	_pump()
+	assert_eq(cables[0].trade_answer(), Gen2LinkTransport.PENDING, "Red waits on Blue's answer")
+	cables[1].answer_trade(true)
+	_pump()
+
+	assert_eq([cables[0].trade_answer(), cables[1].trade_answer()], [1, 1])
+	assert_eq(String(red.team[1]["uid"]), bulbasaur_uid, "Red has Blue's Bulbasaur, uid and all")
+	assert_eq(String(blue.team[1]["uid"]), pikachu_uid)
+	assert_eq(red_window.save.party[1].species, Fixture.BULBASAUR, "Red's window took the host's swap")
+	assert_eq(blue_window.save.party[1].species, Fixture.PIKACHU)
+	assert_eq(red.team.size() + blue.team.size(), 4, "nobody copied, nobody lost")
+
+
+func test_a_trade_either_side_cancels_moves_nobody() -> void:
+	var red: PokeCoopPlayer = _host.player(_red.player_id)
+	var cables: Array = _cables()
+	cables[0].choose_trade_slot({"slot": 0})
+	cables[1].choose_trade_slot({"slot": 0})
+	_pump()
+	cables[0].choose_trade_slot({})
+	cables[1].choose_trade_slot({})
+	cables[0].answer_trade(true)
+	cables[1].answer_trade(false)
+	_pump()
+
+	assert_eq(cables[0].trade_answer(), 0, "Red's screen hears Blue said no")
+	assert_eq(red.team[0]["mon"].species, Fixture.CHARMANDER)
+
+
+func test_a_pokemon_that_evolves_by_trade_arrives_evolved() -> void:
+	(_data.species(Fixture.PIKACHU) as Dictionary)["evolutions"] = [{
+		"method": Gen2Layout.EVOLVE_TRADE, "parameter": Gen2Evolution.TRADE_NO_ITEM,
+		"condition": 0, "target": Fixture.GEODUDE,
+	}]
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	var cables: Array = _cables()
+	cables[0].choose_trade_slot({"slot": 1})
+	cables[1].choose_trade_slot({"slot": 0})
+	_pump()
+	cables[0].choose_trade_slot({})
+	cables[1].choose_trade_slot({})
+	cables[0].answer_trade(true)
+	cables[1].answer_trade(true)
+	_pump()
+
+	assert_eq(blue.team[-1]["mon"].species, Fixture.GEODUDE, "Pikachu evolved on arrival")

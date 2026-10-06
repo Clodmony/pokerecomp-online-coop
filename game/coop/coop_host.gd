@@ -27,6 +27,7 @@ var _badge_flags: Array[int] = []
 var _last_seq: Dictionary = {}
 var _finished: Array = []
 var _box_sent: Dictionary = {}
+var trades: PokeCoopTrades = null
 
 
 static func create(
@@ -39,6 +40,7 @@ static func create(
 	out.campaign = run
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
+	out.trades = PokeCoopTrades.create(game_data)
 	return out
 
 
@@ -128,6 +130,12 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return apply_party(sender, message)
 		"save":
 			return save_checkpoint()
+		"trade":
+			var swaps: int = trades.swaps
+			var answer: StringName = trades.handle(sender, message, players)
+			if trades.swaps != swaps and battles.is_empty():
+				_write_campaign()
+			return answer
 	return &"unknown_message"
 
 
@@ -187,6 +195,7 @@ func _on_disconnected(peer: int) -> void:
 	if leaving == null:
 		return
 	leaving.connected = false
+	trades.leave(leaving.player_id, players)
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
 			session.set_absent(leaving.player_id, true)
@@ -480,7 +489,7 @@ func broadcast() -> void:
 			transport.send(peer, {"type": "box", "rev": viewer.box_rev, "rows": viewer.box_rows()})
 		transport.send(peer, {
 			"type": "state", "campaign": shared, "players": everyone,
-			"you": viewer.private_view(), "nearby": nearby(viewer), "battles": running,
+			"you": _private_view(viewer), "nearby": nearby(viewer), "battles": running,
 			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
 		})
 		for session: PokeCoopBattleSession in battles.values():
@@ -490,6 +499,19 @@ func broadcast() -> void:
 			if (final_view["participants"] as Array).has(viewer.player_id):
 				transport.send(peer, {"type": "battle", "view": final_view})
 	_finished.clear()
+
+
+## The player's own view with the Cable Club's: their trade round and partner.
+func _private_view(viewer: PokeCoopPlayer) -> Dictionary:
+	var out: Dictionary = viewer.private_view()
+	out["trade"] = trades.view(viewer.player_id)
+	var partner: PokeCoopPlayer = trades.partner_for(viewer, players)
+	if partner != null:
+		out["trade_partner"] = {
+			"player_id": partner.player_id, "name": partner.name,
+			"trainer_id": partner.trainer_id, "party": partner.team_rows(),
+		}
+	return out
 
 
 ## Everybody else connected and out exploring on [param viewer]'s map.

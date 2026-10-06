@@ -328,6 +328,10 @@ func box_rows() -> Array:
 	return _rows_to_dicts(box)
 
 
+func team_rows() -> Array:
+	return _rows_to_dicts(team)
+
+
 static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	if not raw is Dictionary:
 		return null

@@ -28,6 +28,8 @@ var _frames: int = 0
 var _saved_world: Object = null
 ## The sequence number of the last checkpoint the world's SAVE asked for.
 var save_seq: int = -1
+## While the Cable Club trades on the window's party; the host's swap comes after.
+var hold_holdings: bool = false
 
 
 static func over(
@@ -58,6 +60,8 @@ func advance() -> void:
 		_push_world()
 	_pull_world()
 	_frames += 1
+	if hold_holdings:
+		return
 	if _frames % PARTY_CHECK_FRAMES == 0 and _is_free():
 		_push_party()
 	_pull_party()
