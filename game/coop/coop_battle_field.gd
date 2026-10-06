@@ -52,9 +52,13 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var view: Dictionary = panel.battle_view() if panel != null else {}
+	if panel == null:
+		return
+	var view: Dictionary = panel.battle_view()
 	visible = not view.is_empty()
 	if not visible:
+		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		panel.position = Vector2(get_viewport_rect().size.x - panel.size.x - GAP, GAP)
 		_revision_key = ""
 		_out = {}
 		_messages.clear()
@@ -68,13 +72,19 @@ func _process(delta: float) -> void:
 		_advance_text()
 
 
-## The window's height at a whole multiple, left of the panel when there is room.
+## At a whole multiple: left of the panel on a wide window, above it on a tall one.
 func _place() -> void:
 	var room: Vector2 = get_viewport_rect().size
-	var across: float = room.x - (PokeCoopBattlePanel.WIDTH + GAP * 3 if room.x > room.y else 0.0)
-	var factor: int = maxi(1, int(minf(across / Gen2Screen.WIDTH, (room.y - GAP * 2) / Gen2Screen.HEIGHT)))
+	var tall: bool = room.y > room.x
+	var across: float = room.x - GAP * 2 - (0.0 if tall else PokeCoopBattlePanel.WIDTH + GAP)
+	var down: float = (room.y * 0.6 if tall else room.y) - GAP * 2
+	var factor: int = maxi(1, int(minf(across / Gen2Screen.WIDTH, down / Gen2Screen.HEIGHT)))
 	_stage.scale = Vector2(factor, factor)
-	_stage.position = Vector2(GAP, (room.y - Gen2Screen.HEIGHT * factor) / 2.0).floor()
+	var shown: Vector2 = Vector2(Gen2Screen.WIDTH, Gen2Screen.HEIGHT) * factor
+	_stage.position = (Vector2((room.x - shown.x) / 2.0, GAP) if tall \
+		else Vector2(GAP, (room.y - shown.y) / 2.0)).floor()
+	if tall:
+		panel.position = Vector2(maxf(GAP, (room.x - panel.size.x) / 2.0), GAP * 2 + shown.y).floor()
 
 
 ## What [Gen2BattleRenderer] draws for [param view]: the enemy and the ally out.
