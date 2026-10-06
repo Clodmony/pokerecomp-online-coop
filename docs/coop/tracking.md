@@ -51,3 +51,4 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L2 | Tell a window when its SAVE was refused | M8 | done on `coop/launcher`: a notice over the world says why |
 | L3 | Leave a session from the game and return to the launcher | M9 | done on `coop/launcher`: LEAVE SESSION, the end notice and the window closing all leave through one path |
 | L4 | Window saves failed the game's own checks (slot -1), refusing PC and other validated services | M7 | done on `coop/launcher`: slot 0 under a scratch save root |
+| L5 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |

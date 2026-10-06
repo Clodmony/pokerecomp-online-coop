@@ -143,6 +143,7 @@ func _hello(peer: int, message: Dictionary) -> void:
 			PokeCoopPolicy.set_up_new_player(
 				data, joining, int(message.get("starter", 0)), joined_before
 			)
+			PokeCoopPolicy.hand_over_gifts(campaign, joining)
 	if refusal == &"" and joining.connected:
 		refusal = &"already_connected"
 	if refusal != &"":
@@ -212,8 +213,11 @@ func step(
 ## to [param sender]. Trusted until the host simulates the world itself.
 func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var halves: Dictionary = PokeCoopOwnership.route(changes, _badge_flags)
+	var flags_before: Dictionary = campaign.flags.duplicate()
+	var held_before: Dictionary = sender.items.duplicate()
 	campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
 	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
+	PokeCoopPolicy.share_gifts(campaign, sender, players.values(), flags_before, held_before)
 	return &""
 
 

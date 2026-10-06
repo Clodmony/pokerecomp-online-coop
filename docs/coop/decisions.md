@@ -247,3 +247,17 @@ fingerprint keep their own uids. A window's world explores on a save with slot
 the game's own checks pass, so Bill's PC and other services that validate the
 save work, and nothing a window writes can touch a player's single-player
 slots.
+
+## D30. Story gifts reach every player (2026-10-06)
+
+Story flags are the campaign's, so a gift event runs once, in whichever window
+met it, and only that player was given the item. A partner without HM01 could
+not Cut their way to Lt. Surge. `PokeCoopPolicy.share_gifts` hands every
+other player the same item when a player gains one of Red and Blue's unique,
+kept items (key items, rods, HM01 to HM05) or when the campaign first takes an
+`EVENT_GOT_TMxx` flag. Each gift is a campaign commit (`gift:<item>`), so it
+is given once, and a late joiner is handed every gift committed before. A full
+bag sends the gift to the PC's items. Consumed exchange items (Oak's Parcel,
+the Gold Teeth, the Bike Voucher) and fossils stay with whoever got them: the
+first would be stuck in a partner's bag and the second would duplicate a
+Pokémon.
