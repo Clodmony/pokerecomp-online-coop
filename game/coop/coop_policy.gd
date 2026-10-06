@@ -30,6 +30,9 @@ const GIFT_TMS: Dictionary = {
 	944: 229, 1152: 239, 1791: 236,
 }
 const GIFT_COMMIT_PREFIX: String = "gift:"
+## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the
+## three birds and MEWTWO. Each is one encounter for the whole campaign.
+const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
 ## How long a battle waits for a controller who dropped before another
 ## participant decides for their Pokémon, which stay theirs.
 const STAND_IN_MSEC: int = 30000

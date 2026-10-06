@@ -955,3 +955,27 @@ func test_a_change_between_battles_is_written_without_waiting_for_one() -> void:
 	var saved: Dictionary = PokeCoopSave.read(SAVE_PATH)
 	assert_true((saved.get("campaign", null) as PokeCoopCampaign).has_flag(BEAT_LEADER),
 		"the flag a window set is on disk before any battle or SAVE")
+
+
+func test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each() -> void:
+	var snorlax: String = PokeCoopHost._window_encounter(false, 0, 0, 143, Vector2i(0, 23))
+	assert_eq(snorlax, "static:143:0:23")
+	assert_eq(PokeCoopHost._window_encounter(false, 0, 0, Fixture.PIKACHU, Vector2i(0, 12)), "",
+		"a Pokémon met in the grass is no encounter of the campaign's")
+	assert_eq(PokeCoopHost._window_encounter(true, 34, 0, 74, Vector2i(0, 54)), "trainer:34:0")
+
+
+func test_a_unique_wild_pokemon_caught_stays_caught_for_the_campaign() -> void:
+	_host.register_encounter("static:test", {
+		"species": Fixture.BULBASAUR, "level": 2, "moves": [Fixture.GROWL], "unique": true,
+	})
+	_host.player(_red.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_send(func() -> void: _red.start_battle("static:test"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _red.act(battle_id, {
+		"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": _red.player_id,
+	}))
+
+	assert_eq(String(_red.battle(battle_id)["outcome"]), "caught")
+	assert_eq(_host.campaign.encounter_state("static:test"), PokeCoopCampaign.ENCOUNTER_DONE,
+		"a caught legend does not come back")

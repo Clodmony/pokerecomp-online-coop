@@ -344,14 +344,6 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not initiator.is_free():
 		return &"already_in_battle"
-	var trainer: bool = PokeCoopTransport.text(message.get("kind"), "wild") == "trainer"
-	var trainer_class: int = PokeCoopTransport.number(message.get("trainer_class"))
-	var trainer_index: int = PokeCoopTransport.number(message.get("trainer_index"))
-	var encounter_id: String = "trainer:%d:%d" % [trainer_class, trainer_index] if trainer else ""
-	if trainer and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_DONE:
-		return &"encounter_done"
-	if trainer and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_ACTIVE:
-		return _join_window_battle(initiator, encounter_id)
 	var enemies: Array = []
 	var rows: Variant = message.get("enemy", [])
 	for row: Variant in rows if rows is Array else []:
@@ -362,23 +354,45 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	var party: Gen2Party = Gen2Party.create(enemies)
 	if party == null:
 		return &"invalid_enemy"
+	var trainer: bool = PokeCoopTransport.text(message.get("kind"), "wild") == "trainer"
+	var trainer_class: int = PokeCoopTransport.number(message.get("trainer_class"))
+	var trainer_index: int = PokeCoopTransport.number(message.get("trainer_index"))
+	var encounter_id: String = _window_encounter(trainer, trainer_class, trainer_index,
+		(enemies[0] as Gen2BattleMon).species, _vector(message.get("map")))
+	var unique: bool = not encounter_id.is_empty()
+	if unique and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_DONE:
+		return &"encounter_done"
+	if unique and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_ACTIVE:
+		return _join_window_battle(initiator, encounter_id)
 	var battle_id: String = campaign.take_battle_id()
-	if trainer and not campaign.claim_encounter(encounter_id, battle_id):
+	if unique and not campaign.claim_encounter(encounter_id, battle_id):
 		return &"encounter_taken"
 	var info: Dictionary = {
-		"id": encounter_id if trainer else "window:%s" % battle_id,
-		"kind": "trainer" if trainer else "wild", "unique": trainer,
+		"id": encounter_id if unique else "window:%s" % battle_id,
+		"kind": "trainer" if trainer else "wild", "unique": unique,
 		"trainer_class": trainer_class if trainer else 0, "trainer_index": trainer_index,
 	}
 	var session: PokeCoopBattleSession = PokeCoopBattleSession.start(
 		data, battle_id, seeds.randi(), initiator, party, info, _badge_mask()
 	)
 	if session == null:
-		if trainer:
+		if unique:
 			campaign.release_encounter(encounter_id, battle_id)
 		return &"cannot_start"
 	battles[battle_id] = session
 	return &""
+
+
+## One encounter for the whole campaign: a trainer by class and index, or one
+## of Red and Blue's one-off wild Pokémon where it stands; empty for the grass.
+static func _window_encounter(
+	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i
+) -> String:
+	if trainer:
+		return "trainer:%d:%d" % [trainer_class, trainer_index]
+	if PokeCoopPolicy.UNIQUE_WILD.has(species):
+		return "static:%d:%d:%d" % [species, map.x, map.y]
+	return ""
 
 
 ## A second window opened a trainer the campaign is already fighting.
@@ -453,8 +467,8 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		_file_catch(session.catch)
 	if outcome == &"won":
 		_pay(session)
-		if unique:
-			campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
+	if unique and (outcome == &"won" or outcome == PokeCoopBattleSession.CAUGHT):
+		campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
 	for participant_id: String in session.participants:

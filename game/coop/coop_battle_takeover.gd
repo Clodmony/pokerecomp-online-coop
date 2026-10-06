@@ -62,6 +62,7 @@ class Bridge extends Node:
 			"type": "window_battle", "kind": String(summary.get("battle_kind", "wild")),
 			"trainer_class": int(summary.get("trainer_class", 0)),
 			"trainer_index": int(summary.get("trainer_index", 0)), "enemy": enemies,
+			"map": [int(summary.get("map_group", -1)), int(summary.get("map_number", -1))],
 		})
 
 	func advance_frame() -> void:

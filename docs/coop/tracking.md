@@ -40,6 +40,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 29 | Session menu: join a battle from another map and return afterwards | done (JOIN in the SELECT panel from any map; the return point is kept) | `coop/slice-1`, `coop/launcher` | close when the branch merges |
 | 30 | Controller loss: pause, timeout and resume | done: paused, a participant stands in after 30 s, the owner takes it back (D33) | `coop/launcher` | close when the branch merges |
 | 32 | Route map-script event flags and badges through campaign commits | done: flags and badges travel as campaign world patches (D23), trainer victories as commits | `coop/m1-state-sync` | close when the branch merges |
+| 33 | Catalogue unique Red/Blue encounters | done for battles: every trainer by class and index, and SNORLAX, the birds and MEWTWO by species and map (D36); gift Pokémon are first come | `coop/launcher` | close when the branch merges, or keep open for gift Pokémon |
 | 34 | Policy: a player joining a campaign late | partial: provisional rule implemented (starter of choice, intro done) | `coop/launcher` (`260ed3b0`) | comment with the rule, keep open for the owner's decision |
 | 35 | Captures go to one explicitly chosen player | done | `coop/launcher` (`c01deca6`) | close when the branch merges |
 | 36 | Policy: prize money, Pay Day and blackout costs | partial: prize split on the host, blackout paid in each player's world | `coop/launcher` (`edd0a681`) | comment, keep open for the owner's decision |
