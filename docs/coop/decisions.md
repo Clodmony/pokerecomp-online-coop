@@ -296,9 +296,11 @@ co-op panel beside it keeps the commands, the suggestions and the turn owner.
 Each animation's own move sounds go through the world's audio player, a cry
 move with the attacker's cry, and the battle's music plays while it is up, a
 trainer's chosen by the class and index its encounter names, until the map's
-own music comes back as it closes. Still missing against the battle screen:
-send-out cries, the victory fanfare, screen-scroll effects, battler slides and
-the sliding intro.
+own music comes back as it closes. A battle seen from its start opens with
+"Wild X appeared!" and "Go! Y!" and their cries, a send-out later in the battle
+has its cry, and a win plays the wild or trainer fanfare. Still missing against
+the battle screen: the gym leaders' own fanfare, screen-scroll effects, battler
+slides and the sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 
