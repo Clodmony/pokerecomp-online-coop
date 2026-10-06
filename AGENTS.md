@@ -115,7 +115,10 @@ same steps locally instead.
 | `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
 | `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu and co-op battle overlay over the world screen |
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
-| `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state and party kept in step with the host |
+| `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |
+| `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the cartridge's battle field |
+| `game/coop/coop_trades.gd` | `PokeCoopTrades`: Cable Club trades between players, swapped on the host |
+| `game/coop/coop_link_transport.gd` | `PokeCoopLinkTransport`: the Cable Club's cable to the partner the host names |
 | `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |
 | `game/coop/coop_session.gd` | `PokeCoopSession`: one device's co-op run, held by `Gen2GameRuntime.coop` |
 | `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab |
