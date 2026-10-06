@@ -47,15 +47,15 @@ var _welcomes_seen: int = 0
 var _notice: Label = null
 var _notice_until: int = 0
 var _noticed_save: int = -1
+var _partners_seen: Dictionary = {}
 
 
 static func campaign_path(game: GameData) -> String:
 	return "user://coop_%s_campaign.json" % String(game.id)
 
 
-## This device hosts on [param port] and plays as [param player_name], loading
-## the cartridge's campaign file or starting one.
-## [param brought] is a single-player save a new player brings instead of a starter.
+## This device hosts on [param port] as [param player_name], loading or starting the
+## campaign; [param brought] is a save a new player brings instead of a starter.
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null
 ) -> PokeCoopSession:
@@ -183,6 +183,7 @@ func _tend_world() -> void:
 		hold_world(screen, screen.get("_audio_player"), panel.is_open())
 	_collect_evolutions()
 	_tell_refused_save()
+	_tell_partners()
 	if not panel.is_open() and _whiteout_due:
 		_whiteout_due = false
 		screen.white_out()
@@ -271,6 +272,52 @@ func _tell_refused_save() -> void:
 			say("The campaign was not saved: %s." % String(rejection.get("reason", "")).replace("_", " "))
 
 
+## A partner arriving, leaving, or starting a battle this player is free to join.
+func _tell_partners() -> void:
+	var now: Dictionary = partner_states(client)
+	if not _partners_seen.is_empty():
+		var line: String = partner_news(_partners_seen, now, client, data)
+		if not line.is_empty():
+			say(line)
+	_partners_seen = now
+
+
+static func partner_states(session: PokeCoopClient) -> Dictionary:
+	var out: Dictionary = {}
+	var everyone: Dictionary = session.state.get("players", {})
+	for player_id: String in everyone:
+		if player_id != session.player_id:
+			var view: Dictionary = everyone[player_id]
+			out[player_id] = {"name": String(view.get("name", player_id)), "connected": bool(view.get("connected", false)),
+				"battle": String(view.get("battle", ""))}
+	return out
+
+
+static func partner_news(before: Dictionary, now: Dictionary, session: PokeCoopClient, game: GameData) -> String:
+	var mine: String = String(((session.state.get("players", {}) as Dictionary).get(session.player_id, {}) as Dictionary).get("battle", ""))
+	for player_id: String in now:
+		var was: Dictionary = before.get(player_id, {})
+		var is_now: Dictionary = now[player_id]
+		if bool(is_now["connected"]) and not bool(was.get("connected", false)):
+			return "%s joined the session." % is_now["name"]
+		if bool(was.get("connected", false)) and not bool(is_now["connected"]):
+			return "%s left the session." % is_now["name"]
+		var battle: String = String(is_now["battle"])
+		if not battle.is_empty() and battle != String(was.get("battle", "")) and battle != mine and mine.is_empty():
+			return "%s is in a battle%s. SELECT to join." % [is_now["name"], _against(session, battle, game)]
+	return ""
+
+
+static func _against(session: PokeCoopClient, battle_id: String, game: GameData) -> String:
+	for running: Dictionary in session.state.get("battles", []):
+		if String(running.get("battle", "")) != battle_id or game == null:
+			continue
+		var trainer: int = int(running.get("trainer_class", 0))
+		return " against %s" % (game.trainer_name(trainer) if trainer > 0 \
+			else "wild %s" % String(game.species(int(running.get("enemy", 0))).get("name", "")))
+	return ""
+
+
 ## A line over the world for a few seconds.
 func say(text: String) -> void:
 	if _notice == null:
@@ -342,10 +389,13 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	layer.add_child(field)
 	layer.add_child(panel)
 	_notice = Label.new()
-	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE)
-	_notice.add_theme_color_override("font_outline_color", Color.BLACK)
-	_notice.add_theme_constant_override("outline_size", 6)
-	_notice.position = Vector2(24, 24)
+	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE + 1)
+	var backdrop := StyleBoxFlat.new()
+	backdrop.bg_color = Color(0.06, 0.07, 0.12, 0.9)
+	backdrop.set_content_margin_all(10)
+	backdrop.set_corner_radius_all(6)
+	_notice.add_theme_stylebox_override("normal", backdrop)
+	_notice.position = Vector2(16, 16)
 	_notice.visible = false
 	layer.add_child(_notice)
 
