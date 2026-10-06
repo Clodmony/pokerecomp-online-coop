@@ -374,6 +374,8 @@ func _finish(session: PokeCoopBattleSession) -> void:
 	final_view["evolvable"] = session.evolvable_uids()
 	_finished.append(final_view)
 	battles.erase(session.id)
+	if battles.is_empty():
+		_write_campaign()
 
 
 ## The wild a ball held, filed once with its recipient as its trainer: the team
@@ -417,7 +419,13 @@ func save_checkpoint() -> StringName:
 		return &"battle_in_progress"
 	if save_path.is_empty():
 		return &"no_save_path"
-	return &"" if PokeCoopSave.write(save_path, campaign, players.values()) == OK else &"save_failed"
+	return &"" if _write_campaign() == OK else &"save_failed"
+
+
+## The campaign between battles: a battle still running when the host closes is left out.
+func _write_campaign() -> Error:
+	return PokeCoopSave.write(save_path, campaign, players.values()) \
+		if not save_path.is_empty() else ERR_UNCONFIGURED
 
 
 ## Tells every client the session is over, then closes once they have all left
@@ -425,6 +433,7 @@ func save_checkpoint() -> StringName:
 func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE_MSEC) -> void:
 	if ended or _closing_at >= 0:
 		return
+	_write_campaign()
 	for peer: int in _peers:
 		transport.send(peer, {"type": "ended", "reason": reason})
 	_closing_at = Time.get_ticks_msec() + maxi(grace_msec, 0)

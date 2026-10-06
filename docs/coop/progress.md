@@ -83,6 +83,9 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: capture | A wild Rattata from Route 1's grass, Master Ball thrown by RED for BLUE: BLUE's panel says caught for BLUE and BLUE's own party menu lists it |
 | Screens (scripted), Red: evolution | BLUE's Squirtle reaches 16 in RED's battle; BLUE's window plays the evolution into Wartortle; BLUE's party menu shows Wartortle L16 |
 | Screens (scripted), Red: loss | Both lose to a level 40 Onix from the session menu; both windows show the blackout and wake up in Pallet Town |
+| Local x86_64, whole suite after the session lifecycle | 4865/4865; co-op suites 54/54; ENet demo 16/16; boot smoke and release gates pass |
+| Local x86_64, `test_coop_device` | a device whose link drops dials again and is the same player; a host that leaves saves both players and the joiner hears `host_shutdown` |
+| Screens (scripted), Red: leaving | RED picks LEAVE SESSION from the SELECT menu: RED's window returns to the launcher, the campaign file holds both players, BLUE's world shows "The session ended: host shutdown." and returns to the launcher three seconds later |
 
 ## Slice 1 acceptance criteria
 
@@ -124,6 +127,10 @@ has **played** it by hand yet.
 - The battle is a text panel, not the battle screen (#26): no animations,
   battle text or cries in a shared battle.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
+- Reconnection is automatic on a dropped link (ten tries, two seconds apart),
+  but an Android or iOS suspend has not been tried on a device (#20, #45).
+- The campaign is saved whenever no battle runs and when the host leaves; there
+  is no recovery journal or save migration yet (#39).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
   `palette` key for Generation 1 trainers (#59).
 

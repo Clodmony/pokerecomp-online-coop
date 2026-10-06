@@ -210,6 +210,13 @@ func _process(_delta: float) -> void:
 		coop.process()
 
 
+## Ends a co-op run first so a hosting device saves and tells its players.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and coop != null:
+		coop.close()
+		coop = null
+
+
 ## Puts the app block's window and frame-rate settings into the engine. The
 ## settings page calls it after every change and nothing else needs to. Refused on
 ## anything but a player's own launch, where a check would inherit the developer's

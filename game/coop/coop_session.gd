@@ -9,6 +9,10 @@ extends RefCounted
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
 const NOTICE_FRAMES: int = 240
+const LEAVE_FRAMES: int = 180
+const RECONNECT_FRAMES: int = 120
+const RECONNECT_ATTEMPTS: int = 10
+const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 ## Which player this device was on each host, by cartridge, address and port.
 static var identity_path: String = "user://coop_identity.json"
 
@@ -28,6 +32,11 @@ var _retry_as_new: bool = false
 var _settled_battles: Dictionary = {}
 var _evolving: Array = []
 var _whiteout_due: bool = false
+var _was_ready: bool = false
+var _closed: bool = false
+var _reconnect_attempts: int = 0
+var _reconnect_in: int = 0
+var _leaving_in: int = -1
 var _notice: Label = null
 var _notice_frames: int = 0
 var _noticed_save: int = -1
@@ -102,8 +111,9 @@ func _dial(player_id: String) -> bool:
 	return true
 
 
+## Ready once the host has said who this player is, and not again after leaving.
 func is_ready() -> bool:
-	return not client.me().is_empty()
+	return not _closed and not client.me().is_empty()
 
 
 ## Why the session ended or was refused, or empty while it runs.
@@ -112,6 +122,9 @@ func ended_reason() -> String:
 
 
 func process() -> void:
+	if _closed:
+		_finish_closing()
+		return
 	if host != null:
 		host.poll()
 	client.poll()
@@ -122,6 +135,9 @@ func process() -> void:
 		client.transport.close()
 		_dial("")
 		return
+	_was_ready = _was_ready or is_ready()
+	_keep_connected()
+	_follow_session_end()
 	if link != null:
 		link.advance()
 	if not client.player_id.is_empty() and client.player_id != _identity_saved:
@@ -140,6 +156,67 @@ func process() -> void:
 		elif not panel.is_open() and not _evolving.is_empty():
 			screen.evolve_after_battle(_evolving)
 			_evolving = []
+
+
+## A dropped link: dial again as the same player until the host takes them back,
+## waiting out its refusal while it still counts them connected.
+func _keep_connected() -> void:
+	if not _was_ready or client.connected or _leaving_in >= 0 or _closed:
+		return
+	if client.ended_reason == "refused: already_connected":
+		client.ended_reason = ""
+	if not client.ended_reason.is_empty():
+		return
+	_reconnect_in -= 1
+	if _reconnect_in > 0:
+		return
+	_reconnect_in = RECONNECT_FRAMES
+	_reconnect_attempts += 1
+	if _reconnect_attempts > RECONNECT_ATTEMPTS:
+		client.ended_reason = "host_unreachable"
+		return
+	var link_again: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(
+		String(_greeting["address"]), int(_greeting["port"])
+	)
+	if link_again != null:
+		client.transport = link_again
+		client.greet(String(_greeting["name"]), data.id, data.sha1, client.player_id)
+
+
+## The host ended the session or turned this player away: say so, then leave.
+func _follow_session_end() -> void:
+	if screen == null or not is_instance_valid(screen):
+		return
+	if _leaving_in < 0 and not client.ended_reason.is_empty():
+		say("The session ended: %s." % client.ended_reason.replace("_", " "))
+		_leaving_in = LEAVE_FRAMES
+	if _leaving_in > 0:
+		_leaving_in -= 1
+		if _leaving_in == 0:
+			leave()
+
+
+## Back to the launcher; a hosting device first tells every client the run ended.
+func leave() -> void:
+	_leaving_in = 0
+	_closed = true
+	if host != null and not host.ended:
+		host.shutdown()
+	else:
+		client.transport.close()
+	if screen != null and is_instance_valid(screen):
+		screen.get_tree().change_scene_to_file.call_deferred(LAUNCHER_SCENE)
+	_finish_closing()
+
+
+func _finish_closing() -> void:
+	if host != null and not host.ended:
+		host.poll()
+		return
+	_release_seams()
+	var runtime: Gen2GameRuntime = Gen2GameRuntime.instance()
+	if runtime != null and runtime.coop == self:
+		runtime.coop = null
 
 
 ## The world printed its own "saved" line; a checkpoint the host refused says so.
@@ -216,6 +293,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	screen.add_child(layer)
 	panel = PokeCoopBattlePanel.over(client, data)
+	panel.leave_requested.connect(leave)
 	layer.add_child(panel)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE)
@@ -255,9 +333,14 @@ func _local_save(me: Dictionary) -> Gen2SaveData:
 
 ## Ends the run: the host, when this device is it, tells everyone first.
 func close() -> void:
+	_closed = true
 	if host != null:
 		host.shutdown("host_shutdown", 0)
 	client.transport.close()
+	_release_seams()
+
+
+func _release_seams() -> void:
 	if _actor != null and _actor.client == client:
 		_actor.client = null
 		_takeover.client = null

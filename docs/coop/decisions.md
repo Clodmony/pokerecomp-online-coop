@@ -217,3 +217,17 @@ and `white_out`. The host no longer charges a blackout, so the cost is paid
 exactly where the player is sent home. Captures are rolled on the host with
 `Gen2WorldPartyHost.roll_capture` and filed once to the recipient the thrower
 named.
+
+## D28. A session ends through one path and saves on the way (2026-10-06)
+
+`PokeCoopSession.leave()` is the only way out of a running session: the
+session menu's LEAVE SESSION, the end notice and the window closing all reach
+it. A hosting device shuts its host down gracefully (the campaign is written,
+every client is told) and keeps polling it from the runtime until the clients
+are gone; a joining device closes its link. Either way the world returns to the
+launcher and the session never reports ready again. A joiner told the session
+ended shows why over the world for three seconds first. A joiner whose link
+drops dials again as the same player every two seconds and gives up after ten
+tries as `host_unreachable`; ENet peers time out after two to six seconds so a
+lost player is freed for that. The host also writes the campaign whenever its
+last running battle ends, so a crash loses at most the battle in progress.
