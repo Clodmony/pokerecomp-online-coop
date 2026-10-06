@@ -558,3 +558,15 @@ takes it back. `Gen2GameRuntime` forwards `NOTIFICATION_APPLICATION_RESUMED`
 to the session, and a joining device that was paused for more than three
 seconds closes its link and dials straight away. A battle the world starts
 while the link is down is fought in the world itself, as before (D24).
+
+## D47. A shared battle fills every participant's Pokédex (2026-10-06)
+
+The single-player battle screen marks an enemy seen as it appears
+(`_register_enemy_sight`, for the opener and each send-out), but a co-op
+battle is fought on the host without that screen, so battles added nothing to
+"seen" for anybody; only a catch reached the recipient's Pokédex. Each battle
+session now keeps the species that appeared, and the host marks them seen for
+every participant when the battle ends, through the same player-owned world
+patch a catch uses, so each window's Pokédex picks it up. A player who joined
+late is credited with the whole battle; the cartridge's own rule would only
+count what they saw.

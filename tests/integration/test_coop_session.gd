@@ -908,6 +908,19 @@ func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
 	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
 
 
+func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _red.act(battle_id, {"type": "run"}))
+	_pump()
+	assert_false(_host.battles.has(battle_id), "the battle is over")
+
+	for client: PokeCoopClient in [_red, _blue]:
+		var seen: Dictionary = _host.player(client.player_id).world_part().get("seen_species", {})
+		assert_true(seen.has(Fixture.GEODUDE), "%s's Pokédex has seen the wild one" % client.player_id)
+
+
 func test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle() -> void:
 	var before: Dictionary = PokeCoopSession.partner_states(_red)
 	_send(func() -> void: _blue.start_battle("wild:stall"))
