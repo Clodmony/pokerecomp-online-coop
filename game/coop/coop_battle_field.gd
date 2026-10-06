@@ -10,6 +10,8 @@ const GAP: int = 16
 
 var panel: PokeCoopBattlePanel = null
 var data: GameData = null
+## The world's own player, which the field's sounds and cries go through.
+var audio: Gen2AudioPlayer = null
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
@@ -24,6 +26,7 @@ var _hp_seen: Dictionary = {}
 var _queued_move: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
+var _sounding: Dictionary = {}
 var _hold: int = 0
 var _revision_key: String = ""
 var _idle_text: String = ""
@@ -162,6 +165,7 @@ func _take_events(view: Dictionary) -> void:
 			_messages.append({
 				"text": line, "move": int(event.get("move", 0)) if used else 0,
 				"enemy": int(event.get("side", 0)) == Gen2Battle.ENEMY,
+				"species": int(out.get(int(event.get("side", 0)), 0)),
 			})
 	_out = out_now(view)
 	_idle_text = idle
@@ -191,6 +195,7 @@ func _advance_text() -> void:
 	_box.advance_frame()
 	if _anim != null:
 		_anim.advance_frame()
+		_play_sounds()
 		if _anim.finished() or _anim.failed():
 			_anim = null
 		return
@@ -201,7 +206,9 @@ func _advance_text() -> void:
 		return
 	if not _queued_move.is_empty():
 		_anim = _move_animation(int(_queued_move["move"]), bool(_queued_move["enemy"]))
+		_sounding = _queued_move
 		_queued_move = {}
+		_play_sounds()
 		return
 	if _hold > 0:
 		_hold -= 1
@@ -245,6 +252,37 @@ func _move_animation(move: int, enemy_turn: bool) -> Gen2BattleAnimPlayer:
 	if player != null:
 		player.background().set_bg_map(Gen2BattleScreenMap.seeded())
 	return player
+
+
+## What the animation's last frame asked to hear: `GetMoveSound`'s row, a
+## `IsCryMove` being the attacker's own cry with the row's offsets.
+func _play_sounds() -> void:
+	if audio == null or _anim == null:
+		return
+	for command: Dictionary in _anim.frame_commands():
+		var operands: Array = command.get("operands", [])
+		var record: Dictionary = {}
+		match StringName(command["name"]):
+			Gen2BattleAnimPlayer.GEN1_SOUND:
+				record = data.gen1_sound(-1, int(operands[0]))
+			Gen2BattleAnimPlayer.GEN1_MOVE_SOUND:
+				record = _move_sound(int(operands[0]))
+		if not record.is_empty():
+			audio.play_record(record, &"sound", data.audio_assets())
+
+
+func _move_sound(move: int) -> Dictionary:
+	var row: Dictionary = _anim.data().gen1_move_sound(move)
+	if row.is_empty():
+		return {}
+	var cry: bool = Gen1Layout.CRY_MOVES.has(move)
+	var record: Dictionary = data.species_cry(int(_sounding.get("species", 0))) if cry \
+		else data.gen1_sound(-1, int(row["sound_id"]))
+	if record.is_empty():
+		return {}
+	record["cry_pitch"] = ((int(record["cry_pitch"]) if cry else 0) + int(row["pitch"])) & 0xFF
+	record["cry_length"] = ((int(record["cry_length"]) if cry else 0) + int(row["tempo"])) & 0xFF
+	return record
 
 
 ## The running animation's tilemap and objects, and the bars as far as they

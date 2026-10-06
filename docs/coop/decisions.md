@@ -293,8 +293,10 @@ drains in the turn's own order, a pixel a frame from where the turn found it.
 A choice waits until the field has played the last turn out, as the
 cartridge's menus do, so the battle never runs ahead of what is on screen. The
 co-op panel beside it keeps the commands, the suggestions and the turn owner.
-Still missing against the battle screen: cries and sounds, screen-scroll
-effects, battler slides and the sliding intro.
+Each animation's own move sounds go through the world's audio player, a cry
+move with the attacker's cry. Still missing against the battle screen:
+send-out cries, battle music, screen-scroll effects, battler slides and the
+sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 
