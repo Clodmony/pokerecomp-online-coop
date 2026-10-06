@@ -411,6 +411,61 @@ func test_a_bag_change_stays_with_its_own_player() -> void:
 	assert_eq(blue.state.item_quantity(Fixture.POTION), 0)
 
 
+const HM01: int = 196
+const TM34: int = 234
+const EVENT_GOT_TM34: int = 118
+
+
+func test_a_key_item_one_player_is_given_reaches_every_player_once() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.apply_changes({}, {}, {"items": {HM01: 1}})
+	_pump()
+	red.state.apply_changes({}, {}, {"items": {Fixture.POTION: 1}})
+	_pump()
+
+	assert_eq(blue.state.item_quantity(HM01), 1, "the captain's HM01 is Blue's too")
+	assert_eq(red.state.item_quantity(HM01), 1, "and Red keeps one, not two")
+	assert_eq(_host.player(_blue.player_id).item_count(Fixture.POTION), 0, "a potion is not a story gift")
+
+
+func test_a_gym_leaders_tm_reaches_the_player_who_was_not_there() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(EVENT_GOT_TM34)
+	red.state.apply_changes({}, {}, {"items": {TM34: 1}})
+	_pump()
+
+	assert_eq(blue.state.item_quantity(TM34), 1)
+	assert_eq(red.state.item_quantity(TM34), 1)
+
+
+func test_a_late_joiner_is_handed_the_gifts_given_before_and_a_full_bag_spills_to_the_pc() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.state.apply_changes({}, {}, {"items": {HM01: 1}})
+	_pump()
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	for item: int in range(10, 10 + Gen1Layout.BAG_ITEM_CAPACITY):
+		blue.give_item(item)
+	blue.items.erase(HM01)
+	red.state.set_event_flag(EVENT_GOT_TM34)
+	_pump()
+	assert_eq(int((blue.world["pc_items"] as Dictionary).get(TM34, 0)), 1, "a full bag sends the gift to the PC")
+
+	_host.allow_new_players = true
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, 3)
+	var green: PokeCoopClient = PokeCoopClient.over(link)
+	green.greet("GREEN", _data.id, _data.sha1, "", Fixture.CHARMANDER)
+	_clients.append(green)
+	_pump()
+
+	var player: PokeCoopPlayer = _host.player(green.player_id)
+	assert_eq([player.item_count(HM01), player.item_count(TM34)], [1, 1])
+
+
 func test_a_badge_won_in_a_battle_reaches_both_windows() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)

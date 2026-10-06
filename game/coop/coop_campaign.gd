@@ -44,6 +44,16 @@ func is_committed(commit_id: String) -> bool:
 	return _commits.has(commit_id)
 
 
+## The ids of every commit made so far that begin with [param prefix].
+func commit_ids(prefix: String) -> Array[String]:
+	var out: Array[String] = []
+	for commit_id: String in _commits:
+		if commit_id.begins_with(prefix):
+			out.append(commit_id)
+	out.sort()
+	return out
+
+
 ## Applies [param changes] (`flags`, `badges`, `defeated`) once per [param commit_id].
 func commit(commit_id: String, changes: Dictionary) -> bool:
 	if commit_id.is_empty() or _commits.has(commit_id):

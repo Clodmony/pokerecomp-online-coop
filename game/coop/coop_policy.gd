@@ -18,6 +18,18 @@ const START_CELLS: Array[Vector2i] = [
 ## EVENT_FOLLOWED_OAK_INTO_LAB, _2, OAK_ASKED_TO_CHOOSE_MON, GOT_STARTER and
 ## BATTLED_RIVAL_IN_OAKS_LAB at the pinned pokered.
 const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
+## Red and Blue's unique items kept for good, most needed to get on: the map,
+## bicycle, keys, ticket, coin case, itemfinder, scope, flute, Exp. All, rods, HMs.
+const SHARED_ITEMS: Array[int] = [
+	5, 6, 43, 48, 63, 69, 71, 72, 73, 74, 75, 76, 77, 78, 196, 197, 198, 199, 200,
+]
+## EVENT_GOT_TMxx at the pinned pokered and the TM each person hands over.
+const GIFT_TMS: Dictionary = {
+	41: 242, 80: 227, 118: 234, 190: 211, 358: 224, 384: 241, 396: 213, 397: 248,
+	398: 249, 399: 218, 424: 221, 600: 206, 664: 238, 727: 235, 832: 231, 864: 246,
+	944: 229, 1152: 239, 1791: 236,
+}
+const GIFT_COMMIT_PREFIX: String = "gift:"
 
 
 ## Prize money: an even split among participants, the remainder to the initiator.
@@ -72,3 +84,41 @@ static func may_join(player: PokeCoopPlayer, fit_count: int) -> StringName:
 	if fit_count <= 0:
 		return &"no_fit_pokemon"
 	return &""
+
+
+## A story gift reaches every player, committed once: the shared items
+## [param receiver] just gained and the TMs behind gift flags just set.
+static func share_gifts(
+	campaign: PokeCoopCampaign, receiver: PokeCoopPlayer, others: Array,
+	flags_before: Dictionary, held_before: Dictionary,
+) -> void:
+	var gifts: Array[int] = []
+	for item: int in SHARED_ITEMS:
+		if int(held_before.get(item, 0)) == 0 and receiver.item_count(item) > 0:
+			gifts.append(item)
+	for flag: int in GIFT_TMS:
+		if not flags_before.has(flag) and campaign.has_flag(flag):
+			gifts.append(int(GIFT_TMS[flag]))
+	for item: int in gifts:
+		if campaign.commit(GIFT_COMMIT_PREFIX + str(item), {}):
+			for other: PokeCoopPlayer in others:
+				if other != receiver:
+					hand_over(other, item)
+
+
+## Everything the campaign's players were given before [param player] joined.
+static func hand_over_gifts(campaign: PokeCoopCampaign, player: PokeCoopPlayer) -> void:
+	for commit_id: String in campaign.commit_ids(GIFT_COMMIT_PREFIX):
+		hand_over(player, int(commit_id.trim_prefix(GIFT_COMMIT_PREFIX)))
+
+
+## Into the bag, or the PC's items when the bag's twenty rows are taken.
+static func hand_over(player: PokeCoopPlayer, item: int) -> void:
+	var stored: Dictionary = player.world.get("pc_items", {})
+	if player.item_count(item) > 0 or int(stored.get(item, 0)) > 0:
+		return
+	if player.items.size() < Gen1Layout.BAG_ITEM_CAPACITY:
+		player.give_item(item)
+		return
+	stored[item] = 1
+	player.world["pc_items"] = stored
