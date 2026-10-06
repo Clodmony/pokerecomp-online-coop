@@ -64,8 +64,8 @@ connection is retried for about twenty seconds.
 - The host trusts each window's world (positions, warps, the wild Pokémon it
   rolled).
 - Shared battles use the battle field with animations, sounds and music, but
-  without the single-player screen's sliding intro, gym leader fanfare and the
-  trainer's closing lines and prize money.
+  without the single-player screen's sliding intro.
+- A won trainer battle tells each player their own share of the prize.
 - No phone or console builds yet.
 
 See `progress.md` for what has been verified and how.

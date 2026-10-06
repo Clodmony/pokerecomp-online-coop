@@ -28,6 +28,16 @@ func create_battle() -> Node:
 	return Bridge.new(self)
 
 
+static func win_line(game: GameData, pointer: Variant) -> String:
+	if not pointer is Dictionary:
+		return ""
+	var text: String = String((pointer as Dictionary).get("text", ""))
+	var address: int = int((pointer as Dictionary).get("address", 0))
+	if text.is_empty() and address > 0 and game != null:
+		text = String(game.world_text_string(int((pointer as Dictionary).get("bank", 0)), address).get("text", ""))
+	return text
+
+
 ## The world's battle Node: asks the host for the fight, waits for its outcome,
 ## then puts the host's party into the world's before it says how it went.
 class Bridge extends Node:
@@ -62,6 +72,8 @@ class Bridge extends Node:
 			"type": "window_battle", "kind": String(summary.get("battle_kind", "wild")),
 			"trainer_class": int(summary.get("trainer_class", 0)),
 			"trainer_index": int(summary.get("trainer_index", 0)), "enemy": enemies,
+			"trainer_name": String(summary.get("trainer_name", "")), "win_text": PokeCoopBattleTakeover.win_line(data, summary.get("win_text")),
+			"gym": int(summary.get("lone_attack", 0)) != 0,
 			"map": [int(summary.get("map_group", -1)), int(summary.get("map_number", -1))],
 		})
 

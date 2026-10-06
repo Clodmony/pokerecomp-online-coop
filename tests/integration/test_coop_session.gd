@@ -654,18 +654,27 @@ func test_one_trainer_opened_in_two_windows_is_one_battle_both_fight() -> void:
 		return Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0)
 	var red_results: Array = []
 	var blue_results: Array = []
-	var red_bridge: Node = _take_over(_red, _opened_by_world(red, leader.call(), Fixture.GEN1_LEADER), red_results)
+	var opened: Dictionary = _opened_by_world(red, leader.call(), Fixture.GEN1_LEADER)
+	(opened["summary"] as Dictionary).merge({"trainer_name": "GARY", "win_text": {"text": "I lost!"}, "lone_attack": 1})
+	var red_bridge: Node = _take_over(_red, opened, red_results)
 	var blue_bridge: Node = _take_over(_blue, _opened_by_world(blue, leader.call(), Fixture.GEN1_LEADER), blue_results)
 
 	var battle_id: String = _battle_of(_red)
 	assert_eq(_host.battles.size(), 1, "the second window joined instead of starting another")
 	assert_true((_blue.battle(battle_id).get("participants", []) as Array).has(_blue.player_id))
+	var view: Dictionary = _blue.battle(battle_id)
+	assert_eq([view["trainer_name"], view["win_text"], view["gym"]], ["GARY", "I lost!", true],
+		"the opening window's names and lines reach the partner")
 	_fight_out(battle_id)
 	red_bridge.call("_process", 0.0)
 	blue_bridge.call("_process", 0.0)
 
 	assert_eq(red_results, [{"outcome": &"won"}])
 	assert_eq(blue_results, [{"outcome": &"won"}])
+	var prizes: Dictionary = _blue.battle(battle_id)["prizes"]
+	assert_eq(prizes.keys().size(), 2, "each player is told their own share")
+	assert_eq(int(prizes[_red.player_id]) + int(prizes[_blue.player_id]) + PokeCoopPolicy.NEW_PLAYER_MONEY * 2,
+		int(_red.me()["money"]) + int(_blue.me()["money"]))
 	var encounter_id: String = "trainer:%d:0" % Fixture.GEN1_LEADER
 	assert_eq(_host.campaign.encounter_state(encounter_id), PokeCoopCampaign.ENCOUNTER_DONE)
 
@@ -861,6 +870,21 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 	assert_eq(field._messages[5]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
 	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
+
+
+func test_a_trainer_win_closes_with_the_defeat_the_trainers_line_and_the_prize() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var me: String = String(_red.state["players"][_red.player_id]["name"])
+	field._queue_victory({
+		"trainer": true, "trainer_name": "GARY", "gym": true, "prizes": {_red.player_id: 120, "p9": 119},
+		"win_text": "I lost!%sOh well.%sNext time." % [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK],
+	})
+
+	assert_eq(field._messages, [
+		{"fanfare": true, "gym": true}, {"text": "%s defeated\nGARY!" % me}, {"text": "I lost!\nOh well."},
+		{"text": "Next time."}, {"text": "%s got ¥120\nfor winning!" % me},
+	])
 
 
 func test_a_fainted_side_stays_blank_until_its_send_out() -> void:

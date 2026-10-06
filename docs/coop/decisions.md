@@ -435,9 +435,7 @@ to fight!" and "BROCK sent out GEODUDE!" for a trainer, and the battle view
 carries the trainer's class and index, so a trainer fought from the session
 menu also gets its own battle music. A faint plays `RemoveFaintedPlayerMon`'s
 cry or a trainer's Pokémon's fall and thud, and a cry or sound is waited out as
-`PlayCry` does before the next line. Still missing: the trainer's own lines and
-prize money at the end, and the gym leader's fanfare, which needs the world's
-gym marker in the takeover summary.
+`PlayCry` does before the next line. The trainer's closing is D41.
 
 ## D40. The campaign file keeps the checkpoint before it (2026-10-06)
 
@@ -451,3 +449,18 @@ campaign that cannot be read is still left as it is (D37); the launcher now
 names the backup. A damaged file is read without an engine error. There is
 still no journal between checkpoints and no migration between format versions
 (#39).
+
+## D41. A trainer win closes as the cartridge's does (2026-10-06)
+
+A won trainer battle ended on the fanfare. The world's takeover summary now
+carries the request's trainer name, its win text and `lone_attack`, the window
+decodes the win text and sends all three, and the host keeps them on the
+encounter, bounded (`MAX_TRAINER_NAME`, `MAX_WIN_TEXT`), for every participant's
+view. The host's final view also names each participant's share of the prize.
+The field then plays `TrainerBattleVictory`'s order: the gym leader's or the
+trainer's fanfare, "<PLAYER> defeated <TRAINER>!", the trainer's own line and
+"<PLAYER> got ¥X for winning!", each window with its own player's name and
+share; a wild win with Pay Day money says it was picked up. A trainer's name is
+the request's, so a rival is called what the player named them. Session-menu
+encounters carry `gym` themselves and no win text. The trainer does not slide
+back in for the line.
