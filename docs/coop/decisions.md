@@ -276,4 +276,16 @@ trade evolution with the same helpers the screen uses, and the campaign is
 saved. Each window's screen commits its own copy for the movie and the
 evolution while its party sync is held, then takes the host's swap, so a
 window that disagrees cannot copy or lose a Pokémon. Remote players are hidden
-in the Cable Club rooms, where the game's own friend sprite is the partner.
+in the Cable Club rooms, where the game's own friend sprite is the partner. A
+partner who never offers within 30 seconds, or never answers within 60, lets
+the screen go back to its lists, from where CANCEL leaves.
+
+## D32. A shared battle is drawn on the cartridge's battle field (2026-10-06)
+
+The battle screen drives a local `Gen2Battle`, and a battle fought on the host
+has none, so driving it from session events (#26) means replaying the host's
+turns through it. Until then `PokeCoopBattleField` draws the host's battle view
+with the screen's own `Gen2BattleRenderer` (both pictures, status panels and HP
+bars) and plays each turn's events as Red and Blue's lines in the game's text
+box, naming whoever was out when each happened. The co-op panel beside it keeps
+the commands, the suggestions and the turn owner.

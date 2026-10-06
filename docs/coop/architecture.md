@@ -88,7 +88,10 @@ Further findings that shape the design:
    position. `PokeCoopBattlePanel` is a `PanelContainer` on a `CanvasLayer` over
    the world: SELECT opens the session menu (fight an offered encounter, join a
    running battle, save), and a shared battle shows the roster with owners, who
-   decides and the partner's suggestion (D22). `tools/coop_play.gd` assembles a
+   decides and the partner's suggestion (D22). Under it `PokeCoopBattleField`
+   draws the same battle on the cartridge's battle field (D32), and
+   `PokeCoopLinkTransport` is the Cable Club's cable to the partner (D31).
+   `tools/coop_play.gd` assembles a
    window: data from the local cache, the world screen on a local save, the
    actor, the panel, and the world held still while the panel is open.
    `PokeCoopSession` is that assembly as one class, used by the launcher's

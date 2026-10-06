@@ -393,6 +393,7 @@ func view() -> Dictionary:
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
+		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 	}

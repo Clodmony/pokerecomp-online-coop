@@ -773,3 +773,34 @@ func test_a_pokemon_that_evolves_by_trade_arrives_evolved() -> void:
 	_pump()
 
 	assert_eq(blue.team[-1]["mon"].species, Fixture.GEODUDE, "Pikachu evolved on arrival")
+
+
+func test_the_battle_field_draws_the_hosts_view_and_names_who_was_out() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var view: Dictionary = _red.battle(_battle_of(_red))
+
+	var scene: Dictionary = PokeCoopBattleField.scene_view(view, _data)
+	assert_eq([scene["player_species"], scene["enemy_species"]], [Fixture.CHARMANDER, Fixture.GEODUDE])
+	assert_eq([scene["player_hp"], scene["player_max_hp"]], [view["allies"][0]["hp"], view["allies"][0]["max_hp"]])
+	var out: Dictionary = PokeCoopBattleField.out_now(view)
+	out[Gen2Battle.PLAYER] = PokeCoopBattleField.species_at(view, Gen2Battle.PLAYER, 1)
+	var geodude: String = String(_data.species(Fixture.GEODUDE)["name"])
+	var pikachu: String = String(_data.species(Fixture.PIKACHU)["name"])
+	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY}, out, _data),
+		"Enemy %s\nfainted!" % geodude)
+	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER}, out, _data),
+		"Go! %s!" % pikachu, "the name is whoever was sent out, not who is out at the end")
+
+
+func test_a_partner_who_never_offers_lets_the_trade_screen_go() -> void:
+	var cables: Array = _cables()
+	cables[0].offer_wait_msec = 0
+	assert_eq(cables[0].choose_trade_slot({"slot": 0}), Gen2LinkTransport.PENDING)
+	_pump()
+
+	assert_eq(cables[0].choose_trade_slot({}), -1, "back to the lists, from where CANCEL leaves")
+	_pump()
+	cables[1].refresh()
+	assert_eq(cables[1].choose_trade_slot({"slot": 0}), Gen2LinkTransport.PENDING, "Blue's later offer waits on nobody stale")
+	_pump()
+	assert_eq(int(_blue.me()["trade"]["partner_slot"]), -1, "Red's offer was withdrawn")
