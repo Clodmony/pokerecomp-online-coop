@@ -89,7 +89,8 @@ Further findings that shape the design:
    the world: SELECT opens the session menu (fight an offered encounter, join a
    running battle, save), and a shared battle shows the roster with owners, who
    decides and the partner's suggestion (D22). Under it `PokeCoopBattleField`
-   draws the same battle on the cartridge's battle field (D32), and
+   draws the same battle on the cartridge's battle field (D32), its pictures
+   kept in a `PokeCoopBattleStage` tilemap (D39), and
    `PokeCoopLinkTransport` is the Cable Club's cable to the partner (D31).
    `tools/coop_play.gd` assembles a
    window: data from the local cache, the world screen on a local save, the

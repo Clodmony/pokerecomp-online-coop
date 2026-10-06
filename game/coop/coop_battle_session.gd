@@ -437,6 +437,7 @@ func view() -> Dictionary:
 		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
+		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
 	}
 
 

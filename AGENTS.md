@@ -119,6 +119,7 @@ same steps locally instead.
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
 | `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |
 | `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the cartridge's battle field |
+| `game/coop/coop_battle_stage.gd` | `PokeCoopBattleStage`: the field's tilemap, faints, recalls, send-outs and per-side panels |
 | `game/coop/coop_trades.gd` | `PokeCoopTrades`: Cable Club trades between players, swapped on the host |
 | `game/coop/coop_link_transport.gd` | `PokeCoopLinkTransport`: the Cable Club's cable to the partner the host names |
 | `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |

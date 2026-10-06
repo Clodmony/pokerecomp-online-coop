@@ -832,6 +832,52 @@ func test_a_thrown_ball_plays_the_cartridges_toss_shakes_and_break_out() -> void
 	], "caught: it stays in the ball")
 
 
+func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b9", "revision": 3, "trainer": true, "trainer_class": 1, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34}],
+		"enemy": {"species": Fixture.PIKACHU, "level": 14, "hp": 40, "max_hp": 40},
+		"enemy_party": [Fixture.GEODUDE, Fixture.PIKACHU],
+		"events": [
+			{"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY},
+			{"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.ENEMY, "index": 1, "species": Fixture.PIKACHU,
+				"level": 14, "hp": 40, "max_hp": 40},
+			{"type": Gen2Battle.ANIMATION, "index": Gen2Battle.ANIM_SEND_OUT_MON, "enemy_turn": true},
+			{"type": Gen2Battle.CRY, "side": Gen2Battle.ENEMY, "species": Fixture.PIKACHU},
+		],
+	}
+	field._take_events(view)
+
+	var kinds: Array = field._messages.map(func(step: Dictionary) -> String: return step.keys()[0])
+	assert_eq(kinds, ["stage", "text", "enter", "text", "stage", "cry"],
+		"the picture sinks before its line, and the next one grows out after the trainer's")
+	var trainer: String = _data.trainer_name(1)
+	assert_eq(field._messages[3]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
+	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
+		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
+
+
+func test_a_fainted_side_stays_blank_until_its_send_out() -> void:
+	var board := PokeCoopBattleStage.new()
+	board.reset(RomRegistry.GEN1, true)
+	var seeded: PackedByteArray = board.map.duplicate()
+	board.begin(PokeCoopBattleStage.FAINT, Gen2Battle.ENEMY)
+	while board.busy():
+		board.advance()
+	assert_true(board.hidden.has(Gen2Battle.ENEMY), "the panel goes with the picture")
+	assert_ne(board.map, seeded)
+	board.settle({"enemy_hp": 0})
+	assert_true(board.hidden.has(Gen2Battle.ENEMY), "a fainted Pokémon is not stamped back")
+
+	board.begin(PokeCoopBattleStage.SEND_OUT, Gen2Battle.ENEMY)
+	while board.busy():
+		board.advance()
+	assert_eq(board.map, seeded, "grown back to the whole picture")
+	assert_false(board.hidden.has(Gen2Battle.ENEMY))
+
+
 func test_a_partner_who_never_offers_lets_the_trade_screen_go() -> void:
 	var cables: Array = _cables()
 	cables[0].offer_wait_msec = 0

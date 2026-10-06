@@ -101,7 +101,7 @@ running battles as fled (D37). Recovery between checkpoints is #39.
 
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
 new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
-of the real-screen slice. Co-op code keeps upstream's comment style: only facts
+of the real-screen slice and to 41342 with the battle stage (D39). Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -315,8 +315,8 @@ ball plays `TossBallAnimation`'s scripts from the throw event: the toss for the
 ball, the poof, the Pokémon hidden in a ball that shakes once a wobble, and the
 poof and the Pokémon back on a break-out, its tilemap handed from script to
 script so a caught Pokémon stays inside while "All right!" plays with the
-caught jingle. Still missing against the battle screen: the gym leaders' own
-fanfare, the send-out animations, and the sliding intro.
+caught jingle. Faints, recalls and send-outs are D39; still missing is the
+sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 
@@ -415,3 +415,24 @@ recordings' overworld audio hid the gap. The audio player is now set to
 `PROCESS_MODE_ALWAYS` while the world is held and back to inheriting when it is
 let go, so a paused game still pauses it. Sound in a battle is now checked by
 measuring a recording's level, not by the calls.
+
+## D39. The co-op field keeps the battle's own tilemap (2026-10-06)
+
+The field passed the renderer no tilemap between animations, and seeded each
+animation with the default one, so Red and Blue's player picture was read out
+of Crystal's layout: every co-op battle showed the player's Pokémon scrambled.
+`PokeCoopBattleStage` now keeps a Generation 1 tilemap the way the battle
+screen keeps `_bg_map`: each animation starts from it and leaves its result in
+it, and the battle's own events step it as the cartridge's routines do: a
+`FAINTED` sinks the picture (`MonFaintedAnimation`) ahead of its line and takes
+the panel with it, the send-out `ANIMATION` grows the next one out of the ball
+(`AnimateSendingOutMon`, behind the poof on the player's side), and the recall
+`ANIMATION` shrinks the player's (`AnimateRetreatingPlayerMon`). Each side's
+panel shows the Pokémon that was out when the turn began until a `SENT_OUT`
+names who came in, so a trainer's next Pokémon is not on the panel before its
+predecessor has fainted. A battle seen from its start opens with "BROCK wants
+to fight!" and "BROCK sent out GEODUDE!" for a trainer, and the battle view
+carries the trainer's class and index, so a trainer fought from the session
+menu also gets its own battle music. Still missing: the faint sounds, the
+trainer's own lines and prize money at the end, and the gym leader's fanfare,
+which needs the world's gym marker in the takeover summary.
