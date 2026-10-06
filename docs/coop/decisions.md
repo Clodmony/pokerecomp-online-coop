@@ -294,9 +294,11 @@ A choice waits until the field has played the last turn out, as the
 cartridge's menus do, so the battle never runs ahead of what is on screen. The
 co-op panel beside it keeps the commands, the suggestions and the turn owner.
 Each animation's own move sounds go through the world's audio player, a cry
-move with the attacker's cry. Still missing against the battle screen:
-send-out cries, battle music, screen-scroll effects, battler slides and the
-sliding intro.
+move with the attacker's cry, and the battle's music plays while it is up, a
+trainer's chosen by the class and index its encounter names, until the map's
+own music comes back as it closes. Still missing against the battle screen:
+send-out cries, the victory fanfare, screen-scroll effects, battler slides and
+the sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 
