@@ -829,3 +829,118 @@ func test_a_partner_stands_in_for_a_controller_who_stays_away() -> void:
 	_clients.erase(_red)
 	_red = _connect(1, _red.player_id)
 	assert_eq(String(_red.battle(battle_id)["controller"]), _red.player_id, "Red has it back")
+
+
+const FUZZ_TYPES: Array = [
+	"move", "start_battle", "window_battle", "command", "suggest", "join", "world", "party",
+	"save", "trade", "nonsense",
+]
+## Real ids and command words, so the fuzz reaches past the first lookup.
+const FUZZ_WORDS: Array = [
+	"b1", "b2", "p1", "p2", "wild:stall", "trainer:leader", "move", "switch", "item", "send_out",
+	"run", "learn", "mimic", "trainer", "wild", "x",
+]
+const FUZZ_KEYS: Array = [
+	"battle", "encounter", "command", "suggestion", "patch", "rows", "boxes", "rev", "current_box",
+	"map", "cell", "facing", "warp", "partner", "slot", "answer", "leave", "kind", "enemy",
+	"trainer_class", "trainer_index", "type", "value", "revision", "item", "recipient", "index",
+]
+
+
+static func _fuzz_value(rng: RandomNumberGenerator, depth: int = 0) -> Variant:
+	match rng.randi_range(0, 9 if depth < 2 else 6):
+		0: return null
+		1: return rng.randi_range(-3, 300)
+		2: return FUZZ_WORDS[rng.randi_range(0, FUZZ_WORDS.size() - 1)]
+		3: return rng.randf() < 0.5
+		4: return Vector2i(rng.randi_range(-2, 20), rng.randi_range(-2, 20))
+		5: return -1
+		6: return ""
+		7, 8:
+			var out: Dictionary = {}
+			for _key: int in rng.randi_range(0, 4):
+				out[FUZZ_KEYS[rng.randi_range(0, FUZZ_KEYS.size() - 1)]] = _fuzz_value(rng, depth + 1)
+			return out
+	var items: Array = []
+	for _item: int in rng.randi_range(0, 3):
+		items.append(_fuzz_value(rng, depth + 1))
+	return items
+
+
+func test_malformed_messages_are_refused_without_breaking_the_host(seed: int = use_parameters([2026, 7, 99])) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	for round: int in 500:
+		var message: Dictionary = {"type": FUZZ_TYPES[rng.randi_range(0, FUZZ_TYPES.size() - 1)]}
+		for _key: int in rng.randi_range(0, 5):
+			message[FUZZ_KEYS[rng.randi_range(0, FUZZ_KEYS.size() - 1)]] = _fuzz_value(rng)
+		var sender: PokeCoopClient = _red if round % 2 == 0 else _blue
+		sender.send(message)
+		_pump()
+
+	_fuzz_commands(rng)
+	_fuzz_hellos(rng)
+	_fuzz_holdings(rng)
+
+	assert_eq(_host.players.size(), 2, "nobody was made or lost")
+	assert_true(_host.player(_red.player_id).team.size() + _host.player(_blue.player_id).team.size() > 0)
+
+
+## Commands at the battle's own revision, so their fields are read rather than
+## the command turned away as stale.
+func _fuzz_commands(rng: RandomNumberGenerator) -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var taken: int = 0
+	for _round: int in 300:
+		var battle_id: String = _battle_of(_red) if not _battle_of(_red).is_empty() else _battle_of(_blue)
+		if battle_id.is_empty():
+			_send(func() -> void: _red.start_battle("wild:stall"))
+			continue
+		var command: Dictionary = {"type": ["move", "switch", "item", "send_out", "run", "learn", "mimic"][rng.randi_range(0, 6)]}
+		for _key: int in rng.randi_range(0, 4):
+			command[FUZZ_KEYS[rng.randi_range(0, FUZZ_KEYS.size() - 1)]] = _fuzz_value(rng)
+		var controller: PokeCoopClient = _controller_of(battle_id)
+		if controller == null:
+			controller = _red
+		var revision: int = int(controller.battle(battle_id).get("revision", 0))
+		command["revision"] = revision
+		_send(func() -> void: controller.act(battle_id, command))
+		taken += 1 if int(controller.battle(battle_id).get("revision", 0)) > revision else 0
+	assert_gt(taken, 10, "the fuzz reached the battle itself")
+
+
+## A hello is a newcomer's first word, so each comes over a link of its own.
+func _fuzz_hellos(rng: RandomNumberGenerator) -> void:
+	for round: int in 40:
+		var link := PokeCoopTransport.new()
+		PokeCoopTransport.link(_host.transport, link, 100 + round)
+		var hello: Dictionary = {"type": "hello"}
+		for key: String in ["protocol", "name", "game_id", "rom_sha1", "player_id", "starter", "save"]:
+			if rng.randf() < 0.7:
+				hello[key] = _fuzz_value(rng)
+		link.send(PokeCoopTransport.HOST_PEER, hello)
+		_pump()
+
+
+## World patches on the real world-state keys, and party and PC rows, in
+## shapes a window would never send.
+func _fuzz_holdings(rng: RandomNumberGenerator) -> void:
+	var keys: Array = PokeCoopOwnership.WORLD_STATE.keys()
+	for round: int in 200:
+		var sender: PokeCoopClient = _red if round % 2 == 0 else _blue
+		var patch: Dictionary = {}
+		for _key: int in rng.randi_range(1, 4):
+			var change: Variant = {"set": _fuzz_value(rng), "erase": _fuzz_value(rng)} \
+				if rng.randf() < 0.6 else {"value": _fuzz_value(rng)}
+			patch[keys[rng.randi_range(0, keys.size() - 1)]] = change if rng.randf() < 0.9 else _fuzz_value(rng)
+		sender.send({"type": "world", "patch": patch})
+		var rows: Array = []
+		for _row: int in rng.randi_range(0, 3):
+			rows.append({"uid": _fuzz_value(rng), "mon": _fuzz_value(rng), "box": _fuzz_value(rng)})
+		var party: Dictionary = {"type": "party", "rows": rows}
+		if rng.randf() < 0.5:
+			party["rev"] = _host.player(sender.player_id).holdings_rev
+			party["boxes"] = rows.duplicate() if rng.randf() < 0.5 else _fuzz_value(rng)
+		sender.send(party)
+		_pump()

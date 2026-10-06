@@ -23,14 +23,14 @@ static func create(game: GameData) -> PokeCoopTrades:
 
 ## A `trade` message: `slot` offers, `answer` (1 or 0) settles, `leave` withdraws.
 func handle(sender: PokeCoopPlayer, message: Dictionary, players: Dictionary) -> StringName:
-	if bool(message.get("leave", false)):
+	if PokeCoopTransport.number(message.get("leave")) == 1:
 		leave(sender.player_id, players)
 		return &""
-	var partner: PokeCoopPlayer = players.get(String(message.get("partner", "")), null)
+	var partner: PokeCoopPlayer = players.get(PokeCoopTransport.text(message.get("partner")), null)
 	if partner == null or partner == sender:
 		return &"unknown_player"
 	if message.has("slot"):
-		var slot: int = int(message["slot"])
+		var slot: int = PokeCoopTransport.number(message["slot"], -1)
 		if not sender.is_free() or slot < 0 or slot >= sender.team.size():
 			return &"invalid_trade"
 		_offers[sender.player_id] = {"partner": partner.player_id, "slot": slot, "answer": -1}
@@ -38,7 +38,7 @@ func handle(sender: PokeCoopPlayer, message: Dictionary, players: Dictionary) ->
 	var mine: Dictionary = _offers.get(sender.player_id, {})
 	if mine.is_empty() or String(mine["partner"]) != partner.player_id:
 		return &"no_trade"
-	mine["answer"] = 1 if int(message.get("answer", 0)) == 1 else 0
+	mine["answer"] = 1 if PokeCoopTransport.number(message.get("answer")) == 1 else 0
 	_settle(sender, partner)
 	return &""
 

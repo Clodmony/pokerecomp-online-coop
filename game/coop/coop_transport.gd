@@ -9,7 +9,8 @@ const CONNECTED: StringName = &"connected"
 const DISCONNECTED: StringName = &"disconnected"
 const MESSAGE: StringName = &"message"
 const HOST_PEER: int = 1
-const MAX_PACKET_BYTES: int = 65536
+## A full PC of 240 Pokémon is about a quarter of a megabyte on the wire.
+const MAX_PACKET_BYTES: int = 2 * 1024 * 1024
 const WIRE_TYPES: Array[int] = [
 	TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING, TYPE_STRING_NAME,
 	TYPE_VECTOR2I, TYPE_PACKED_INT32_ARRAY, TYPE_PACKED_STRING_ARRAY,
@@ -68,6 +69,16 @@ static func decode(bytes: PackedByteArray) -> Variant:
 		return null
 	var value: Variant = bytes_to_var(bytes)
 	return value if value is Dictionary else null
+
+
+## A client's field read as text, whatever it sent.
+static func text(value: Variant, fallback: String = "") -> String:
+	return String(value) if value is String or value is StringName else fallback
+
+
+## A client's field read as a whole number, whatever it sent.
+static func number(value: Variant, fallback: int = 0) -> int:
+	return int(value) if value is int or value is float or value is bool else fallback
 
 
 ## [param value] with every object and engine type dropped, so nothing but plain

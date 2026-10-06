@@ -146,7 +146,7 @@ func involves(player_id: String) -> bool:
 
 
 func submit(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var refusal: StringName = _refusal(player.player_id, int(command.get("revision", -1)))
+	var refusal: StringName = _refusal(player.player_id, PokeCoopTransport.number(command.get("revision"), -1))
 	if refusal != &"":
 		return {"ok": false, "reason": refusal}
 	var applied: Dictionary = _apply(player, command)
@@ -171,18 +171,18 @@ func _refusal(player_id: String, at_revision: int) -> StringName:
 
 
 func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var kind: String = String(command.get("type", ""))
+	var kind: String = PokeCoopTransport.text(command.get("type"))
 	match phase():
 		AWAITING_ACTION:
 			return _act(player, kind, command)
 		AWAITING_SEND_OUT:
-			return _send_out(kind, int(command.get("index", -1)))
+			return _send_out(kind, PokeCoopTransport.number(command.get("index"), -1))
 		AWAITING_LEARN:
-			return _learn(kind, int(command.get("forget_slot", -1)))
+			return _learn(kind, PokeCoopTransport.number(command.get("forget_slot"), -1))
 		AWAITING_MIMIC:
 			if kind == "mimic":
 				var before: int = battle.awaiting_mimic()
-				var events: Array = battle.answer_mimic(int(command.get("choice", -1)))
+				var events: Array = battle.answer_mimic(PokeCoopTransport.number(command.get("choice"), -1))
 				if battle.awaiting_mimic() != before:
 					return _done(events)
 	return _refused(&"invalid_command")
@@ -191,12 +191,12 @@ func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 func _act(player: PokeCoopPlayer, kind: String, command: Dictionary) -> Dictionary:
 	match kind:
 		"move":
-			var slot: int = int(command.get("slot", -1))
+			var slot: int = PokeCoopTransport.number(command.get("slot"), -1)
 			if not _move_allowed(slot):
 				return _refused(&"invalid_move")
 			return _done(battle.take_actions(Gen2Battle.use_move(slot), _enemy_action()))
 		"switch":
-			var index: int = int(command.get("index", -1))
+			var index: int = PokeCoopTransport.number(command.get("index"), -1)
 			if not battle.party(Gen2Battle.PLAYER).can_send_out(index):
 				return _refused(&"invalid_switch")
 			return _done(battle.take_actions(Gen2Battle.switch_to(index), _enemy_action()))
@@ -216,13 +216,13 @@ func _move_allowed(slot: int) -> bool:
 
 
 func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var item: int = int(command.get("item", 0))
+	var item: int = PokeCoopTransport.number(command.get("item"), 0)
 	if player.item_count(item) <= 0:
 		return _refused(&"item_not_held")
 	if Gen2WorldPartyHost.is_ball(battle.data, item):
-		return _throw_ball(player, item, String(command.get("recipient", player.player_id)))
+		return _throw_ball(player, item, PokeCoopTransport.text(command.get("recipient"), player.player_id))
 	var used: Dictionary = battle.use_bag_item(
-		item, int(command.get("target", -1)), int(command.get("move_slot", -1))
+		item, PokeCoopTransport.number(command.get("target"), -1), PokeCoopTransport.number(command.get("move_slot"), -1)
 	)
 	if not bool(used.get("ok", false)):
 		return _refused(StringName(used.get("reason", &"item_has_no_effect")))
@@ -357,10 +357,10 @@ func suggest(player_id: String, suggestion: Dictionary) -> StringName:
 		return &"battle_over"
 	if player_id == controller():
 		return &"controller_acts"
-	var kind: String = String(suggestion.get("type", ""))
+	var kind: String = PokeCoopTransport.text(suggestion.get("type"))
 	if not SUGGESTION_TYPES.has(kind):
 		return &"invalid_suggestion"
-	suggestions[player_id] = {"type": kind, "value": int(suggestion.get("value", -1)), "revision": revision}
+	suggestions[player_id] = {"type": kind, "value": PokeCoopTransport.number(suggestion.get("value"), -1), "revision": revision}
 	return &""
 
 

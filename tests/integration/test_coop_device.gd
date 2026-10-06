@@ -177,3 +177,20 @@ func test_a_campaign_hosted_from_a_save_takes_its_story_and_its_trainer() -> voi
 	var blue: PokeCoopPlayer = hosting.host.player(joining.client.player_id)
 	assert_eq(blue.team[0]["mon"].species, Fixture.BULBASAUR, "a later player brings their trainer only")
 	assert_eq(blue.money, 1234)
+
+
+func test_a_full_pc_reaches_its_window_over_real_sockets() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	var red: PokeCoopPlayer = hosting.host.player(hosting.client.player_id)
+	for count: int in 200:
+		red.store_mon(Gen2SaveBattleAdapter.from_battle_mon(
+			Gen2BattleMon.create(_data, Fixture.PIKACHU, 5 + count % 40, [Fixture.TACKLE])
+		))
+
+	hosting.host.broadcast()
+
+	assert_true(_until(func() -> bool:
+		return (hosting.client.box.get("rows", []) as Array).size() == 200, WAIT_MSEC
+	), "two hundred stored Pokémon arrived in one box message")
