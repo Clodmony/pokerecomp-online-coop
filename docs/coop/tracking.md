@@ -45,6 +45,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 37 | Evolution and move learning for each owner after shared battles | done | `coop/launcher` (`2e204c6d`) | close when the branch merges |
 | 38 | Player services: Pokémon Center, Mart, PC and trades between players | done: each window's own Center, Mart and PC on the player's own team, bag, money and PC (D29); trades through the Cable Club (D31) | `coop/launcher` | close when the branch merges |
 | 39 | Save migration, autosave and recovery journal | partial: autosave between battles and when the host leaves; no journal or migration | `coop/launcher` | comment, keep open |
+| 40 | Import a single-player save as a co-op player | done: a new player brings a save slot; a new campaign's first player brings its story too (D34) | `coop/launcher` | close when the branch merges |
 | 42 | Host and join screens and the in-game session menu | done (launcher tab; the in-game menu is the SELECT panel) | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
 | 43 | Touch and pad input for co-op menus | partial: the on-screen pad's presses reach the panel by the same path as keys; a tall window puts the panel under the battle; not tried on a device | `coop/launcher` | comment, keep open |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |

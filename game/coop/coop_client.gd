@@ -23,15 +23,18 @@ static func over(link: PokeCoopTransport) -> PokeCoopClient:
 	return out
 
 
-## Sent as soon as the transport is connected; [param id] reclaims a player and
-## [param starter] is a new player's choice.
+## Sent as soon as the transport is connected; [param id] reclaims a player, and
+## a new player has [param starter] or the save [param brought] as a dictionary.
 func greet(
-	player_name: String, game_id: StringName, rom_sha1: String, id: String = "", starter: int = 0
+	player_name: String, game_id: StringName, rom_sha1: String, id: String = "", starter: int = 0,
+	brought: Dictionary = {}
 ) -> void:
 	_greeting = {
 		"type": "hello", "protocol": PokeCoopHost.PROTOCOL, "name": player_name,
 		"game_id": String(game_id), "rom_sha1": rom_sha1, "player_id": id, "starter": starter,
 	}
+	if not brought.is_empty():
+		_greeting["save"] = brought
 	if connected:
 		transport.send(PokeCoopTransport.HOST_PEER, _greeting)
 

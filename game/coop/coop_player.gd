@@ -62,6 +62,11 @@ func store_mon(mon: Gen2SaveMon) -> String:
 	return _file(box, mon, at)
 
 
+func store_mon_at(mon: Gen2SaveMon, at_box: int) -> String:
+	box_rev += 1
+	return _file(box, mon, clampi(at_box, 0, BOXES - 1))
+
+
 func _box_with_room() -> int:
 	var counts: Array = _box_counts(box)
 	if int(counts[current_box]) < BOX_CAPACITY:
