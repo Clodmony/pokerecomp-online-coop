@@ -908,6 +908,24 @@ func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
 	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
 
 
+func test_a_tap_on_a_row_moves_the_cursor_and_a_second_tap_chooses_it() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	panel._process(0.0)
+	var growl: int = panel._rows.find_custom(func(row: Dictionary) -> bool: return String(row.get("section", "")) == "FIGHT" \
+		and int((row["command"] as Dictionary)["slot"]) == 1)
+	assert_gt(growl, 0, "the moves sit under FIGHT")
+	assert_string_contains(panel._battle_text(_red.battle(battle_id)), "[url=%d]" % growl)
+
+	panel._on_row_clicked(str(growl))
+	assert_eq(panel._cursor, growl, "the first tap only moves the cursor")
+	var revision: int = int(_red.battle(battle_id)["revision"])
+	panel._on_row_clicked(str(growl))
+	_pump()
+	assert_eq(int(_red.battle(battle_id)["revision"]), revision + 1, "the second tap chooses the move")
+
+
 func test_review_fixes_for_the_field_and_the_client() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))

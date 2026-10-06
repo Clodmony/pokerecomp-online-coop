@@ -577,6 +577,7 @@ func broadcast() -> void:
 		running.append({
 			"battle": session.id, "encounter": String(session.encounter.get("id", "")),
 			"participants": session.participants.duplicate(), "phase": session.phase(),
+			"enemy": session.battle.mon(Gen2Battle.ENEMY).species, "trainer_class": int(session.encounter.get("trainer_class", 0)),
 		})
 	var offered: Array = []
 	for encounter_id: String in encounters:
