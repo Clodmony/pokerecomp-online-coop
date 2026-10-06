@@ -230,7 +230,9 @@ func _place(map: Variant) -> String:
 
 
 func _menu_text() -> String:
-	var lines: PackedStringArray = ["[b]CO-OP SESSION[/b]   you are %s" % _name_bb(client.player_id)]
+	var title: String = PokeCoopTransport.text((client.state.get("campaign", {}) as Dictionary).get("title")).left(24)
+	var lines: PackedStringArray = ["[b]CO-OP SESSION[/b]%s   you are %s" % [
+		"  " + _escaped(title) if not title.is_empty() else "", _name_bb(client.player_id)]]
 	var others: PackedStringArray = []
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:

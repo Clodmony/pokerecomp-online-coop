@@ -11,21 +11,28 @@ the cartridge is sent between devices.
    single-player save on this device, **Bring** can take that trainer instead:
    their team, PC, bag, money and place. The first player of a new campaign
    who brings a save brings its story and badges too.
-3. One player presses **Host**. The card lists the addresses others on the same
-   network can use, and the port (24680).
+3. One player picks a **Campaign** under **Host a campaign**: one of this
+   device's campaigns (the latest is picked), or **A new campaign** with a name
+   such as WITH ALEX, then presses **Host**. The card lists the addresses
+   others on the same network can use, and the port (24680).
 4. The other player types one of those addresses under **Join a campaign** and
    presses **Join**.
 
-The host's device keeps the campaign (`coop_<game>_campaign.json` in the game's
-user folder), and the checkpoint before the latest beside it as
-`coop_<game>_campaign.json.bak`.
+Each campaign is its own file on the host's device, so a run with one friend
+never overwrites a run with another: start **A new campaign** for each group.
+The files are in the game's user folder under `coop_campaigns/<game>/`, each
+with the checkpoint before the latest beside it as `<file>.json.bak`. A
+campaign from an earlier build (`coop_<game>_campaign.json`) moves there by
+itself and is listed as FIRST CAMPAIGN. To back a campaign up, copy its file;
+to delete one, delete its file.
 
-**To carry on where you left off**, the host presses Host again on the same
-device and the others press Join with the host's address: the campaign loads
-by itself and everyone gets their own trainer back, with their team, bag and
-place. A device remembers who it played as on each host; a player joining
-from another device or address gets their trainer back by typing the same
-name as before.
+**To carry on where you left off**, the host picks that campaign and presses
+Host on the same device, and the others press Join with the host's address:
+everyone gets their own trainer back, with their team, bag and place. A
+device remembers who it played as in each campaign; a player joining from
+another device or address gets their trainer back by typing the same name as
+before. Only the campaign the host picked is played: the others see its name
+at the top of the SELECT menu.
 
 ## Playing over the internet
 

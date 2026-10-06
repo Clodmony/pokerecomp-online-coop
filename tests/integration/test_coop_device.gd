@@ -2,11 +2,13 @@ extends GutTest
 
 ## A co-op session as a device runs one, over real localhost sockets: hosting
 ## starts or loads the campaign and plays on it, a second device joins, and a
-## device that comes back is the same player it was.
+## device that comes back is the same player it was, in each of the host's campaigns.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const PORT: int = 24791
 const IDENTITY: String = "user://coop_device_test_identity.json"
+const OTHER_DEVICE: String = "user://coop_device_test_other_identity.json"
+const LEGACY: String = "user://coop_testgame_campaign.json"
 const WAIT_MSEC: int = 3000
 
 var _directory: String = ""
@@ -20,6 +22,7 @@ func before_each() -> void:
 	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
 	_identity_before = PokeCoopSession.identity_path
 	PokeCoopSession.identity_path = IDENTITY
+	PokeCoopSession.move_legacy(_data)
 	_sessions = []
 
 
@@ -27,10 +30,14 @@ func after_each() -> void:
 	for session: PokeCoopSession in _sessions:
 		session.close()
 	PokeCoopSession.identity_path = _identity_before
-	var campaign: String = PokeCoopSession.campaign_path(_data)
-	for path: String in [IDENTITY, campaign, campaign + PokeCoopSave.BACKUP_SUFFIX]:
+	var folder: String = PokeCoopSession.campaign_path(_data).get_base_dir()
+	var paths: Array = [IDENTITY, OTHER_DEVICE, LEGACY]
+	for name: String in DirAccess.get_files_at(folder):
+		paths.append("%s/%s" % [folder, name])
+	for path: String in paths:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
 	RomCache.clear(_directory)
 
 
@@ -273,3 +280,63 @@ func test_a_world_held_under_the_panel_keeps_its_audio_playing() -> void:
 	PokeCoopSession.hold_world(world, audio, false)
 	assert_eq([world.can_process(), audio.can_process()], [true, true])
 	assert_eq(audio.process_mode, Node.PROCESS_MODE_INHERIT, "a paused game pauses it again")
+
+
+func _close_all() -> void:
+	for session: PokeCoopSession in _sessions:
+		session.close()
+	_sessions = []
+
+
+func test_each_campaign_keeps_its_own_trainers_and_a_device_is_remembered_in_each() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(
+		_data, PORT, "RED", Fixture.CHARMANDER, null, "testgame-a", "WITH BLUE"
+	)
+	var blue: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, blue])
+	assert_true(_until_ready([hosting, blue]))
+	var blue_in_a: String = blue.client.player_id
+	_close_all()
+
+	PokeCoopSession.identity_path = OTHER_DEVICE
+	hosting = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "testgame-b", "WITH GREEN")
+	var green: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "GREEN", Fixture.PIKACHU)
+	_sessions.append_array([hosting, green])
+	assert_true(_until_ready([hosting, green]))
+	assert_eq(green.client.player_id, blue_in_a, "the second campaign numbers its own players")
+	green.close()
+	_sessions.erase(green)
+	assert_true(_until(func() -> bool: return not hosting.host.player(blue_in_a).connected, 5000))
+	PokeCoopSession.identity_path = IDENTITY
+	var stranger: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(stranger)
+	assert_true(_until_ready([stranger]))
+	assert_ne(stranger.client.player_id, blue_in_a, "BLUE's device does not take GREEN's trainer")
+	assert_eq(hosting.host.players.size(), 3)
+	_close_all()
+
+	hosting = PokeCoopSession.hosting(_data, PORT, "RED", 0, null, "testgame-a")
+	var back: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "AZURE", 0)
+	_sessions.append_array([hosting, back])
+	assert_true(_until_ready([hosting, back]))
+	assert_eq(back.client.player_id, blue_in_a, "the device is BLUE again in BLUE's campaign")
+	assert_eq([hosting.host.players.size(), hosting.host.campaign.title], [2, "WITH BLUE"])
+	var listed: Dictionary = {}
+	for row: Dictionary in PokeCoopSession.campaigns(_data):
+		listed[row["id"]] = row
+	assert_eq(listed.keys().size(), 2)
+	assert_string_contains(PokeCoopPage.campaign_label(listed["testgame-b"]), "WITH GREEN: RED, GREEN, BLUE, 0 badges, saved ")
+
+
+func test_the_campaign_file_of_earlier_builds_moves_into_the_folder_and_still_loads() -> void:
+	var campaign: PokeCoopCampaign = PokeCoopCampaign.create(String(_data.id), _data.id, _data.sha1)
+	campaign.flags[0x77] = true
+	assert_eq(PokeCoopSave.write(LEGACY, campaign, []), OK)
+
+	var listed: Array = PokeCoopSession.campaigns(_data)
+
+	assert_eq(listed.map(func(row: Dictionary) -> String: return row["id"]), [String(_data.id)])
+	assert_false(FileAccess.file_exists(LEGACY))
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(hosting.host.campaign.has_flag(0x77), "the moved campaign is the one hosted")

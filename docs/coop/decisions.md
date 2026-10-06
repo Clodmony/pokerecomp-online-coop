@@ -583,3 +583,21 @@ also saves itself after battles and every thirty seconds of changes." and its
 row says "Save the campaign (same as START > SAVE)". A returning player is
 also recognised by name when their device lost the id it remembered for the
 host (D44's review noted the id was keyed by address).
+
+## D49. A device keeps several campaigns (2026-10-06)
+
+The host kept one campaign file per cartridge, so a playthrough with a second
+group overwrote the first. Each campaign is now its own file under
+`user://coop_campaigns/<game>/`, named by an id made when it is started
+(`<game>-<unix>-<tag>`), and carries a title the host types. The Co-op tab
+lists them, latest saved first, with players, badges and when each was saved,
+and starts a new one on request. The single file of earlier builds moves into
+the folder as the default campaign and is listed as FIRST CAMPAIGN.
+
+A device remembered one player id per host address, so a device that was p2
+in one campaign would have taken p2's trainer in another campaign on the same
+host. The identity file now maps each host to a player per campaign id: the
+hello carries that map, the host looks up its own campaign in it, and the
+welcome names the campaign so the device can remember it. Old entries are
+ignored and their players are found by name (D48). Deleting or backing up a
+campaign is left to the file manager.
