@@ -38,6 +38,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 35 | Captures go to one explicitly chosen player | done | `coop/launcher` (`c01deca6`) | close when the branch merges |
 | 36 | Policy: prize money, Pay Day and blackout costs | partial: prize split on the host, blackout paid in each player's world | `coop/launcher` (`edd0a681`) | comment, keep open for the owner's decision |
 | 37 | Evolution and move learning for each owner after shared battles | done | `coop/launcher` (`2e204c6d`) | close when the branch merges |
+| 38 | Player services: Pokémon Center, Mart, PC and trades between players | partial: each window's own Center, Mart and PC work on the player's own team, bag, money and PC; no trades between players yet | `coop/launcher` | comment, keep open |
 | 39 | Save migration, autosave and recovery journal | partial: autosave between battles and when the host leaves; no journal or migration | `coop/launcher` | comment, keep open |
 | 42 | Host and join screens and the in-game session menu | done (launcher tab; the in-game menu is the SELECT panel) | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
@@ -49,3 +50,4 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L1 | Claim trainers fought from a window as unique encounters | M6 | done on `coop/m1-state-sync`: a second window joins the running fight, a beaten trainer stays beaten |
 | L2 | Tell a window when its SAVE was refused | M8 | done on `coop/launcher`: a notice over the world says why |
 | L3 | Leave a session from the game and return to the launcher | M9 | done on `coop/launcher`: LEAVE SESSION, the end notice and the window closing all leave through one path |
+| L4 | Window saves failed the game's own checks (slot -1), refusing PC and other validated services | M7 | done on `coop/launcher`: slot 0 under a scratch save root |

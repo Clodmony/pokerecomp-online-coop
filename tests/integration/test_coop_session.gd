@@ -87,9 +87,7 @@ func _pump() -> void:
 func _window(client: PokeCoopClient) -> PokeCoopWorldLink:
 	var state := Gen2WorldState.new()
 	state.gen1 = true
-	var save := Gen2SaveData.new()
-	for row: Dictionary in client.me()["party"]:
-		save.party.append(Gen2SaveMon.from_dict(row["mon"]))
+	var save: Gen2SaveData = PokeCoopWorldLink.local_save(client, _data)
 	var link: PokeCoopWorldLink = PokeCoopWorldLink.over(client, state, save, _data)
 	_links.append(link)
 	_pump()
@@ -441,13 +439,93 @@ func test_a_heal_and_a_deposit_made_in_a_window_reach_the_host() -> void:
 	var bench_uid: String = String(player.team[1]["uid"])
 
 	red.save.party[0].hp = 1
-	red.save.party.remove_at(1)
-	for _wait: int in PokeCoopWorldLink.PARTY_CHECK_FRAMES:
-		_pump()
+	red.save.current_box = 3
+	(red.save.boxes[3] as Gen2SaveBox).put(red.save.party.pop_at(1))
+	_settle()
 
 	assert_eq(player.team.size(), 1)
 	assert_eq(player.team[0]["mon"].hp, 1)
 	assert_eq(String(player.box[0]["uid"]), bench_uid, "the deposited Pokémon kept its uid")
+	assert_eq(int(player.box[0]["box"]), 3, "in the box it was put in")
+
+
+func _settle() -> void:
+	for _wait: int in PokeCoopWorldLink.PARTY_CHECK_FRAMES:
+		_pump()
+
+
+func test_a_window_save_passes_the_games_own_checks_so_its_services_work() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+
+	assert_true(bool(Gen2SaveValidator.validate(red.save, _data)["ok"]))
+	var deposited: Dictionary = Gen2SaveStorage.deposit_party_to_box(red.save, _data, 1, 0, -1, false)
+	assert_true(bool(deposited["ok"]), "Bill's PC takes the deposit")
+	_settle()
+	assert_eq(_host.player(_red.player_id).box.size(), 1)
+
+
+func test_a_window_opened_later_finds_its_pc_as_it_left_it() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.save.current_box = 3
+	(red.save.boxes[3] as Gen2SaveBox).put(red.save.party.pop_at(1))
+	_settle()
+
+	var again: PokeCoopWorldLink = _window(_red)
+
+	assert_eq(again.save.party.size(), 1)
+	assert_eq((again.save.boxes[3] as Gen2SaveBox).occupied_count(), 1)
+	assert_eq((again.save.boxes[3] as Gen2SaveBox).slots[0].species, Fixture.PIKACHU)
+	assert_eq(again.save.current_box, 3)
+
+
+func test_a_pokemon_released_from_the_pc_is_gone_for_good() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	(red.save.boxes[0] as Gen2SaveBox).put(red.save.party.pop_at(1))
+	_settle()
+	(red.save.boxes[0] as Gen2SaveBox).take(0)
+	_settle()
+
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+	assert_eq(player.team.size(), 1)
+	assert_eq(player.box.size(), 0, "released, not kept back")
+
+
+func test_a_catch_for_a_full_team_lands_in_the_window_pc() -> void:
+	var blue_window: PokeCoopWorldLink = _window(_blue)
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	for _extra: int in 4:
+		blue.add_mon(_saved(Fixture.PIKACHU, 5, [Fixture.TACKLE], 200))
+	_pump()
+	_host.player(_red.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _red.act(battle_id, {
+		"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": _blue.player_id,
+	}))
+
+	assert_eq(blue_window.save.party.size(), 6)
+	var stored: Gen2SaveBox = blue_window.save.boxes[0]
+	assert_eq(stored.occupied_count(), 1, "the catch is in Blue's PC")
+	assert_eq(stored.slots[0].species, Fixture.BULBASAUR)
+
+
+func test_a_pc_change_made_before_the_hosts_latest_is_refused_and_replaced() -> void:
+	var blue_window: PokeCoopWorldLink = _window(_blue)
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	var stale: int = blue.holdings_rev
+	blue.store_mon(_saved(Fixture.GEODUDE, 9, [Fixture.TACKLE], 200))
+
+	var refused: StringName = _host.apply_party(blue, {
+		"rows": [], "boxes": [], "current_box": 0, "rev": stale,
+	})
+
+	assert_eq(refused, &"outdated")
+	assert_eq(blue.team.size(), 2, "nobody was released by a copy that never saw the catch")
+	assert_eq(blue.box.size(), 1)
+	_host.broadcast()
+	_pump()
+	assert_eq((blue_window.save.boxes[0] as Gen2SaveBox).occupied_count(), 1, "the window took the host's PC")
 
 
 ## What the world hands a takeover when it opens a battle of its own; a

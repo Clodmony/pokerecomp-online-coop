@@ -58,15 +58,18 @@ Further findings that shape the design:
    (free, active with its battle id, done) and the set of applied commit ids.
    Every progression change goes through `commit(commit_id, changes)`.
 2. **Player state** (`PokeCoopPlayer`): stable player id, in-game trainer id,
-   team of at most six `{uid, Gen2SaveMon}` rows, box, bag, money, map, cell,
-   facing, return point, battle id and connection flag. Uids are
-   `<player id>:<serial>` and never reused.
+   team of at most six `{uid, Gen2SaveMon}` rows, PC rows `{uid, mon, box}` in
+   twelve boxes of twenty, bag, money, map, cell, facing, return point, battle
+   id and connection flag. Uids are `<player id>:<serial>` and never reused.
+   `holdings_rev` rises with every change the host makes to the team or the PC
+   (D29).
 3. **World simulation**: not yet shared. Each window runs the unchanged world
    on its own save; the host keeps positions, checks step length and trusts
    reported warps (D20). `PokeCoopOwnership` classifies every world, snapshot,
    save and runtime field; the campaign keeps the shared world-state keys and
    each player their own (D23). `PokeCoopWorldLink` keeps a window's world state
-   and party in step with the host by patches, and `PokeCoopBattleTakeover`
+   in step with the host by patches and its party and PC by whole copies based
+   on `holdings_rev`, and `PokeCoopBattleTakeover`
    sends the window's own battles to the host (D24). #22 moves `Gen2WorldApi` to
    per-player actors.
 4. **Battle sessions** (`PokeCoopBattleSession`): wraps one `Gen2Battle` with
@@ -115,14 +118,15 @@ Peer 1 is the host.
 | `join` | `seq`, `battle` |
 | `save` | `seq` |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
-| `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order) |
+| `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
 | `hello` (new player) | adds `starter`, the species a new player chose |
 
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
-| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows and `world` keys), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
+| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev` and `current_box`), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |

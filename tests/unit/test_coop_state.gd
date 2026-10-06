@@ -109,6 +109,8 @@ func test_a_campaign_save_brings_back_both_players_and_the_shared_progress() -> 
 	var blue := PokeCoopPlayer.create("p2", "BLUE", 200)
 	blue.add_mon(_saved(Fixture.BULBASAUR, 7))
 	blue.place(ROUTE_1, Vector2i(9, 3), 1)
+	blue.current_box = 4
+	blue.store_mon(_saved(Fixture.PIKACHU, 3))
 
 	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [blue, red]), OK)
 	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
@@ -129,3 +131,39 @@ func test_a_save_from_a_newer_format_or_another_program_is_refused() -> void:
 
 	assert_true(PokeCoopSave.from_dict(newer).is_empty())
 	assert_true(PokeCoopSave.from_dict(foreign).is_empty())
+
+
+func test_a_pc_fills_the_current_box_then_the_next_with_room() -> void:
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	red.current_box = PokeCoopPlayer.BOXES - 1
+	for _mon: int in PokeCoopPlayer.BOX_CAPACITY + 1:
+		red.store_mon(_saved(Fixture.PIKACHU, 3))
+	assert_eq(int(red.box[0]["box"]), PokeCoopPlayer.BOXES - 1)
+	assert_eq(int(red.box[-1]["box"]), 0, "a full current box sends the next one to the first with room")
+
+	var older: Dictionary = red.to_dict()
+	for row: Dictionary in older["box"]:
+		row.erase("box")
+	older["current_box"] = 2
+	var loaded: PokeCoopPlayer = PokeCoopPlayer.from_dict(older)
+	assert_eq(int(loaded.box[0]["box"]), 2, "a save from before boxes puts its PC in the current box")
+	assert_eq(int(loaded.box[-1]["box"]), 3, "and spills what does not fit")
+
+
+func test_pokemon_that_share_a_fingerprint_keep_their_own_uids_through_a_deposit() -> void:
+	var blue := PokeCoopPlayer.create("p2", "BLUE", 200)
+	var first: Gen2SaveMon = _saved(Fixture.CHARMANDER, 12)
+	var second: Gen2SaveMon = _saved(Fixture.PIKACHU, 9)
+	second.dvs = first.dvs
+	assert_eq(PokeCoopPlayer.fingerprint(first), PokeCoopPlayer.fingerprint(second))
+	var first_uid: String = blue.add_mon(first)
+	var second_uid: String = blue.add_mon(second)
+
+	var taken: StringName = blue.replace_holdings(
+		[{"uid": first_uid, "mon": second.to_dict()}],
+		[{"uid": "", "mon": first.to_dict(), "box": 0}], 0, blue.holdings_rev
+	)
+
+	assert_eq(taken, &"")
+	assert_eq(String(blue.team[0]["uid"]), second_uid, "a stale hint does not move a uid onto another Pokémon")
+	assert_eq(String(blue.box[0]["uid"]), first_uid)
