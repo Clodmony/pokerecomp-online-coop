@@ -1,18 +1,19 @@
 class_name PokeCoopTrades
 extends RefCounted
 
-## Trades between players at the Cable Club. Once both sides said TRADE the host
-## swaps the two Pokémon itself, uids and all, evolving any that evolve by trade,
-## so a trade can neither lose nor copy one. Windows wait on each player's round.
+## Trades between players at the Cable Club: once both said TRADE the host swaps the
+## two Pokémon itself, uids and all, evolving trade evolvers, so none is lost or copied.
 
 const TRADED: String = "traded"
 const CANCELED: String = "canceled"
+const LINK_ROOMS: Array[Vector2i] = [Vector2i(0, Gen1Layout.TRADE_CENTER), Vector2i(0, Gen1Layout.COLOSSEUM)]
 
 var data: GameData = null
 ## Every swap made, so the host can save the campaign after one.
 var swaps: int = 0
 var _offers: Dictionary = {}
 var _rounds: Dictionary = {}
+var _mates: Dictionary = {}
 
 
 static func create(game: GameData) -> PokeCoopTrades:
@@ -107,18 +108,57 @@ func view(viewer: String) -> Dictionary:
 	}
 
 
-## The partner of an offer either side made, else the first other free player.
+## An offer's partner; else the player's mate in a link room, paired in id order and kept
+## while both stay; else, from outside, one alone in a room, then the first free one untaken.
 func partner_for(viewer: PokeCoopPlayer, players: Dictionary) -> PokeCoopPlayer:
-	var mine: String = String((_offers.get(viewer.player_id, {}) as Dictionary).get("partner", ""))
-	if players.has(mine):
-		return players[mine]
 	var ids: Array = players.keys()
 	ids.sort()
-	for player_id: String in ids:
-		if String((_offers.get(player_id, {}) as Dictionary).get("partner", "")) == viewer.player_id:
-			return players[player_id]
+	var offered: String = _offer_partner(viewer.player_id, ids)
+	if not offered.is_empty():
+		return players[offered]
+	_pair_rooms(players, ids)
+	if _mates.has(viewer.player_id):
+		return players[_mates[viewer.player_id]]
+	var first: PokeCoopPlayer = null
 	for player_id: String in ids:
 		var other: PokeCoopPlayer = players[player_id]
-		if other != viewer and other.connected and other.is_free():
+		if other == viewer or not other.connected or not other.is_free() or _mates.has(player_id) \
+				or not _offer_partner(player_id, ids).is_empty():
+			continue
+		if _in_room(other) and not _in_room(viewer):
 			return other
-	return null
+		first = other if first == null else first
+	return first
+
+
+func _offer_partner(player_id: String, ids: Array) -> String:
+	var mine: String = String((_offers.get(player_id, {}) as Dictionary).get("partner", ""))
+	if ids.has(mine):
+		return mine
+	for other: String in ids:
+		if String((_offers.get(other, {}) as Dictionary).get("partner", "")) == player_id:
+			return other
+	return ""
+
+
+func _pair_rooms(players: Dictionary, ids: Array) -> void:
+	for player_id: String in _mates.keys():
+		var member: PokeCoopPlayer = players.get(player_id)
+		var mate: PokeCoopPlayer = players.get(String(_mates[player_id]))
+		if not _in_room(member) or not _in_room(mate) or member.map != mate.map:
+			_mates.erase(player_id)
+	var waiting: Dictionary = {}
+	for player_id: String in ids:
+		var member: PokeCoopPlayer = players[player_id]
+		if _mates.has(player_id) or not _in_room(member) or not _offer_partner(player_id, ids).is_empty():
+			continue
+		if waiting.has(member.map):
+			_mates[player_id] = waiting[member.map]
+			_mates[waiting[member.map]] = player_id
+			waiting.erase(member.map)
+		else:
+			waiting[member.map] = player_id
+
+
+static func _in_room(member: PokeCoopPlayer) -> bool:
+	return member != null and member.connected and member.is_free() and LINK_ROOMS.has(member.map)
