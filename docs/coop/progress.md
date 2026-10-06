@@ -74,6 +74,16 @@ into a window's party; a heal and a deposit made in a window reach the host
 fought on the host with the world's prize zeroed; a lost window battle is not
 charged twice; the world's SAVE writes the campaign.
 
+## Launcher, captures, evolution, whiteout (local branch `coop/launcher`, 2026-10-06)
+
+| Run | Result |
+|---|---|
+| Local x86_64, co-op suites | 52/52, including `test_coop_device` over real localhost sockets (host, join, come back as the same player) |
+| Real launcher, two instances | Co-op tab: one hosts, one joins `127.0.0.1`; both worlds open with the starters they chose; a recorded video shows the partner joining and walking over |
+| Screens (scripted), Red: capture | A wild Rattata from Route 1's grass, Master Ball thrown by RED for BLUE: BLUE's panel says caught for BLUE and BLUE's own party menu lists it |
+| Screens (scripted), Red: evolution | BLUE's Squirtle reaches 16 in RED's battle; BLUE's window plays the evolution into Wartortle; BLUE's party menu shows Wartortle L16 |
+| Screens (scripted), Red: loss | Both lose to a level 40 Onix from the session menu; both windows show the blackout and wake up in Pallet Town |
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -107,15 +117,12 @@ has **played** it by hand yet.
 
 ## Incomplete
 
-- Co-op still starts from `tools/coop_play.gd`, not from the game's launcher (#18, #42).
 - The host does not check collision and trusts reported warps, world patches
   and the enemies a window's world prepared (#22, #25).
 - A world SAVE the host refuses (a battle is running) still says "saved" in the
   window (L2).
-- The battle is a text panel, not the battle screen (#26). The panel offers
-  moves, switches, run, send-out, learn and Mimic; items work over the protocol
-  but are not offered in the panel.
-- Captures are refused in shared battles (#35); evolution is only reported (#37).
+- The battle is a text panel, not the battle screen (#26): no animations,
+  battle text or cries in a shared battle.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
   `palette` key for Generation 1 trainers (#59).
@@ -126,6 +133,6 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand in two windows (commands in `AGENTS.md`) and note what
-feels wrong in `tracking.md`. Then L1 (claim trainers fought from a window) and
-#18 with #42: start co-op from the game's own launcher.
+Play a session by hand from the launcher's Co-op tab on two devices or two
+windows and note what feels wrong in `tracking.md`. Then the battle screen in
+place of the text panel (#26).

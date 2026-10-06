@@ -73,7 +73,16 @@ never identity.
   revision advances. The controller cannot suggest to themselves.
 - Every command carries the battle's revision; a stale or repeated command is
   refused and changes nothing.
-- Items come from the acting player's bag; key items are not consumed.
+- Items come from the acting player's bag; key items are not consumed. The
+  panel offers the bag's battle items on the Pokémon that is out.
+- A ball thrown at a wild Pokémon is rolled on the host with the cartridge's
+  catch formula. The thrower names who the catch is for (any participant); a
+  held ball ends the battle and the Pokémon goes once to that player, who is
+  its trainer: team if there is room, else box, and their Pokédex. A trainer's
+  Pokémon cannot be caught.
+- After a shared battle each player's own window runs evolution for their
+  Pokémon that grew, and after a loss each window whites out its own player:
+  party healed, half their own money, back to the last spawn.
 - Experience goes only to Pokémon that took part, as the cartridge decides, and
   is written to the owner's own record by uid. A partner's own Pokémon is not a
   traded Pokémon; one with a foreign original trainer still is.
@@ -115,10 +124,10 @@ never identity.
 | Question | Provisional rule | Issue |
 |---|---|---|
 | Prize money | Split evenly among participants, remainder to the initiator; Pay Day money is added to the prize | #36 |
-| Losing a battle | Each participant pays the blackout cost from their own money (half) | #36 |
-| Capture recipient | Not in the slice: balls are refused in shared sessions until a recipient is named explicitly | #35 |
+| Losing a battle | Each participant's own world whites them out and halves their own money | #36 |
+| Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |
 | Withdrawal | None: a battle ends for all participants together | #31 |
-| Late onboarding | A new player shares all story progress, starts with no Pokémon and 3000 money at a host-chosen location | #34 |
+| Late onboarding | A new player shares all story progress and starts with a starter of their choice at level 5, 3000 money, in Pallet Town; a new campaign begins after Oak's intro | #34 |
 | Controller lost | Pause indefinitely until they reconnect | #30 |
 | Exp. All in a shared battle | Off | #37 |
 | Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI | #27 |
