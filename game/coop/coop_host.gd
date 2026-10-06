@@ -149,10 +149,16 @@ func _hello(peer: int, message: Dictionary) -> void:
 			refusal = &"unknown_player"
 		else:
 			var joined_before: int = players.size()
+			var brought: Gen2SaveData = _brought_save(message.get("save", null))
 			joining = add_player(String(message.get("name", "")), seeds.randi() & 0xFFFF)
-			PokeCoopPolicy.set_up_new_player(
-				data, joining, int(message.get("starter", 0)), joined_before
-			)
+			if brought != null:
+				PokeCoopPolicy.import_save(
+					brought, joining, campaign if joined_before == 0 else null, _badge_flags
+				)
+			else:
+				PokeCoopPolicy.set_up_new_player(
+					data, joining, int(message.get("starter", 0)), joined_before
+				)
 			PokeCoopPolicy.hand_over_gifts(campaign, joining)
 	if refusal == &"" and joining.connected:
 		refusal = &"already_connected"
@@ -170,6 +176,17 @@ func _hello(peer: int, message: Dictionary) -> void:
 		"last_seq": int(_last_seq.get(joining.player_id, 0)),
 	})
 	broadcast()
+
+
+## A new player's own single-player save of this cartridge, its Pokémon and PC
+## checked by the game's own rules; the world is placed by the campaign.
+func _brought_save(raw: Variant) -> Gen2SaveData:
+	var save: Gen2SaveData = Gen2SaveData.from_dict(raw) if raw is Dictionary else null
+	if save == null or save.game_id != data.id:
+		return null
+	var holdings: Gen2SaveData = Gen2SaveData.from_dict(raw)
+	holdings.world = null
+	return save if bool(Gen2SaveValidator.validate(holdings, data).get("ok", false)) else null
 
 
 func _hello_refusal(message: Dictionary) -> StringName:

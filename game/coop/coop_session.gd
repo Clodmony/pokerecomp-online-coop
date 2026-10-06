@@ -52,8 +52,9 @@ static func campaign_path(game: GameData) -> String:
 
 ## This device hosts on [param port] and plays as [param player_name], loading
 ## the cartridge's campaign file or starting one.
+## [param brought] is a single-player save a new player brings instead of a starter.
 static func hosting(
-	game: GameData, port: int, player_name: String, starter: int
+	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null
 ) -> PokeCoopSession:
 	var link_out: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
 	if game == null or link_out == null:
@@ -68,7 +69,7 @@ static func hosting(
 	serving.allow_new_players = true
 	serving.adopt_players(loaded.get("players", []))
 	var out: PokeCoopSession = _connect(
-		game, "127.0.0.1", port, player_name, starter, "", "%s/host:%d" % [String(game.id), port]
+		game, "127.0.0.1", port, player_name, starter, "", "%s/host:%d" % [String(game.id), port], brought
 	)
 	if out == null:
 		link_out.close()
@@ -81,17 +82,17 @@ static func hosting(
 ## last played as on that host, or asks for a new one.
 static func joining(
 	game: GameData, address: String, port: int, player_name: String, starter: int,
-	player_id: String = ""
+	player_id: String = "", brought: Gen2SaveData = null
 ) -> PokeCoopSession:
 	return _connect(
 		game, address, port, player_name, starter, player_id,
-		"%s/%s:%d" % [String(game.id) if game != null else "", address, port]
+		"%s/%s:%d" % [String(game.id) if game != null else "", address, port], brought
 	)
 
 
 static func _connect(
 	game: GameData, address: String, port: int, player_name: String, starter: int,
-	player_id: String, identity_key: String
+	player_id: String, identity_key: String, brought: Gen2SaveData = null
 ) -> PokeCoopSession:
 	if game == null:
 		return null
@@ -100,7 +101,10 @@ static func _connect(
 	out._identity_key = identity_key
 	out._identity_saved = player_id if not player_id.is_empty() else _remembered(identity_key)
 	out._retry_as_new = player_id.is_empty() and not out._identity_saved.is_empty()
-	out._greeting = {"address": address, "port": port, "name": player_name, "starter": starter}
+	out._greeting = {
+		"address": address, "port": port, "name": player_name, "starter": starter,
+		"save": brought.to_dict() if brought != null else {},
+	}
 	return out if out._dial(out._identity_saved) else null
 
 
@@ -111,7 +115,10 @@ func _dial(player_id: String) -> bool:
 	if link_in == null:
 		return false
 	client = PokeCoopClient.over(link_in)
-	client.greet(String(_greeting["name"]), data.id, data.sha1, player_id, int(_greeting["starter"]))
+	client.greet(
+		String(_greeting["name"]), data.id, data.sha1, player_id, int(_greeting["starter"]),
+		_greeting["save"] if player_id.is_empty() else {}
+	)
 	return true
 
 

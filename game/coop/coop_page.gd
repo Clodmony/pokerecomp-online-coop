@@ -20,6 +20,10 @@ var _status: Label = null
 var _host_button: Gen2LauncherButton = null
 var _session: PokeCoopSession = null
 var _opening: bool = false
+## 0 brings a new trainer; above it, that row of [member _slots].
+var _bring: int = 0
+var _slots: Array = []
+var _bring_row: VBoxContainer = null
 
 
 static func create(palette: Gen2LauncherTheme, host: Control = null) -> PokeCoopPage:
@@ -60,7 +64,9 @@ func _build_player(card: VBoxContainer) -> void:
 	if _games.size() > 1:
 		card.add_child(Gen2LauncherUI.choice(
 			_theme, &"play", "Cartridge", _game_titles(), _game,
-			func(index: int) -> void: _game = index, _host_control
+			func(index: int) -> void:
+				_game = index
+				_build_bring(), _host_control
 		))
 	_name = _field(DEFAULT_NAME, "Your name")
 	_name.max_length = Gen2SaveData.MAX_PLAYER_NAME
@@ -69,6 +75,38 @@ func _build_player(card: VBoxContainer) -> void:
 		_theme, &"sparkle", "Starter, if you are new to the campaign", STARTER_NAMES, _starter,
 		func(index: int) -> void: _starter = index, _host_control
 	))
+	_bring_row = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD)
+	card.add_child(_bring_row)
+	_build_bring()
+
+
+## A new player can bring a trainer from one of this cartridge's own save slots
+## instead of a starter; a new campaign hosted that way starts from its story.
+func _build_bring() -> void:
+	Gen2Screen.drop_children(_bring_row)
+	_bring = 0
+	var data: GameData = _data()
+	_slots = [] if data == null else Gen2SaveStore.slots_for(data.id, data.sha1, data).filter(
+		func(row: Dictionary) -> bool: return bool(row["valid"]))
+	if _slots.is_empty():
+		return
+	var labels: Array = ["A new trainer with that starter"]
+	for row: Dictionary in _slots:
+		labels.append("Slot %d: %s" % [int(row["slot"]) + 1, row["player_name"]])
+	_bring_row.add_child(Gen2LauncherUI.choice(
+		_theme, &"save", "Bring, if you are new to the campaign", labels, 0,
+		func(index: int) -> void: _bring = index, _host_control
+	))
+
+
+func _brought() -> Gen2SaveData:
+	var data: GameData = _data()
+	if _bring <= 0 or _bring > _slots.size() or data == null:
+		return null
+	var loaded: Dictionary = Gen2SaveStore.load_result(
+		data.id, data.sha1, int((_slots[_bring - 1] as Dictionary)["slot"]), data
+	)
+	return loaded["save"] if bool(loaded.get("ok", false)) else null
 
 
 func _build_host(card: VBoxContainer) -> void:
@@ -125,7 +163,7 @@ static func local_addresses() -> PackedStringArray:
 
 
 func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
-	_begin(PokeCoopSession.hosting(_data(), port, _player_name(), _starter_species()),
+	_begin(PokeCoopSession.hosting(_data(), port, _player_name(), _starter_species(), _brought()),
 		"Could not host on port %d: is another host running?" % port)
 
 
@@ -133,7 +171,7 @@ func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PO
 	if address.is_empty():
 		_say("Type the host's address first.")
 		return
-	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species()),
+	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species(), "", _brought()),
 		"Could not reach %s." % address)
 
 

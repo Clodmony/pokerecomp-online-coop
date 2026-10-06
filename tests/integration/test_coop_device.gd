@@ -132,3 +132,48 @@ func test_a_hosting_device_sent_to_the_background_keeps_the_campaign() -> void:
 
 	var saved: Dictionary = PokeCoopSave.read(PokeCoopSession.campaign_path(_data))
 	assert_eq((saved.get("players", []) as Array).size(), 1, "the host's player is in the saved campaign")
+
+
+## A single-player save of the fixture cartridge: [param species] in the party,
+## a Pidgey in box 3, a story flag, two potions and 1234 money; the fixture has no maps to stand on.
+func _single_player_save(trainer: String, species: int) -> Gen2SaveData:
+	var save := Gen2SaveData.new()
+	save.game_id = _data.id
+	save.rom_sha1 = _data.sha1
+	save.slot = 0
+	save.player_name = trainer
+	save.run_rules = Gen2Rules.new()
+	for at: int in [species, Fixture.PIKACHU]:
+		var mon: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(
+			Gen2BattleMon.create(_data, at, 10, [Fixture.TACKLE])
+		)
+		if at == species:
+			save.party.append(mon)
+		else:
+			(save.boxes[3] as Gen2SaveBox).put(mon)
+	save.current_box = 3
+	save.world = Gen2WorldSnapshot.new()
+	save.world.world_state.set_event_flag(0x77)
+	save.world.world_state.apply_changes({}, {}, {"items": {Fixture.POTION: 2}, "money": {0: 1234}})
+	return save
+
+
+func test_a_campaign_hosted_from_a_save_takes_its_story_and_its_trainer() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(
+		_data, PORT, "RED", 0, _single_player_save("RED", Fixture.CHARMANDER)
+	)
+	_sessions.append(hosting)
+	var joining: PokeCoopSession = PokeCoopSession.joining(
+		_data, "127.0.0.1", PORT, "BLUE", 0, "", _single_player_save("BLUE", Fixture.BULBASAUR)
+	)
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+
+	var red: PokeCoopPlayer = hosting.host.player(hosting.client.player_id)
+	assert_true(hosting.host.campaign.has_flag(0x77), "the first player's save brought the story")
+	assert_eq(red.team[0]["mon"].species, Fixture.CHARMANDER)
+	assert_eq([red.box.size(), int(red.box[0]["box"]), red.current_box], [1, 3, 3], "the PC came along")
+	assert_eq([red.item_count(Fixture.POTION), red.money], [2, 1234])
+	var blue: PokeCoopPlayer = hosting.host.player(joining.client.player_id)
+	assert_eq(blue.team[0]["mon"].species, Fixture.BULBASAUR, "a later player brings their trainer only")
+	assert_eq(blue.money, 1234)

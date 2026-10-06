@@ -299,3 +299,15 @@ decides for the absent player's active Pokémon; ownership, rewards and results
 stay the owner's, the view names both (`controller`, `owner`), and the owner
 takes control back on reconnecting. The host announces the change itself,
 since no message arrives while everyone waits.
+
+## D34. A new player may bring a trainer from a single-player save (2026-10-06)
+
+The Co-op tab lists the cartridge's own valid save slots beside the starter
+choice. A new player who brings one sends it with their hello; the host checks
+its Pokémon and PC with the game's own validator (the world is left out, since
+the campaign places the player) and takes their team, PC with its boxes, bag,
+money, place and own world keys. The first player of a new campaign brings
+their story too: its flags, badges and shared world keys become the
+campaign's, so a player can carry an existing Red run into co-op. A returning
+player is never replaced by a brought save, and nothing is written back to the
+single-player slot.

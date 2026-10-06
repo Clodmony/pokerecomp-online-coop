@@ -167,3 +167,18 @@ func test_pokemon_that_share_a_fingerprint_keep_their_own_uids_through_a_deposit
 	assert_eq(taken, &"")
 	assert_eq(String(blue.team[0]["uid"]), second_uid, "a stale hint does not move a uid onto another Pokémon")
 	assert_eq(String(blue.box[0]["uid"]), first_uid)
+
+
+func test_a_trainer_brought_from_a_save_stands_where_they_saved() -> void:
+	var save := Gen2SaveData.new()
+	save.world = Gen2WorldSnapshot.new()
+	save.world.map_id = ROUTE_1
+	save.world.player_cell = Vector2i(4, 9)
+	save.world.player_facing = Gen2WorldSprite.FACING_UP
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+
+	PokeCoopPolicy.import_save(save, red, null, [])
+
+	assert_eq([red.map, red.cell, red.facing], [ROUTE_1, Vector2i(4, 9), Gen2WorldSprite.FACING_UP])
+	assert_eq(red.team.size(), 1)

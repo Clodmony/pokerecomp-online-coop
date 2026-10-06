@@ -125,3 +125,28 @@ static func hand_over(player: PokeCoopPlayer, item: int) -> void:
 		return
 	stored[item] = 1
 	player.world["pc_items"] = stored
+
+
+## A trainer brought from a single-player save: their team, PC, bag, money, place
+## and own world keys, and with [param story] that campaign's flags, badges and
+## world too. Only a campaign's first player brings the story.
+static func import_save(
+	save: Gen2SaveData, player: PokeCoopPlayer, story: PokeCoopCampaign, badge_flags: Array[int]
+) -> void:
+	var snapshot: Gen2WorldSnapshot = save.world
+	if snapshot != null:
+		var halves: Dictionary = PokeCoopOwnership.route(
+			PokeCoopOwnership.patch({}, snapshot.world_state.to_dict()), badge_flags
+		)
+		if story != null:
+			story.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], badge_flags)
+		player.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
+		if snapshot.map_id.x >= 0:
+			player.place(snapshot.map_id, snapshot.player_cell, snapshot.player_facing)
+	for mon: Gen2SaveMon in save.party:
+		player.add_mon(mon)
+	for at: int in mini(save.boxes.size(), PokeCoopPlayer.BOXES):
+		for mon: Variant in (save.boxes[at] as Gen2SaveBox).slots:
+			if mon != null:
+				player.store_mon_at(mon, at)
+	player.current_box = clampi(save.current_box, 0, PokeCoopPlayer.BOXES - 1)

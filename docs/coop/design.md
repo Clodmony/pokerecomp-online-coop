@@ -127,7 +127,7 @@ never identity.
 | Losing a battle | Each participant's own world whites them out and halves their own money | #36 |
 | Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |
 | Withdrawal | None: a battle ends for all participants together | #31 |
-| Late onboarding | A new player shares all story progress and starts with a starter of their choice at level 5, 3000 money, in Pallet Town; a new campaign begins after Oak's intro | #34 |
+| Late onboarding | A new player shares all story progress and starts with a starter of their choice at level 5, 3000 money, in Pallet Town, or brings their trainer from one of their single-player saves; a new campaign begins after Oak's intro, or from the story of the save its first player brings | #34, #40 |
 | Story gifts | A key item or HM one player is given (town map, bicycle, keys, S.S. ticket, coin case, itemfinder, Silph Scope, Poké Flute, Exp. All, rods, HM01 to HM05) and the TM behind any person's gift flag (gym leaders and others) reach every player, a late joiner included; into the PC's items when the bag is full. Items found on the ground, bought or traded for stay with whoever got them | L5 |
 | Trades | Through the Cable Club's Trade Center with the partner the host names; the host swaps the two Pokémon and applies trade evolutions | #38 |
 | Colosseum | Not a co-op battle: the takeover leaves link battles alone, so the window runs the cartridge's own link battle against a copy of the partner's team (not yet tried in a co-op run) | #38 |
