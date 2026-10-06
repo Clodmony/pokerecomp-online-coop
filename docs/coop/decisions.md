@@ -525,3 +525,17 @@ these, each now fixed:
   battle) replayed that turn; it now plays only its own closing.
 - Two views of one battle read in the same poll kept only the second's events;
   the client now keeps both turns' events.
+
+## D45. The co-op panel speaks to players (2026-10-06)
+
+The panel beside the battle field read like a debug list: battle ids, revision
+numbers, one flat roster with `[OWNER]` tags, host refusal codes. It now names
+the opponent ("Wild PIDGEY L3", "BROCK's ONIX L14"), lists each player's
+Pokémon under their name in the colour their world draws them in, says whose
+turn it is in words, groups the choices under FIGHT, POKéMON and BAG, marks the
+partner's suggestion with "◀ NAME", and turns a refusal into a sentence that
+fades after a few seconds. Every row is a link: a tap or a click puts the cursor
+on it (which is a suggestion when it is not your turn) and a second one chooses
+it, so touch play does not depend on the on-screen d-pad. The session menu says
+who else is playing and what a running battle is against. Rows keep their
+command text for scripts and tests; what is shown is a separate label.

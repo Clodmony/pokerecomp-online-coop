@@ -105,7 +105,11 @@ func sprites() -> Array:
 
 
 func _colors(player_id: String) -> PackedColorArray:
-	var ids: Array = (client.state.get("players", {}) as Dictionary).keys()
+	return colors_of(client.state, player_id)
+
+
+static func colors_of(state: Dictionary, player_id: String) -> PackedColorArray:
+	var ids: Array = (state.get("players", {}) as Dictionary).keys()
 	ids.sort()
 	return PackedColorArray(PLAYER_COLORS[maxi(ids.find(player_id), 0) % PLAYER_COLORS.size()])
 

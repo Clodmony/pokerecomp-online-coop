@@ -35,14 +35,17 @@ host, so joining the same host again brings the same trainer back.
 ## Battles
 
 - Wild and trainer battles your world starts are fought on the host, so the
-  partner can join. **SELECT** opens the session menu: JOIN a running battle
-  (from any map), SAVE CAMPAIGN, LEAVE SESSION.
+  partner can join. **SELECT** opens the session menu: join a running battle
+  (from any map), save the campaign, leave the session.
 - A shared battle is one Pokémon a side, with both teams on your side (up to
-  twelve). Whoever owns the Pokémon that is out decides; switching to the
-  partner's Pokémon hands them the turn. Your cursor in the panel is a
-  suggestion the partner sees ("<- NAME") and never acts by itself.
-- Balls are listed once per player ("THROW POKé BALL for BLUE"): the catch goes
-  to whoever you name.
+  twelve), listed in the panel under each player's name in their colour.
+  Whoever owns the Pokémon that is out decides; switching to the partner's
+  Pokémon hands them the turn. Your cursor in the panel is a suggestion the
+  partner sees ("◀ NAME") and never acts by itself.
+- The panel works with the d-pad and A, or by touch or mouse: tap a row to put
+  the cursor on it, tap it again to choose it.
+- Balls are listed once per player ("GREAT BALL x10, catch for BLUE"): the
+  catch goes to whoever you name.
 - If the deciding player drops, the battle waits; after thirty seconds the
   other player decides for their Pokémon until they are back.
 - Evolutions and the whiteout after a loss happen in each owner's own world.
