@@ -26,6 +26,7 @@ var _peers: Dictionary = {}
 var _badge_flags: Array[int] = []
 var _last_seq: Dictionary = {}
 var _finished: Array = []
+var _box_sent: Dictionary = {}
 
 
 static func create(
@@ -124,8 +125,7 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			var changes: Variant = message.get("patch", {})
 			return apply_world(sender, changes if changes is Dictionary else {})
 		"party":
-			var rows: Variant = message.get("rows", [])
-			return apply_party(sender, rows if rows is Array else [])
+			return apply_party(sender, message)
 		"save":
 			return save_checkpoint()
 	return &"unknown_message"
@@ -150,6 +150,7 @@ func _hello(peer: int, message: Dictionary) -> void:
 		_refused_peers[peer] = Time.get_ticks_msec() + SHUTDOWN_GRACE_MSEC
 		return
 	_peers[peer] = joining.player_id
+	_box_sent.erase(peer)
 	joining.connected = true
 	for session: PokeCoopBattleSession in battles.values():
 		session.set_absent(joining.player_id, false)
@@ -181,6 +182,7 @@ func _on_disconnected(peer: int) -> void:
 	_refused_peers.erase(peer)
 	var leaving: PokeCoopPlayer = player(String(_peers.get(peer, "")))
 	_peers.erase(peer)
+	_box_sent.erase(peer)
 	if leaving == null:
 		return
 	leaving.connected = false
@@ -215,12 +217,20 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	return &""
 
 
-## A window's party after a heal, a gift, a deposit or a withdrawal. Refused in
-## a battle, whose results the host writes itself.
-func apply_party(sender: PokeCoopPlayer, rows: Array) -> StringName:
+## A window's party and PC after a heal, a gift, a deposit or a release.
+## Refused in a battle, whose results the host writes itself.
+func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
+	var rows: Variant = message.get("rows", [])
+	var stored: Variant = message.get("boxes", null)
 	if not sender.is_free():
 		return &"in_battle"
-	return &"" if sender.replace_team(rows) else &"invalid_party"
+	if not rows is Array or (stored != null and not stored is Array):
+		return &"invalid_party"
+	if not message.has("rev"):
+		return &"" if sender.replace_team(rows) else &"invalid_party"
+	return sender.replace_holdings(
+		rows, stored, int(message.get("current_box", 0)), int(message.get("rev", -1))
+	)
 
 
 func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName:
@@ -461,6 +471,9 @@ func broadcast() -> void:
 	shared["world"] = campaign.world_part(_badge_flags)
 	for peer: int in _peers:
 		var viewer: PokeCoopPlayer = player(String(_peers[peer]))
+		if int(_box_sent.get(peer, -1)) != viewer.box_rev:
+			_box_sent[peer] = viewer.box_rev
+			transport.send(peer, {"type": "box", "rev": viewer.box_rev, "rows": viewer.box_rows()})
 		transport.send(peer, {
 			"type": "state", "campaign": shared, "players": everyone,
 			"you": viewer.private_view(), "nearby": nearby(viewer), "battles": running,

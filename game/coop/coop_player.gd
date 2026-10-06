@@ -8,12 +8,19 @@ extends RefCounted
 const MAX_TEAM: int = Gen2Party.MAX_SIZE
 const MAX_MONEY: int = 999999
 const MAX_ITEM_COUNT: int = 99
+const BOXES: int = 12
+const BOX_CAPACITY: int = Gen2SaveBox.CAPACITY
 
 var player_id: String = ""
 var name: String = ""
 var trainer_id: int = 0
 var team: Array = []
+## PC rows in each box's order, each `{uid, mon, box}`.
 var box: Array = []
+var current_box: int = 0
+## Raised by the host's own team and PC changes; a window's older copy is refused.
+var holdings_rev: int = 0
+var box_rev: int = 0
 var items: Dictionary = {}
 var money: int = 0
 var map: Vector2i = Vector2i(-1, -1)
@@ -46,15 +53,45 @@ func add_mon(mon: Gen2SaveMon) -> String:
 	return _file(team, mon)
 
 
+## Into the current box, or the first with room, as `SendNewMonToBox` would.
 func store_mon(mon: Gen2SaveMon) -> String:
-	return "" if mon == null else _file(box, mon)
+	var at: int = _box_with_room()
+	if mon == null or at < 0:
+		return ""
+	box_rev += 1
+	return _file(box, mon, at)
 
 
-func _file(into: Array, mon: Gen2SaveMon) -> String:
+func _box_with_room() -> int:
+	var counts: Array = _box_counts(box)
+	if int(counts[current_box]) < BOX_CAPACITY:
+		return current_box
+	for at: int in BOXES:
+		if int(counts[at]) < BOX_CAPACITY:
+			return at
+	return -1
+
+
+func _file(into: Array, mon: Gen2SaveMon, at_box: int = -1) -> String:
 	var uid: String = "%s:%d" % [player_id, next_mon_serial]
 	next_mon_serial += 1
-	into.append({"uid": uid, "mon": mon})
+	var entry: Dictionary = {"uid": uid, "mon": mon}
+	if at_box >= 0:
+		entry["box"] = at_box
+	into.append(entry)
+	holdings_rev += 1
 	return uid
+
+
+static func _box_counts(rows: Array) -> Array:
+	var out: Array = []
+	out.resize(BOXES)
+	out.fill(0)
+	for entry: Dictionary in rows:
+		var at: int = int(entry.get("box", 0))
+		if at >= 0 and at < BOXES:
+			out[at] = int(out[at]) + 1
+	return out
 
 
 func team_index(uid: String) -> int:
@@ -79,6 +116,7 @@ func absorb_battle_mon(uid: String, fought: Gen2BattleMon) -> bool:
 	var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(fought)
 	Gen2SaveBattleAdapter.keep_party_fields(saved, previous, fought.data)
 	(team[index] as Dictionary)["mon"] = saved
+	holdings_rev += 1
 	return true
 
 
@@ -144,37 +182,76 @@ static func fingerprint(mon: Gen2SaveMon) -> Array:
 ## or its fingerprint. Team members missing from it are kept in the box, so a
 ## deposit made in the window loses nobody; a row matching nobody is new.
 func replace_team(rows: Array) -> bool:
-	if rows.size() > MAX_TEAM:
-		return false
 	var pool: Array = team + box
 	var used: Dictionary = {}
-	var next_team: Array = []
+	var next_team: Variant = _matched(rows, pool, used)
+	if rows.size() > MAX_TEAM or next_team == null:
+		return false
+	var before: Array = _rows_to_dicts(box)
+	box = pool.filter(func(entry: Dictionary) -> bool: return not used.has(entry["uid"]))
+	team = next_team
+	_settle_box()
+	if _rows_to_dicts(box) != before:
+		box_rev += 1
+	return true
+
+
+## A window's team and, unless [param stored] is null, its PC. Taken only on the
+## latest [member holdings_rev]: whoever is missing was released there.
+func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: int) -> StringName:
+	if based_on != holdings_rev:
+		return &"outdated"
+	var pool: Array = team + (box if stored != null else [])
+	var used: Dictionary = {}
+	var next_team: Variant = _matched(rows, pool, used)
+	var next_box: Variant = _matched(stored, pool, used) if stored is Array else box
+	if rows.size() > MAX_TEAM or next_team == null or next_box == null \
+			or _box_counts(next_box).any(func(count: int) -> bool: return count > BOX_CAPACITY):
+		return &"invalid_party"
+	if stored != null and _rows_to_dicts(next_box) != _rows_to_dicts(box):
+		box_rev += 1
+	team = next_team
+	box = next_box
+	current_box = clampi(wanted_box, 0, BOXES - 1)
+	return &""
+
+
+func _matched(rows: Array, pool: Array, used: Dictionary) -> Variant:
+	var prints: Array = pool.map(func(entry: Dictionary) -> Array: return fingerprint(entry["mon"]))
+	var out: Array = []
 	for row: Variant in rows:
 		var mon: Gen2SaveMon = Gen2SaveMon.from_dict((row as Dictionary).get("mon", {})) \
 			if row is Dictionary else null
 		if mon == null:
-			return false
-		var uid: String = _match(pool, String((row as Dictionary).get("uid", "")), mon, used)
+			return null
+		var uid: String = _match(pool, prints, String((row as Dictionary).get("uid", "")), mon, used)
 		if uid.is_empty():
 			uid = "%s:%d" % [player_id, next_mon_serial]
 			next_mon_serial += 1
 		used[uid] = true
-		next_team.append({"uid": uid, "mon": mon})
-	box = pool.filter(func(entry: Dictionary) -> bool: return not used.has(entry["uid"]))
-	team = next_team
-	return true
+		var entry: Dictionary = {"uid": uid, "mon": mon}
+		if (row as Dictionary).has("box"):
+			entry["box"] = clampi(int(row["box"]), 0, BOXES - 1)
+		out.append(entry)
+	return out
 
 
-static func _match(pool: Array, hint: String, mon: Gen2SaveMon, used: Dictionary) -> String:
+## An unchanged row first, then the hinted one: fingerprints can collide.
+static func _match(pool: Array, prints: Array, hint: String, mon: Gen2SaveMon, used: Dictionary) -> String:
 	var wanted: Array = fingerprint(mon)
-	for entry: Dictionary in pool:
-		if String(entry["uid"]) == hint and not used.has(hint) \
-				and fingerprint(entry["mon"]) == wanted:
+	var found: Array = []
+	for index: int in pool.size():
+		if prints[index] == wanted and not used.has(pool[index]["uid"]):
+			found.append(pool[index])
+	if found.size() > 1:
+		var exact: Dictionary = mon.to_dict()
+		var same: Array = found.filter(func(entry: Dictionary) -> bool:
+			return (entry["mon"] as Gen2SaveMon).to_dict() == exact)
+		found = same if not same.is_empty() else found
+	for entry: Dictionary in found:
+		if String(entry["uid"]) == hint:
 			return hint
-	for entry: Dictionary in pool:
-		if not used.has(entry["uid"]) and fingerprint(entry["mon"]) == wanted:
-			return String(entry["uid"])
-	return ""
+	return "" if found.is_empty() else String(found[0]["uid"])
 
 
 func add_money(amount: int) -> void:
@@ -217,6 +294,7 @@ func private_view() -> Dictionary:
 	return {
 		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team),
 		"box": box.size(), "items": items.duplicate(), "money": money, "world": world_part(),
+		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box,
 	}
 
 
@@ -232,14 +310,22 @@ func to_dict() -> Dictionary:
 		"items": item_rows, "money": money,
 		"map": [map.x, map.y], "cell": [cell.x, cell.y], "facing": facing,
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
+		"current_box": current_box,
 	}
 
 
 static func _rows_to_dicts(rows: Array) -> Array:
 	var out: Array = []
 	for entry: Dictionary in rows:
-		out.append({"uid": entry["uid"], "mon": (entry["mon"] as Gen2SaveMon).to_dict()})
+		var row: Dictionary = {"uid": entry["uid"], "mon": (entry["mon"] as Gen2SaveMon).to_dict()}
+		if entry.has("box"):
+			row["box"] = entry["box"]
+		out.append(row)
 	return out
+
+
+func box_rows() -> Array:
+	return _rows_to_dicts(box)
 
 
 static func from_dict(raw: Variant) -> PokeCoopPlayer:
@@ -258,6 +344,8 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 		return null
 	out.team = team_rows
 	out.box = box_rows
+	out.current_box = clampi(int(source.get("current_box", 0)), 0, BOXES - 1)
+	out._settle_box()
 	for row: Variant in source.get("items", []) as Array:
 		if row is Array and (row as Array).size() == 2:
 			out.give_item(int(row[0]), int(row[1]))
@@ -283,8 +371,24 @@ static func _rows_from_dicts(raw: Variant) -> Variant:
 		var uid: String = String((row as Dictionary).get("uid", ""))
 		if saved == null or uid.is_empty():
 			return null
-		out.append({"uid": uid, "mon": saved})
+		var entry: Dictionary = {"uid": uid, "mon": saved}
+		if (row as Dictionary).has("box"):
+			entry["box"] = int(row["box"])
+		out.append(entry)
 	return out
+
+
+## A row with no box goes to the current one; a full box spills into the next.
+func _settle_box() -> void:
+	var counts: Array = []
+	counts.resize(BOXES)
+	counts.fill(0)
+	for entry: Dictionary in box:
+		var at: int = clampi(int(entry.get("box", current_box)), 0, BOXES - 1)
+		while at < BOXES - 1 and int(counts[at]) >= BOX_CAPACITY:
+			at += 1
+		entry["box"] = at
+		counts[at] = int(counts[at]) + 1
 
 
 static func _cell_from(raw: Variant, fallback: Vector2i) -> Vector2i:

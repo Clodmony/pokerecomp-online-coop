@@ -231,3 +231,19 @@ drops dials again as the same player every two seconds and gives up after ten
 tries as `host_unreachable`; ENet peers time out after two to six seconds so a
 lost player is freed for that. The host also writes the campaign whenever its
 last running battle ends, so a crash loses at most the battle in progress.
+
+## D29. A window's PC is the player's, copied whole against a revision (2026-10-06)
+
+The host keeps each player's PC as `{uid, mon, box}` rows in Red and Blue's
+twelve boxes of twenty and sends it to its owner's window only when it
+changed. A window sends its party, and its PC when that changed, with the
+`holdings_rev` it last took; the host refuses a copy from before its own latest
+change (a capture, battle results) and the window then takes the host's copy.
+A copy that is current is believed whole, so a Pokémon missing from it was
+released or traded away. Rows are matched to uids by fingerprint, preferring
+an unchanged row and then the window's hint, so two Pokémon sharing a
+fingerprint keep their own uids. A window's world explores on a save with slot
+0 under a scratch save root (`user://coop_window/<player>`), restored on leave:
+the game's own checks pass, so Bill's PC and other services that validate the
+save work, and nothing a window writes can touch a player's single-player
+slots.

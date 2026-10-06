@@ -10,6 +10,7 @@ var player_id: String = ""
 var connected: bool = false
 var state: Dictionary = {}
 var battles: Dictionary = {}
+var box: Dictionary = {}
 var rejections: Array = []
 var ended_reason: String = ""
 var _seq: int = 0
@@ -55,6 +56,8 @@ func _receive(message: Dictionary) -> void:
 			_seq = maxi(_seq, int(message.get("last_seq", 0)))
 		"state":
 			state = message
+		"box":
+			box = {"rev": int(message.get("rev", 0)), "rows": message.get("rows", [])}
 		"battle":
 			var view: Dictionary = message.get("view", {})
 			battles[String(view.get("battle", ""))] = view

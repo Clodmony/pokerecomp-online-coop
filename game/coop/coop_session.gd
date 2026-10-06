@@ -13,6 +13,8 @@ const LEAVE_FRAMES: int = 180
 const RECONNECT_FRAMES: int = 120
 const RECONNECT_ATTEMPTS: int = 10
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
+## A scratch root for the window's own saves; the campaign is the host's.
+const WINDOW_SAVES: String = "user://coop_window"
 ## Which player this device was on each host, by cartridge, address and port.
 static var identity_path: String = "user://coop_identity.json"
 
@@ -269,8 +271,9 @@ func open_world() -> Gen2WorldScreen:
 	if not is_ready() or screen != null:
 		return screen
 	_claim_seams()
+	Gen2SaveStore.use_root("%s/%s" % [WINDOW_SAVES, client.player_id.validate_filename()])
 	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(client.player_id, {})
-	var save: Gen2SaveData = _local_save(client.me())
+	var save: Gen2SaveData = PokeCoopWorldLink.local_save(client, data)
 	screen = (load("res://game/world/world_screen.tscn") as PackedScene).instantiate() as Gen2WorldScreen
 	var map: Vector2i = view.get("map", PokeCoopPolicy.START_MAP)
 	screen.map_group = map.x
@@ -315,22 +318,6 @@ func _claim_seams() -> void:
 	_takeover.data = data
 
 
-## The world explores on a save of its own, built from this player's record and
-## kept in step with it by the link.
-func _local_save(me: Dictionary) -> Gen2SaveData:
-	var save := Gen2SaveData.new()
-	save.game_id = data.id
-	save.rom_sha1 = data.sha1
-	save.player_name = String(me.get("name", ""))
-	save.player_id = int(me.get("trainer_id", 0))
-	save.run_rules = Gen2Rules.new()
-	for row: Dictionary in me.get("party", []):
-		var mon: Gen2SaveMon = Gen2SaveMon.from_dict(row["mon"])
-		if mon != null:
-			save.party.append(mon)
-	return save
-
-
 ## Ends the run: the host, when this device is it, tells everyone first.
 func close() -> void:
 	_closed = true
@@ -344,6 +331,7 @@ func _release_seams() -> void:
 	if _actor != null and _actor.client == client:
 		_actor.client = null
 		_takeover.client = null
+		Gen2SaveStore.use_root("")
 
 
 static func _remembered(key: String) -> String:
