@@ -10,8 +10,11 @@ const GAP: int = 16
 
 var panel: PokeCoopBattlePanel = null
 var data: GameData = null
-## The world's own player, which the field's sounds and cries go through.
+## The world's own player, which the field's sounds and cries go through, and
+## what puts the map's music back once a battle closes.
 var audio: Gen2AudioPlayer = null
+var restore_music: Callable = Callable()
+var _music_for: String = ""
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
@@ -70,6 +73,7 @@ func _process(delta: float) -> void:
 		return
 	var view: Dictionary = panel.battle_view()
 	visible = not view.is_empty()
+	_follow_music(String(view.get("battle", "")), String(view.get("encounter", "")))
 	if not visible:
 		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		panel.position = Vector2(get_viewport_rect().size.x - panel.size.x - GAP, GAP)
@@ -96,6 +100,26 @@ func _process(delta: float) -> void:
 func is_playing() -> bool:
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
 		or not _queued_move.is_empty() or _box.is_revealing())
+
+
+## `PlayBattleMusic` for a battle as it opens, a trainer's by the class and index
+## its encounter id names, and the map's music back once it is closed.
+func _follow_music(battle_id: String, encounter: String) -> void:
+	if battle_id == _music_for or audio == null:
+		return
+	_music_for = battle_id
+	if battle_id.is_empty():
+		if restore_music.is_valid():
+			restore_music.call()
+		return
+	var parts: PackedStringArray = encounter.split(":")
+	var trainer: bool = parts.size() == 3 and parts[0] == "trainer"
+	var record: Dictionary = data.world_audio(&"music", Gen2Battle.battle_music(
+		Gen2Battle.BATTLETYPE_NORMAL, int(parts[1]) if trainer else 0, int(parts[2]) if trainer else 0,
+		Gen2WorldRadio.LANDMARK_SPECIAL, 0, false
+	))
+	if not record.is_empty():
+		audio.play_record(record, &"battle_music", data.audio_assets())
 
 
 ## At a whole multiple: left of the panel on a wide window, above it on a tall one.

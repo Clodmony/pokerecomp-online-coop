@@ -323,6 +323,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	panel.leave_requested.connect(leave)
 	var field: PokeCoopBattleField = PokeCoopBattleField.over(panel, data)
 	field.audio = screen.get("_audio_player")
+	field.restore_music = Callable(screen, &"_play_current_map_music")
 	panel.busy = field.is_playing
 	layer.add_child(field)
 	layer.add_child(panel)

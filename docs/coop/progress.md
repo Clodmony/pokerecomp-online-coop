@@ -92,6 +92,7 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: move animations | In the BROCK fight, "CHARMANDER used SCRATCH!" is followed by the cartridge's claw marks over GEODUDE before "It's not very effective..."; recorded as a clip |
 | Screens (scripted), Red: draining bars | After "Enemy GEODUDE used TACKLE!" CHARMANDER's bar goes 34, 32, 29, 27 frame by frame, and a turn's lines, animations and bars play in order before the next choice is taken |
 | Screens (scripted), Red: move sounds | In the BROCK fight the field asked the world's audio player for four move sounds (SCRATCH, TACKLE, DEFENSE CURL rows), seen in a temporary log line; a Movie Maker recording has the audio track, which the overworld music dominates, so the sounds were checked by the calls rather than by ear |
+| Screens (scripted), Red: battle music | Both windows start the battle music the cache has for the fight when the battle opens, and a window's map music comes back when the battle closes (temporary log lines) |
 | Local x86_64, exit hang | twice today a whole-suite run passed every test and then did not exit; four further runs under a watcher that would have dumped the stacks all exited cleanly, so the cause is still unknown |
 | Local x86_64, fuzz | the fuzz test passes for seeds 2026, 7 and 99 in the suite and was also run once over twenty other seeds; every crash it found is fixed (D35); a 200-Pokémon PC crosses real sockets in one message |
 | Launcher (scripted), Red: bring a save | A mid-game Red save in a scratch save root (two badges, VENUSAUR, PIDGEOTTO, PIKACHU, ¥9876) is chosen on the Co-op tab and hosted: the new campaign has both badges and Brock beaten, the party menu lists the three, and the trainer card shows ¥9876 with the BOULDER and CASCADE badges |
@@ -159,8 +160,8 @@ has **played** it by hand yet.
 - A shared battle is drawn on the cartridge's battle field (pictures, status
   panels, HP bars and the turn's messages in the game's text box), but it is
   not the battle screen itself (#26): move animations play with their sounds
-  and bars drain, but there are no send-out cries, battle music, scroll
-  effects or sliding intro.
+  and bars drain over the battle's music, but there are no send-out cries,
+  victory fanfare, scroll effects or sliding intro.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).
@@ -182,5 +183,5 @@ has **played** it by hand yet.
 ## Next concrete step
 
 Play a session by hand from the launcher's Co-op tab on two devices and note
-what feels wrong in `tracking.md`. Then battle music and send-out cries on the
-battle field (#26), and builds once export templates are installed (#44).
+what feels wrong in `tracking.md`. Then send-out cries and the victory fanfare
+on the battle field (#26), and builds once export templates are installed (#44).
