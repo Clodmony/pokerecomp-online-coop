@@ -126,6 +126,7 @@ func enter(event: Dictionary, game: GameData) -> void:
 	var prefix: String = "enemy_" if side == Gen2Battle.ENEMY else "player_"
 	var species: int = int(event.get("species", 0))
 	hidden[side] = true
+	Gen2BattleScreenMap.clear_battler(map, side == Gen2Battle.PLAYER, game.generation)
 	var statuses: Array = event.get("statuses", [0, 0])
 	shown[prefix + "species"] = species
 	shown[prefix + "name"] = String(game.species(species).get("name", "")) if species > 0 else ""

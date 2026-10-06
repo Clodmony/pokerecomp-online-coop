@@ -60,8 +60,10 @@ static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null
 ) -> PokeCoopSession:
 	last_failure = ""
+	if game == null:
+		return null
 	var link_out: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
-	if game == null or link_out == null:
+	if link_out == null:
 		return null
 	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game))
 	if loaded.is_empty() and FileAccess.file_exists(campaign_path(game)):

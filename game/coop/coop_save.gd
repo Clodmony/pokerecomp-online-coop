@@ -50,12 +50,11 @@ static func write(path: String, campaign: PokeCoopCampaign, players: Array) -> E
 	var file: FileAccess = FileAccess.open(staging, FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(JSON.stringify(to_dict(campaign, players), "\t"))
-	var failed: Error = file.get_error()
+	var stored: bool = file.store_string(JSON.stringify(to_dict(campaign, players), "\t"))
 	file.close()
-	if failed != OK:
+	if not stored or read(staging).is_empty():
 		DirAccess.remove_absolute(staging)
-		return failed
+		return ERR_FILE_CANT_WRITE
 	if not read(path).is_empty():
 		DirAccess.copy_absolute(target, target + BACKUP_SUFFIX)
 	return DirAccess.rename_absolute(staging, target)
