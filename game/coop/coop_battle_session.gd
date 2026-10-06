@@ -104,7 +104,19 @@ func phase() -> StringName:
 	return AWAITING_ACTION
 
 
+## Whoever decides now: the active Pokémon's owner, or a participant standing in
+## once the owner has been away for [constant PokeCoopPolicy.STAND_IN_MSEC].
 func controller() -> String:
+	var owner: String = owner_deciding()
+	if not _absent.has(owner) or Time.get_ticks_msec() - int(_absent[owner]) < PokeCoopPolicy.STAND_IN_MSEC:
+		return owner
+	for player_id: String in participants:
+		if not _absent.has(player_id):
+			return player_id
+	return owner
+
+
+func owner_deciding() -> String:
 	if phase() == AWAITING_LEARN:
 		return roster.owner_at(int(battle.pending_learn(Gen2Battle.PLAYER).get("index", -1)))
 	return roster.owner_at(battle.party(Gen2Battle.PLAYER).active)
@@ -114,9 +126,10 @@ func is_paused() -> bool:
 	return phase() != OVER and _absent.has(controller())
 
 
-func set_absent(player_id: String, absent: bool) -> void:
+## [param since_msec] is when they went, by `Time.get_ticks_msec`.
+func set_absent(player_id: String, absent: bool, since_msec: int = Time.get_ticks_msec()) -> void:
 	if absent:
-		_absent[player_id] = true
+		_absent[player_id] = since_msec
 	else:
 		_absent.erase(player_id)
 
@@ -390,6 +403,7 @@ func view() -> Dictionary:
 	return {
 		"battle": id, "encounter": String(encounter.get("id", "")), "revision": revision,
 		"phase": phase(), "controller": controller(), "paused": is_paused(),
+		"owner": owner_deciding(),
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),

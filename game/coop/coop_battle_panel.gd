@@ -320,6 +320,9 @@ func _turn_line(view: Dictionary) -> String:
 	var controller: String = String(view.get("controller", ""))
 	if bool(view.get("paused", false)):
 		return "PAUSED: waiting for %s to reconnect" % _name(controller)
+	var owner: String = String(view.get("owner", controller))
+	if controller == client.player_id and owner != controller:
+		return "YOUR TURN for %s's POKéMON: %s is away" % [_name(owner), _name(owner)]
 	if controller == client.player_id:
 		return "YOUR TURN (revision %d)" % int(view.get("revision", 0))
 	return "%s DECIDES. Your cursor is a suggestion." % _name(controller)

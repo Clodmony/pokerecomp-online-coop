@@ -289,3 +289,13 @@ with the screen's own `Gen2BattleRenderer` (both pictures, status panels and HP
 bars) and plays each turn's events as Red and Blue's lines in the game's text
 box, naming whoever was out when each happened. The co-op panel beside it keeps
 the commands, the suggestions and the turn owner.
+
+## D33. A participant stands in for a controller who stays away (2026-10-06)
+
+A battle whose controller dropped pauses, as the brief asks, but a device that
+never comes back left its partner stuck in the battle for good. After
+`PokeCoopPolicy.STAND_IN_MSEC` (30 seconds) the first present participant
+decides for the absent player's active Pokémon; ownership, rewards and results
+stay the owner's, the view names both (`controller`, `owner`), and the owner
+takes control back on reconnecting. The host announces the change itself,
+since no message arrives while everyone waits.

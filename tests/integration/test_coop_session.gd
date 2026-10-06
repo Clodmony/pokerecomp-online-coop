@@ -804,3 +804,28 @@ func test_a_partner_who_never_offers_lets_the_trade_screen_go() -> void:
 	assert_eq(cables[1].choose_trade_slot({"slot": 0}), Gen2LinkTransport.PENDING, "Blue's later offer waits on nobody stale")
 	_pump()
 	assert_eq(int(_blue.me()["trade"]["partner_slot"]), -1, "Red's offer was withdrawn")
+
+
+func test_a_partner_stands_in_for_a_controller_who_stays_away() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_host.transport.drop(1)
+	_pump()
+	var session: PokeCoopBattleSession = _host.battles[battle_id]
+	assert_true(session.is_paused(), "paused while Red might come back")
+
+	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+	_pump()
+
+	var view: Dictionary = _blue.battle(battle_id)
+	assert_false(bool(view["paused"]))
+	assert_eq([String(view["controller"]), String(view["owner"])], [_blue.player_id, _red.player_id],
+		"Blue decides for Red's Charmander, which stays Red's")
+	var revision: int = int(view["revision"])
+	_send(func() -> void: _blue.act(battle_id, {"type": "move", "slot": 0}))
+	assert_eq(int(_blue.battle(battle_id)["revision"]), revision + 1, "the battle went on")
+
+	_clients.erase(_red)
+	_red = _connect(1, _red.player_id)
+	assert_eq(String(_red.battle(battle_id)["controller"]), _red.player_id, "Red has it back")
