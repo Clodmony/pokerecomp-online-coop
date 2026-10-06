@@ -99,6 +99,8 @@ charged twice; the world's SAVE writes the campaign.
 | Local x86_64, returning by name | a device test drops a joiner's remembered id and joins again under the same name: the host hands back the same trainer and keeps two players |
 | Local x86_64, several campaigns | Whole suite 4921/4921, co-op suites 108/108, ENet demo 16/16. A device test hosts campaign A (RED, BLUE), then campaign B on the same port where GREEN, on another device, gets the same player id BLUE had in A; BLUE's device joining B is a new trainer rather than GREEN's, and back in A, under another name, is BLUE again. A second test moves an earlier build's single campaign file into the folder and hosts it (D49) |
 | Screens (scripted), Red: campaign picker | The Co-op tab lists "WITH ALEX: RED, ALEX, 3 badges, saved 2026-10-06 19:37" above the earlier build's file as "FIRST CAMPAIGN: RED, 0 badges, ..."; picking "A new campaign" shows a name field. Hosting a new campaign named "with alex" from the tab wrote `coop_campaigns/red/red-<unix>-<tag>.json` titled WITH ALEX, the session menu read "CO-OP SESSION  WITH ALEX", and the identity file recorded the host's player under that campaign id |
+| Screens (scripted), Red: the opening | Two windows (RED, GREEN) join a fresh campaign with "Play the opening" against a host on localhost: each shows the copyright screen and Oak's speech (the player's name taken from the tab, the rival named BLUE from the presets), wakes in its own bedroom with nobody else drawn, sees the other once out of the house, is stopped by Oak at the grass and walked to the lab, takes CHARMANDER or BULBASAUR while that window's rival takes the counter, fights him on the host (two private fights at once, not joinable), and leaves the lab; the host then drops each private story, the window takes the campaign's, and the campaign keeps the rival's name and the first finisher's rival starter. CHARMANDER is healed after the lab fight as on the cartridge. Recorded side by side with RED's audio (local only, cartridge graphics). The same lab, driven in a plain single-player world, also lets the player walk past the rival's challenge (L10) |
+| Local x86_64, opening and echo | Session tests: a player in the opening gets no starter, stands in the bedroom, is hidden in the house and seen outside, keeps story changes off the campaign until the lab is left, and their rival fight is private and claims no campaign encounter; a window's stale echo no longer rewinds a map script it moved on twice (the test fails without the fix); a player part-way through the opening survives a save |
 | Builds, commit 2cacdc6e (then c86e20b4) | Stock 4.8-dev4 export templates installed (SHA-512 checked); `Windows Desktop` (119 MB) and `Linux` (85 MB) release builds exported, one file each, no cartridge data; the Linux build and the Windows build under Wine boot headless; the official Windows engine under Wine imported Red (same SHA-1 as the Linux side) and joined a host run by the Linux engine over a socket: given its starter, its world opened, each side saw the other. Not yet run on a real Windows PC |
 | Local x86_64, joining a host that never answers | a device test dials a port nobody hosts: after fifteen seconds the session reports `host_unreachable` and the Co-op tab explains the address, the Host button and UDP 24680; a cartridge mismatch now says both players need the same game file |
 | Screens (scripted), Red: Pokédex seen | After the two-window run (a wild PIDGEY caught for BLUE, then BROCK) the saved campaign lists PIDGEY, GEODUDE and ONIX as seen for both RED and BLUE, and PIDGEY as caught for BLUE; before D47 battles added nothing to "seen"; whole suite 4916/4916, ENet demo 16/16, release gates pass |
@@ -187,6 +189,9 @@ has **played** it by hand yet.
   single-player save, whose story starts a new campaign (D26, D34).
 - Several campaigns per host device, each its own named file, picked or
   started on the Co-op tab; a device is remembered per campaign (D49).
+- The opening for new players, on a story of their own until Oak's lab is
+  left, hidden from the others in the house (D50); the rival's name and
+  starter kept for the campaign.
 - Lifecycle: leave from the session menu, end notices, return to the
   launcher, reconnection, autosave between battles, on leaving and when a
   hosting app is paused (D28); a stand-in for a controller who stays away
@@ -231,9 +236,9 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand from the launcher's Co-op tab on two devices and note
-what feels wrong in `tracking.md`. Then builds once export templates are
-installed (#44, #45), which also opens the device checks for suspend (#20) and
+Play a session by hand on two devices with the private Windows and Linux
+builds (the opening, then the first routes) and note what feels wrong in
+`tracking.md`; the builds also open the device checks for suspend (#20) and
 touch (#43). The largest open design item is the host-side world simulation
 (#22, #25): today each window walks its own world and the host trusts it, which
 also leaves the simultaneous-gift race of #24; it needs the owner's go-ahead

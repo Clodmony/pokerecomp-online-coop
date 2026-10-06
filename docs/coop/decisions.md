@@ -601,3 +601,31 @@ hello carries that map, the host looks up its own campaign in it, and the
 welcome names the campaign so the device can remember it. Old entries are
 ignored and their players are found by name (D48). Deleting or backing up a
 campaign is left to the file manager.
+
+## D50. A new player can play the opening (2026-10-06)
+
+A new player used to start after Oak's intro with a starter picked on the
+Co-op tab. The tab now offers the opening, played by default: the window shows
+the cartridge's copyright screen and Oak's speech (the player's name comes from
+the tab, so only the rival is named, and only by whoever reaches him first),
+then the player's bedroom. The host keeps that player's story apart from the
+campaign's until the opening is over: the campaign half of each world patch
+goes to the player's own copy, the state sent to that window carries it in
+place of the campaign's, and a battle the window opens is neither a campaign
+encounter nor joinable. Nobody else is drawn, and the player is drawn to
+nobody, until they first step out of the house. With a starter and Oak's lab
+left behind, the copy is dropped, the window takes the campaign's story, and
+the rival's starter becomes the campaign's if nobody set it before. The
+starter ends the opening rather than the rival fight because the lab's
+challenge can be walked past (L10). A campaign's own story still begins after
+the intro, so players who skip it and players who play it share one campaign.
+
+## D51. A window keeps its own unconfirmed world changes (2026-10-06)
+
+A window sent its world changes as patches and applied the host's back as
+patches against the host state it last saw. A state the host sent before it
+had a window's newer change carried the older value, so the window rewound
+its own change until the next state arrived; a map script that moves on two
+frames in a row ran an earlier step again. The window now keeps each patch it
+sent until the host's state reports that sequence number as applied, and
+leaves the entries of unconfirmed patches out of what it applies.

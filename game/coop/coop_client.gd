@@ -42,6 +42,8 @@ func greet(
 	}
 	if not brought.is_empty():
 		_greeting["save"] = brought
+	elif starter == PokeCoopPolicy.PLAY_OPENING:
+		_greeting["opening"] = true
 	if connected:
 		transport.send(PokeCoopTransport.HOST_PEER, _greeting)
 

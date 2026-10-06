@@ -15,6 +15,7 @@ const JOIN_TIMEOUT_MSEC: int = 15000
 const RECONNECT_ATTEMPTS: int = 60
 const RESUME_REDIAL_MSEC: int = 3000
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
+const INTRO_SCENE: String = "res://game/world/intro_screen.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
 const CAMPAIGNS_DIR: String = "user://coop_campaigns"
@@ -30,6 +31,7 @@ var data: GameData = null
 var client: PokeCoopClient = null
 var host: PokeCoopHost = null
 var screen: Gen2WorldScreen = null
+var opening_screen: Gen2IntroScreen = null
 var panel: PokeCoopBattlePanel = null
 var link: PokeCoopWorldLink = null
 var cable: PokeCoopLinkTransport = null
@@ -234,6 +236,9 @@ func _advance_links() -> void:
 func _tend_world() -> void:
 	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != panel.is_open():
 		hold_world(screen, screen.get("_audio_player"), panel.is_open())
+	var world: Gen2WorldAPI = screen.get("_world")
+	if world != null and not rival_name().is_empty() and world.rival_name != rival_name():
+		world.rival_name = rival_name()
 	_collect_evolutions()
 	_tell_refused_save()
 	_tell_partners()
@@ -361,8 +366,14 @@ static func partner_news(before: Dictionary, now: Dictionary, session: PokeCoopC
 			return "%s left the session." % is_now["name"]
 		var battle: String = String(is_now["battle"])
 		if not battle.is_empty() and battle != String(was.get("battle", "")) and battle != mine and mine.is_empty():
-			return "%s is in a battle%s. SELECT to join." % [is_now["name"], _against(session, battle, game)]
+			return "%s is in a battle%s.%s" % [is_now["name"], _against(session, battle, game),
+				"" if _is_private(session, battle) else " SELECT to join."]
 	return ""
+
+
+static func _is_private(session: PokeCoopClient, battle_id: String) -> bool:
+	return (session.state.get("battles", []) as Array).any(func(running: Dictionary) -> bool:
+		return String(running.get("battle", "")) == battle_id and bool(running.get("private", false)))
 
 
 static func _against(session: PokeCoopClient, battle_id: String, game: GameData) -> String:
@@ -404,9 +415,8 @@ func say(text: String) -> void:
 	_notice_until = Time.get_ticks_msec() + NOTICE_MSEC
 
 
-## What a finished host battle owes this window's world: its player's Pokémon
-## due to evolve, or a whiteout after a loss, which costs them half their own
-## money. A battle this window's world opened itself is that world's to settle.
+## Evolutions and a whiteout a finished host battle owes this window's world;
+## a battle the world opened itself is the world's to settle.
 func _collect_evolutions() -> void:
 	if link == null:
 		return
@@ -424,6 +434,38 @@ func _collect_evolutions() -> void:
 			var index: int = uids.find(String(uid))
 			if index >= 0 and not _evolving.has(index):
 				_evolving.append(index)
+
+
+## Oak's speech first for a new player who plays the opening; it opens the world.
+func open_start() -> Control:
+	var opening: Dictionary = client.me().get("opening", {}) if is_ready() else {}
+	if String(opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH or screen != null:
+		return open_world()
+	if opening_screen == null:
+		opening_screen = (load(INTRO_SCENE) as PackedScene).instantiate() as Gen2IntroScreen
+		opening_screen.writes_save = false
+		opening_screen.preset_names = {
+			Gen2OakSpeech.NAME_PLAYER: String(client.me().get("name", "")),
+			Gen2OakSpeech.NAME_RIVAL: String((client.state.get("campaign", {}) as Dictionary).get("rival_name", "")),
+		}
+		opening_screen.spoken.connect(_on_spoken)
+		opening_screen.begin(data, 0, "", false)
+	return opening_screen
+
+
+func _on_spoken(_player_name: String, rival: String) -> void:
+	client.send({"type": "opening", "rival": rival})
+	var tree: SceneTree = opening_screen.get_tree()
+	opening_screen = null
+	tree.change_scene_to_node(open_world())
+
+
+func rival_name() -> String:
+	var mine: String = String((client.me().get("opening", {}) as Dictionary).get("rival", ""))
+	var shared: String = String((client.state.get("campaign", {}) as Dictionary).get("rival_name", ""))
+	var offered: Array = data.gen1_default_names(true) if data.generation == RomRegistry.GEN1 else []
+	return mine if not mine.is_empty() else shared if not shared.is_empty() \
+		else String(offered[1]) if offered.size() > 1 else ""
 
 
 ## This player's world screen, once the host has said who they are, for the caller to add.

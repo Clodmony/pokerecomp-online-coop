@@ -195,7 +195,7 @@ func _menu_rows() -> Array:
 	for offer: Dictionary in client.state.get("encounters", []):
 		rows.append({"text": "FIGHT %s" % offer["label"], "label": "Fight %s" % offer["label"], "action": "fight", "id": offer["id"]})
 	for running: Dictionary in client.state.get("battles", []):
-		if not (running["participants"] as Array).has(client.player_id):
+		if not (running["participants"] as Array).has(client.player_id) and not bool(running.get("private", false)):
 			rows.append({
 				"text": "JOIN %s (%s)" % [running["battle"], _names(running["participants"])],
 				"label": "Join %s against %s" % [_names_bb(running["participants"]), _foe(running)],

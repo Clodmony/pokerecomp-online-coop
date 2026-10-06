@@ -92,9 +92,8 @@ const TEXT_KEYED: Array[String] = ["gen1_starters"]
 static var _reference: Dictionary = {}
 
 
-## [param changes] cut to what a window could have sent: each synced key in its
-## own shape and type, and the campaign's tables holding plain numbered entries,
-## so nothing a client makes up reaches another window.
+## [param changes] cut to what a window could have sent: each synced key in its own
+## shape and type, the campaign's tables holding plain numbered entries.
 static func well_formed(changes: Variant) -> Dictionary:
 	if _reference.is_empty():
 		_reference = Gen2WorldState.new().to_dict()

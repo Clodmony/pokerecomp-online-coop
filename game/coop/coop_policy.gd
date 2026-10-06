@@ -14,10 +14,19 @@ const START_MAP: Vector2i = Vector2i(0, 0)
 const START_CELLS: Array[Vector2i] = [
 	Vector2i(5, 6), Vector2i(13, 6), Vector2i(6, 6), Vector2i(12, 6),
 ]
-## A co-op run hands out starters itself, so Oak's intro counts as done:
-## EVENT_FOLLOWED_OAK_INTO_LAB, _2, OAK_ASKED_TO_CHOOSE_MON, GOT_STARTER and
+## The campaign's story begins after Oak's intro: EVENT_FOLLOWED_OAK_INTO_LAB to
 ## BATTLED_RIVAL_IN_OAKS_LAB at the pinned pokered.
 const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
+## A new player who plays the opening runs a story of their own until Oak's lab (D50).
+const PLAY_OPENING: int = -1
+const OPENING_SPEECH: String = "speech"
+const OPENING_HOME: String = "home"
+const OPENING_OUT: String = "out"
+## REDS_HOUSE_1F and _2F, OAKS_LAB and EVENT_GOT_STARTER at the pinned pokered.
+const OPENING_HOUSE: Array[Vector2i] = [Vector2i(0, 0x25), Vector2i(0, 0x26)]
+const OPENING_BEDROOM_CELL: Vector2i = Vector2i(3, 6)
+const OPENING_LAB: Vector2i = Vector2i(0, 0x28)
+const OPENING_DONE_FLAG: int = 0x22
 ## Red and Blue's unique items kept for good, most needed to get on: the map,
 ## bicycle, keys, ticket, coin case, itemfinder, scope, flute, Exp. All, rods, HMs.
 const SHARED_ITEMS: Array[int] = [
@@ -77,6 +86,23 @@ static func set_up_new_player(
 		saved.caught_level = STARTER_LEVEL
 		player.add_mon(saved)
 	player.place(START_MAP, START_CELLS[joined_before % START_CELLS.size()], 0)
+
+
+static func set_up_opening_player(data: GameData, player: PokeCoopPlayer) -> void:
+	var snapshot: Gen2WorldSnapshot = Gen2WorldSpawn.new_game_snapshot(data)
+	var fresh: Gen2WorldState = snapshot.world_state if snapshot != null \
+		else Gen2WorldState.new({}, {}, {}, {0: NEW_PLAYER_MONEY})
+	var halves: Dictionary = PokeCoopOwnership.route(
+		PokeCoopOwnership.patch({}, fresh.to_dict()), PokeCoopOwnership.badge_flags(data)
+	)
+	var story: Dictionary = {"event_flags": {}, "engine_flags": {}}
+	PokeCoopOwnership.apply_patch(story, halves[PokeCoopOwnership.CAMPAIGN])
+	player.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
+	player.opening = {"stage": OPENING_SPEECH, "world": story, "rival": ""}
+	if snapshot != null:
+		player.place(snapshot.map_id, snapshot.player_cell, snapshot.player_facing)
+	else:
+		player.place(OPENING_HOUSE[1], OPENING_BEDROOM_CELL, Gen2WorldSpawn.GEN1_HOME_FACING)
 
 
 ## Joining needs a free, connected player with somebody able to fight.

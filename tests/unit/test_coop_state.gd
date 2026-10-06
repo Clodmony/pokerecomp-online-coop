@@ -200,3 +200,21 @@ func test_a_trainer_brought_from_a_save_stands_where_they_saved() -> void:
 
 	assert_eq([red.map, red.cell, red.facing], [ROUTE_1, Vector2i(4, 9), Gen2WorldSprite.FACING_UP])
 	assert_eq(red.team.size(), 1)
+
+
+func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() -> void:
+	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	campaign.title = "WITH BLUE"
+	campaign.rival_name = "GARY"
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	PokeCoopPolicy.set_up_opening_player(_data, red)
+	(red.opening["world"]["event_flags"] as Dictionary)[0x20] = true
+
+	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [red]), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+
+	assert_eq(PokeCoopSave.to_dict(loaded["campaign"], loaded["players"]), PokeCoopSave.to_dict(campaign, [red]))
+	var back: PokeCoopPlayer = loaded["players"][0]
+	assert_true((back.opening["world"]["event_flags"] as Dictionary).has(0x20), "the flag keeps its number")
+	assert_eq([back.opening["stage"], back.money, (loaded["campaign"] as PokeCoopCampaign).rival_name],
+		[PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.NEW_PLAYER_MONEY, "GARY"])
