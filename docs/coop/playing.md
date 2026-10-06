@@ -40,7 +40,7 @@ at the top of the SELECT menu.
   version of this project, and both import the same game file: the same game
   (Red with Red, Blue with Blue) and the same revision. The host checks both and
   the Co-op tab says which one failed.
-- **Easiest: a VPN you are both on** (WireGuard, Tailscale or the like). The
+- **Easiest: a VPN you are both on** (WireGuard or the like). The
   host's Co-op tab lists each address with the network it belongs to, for
   example `10.0.0.1  (wg0)`; the other player joins the VPN one. No router
   setup is needed and it works behind any NAT. The tab keeps the list current,

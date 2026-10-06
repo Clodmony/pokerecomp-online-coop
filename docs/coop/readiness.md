@@ -44,7 +44,7 @@ What to run and check before handing a private co-op build to the players
       and `godot --headless --path . --export-release "Linux" builds/linux/pokerecomp.x86_64`.
       Exported builds ignore `-s`; scripted checks use the editor binary.
 - [ ] The Windows build goes out zipped with a short guide: the same cartridge
-      as the host, Tailscale or the forwarded port, SmartScreen, the keys.
+      as the host, WireGuard or the forwarded port, SmartScreen, the keys.
 - [ ] No ROM, extracted asset, save or screenshot with cartridge graphics is in
       the build's repository commit or attached anywhere public.
 - [ ] `progress.md` lists what was verified for this build, by which run.
