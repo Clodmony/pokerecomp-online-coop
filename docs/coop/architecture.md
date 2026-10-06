@@ -147,7 +147,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host |
-| `autoload/game_runtime.gd` | `coop` slot driven from `_process` |
+| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, closed when the window is |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
 | `.github/workflows/ci.yml` | co-op ENet demo step |

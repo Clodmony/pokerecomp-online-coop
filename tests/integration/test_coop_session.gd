@@ -212,6 +212,10 @@ func test_battle_results_land_on_each_owners_own_pokemon() -> void:
 		"the PP Blue spent is gone from Blue's record")
 	assert_true(_host.player(_red.player_id).is_free())
 	assert_true(_host.player(_blue.player_id).is_free())
+	assert_eq(
+		int((PokeCoopSave.read(SAVE_PATH)["players"] as Array).size()), 2,
+		"the campaign saved itself once no battle was left running"
+	)
 
 
 func test_a_trainer_victory_sets_the_shared_flag_once_for_both_players() -> void:

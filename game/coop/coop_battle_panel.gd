@@ -6,6 +6,8 @@ extends PanelContainer
 ## decides and the partner's advisory cursor. It sends intentions and decides
 ## nothing; while it is open the world gets no buttons.
 
+signal leave_requested
+
 const WIDTH: int = 420
 const FONT_SIZE: int = 15
 
@@ -148,6 +150,8 @@ func _run_menu_row(row: Dictionary) -> void:
 			client.join_battle(String(row["id"]))
 		"save":
 			client.request_save()
+		"leave":
+			leave_requested.emit()
 	_menu_open = false
 
 
@@ -162,6 +166,7 @@ func _menu_rows() -> Array:
 				"action": "join", "id": running["battle"],
 			})
 	rows.append({"text": "SAVE CAMPAIGN", "action": "save"})
+	rows.append({"text": "LEAVE SESSION", "action": "leave"})
 	rows.append({"text": "CLOSE", "action": "close"})
 	return rows
 
