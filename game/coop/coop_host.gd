@@ -11,8 +11,7 @@ const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
 const MAX_TRAINER_NAME: int = 16
 const MAX_WIN_TEXT: int = 512
-## How often a changed campaign is written while no battle runs, so a host that
-## crashes loses at most this much of what the windows did.
+## How often a changed campaign is written between battles: a crashed host loses at most this much.
 var autosave_msec: int = 30000
 
 var data: GameData = null
@@ -264,8 +263,7 @@ func _autosave() -> void:
 		_changed = false
 
 
-## A battle everyone has left for longer than a stand-in waits ends as fled,
-## so it no longer holds up every save.
+## A battle everyone has left for longer than a stand-in waits ends as fled, holding up no save.
 func _end_abandoned() -> void:
 	for session: PokeCoopBattleSession in battles.values():
 		if session.everyone_away_for() >= PokeCoopPolicy.STAND_IN_MSEC:
@@ -604,11 +602,17 @@ static func _victory_changes(encounter: Dictionary, encounter_id: String) -> Dic
 	}
 
 
-func save_checkpoint() -> StringName:
+## Why a checkpoint asked for now would be refused; windows refuse their own SAVE with it.
+func save_blocker() -> StringName:
 	if not battles.is_empty():
 		return &"battle_in_progress"
-	if save_path.is_empty():
-		return &"no_save_path"
+	return &"no_save_path" if save_path.is_empty() else &""
+
+
+func save_checkpoint() -> StringName:
+	var blocked: StringName = save_blocker()
+	if blocked != &"":
+		return blocked
 	return &"" if _write_campaign() == OK else &"save_failed"
 
 
@@ -672,7 +676,7 @@ func broadcast() -> void:
 			"you": _private_view(viewer), "nearby": nearby(viewer), "battles": running,
 			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
 			"saved": {"ago": Time.get_unix_time_from_system() - _saved_unix if _saved_unix > 0.0 else -1.0,
-				"count": _saves, "by": _saved_by},
+				"count": _saves, "by": _saved_by, "blocked": String(save_blocker())},
 		})
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):
