@@ -156,6 +156,8 @@ func _hello(peer: int, message: Dictionary) -> void:
 	var refusal: StringName = _hello_refusal(message)
 	var joining: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("player_id")))
 	if refusal == &"" and joining == null:
+		joining = _returning(PokeCoopTransport.text(message.get("name")))
+	if refusal == &"" and joining == null:
 		if not allow_new_players:
 			refusal = &"unknown_player"
 		else:
@@ -189,9 +191,16 @@ func _hello(peer: int, message: Dictionary) -> void:
 	broadcast()
 
 
-## A new player's own single-player save of this cartridge, rebuilt from its
-## vetted parts: Pokémon that pass the game's own rules, the world-state keys a
-## window could have sent, and where they stood.
+## A saved player not here, by name: a device that lost its id or dialled another address.
+func _returning(player_name: String) -> PokeCoopPlayer:
+	for member: PokeCoopPlayer in players.values():
+		if not member.connected and member.name == player_name and not player_name.is_empty():
+			return member
+	return null
+
+
+## A new player's own single-player save, rebuilt from vetted parts: Pokémon that pass
+## the game's rules, the world-state keys a window could send, and where they stood.
 func _brought_save(raw: Variant) -> Gen2SaveData:
 	if not raw is Dictionary or PokeCoopTransport.text(raw.get("game_id")) != String(data.id):
 		return null

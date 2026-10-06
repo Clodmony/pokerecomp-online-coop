@@ -18,8 +18,14 @@ the cartridge is sent between devices.
 
 The host's device keeps the campaign (`coop_<game>_campaign.json` in the game's
 user folder), and the checkpoint before the latest beside it as
-`coop_<game>_campaign.json.bak`. A device remembers who it played as on each
-host, so joining the same host again brings the same trainer back.
+`coop_<game>_campaign.json.bak`.
+
+**To carry on where you left off**, the host presses Host again on the same
+device and the others press Join with the host's address: the campaign loads
+by itself and everyone gets their own trainer back, with their team, bag and
+place. A device remembers who it played as on each host; a player joining
+from another device or address gets their trainer back by typing the same
+name as before.
 
 ## Playing over the internet
 
