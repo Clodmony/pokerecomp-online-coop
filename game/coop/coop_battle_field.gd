@@ -13,7 +13,11 @@ var data: GameData = null
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
-var _messages: Array[String] = []
+## Each `{text, move, enemy}`: a line and the move whose animation follows it.
+var _messages: Array = []
+var _queued_move: Dictionary = {}
+var _anim_data: Gen2BattleAnimData = null
+var _anim: Gen2BattleAnimPlayer = null
 var _hold: int = 0
 var _revision_key: String = ""
 var _idle_text: String = ""
@@ -64,9 +68,11 @@ func _process(delta: float) -> void:
 		_idle_seen = ""
 		_out = {}
 		_messages.clear()
+		_queued_move = {}
+		_anim = null
 		return
 	_place()
-	_renderer.set_view(scene_view(view, data))
+	_renderer.set_view(_with_animation(scene_view(view, data)))
 	_take_events(view)
 	_frames += delta * 60.0
 	while _frames >= 1.0:
@@ -128,7 +134,11 @@ func _take_events(view: Dictionary) -> void:
 			out[int(event.get("side", 0))] = species_at(view, int(event.get("side", 0)), int(event.get("index", 0)))
 		var line: String = message(event, out, data)
 		if not line.is_empty():
-			_messages.append(line)
+			var used: bool = StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE
+			_messages.append({
+				"text": line, "move": int(event.get("move", 0)) if used else 0,
+				"enemy": int(event.get("side", 0)) == Gen2Battle.ENEMY,
+			})
 	_out = out_now(view)
 	_idle_text = idle
 
@@ -149,17 +159,51 @@ static func species_at(view: Dictionary, side: int, index: int) -> int:
 
 func _advance_text() -> void:
 	_box.advance_frame()
+	if _anim != null:
+		_anim.advance_frame()
+		if _anim.finished() or _anim.failed():
+			_anim = null
+		return
 	if _box.visible and _box.is_revealing():
+		return
+	if not _queued_move.is_empty():
+		_anim = _move_animation(int(_queued_move["move"]), bool(_queued_move["enemy"]))
+		_queued_move = {}
 		return
 	if _hold > 0:
 		_hold -= 1
 		return
 	if not _messages.is_empty():
-		_show(_messages.pop_front())
+		var next: Dictionary = _messages.pop_front()
+		_show(String(next["text"]))
+		_queued_move = next if int(next["move"]) > 0 else {}
 		_hold = HOLD_FRAMES
 	elif not _idle_text.is_empty():
 		_show(_idle_text)
 		_idle_text = ""
+
+
+## The cartridge's own animation for [param move], over both pictures, or null
+## for a cartridge whose cache holds none.
+func _move_animation(move: int, enemy_turn: bool) -> Gen2BattleAnimPlayer:
+	if _anim_data == null:
+		_anim_data = Gen2BattleAnimData.from_game_data(data)
+	var player: Gen2BattleAnimPlayer = Gen2BattleAnimPlayer.create_gen1(_anim_data, move - 1, enemy_turn) \
+		if _anim_data != null and _anim_data.gen1() else null
+	if player != null:
+		player.background().set_bg_map(Gen2BattleScreenMap.seeded())
+	return player
+
+
+## The running animation's tilemap and objects over [param view].
+func _with_animation(view: Dictionary) -> Dictionary:
+	if _anim == null:
+		return view
+	view["bg_map"] = _anim.background().bg_map
+	view["anim_sprites"] = _anim.sprites()
+	view["anim_tiles"] = _anim.tiles()
+	view["anim_obp0"] = _anim.background().obp0
+	return view
 
 
 func _show(text: String) -> void:

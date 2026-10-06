@@ -287,8 +287,11 @@ has none, so driving it from session events (#26) means replaying the host's
 turns through it. Until then `PokeCoopBattleField` draws the host's battle view
 with the screen's own `Gen2BattleRenderer` (both pictures, status panels and HP
 bars) and plays each turn's events as Red and Blue's lines in the game's text
-box, naming whoever was out when each happened. The co-op panel beside it keeps
-the commands, the suggestions and the turn owner.
+box, naming whoever was out when each happened, and after each "used" line the
+cartridge's own animation for that move over both pictures. The co-op panel
+beside it keeps the commands, the suggestions and the turn owner. Still
+missing against the battle screen: cries and sounds, screen-scroll effects,
+battler slides, draining bars and the sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 
