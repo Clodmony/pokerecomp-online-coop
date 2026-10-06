@@ -295,8 +295,9 @@ bars) and plays each turn's events as Red and Blue's lines in the game's text
 box, naming whoever was out when each happened, and after each "used" line the
 cartridge's own animation for that move over both pictures, and each HP bar
 drains in the turn's own order, a pixel a frame from where the turn found it.
-A choice waits until the field has played the last turn out, as the
-cartridge's menus do, so the battle never runs ahead of what is on screen. The
+A choice waits until the field has played the last turn out, its last line's
+hold included, as the cartridge's menus do, so the battle never runs ahead of
+what is on screen and a finished battle is not closed mid-line. The
 co-op panel beside it keeps the commands, the suggestions and the turn owner.
 Each animation's own move sounds go through the world's audio player, a cry
 move with the attacker's cry, and the battle's music plays while it is up, a

@@ -104,7 +104,7 @@ func _process(delta: float) -> void:
 ## Whether the last turn is still being shown: its lines, animations or bars.
 func is_playing() -> bool:
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
-		or not _anim_after.is_empty() or _board.busy() or _box.is_revealing())
+		or not _anim_after.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait)
 
 
 ## `PlayBattleMusic` as a battle opens, a trainer's by class and index; the map's after.
@@ -569,7 +569,7 @@ func _show(text: String) -> void:
 func _waiting_text(view: Dictionary) -> String:
 	var outcome: String = String(view.get("outcome", ""))
 	if not outcome.is_empty():
-		return "" if outcome != "lost" else "%s is out of\nuseable #MON!" % _player_name(panel.client.player_id)
+		return ""
 	var controller: String = String(view.get("controller", ""))
 	var allies: Array = view.get("allies", [])
 	var active: int = int(view.get("active", 0))
@@ -578,7 +578,8 @@ func _waiting_text(view: Dictionary) -> String:
 	if bool(view.get("paused", false)):
 		return "%s is away.\nWaiting..." % _player_name(controller)
 	if controller == panel.client.player_id:
-		return "What will\n%s do?" % out_now
+		return "Bring out which\nPOKéMON?" if StringName(view.get("phase", &"")) == PokeCoopBattleSession.AWAITING_SEND_OUT \
+			else "What will\n%s do?" % out_now
 	return "%s is\ndeciding..." % _player_name(controller)
 
 

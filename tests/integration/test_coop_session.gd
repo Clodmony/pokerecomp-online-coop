@@ -872,6 +872,22 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
 
 
+func test_a_battles_last_line_stands_its_hold_before_a_can_close_it() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	field.visible = true
+	field._messages.append({"text": "PIDGEY\nfainted!"})
+	field._advance_text()
+	var frames: int = 0
+	while field._box.is_revealing() and frames < 600:
+		field._advance_text()
+		frames += 1
+	assert_true(field.is_playing(), "the line is up, but its hold is not over")
+	for frame: int in PokeCoopBattleField.HOLD_FRAMES + 1:
+		field._advance_text()
+	assert_false(field.is_playing())
+
+
 func test_a_trainer_win_closes_with_the_defeat_the_trainers_line_and_the_prize() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
