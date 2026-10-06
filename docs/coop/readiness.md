@@ -35,8 +35,16 @@ What to run and check before handing a private co-op build to the players
 
 ## Before giving out a build
 
-- [ ] Export templates for the pinned engine are installed locally; the build
-      is exported with the existing presets and stays private.
+- [ ] Export templates for the pinned engine are installed locally
+      (`~/.local/share/godot/export_templates/4.8.dev4/`, the stock
+      `Godot_v4.8-dev4_export_templates.tpz` checked against the release's
+      `SHA512-SUMS.txt`); the build stays private.
+- [ ] Both builds come from one commit, so the co-op protocol matches:
+      `godot --headless --path . --export-release "Windows Desktop" builds/windows/pokerecomp.exe`
+      and `godot --headless --path . --export-release "Linux" builds/linux/pokerecomp.x86_64`.
+      Exported builds ignore `-s`; scripted checks use the editor binary.
+- [ ] The Windows build goes out zipped with a short guide: the same cartridge
+      as the host, Tailscale or the forwarded port, SmartScreen, the keys.
 - [ ] No ROM, extracted asset, save or screenshot with cartridge graphics is in
       the build's repository commit or attached anywhere public.
 - [ ] `progress.md` lists what was verified for this build, by which run.
