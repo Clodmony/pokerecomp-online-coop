@@ -613,8 +613,10 @@ campaign's until the opening is over: the campaign half of each world patch
 goes to the player's own copy, the state sent to that window carries it in
 place of the campaign's, and a battle the window opens is neither a campaign
 encounter nor joinable. Nobody else is drawn, and the player is drawn to
-nobody, until they first step out of the house. With a starter and Oak's lab
-left behind, the copy is dropped, the window takes the campaign's story, and
+nobody, for the whole opening: each player has their own Oak, rival and POKé
+BALLs, so a partner walking through that scene looks wrong (the owner first had
+them meet outside the house, then asked for the lab). With a starter and Oak's
+lab left behind, the copy is dropped, the window takes the campaign's story, and
 the rival's starter becomes the campaign's if nobody set it before. The
 starter ends the opening rather than the rival fight because the lab's
 challenge can be walked past (L10). A campaign's own story still begins after

@@ -47,15 +47,16 @@ or one after another:
 - Oak asks for your name and already knows it from the Co-op tab. The rival's
   name is asked only until somebody has named him; after that Oak remembers
   it for everyone.
-- Each player wakes up in their own bedroom. Nobody else is drawn in the
-  house; once you step outside you see the others in Pallet Town and can walk
-  together, into Oak's lab as well.
-- Oak, the three POKé BALLs and the rival are yours alone until you have your
-  starter and have left the lab: you can both take CHARMANDER. The rival's
-  fight in the lab is yours alone too: nobody can join it.
+- Each player wakes up in their own bedroom and plays the opening alone: you
+  do not see each other, and nobody else sees you, until you have left Oak's
+  lab with your starter. Then you meet in Pallet Town.
+- Oak, the three POKé BALLs and the rival are yours alone: you can both take
+  CHARMANDER. The rival's fight in the lab is yours alone too: nobody can join
+  it.
 - Once you leave the lab with your starter, the campaign's story is yours: the
   same shared flags, badges and beaten trainers as everyone else's. The rival
-  keeps the starter he took in the first opening to finish.
+  keeps the starter he took in the first opening to finish. Someone still in
+  the opening shows in the SELECT menu's list but not in the world.
 - Walking out right after the rival takes his POKé BALL can skip his
   challenge; wait until he has said everything (the single-player game does
   the same).
