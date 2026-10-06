@@ -389,6 +389,8 @@ the code and covered by a test:
 - An unreadable or newer campaign file was silently replaced by a new
   campaign; hosting now refuses and leaves it as it is.
 - Every battle a window handed over looked like a world SAVE to the link; a
-  SAVE is now the world's save file being written.
+  SAVE is now a snapshot of the live world, whose frame count moved, which the
+  copy of the last snapshot a battle puts back never is. (A window's world
+  writes no file of its own, so the file cannot be the signal.)
 - A ball thrown for a player with no room anywhere lost the catch; it is
   refused and kept, as the cartridge refuses it.

@@ -684,20 +684,17 @@ func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -
 
 
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
-	Gen2SaveStore.use_root("user://coop_link_test_saves")
 	var red: PokeCoopWorldLink = _window(_red)
 	red.save.world = Gen2WorldSnapshot.new()
 	_settle()
-	assert_eq(red.save_seq, -1, "a battle handing the world a new snapshot is no SAVE")
+	assert_eq(red.save_seq, -1, "a battle putting back a copy of the last snapshot is no SAVE")
 
-	var path: String = Gen2SaveStore.path_for(red.save.game_id, red.save.rom_sha1, red.save.slot)
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
-	FileAccess.open(path, FileAccess.WRITE).store_string("{}")
+	var saved := Gen2WorldSnapshot.new()
+	saved.frame_number = 1234
+	red.save.world = saved
 	_settle()
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	Gen2SaveStore.use_root("")
 
-	assert_ne(red.save_seq, -1, "the world wrote its save, so the host was asked")
+	assert_ne(red.save_seq, -1, "a snapshot of the live world is the world's SAVE")
 	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
 
 
