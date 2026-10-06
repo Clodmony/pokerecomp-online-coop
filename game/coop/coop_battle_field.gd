@@ -19,7 +19,8 @@ var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
 ## Each `{text, move, enemy}`, a line and the move whose animation follows it,
-## or `{bar, hp, max_hp, snap}`, an HP bar moving to where the battle put it.
+## `{bar, hp, max_hp, snap}`, an HP bar moving to where the battle put it, or
+## `{cry}` and `{fanfare}`, a send-out's cry and the victory music.
 var _messages: Array = []
 ## The HP each side's bar shows while the turn plays, and where one is going.
 var _drawn_hp: Dictionary = {}
@@ -170,6 +171,8 @@ func _take_events(view: Dictionary) -> void:
 	if key == _revision_key:
 		return
 	_revision_key = key
+	if int(view.get("revision", 0)) == 0:
+		_open(view)
 	_hp_before = _hp_seen
 	if _drawn_hp.is_empty() and not (view.get("events", []) as Array).is_empty():
 		for side: int in _hp_before:
@@ -184,6 +187,7 @@ func _take_events(view: Dictionary) -> void:
 		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
 			out[int(event.get("side", 0))] = species_at(view, int(event.get("side", 0)), int(event.get("index", 0)))
 		var line: String = message(event, out, data)
+		var sent: bool = StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT
 		if not line.is_empty():
 			var used: bool = StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE
 			_messages.append({
@@ -191,6 +195,10 @@ func _take_events(view: Dictionary) -> void:
 				"enemy": int(event.get("side", 0)) == Gen2Battle.ENEMY,
 				"species": int(out.get(int(event.get("side", 0)), 0)),
 			})
+		if sent:
+			_messages.append({"cry": int(out.get(int(event.get("side", 0)), 0))})
+	if String(view.get("outcome", "")) == "won":
+		_messages.append({"fanfare": bool(view.get("trainer", false))})
 	_out = out_now(view)
 	_idle_text = idle
 	var allies: Array = view.get("allies", [])
@@ -199,6 +207,19 @@ func _take_events(view: Dictionary) -> void:
 		Gen2Battle.ENEMY: int((view.get("enemy", {}) as Dictionary).get("hp", 0)),
 		Gen2Battle.PLAYER: int((allies[active] as Dictionary).get("hp", 0)) if active < allies.size() else 0,
 	}
+
+
+## A battle seen from its start opens the way the cartridge's does: the wild
+## Pokémon appears with its cry, then the first ally is sent out with its own.
+func _open(view: Dictionary) -> void:
+	var opening: Dictionary = out_now(view)
+	if not bool(view.get("trainer", false)):
+		var wild: int = int(opening[Gen2Battle.ENEMY])
+		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, wild), "move": 0})
+		_messages.append({"cry": wild})
+	var ally: int = int(opening[Gen2Battle.PLAYER])
+	_messages.append({"text": "Go! %s!" % _species_name(data, ally), "move": 0})
+	_messages.append({"cry": ally})
 
 
 ## The species out on each side in [param view].
@@ -237,23 +258,29 @@ func _advance_text() -> void:
 	if _hold > 0:
 		_hold -= 1
 		return
-	if not _messages.is_empty() and (_messages[0] as Dictionary).has("bar"):
-		_bar_goal = _messages.pop_front()
-		var side: int = int(_bar_goal["bar"])
-		_drawn_hp[side] = float(_drawn_hp.get(side, _hp_before.get(side, _bar_goal["hp"])))
-		if bool(_bar_goal["snap"]):
-			_drawn_hp[side] = float(_bar_goal["hp"])
-			_bar_goal = {}
-	elif not _messages.is_empty():
-		var next: Dictionary = _messages.pop_front()
-		_show(String(next["text"]))
-		_queued_move = next if int(next["move"]) > 0 else {}
-		_hold = HOLD_FRAMES
+	if not _messages.is_empty():
+		_take_step(_messages.pop_front())
 	elif not _idle_text.is_empty():
 		_show(_idle_text)
 		_idle_text = ""
 	if _messages.is_empty() and _bar_goal.is_empty() and _anim == null:
 		_drawn_hp.clear()
+
+
+func _take_step(step: Dictionary) -> void:
+	if step.has("text"):
+		_show(String(step["text"]))
+		_queued_move = step if int(step["move"]) > 0 else {}
+		_hold = HOLD_FRAMES
+	elif step.has("bar"):
+		var side: int = int(step["bar"])
+		_drawn_hp[side] = float(_drawn_hp.get(side, _hp_before.get(side, step["hp"])))
+		_bar_goal = {} if bool(step["snap"]) else step
+		if bool(step["snap"]):
+			_drawn_hp[side] = float(step["hp"])
+	else:
+		_play_cue(step)
+		_hold = HOLD_FRAMES
 
 
 ## A pixel of the bar's forty-eight a frame, the way `UpdateHPBar` drains it.
@@ -293,6 +320,21 @@ func _play_sounds() -> void:
 				record = _move_sound(int(operands[0]))
 		if not record.is_empty():
 			audio.play_record(record, &"sound", data.audio_assets())
+
+
+## A send-out's cry, or `PlayVictoryMusic`: the wild or the trainer fanfare.
+func _play_cue(cue: Dictionary) -> void:
+	if audio == null:
+		return
+	if cue.has("cry"):
+		var cry: Dictionary = data.species_cry(int(cue["cry"]))
+		if not cry.is_empty():
+			audio.play_record(cry, &"cry", data.audio_assets())
+		return
+	var music: int = Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON
+	var record: Dictionary = data.gen1_sound(Gen1Layout.VICTORY_MUSIC_BANK, music)
+	if not record.is_empty():
+		audio.play_record(record, &"map_music", data.audio_assets(), true)
 
 
 func _move_sound(move: int) -> Dictionary:
