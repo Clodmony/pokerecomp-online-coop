@@ -187,8 +187,7 @@ func _start_client(args: PackedStringArray) -> void:
 
 
 func _start_demo(port: int) -> void:
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_demo_files()
 	if not _new_host(port):
 		_finish(1)
 		return
@@ -333,6 +332,12 @@ func _finish(code: int) -> void:
 		_host.shutdown("host_shutdown", 0)
 	if DirAccess.dir_exists_absolute(_directory):
 		RomCache.clear(_directory)
-	if _mode == "demo" and FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	if _mode == "demo":
+		_remove_demo_files()
 	quit(code)
+
+
+static func _remove_demo_files() -> void:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
