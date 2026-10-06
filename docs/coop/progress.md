@@ -127,9 +127,24 @@ has **played** it by hand yet.
 - Allied roster up to twelve, per-owner experience, battle sessions with
   ownership-based turns, suggestions, joins, results, story commits (#3 to #8).
 - Host, client, loopback and ENet transports; graceful shutdown and refusal (#9, #10, #12).
-- Real screens: other players as world actors, the co-op battle panel and the
-  session menu, `tools/coop_play.gd`, and a Red host mode in
-  `tools/coop_session.gd` (#13).
+- Each window runs the real world on its own save, kept in step by world-state
+  patches, party and PC copies against a revision (D23, D29); flags and badges
+  are the campaign's, bag, money and position the player's.
+- A window's own wild and trainer battles are fought on the host and can be
+  joined from any map; unique trainers are one encounter for the campaign
+  (D24, L1). Shared battles are drawn on the cartridge's battle field (D32).
+- Captures for a named player, prize split, evolution, move learning and
+  whiteout in each owner's world (D27).
+- Player services in each window: Pokémon Center, Mart, Bill's PC (D29), and
+  trades between players through the Cable Club with trade evolutions (D31).
+- Story gifts (key items, HMs, gift TMs) reach every player (D30).
+- Launcher Co-op tab: host or join, a starter or a trainer brought from a
+  single-player save, whose story starts a new campaign (D26, D34).
+- Lifecycle: leave from the session menu, end notices, return to the
+  launcher, reconnection, autosave between battles, on leaving and when a
+  hosting app is paused (D28); a stand-in for a controller who stays away
+  (D33).
+- Protocol hardening backed by a seeded fuzz test (D35).
 
 ## Incomplete
 
@@ -144,10 +159,16 @@ has **played** it by hand yet.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).
-- The campaign is saved whenever no battle runs and when the host leaves; there
-  is no recovery journal or save migration yet (#39).
+- The campaign is saved whenever no battle runs, when the host leaves and when
+  a hosting app is paused; there is no recovery journal or save migration yet
+  (#39).
+- No private desktop or mobile builds yet: this machine has no Godot export
+  templates for 4.8-dev4 (#44, #45).
+- Shared NPCs, scripts and cutscenes are not locked while one player uses them;
+  two windows talking to the same gift giver at the same moment could both be
+  given it (#24).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
-  `palette` key for Generation 1 trainers (#59).
+  `palette` key for Generation 1 trainers (#59); see also L6 and L7.
 
 ## Blocked
 
@@ -155,6 +176,6 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand from the launcher's Co-op tab on two devices or two
-windows and note what feels wrong in `tracking.md`. Then the battle screen in
-place of the text panel (#26).
+Play a session by hand from the launcher's Co-op tab on two devices and note
+what feels wrong in `tracking.md`. Then move animations and cries on the
+battle field (#26), and builds once export templates are installed (#44).
