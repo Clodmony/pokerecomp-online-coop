@@ -38,6 +38,9 @@ var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
 var _changed: bool = false
 var _written_at: int = 0
+var _saves: int = 0
+var _saved_by: String = ""
+var _saved_unix: float = 0.0
 
 
 static func create(
@@ -142,7 +145,11 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 		"party":
 			return apply_party(sender, message)
 		"save":
-			return save_checkpoint()
+			var refused: StringName = save_checkpoint()
+			if refused == &"":
+				_saves += 1
+				_saved_by = sender.player_id
+			return refused
 		"trade":
 			var swaps: int = trades.swaps
 			var answer: StringName = trades.handle(sender, message, players)
@@ -559,8 +566,11 @@ func save_checkpoint() -> StringName:
 ## The campaign between battles: a battle still running when the host closes is left out.
 func _write_campaign() -> Error:
 	_written_at = Time.get_ticks_msec()
-	return PokeCoopSave.write(save_path, campaign, players.values()) \
+	var written: Error = PokeCoopSave.write(save_path, campaign, players.values()) \
 		if not save_path.is_empty() else ERR_UNCONFIGURED
+	if written == OK:
+		_saved_unix = Time.get_unix_time_from_system()
+	return written
 
 
 ## Tells every client the session is over, then closes once they have all left
@@ -607,6 +617,8 @@ func broadcast() -> void:
 			"type": "state", "campaign": shared, "players": everyone,
 			"you": _private_view(viewer), "nearby": nearby(viewer), "battles": running,
 			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
+			"saved": {"ago": Time.get_unix_time_from_system() - _saved_unix if _saved_unix > 0.0 else -1.0,
+				"count": _saves, "by": _saved_by},
 		})
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):

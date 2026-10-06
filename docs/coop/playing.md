@@ -56,8 +56,12 @@ name as before.
 - Story flags, badges, beaten trainers and taken items on the ground are
   shared. Your team, PC, bag, money and position are yours.
 - Key items, HMs and gift TMs one player is given reach the other too.
-- The game's own SAVE asks the host to save the campaign; the host also saves
-  after battles, every thirty seconds of changes and when it closes.
+- **Saving**: START > SAVE and "Save the campaign" in the SELECT menu do the
+  same thing: the host saves the whole campaign, everyone in it. You see
+  "Campaign saved." and the others see "BLUE saved the campaign."; a save
+  refused during a battle says so. The host also saves by itself after
+  battles, every thirty seconds of changes and when it closes, and the SELECT
+  menu shows when it last saved. Nobody has to save before leaving.
 
 ## Battles
 
