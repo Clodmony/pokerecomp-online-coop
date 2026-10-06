@@ -188,14 +188,13 @@ func _take_events(view: Dictionary) -> void:
 	var names: Dictionary = _player_names()
 	for event: Dictionary in events:
 		_queue(event, out, view)
-		var line: String = message(event, out, data, names, _trainer_name(view))
-		var rows: PackedStringArray = line.split("\n", false)
-		for page: int in range(0, rows.size(), 2):
-			_messages.append({"text": "\n".join(rows.slice(page, page + 2))})
+		var paged: PackedStringArray = pages(message(event, out, data, names, _trainer_name(view)))
+		for page: int in paged.size():
+			_messages.append({"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
 				_messages.append_array(toss_steps(event))
 	if String(view.get("outcome", "")) == "won":
-		_messages.append({"fanfare": bool(view.get("trainer", false))})
+		_queue_victory(view)
 	_out = out_now(view)
 	_scene_seen = _panels(scene_view(view, data))
 	_idle_text = idle
@@ -291,7 +290,34 @@ static func _panels(scene: Dictionary) -> Dictionary:
 
 func _trainer_name(view: Dictionary) -> String:
 	var trainer_class: int = int(view.get("trainer_class", 0))
-	return data.trainer_name(trainer_class) if trainer_class > 0 else ""
+	var named: String = String(view.get("trainer_name", ""))
+	return named if not named.is_empty() else (data.trainer_name(trainer_class) if trainer_class > 0 else "")
+
+
+## `TrainerBattleVictory`: the fanfare, the defeat, the trainer's line and this player's prize.
+func _queue_victory(view: Dictionary) -> void:
+	var trainer: bool = bool(view.get("trainer", false))
+	var me: String = _player_name(panel.client.player_id)
+	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
+	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))})
+	var lines: Array = ["%s defeated\n%s!" % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
+	if prize > 0:
+		lines.append(("%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
+	for line: String in lines:
+		for page: String in pages(line):
+			_messages.append({"text": page})
+
+
+## [param line] two rows a page, the cartridge's paragraph and scroll breaks as new rows.
+static func pages(line: String) -> PackedStringArray:
+	for mark: String in [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK,
+			Gen2TextStream.SCROLL_NOWAIT_BREAK, Gen2TextStream.PROMPT_BREAK]:
+		line = line.replace(mark, "\n")
+	var rows: PackedStringArray = line.split("\n", false)
+	var out := PackedStringArray()
+	for page: int in range(0, rows.size(), 2):
+		out.append("\n".join(rows.slice(page, page + 2)))
+	return out
 
 
 ## The species out on each side in [param view].
@@ -473,7 +499,8 @@ func _play_cue(cue: Dictionary) -> void:
 		if not record.is_empty():
 			audio.play_record(record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
 		return
-	var music: int = Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON
+	var music: int = Gen1Layout.MUSIC_DEFEATED_GYM_LEADER if bool(cue.get("gym", false)) else \
+		(Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON)
 	var record: Dictionary = data.gen1_sound(Gen1Layout.VICTORY_MUSIC_BANK, music)
 	if not record.is_empty():
 		audio.play_record(record, &"map_music", data.audio_assets(), true)

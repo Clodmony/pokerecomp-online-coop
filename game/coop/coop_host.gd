@@ -9,6 +9,8 @@ const PROTOCOL: int = 1
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
+const MAX_TRAINER_NAME: int = 16
+const MAX_WIN_TEXT: int = 512
 ## How often a changed campaign is written while no battle runs, so a host that
 ## crashes loses at most this much of what the windows did.
 var autosave_msec: int = 30000
@@ -284,9 +286,8 @@ func _on_disconnected(peer: int) -> void:
 		broadcast()
 
 
-## A step on the current map, or a [param warp] the client's own world made.
-## Collision and warp checks wait for the shared world simulation, so a warp is
-## trusted until then.
+## A step on the current map, or a [param warp] the client's own world made, trusted
+## until the shared world simulation can check collision and warps.
 func step(
 	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
 ) -> StringName:
@@ -351,9 +352,8 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 	return &""
 
 
-## A battle the player's own world opened: its exact enemies, trusted until the
-## host simulates the world. A trainer is one encounter for the campaign: a
-## second window walking into it joins the fight, and a beaten one stays beaten.
+## A battle the player's own world opened, its enemies trusted until the host simulates
+## the world. A second window walking into a trainer joins; a beaten one stays beaten.
 ## The world's script sets the flags; the host records who was defeated.
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not initiator.is_free():
@@ -385,6 +385,9 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 		"id": encounter_id if unique else "window:%s" % battle_id,
 		"kind": "trainer" if trainer else "wild", "unique": unique,
 		"trainer_class": trainer_class if trainer else 0, "trainer_index": trainer_index,
+		"trainer_name": PokeCoopTransport.text(message.get("trainer_name")).left(MAX_TRAINER_NAME),
+		"win_text": PokeCoopTransport.text(message.get("win_text")).left(MAX_WIN_TEXT),
+		"gym": message.get("gym") is bool and bool(message.get("gym")),
 	}
 	var session: PokeCoopBattleSession = PokeCoopBattleSession.start(
 		data, battle_id, seeds.randi(), initiator, party, info, _badge_mask()
@@ -479,14 +482,14 @@ func _finish(session: PokeCoopBattleSession) -> void:
 	var unique: bool = _is_unique(session.encounter)
 	if outcome == PokeCoopBattleSession.CAUGHT:
 		_file_catch(session.catch)
-	if outcome == &"won":
-		_pay(session)
+	var prizes: Dictionary = _pay(session) if outcome == &"won" else {}
 	if unique and (outcome == &"won" or outcome == PokeCoopBattleSession.CAUGHT):
 		campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
 	var final_view: Dictionary = session.view()
 	final_view["evolvable"] = session.evolvable_uids()
+	final_view["prizes"] = prizes
 	for player_id: String in session.participants + session.pending_players():
 		var participant: PokeCoopPlayer = player(player_id)
 		participant.battle_id = ""
@@ -517,11 +520,12 @@ func _file_catch(caught: Dictionary) -> void:
 	})
 
 
-func _pay(session: PokeCoopBattleSession) -> void:
+func _pay(session: PokeCoopBattleSession) -> Dictionary:
 	var total: int = session.battle.battle_reward + session.battle.pay_day_money
 	var split: Dictionary = PokeCoopPolicy.prize_split(total, session.participants, session.initiator)
 	for payee: String in split:
 		player(payee).add_money(int(split[payee]))
+	return split
 
 
 static func _victory_changes(encounter: Dictionary, encounter_id: String) -> Dictionary:

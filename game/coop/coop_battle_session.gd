@@ -438,6 +438,8 @@ func view() -> Dictionary:
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
+		"trainer_name": String(encounter.get("trainer_name", "")), "win_text": String(encounter.get("win_text", "")),
+		"gym": bool(encounter.get("gym", false)),
 	}
 
 

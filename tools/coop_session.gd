@@ -167,7 +167,7 @@ func _cartridge_encounters() -> void:
 	_host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
 	_host.register_encounter("trainer:brock", {
 		"kind": "trainer", "trainer_class": BROCK_CLASS, "trainer_index": 0,
-		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)",
+		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)", "gym": true,
 	})
 
 
