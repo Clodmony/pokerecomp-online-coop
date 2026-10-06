@@ -27,6 +27,7 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var revision: int = 0
 var suggestions: Dictionary = {}
 var last_events: Array = []
+var seen: Dictionary = {}
 ## Who a caught wild goes to and the wild itself, once a ball has held.
 var catch: Dictionary = {}
 var _pending_joins: Array = []
@@ -56,6 +57,7 @@ static func start(
 	if out.battle == null:
 		return null
 	out.battle.battle_style_set = true
+	out.seen[out.battle.mon(Gen2Battle.ENEMY).species] = true
 	if trainer_class > 0:
 		out.battle.init_enemy_trainer(trainer_class)
 	out._enlist(player, fighters)
@@ -320,6 +322,9 @@ func _settle(events: Array) -> void:
 
 func _advance(events: Array) -> void:
 	revision += 1
+	for event: Dictionary in events:
+		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT and int(event.get("side", 0)) == Gen2Battle.ENEMY:
+			seen[int(event.get("species", 0))] = true
 	suggestions.clear()
 	if phase() == AWAITING_ACTION:
 		_apply_joins(events)

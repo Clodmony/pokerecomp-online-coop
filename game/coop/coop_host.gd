@@ -480,6 +480,8 @@ func _finish(session: PokeCoopBattleSession) -> void:
 			holder.absorb_battle_mon(String(row["uid"]), row["mon"])
 	var encounter_id: String = String(session.encounter.get("id", ""))
 	var unique: bool = _is_unique(session.encounter)
+	for player_id: String in session.participants:
+		player(player_id).apply_world_patch({"seen_species": {"set": session.seen.duplicate(), "erase": []}})
 	if outcome == PokeCoopBattleSession.CAUGHT:
 		_file_catch(session.catch)
 	var prizes: Dictionary = _pay(session) if outcome == &"won" else {}
