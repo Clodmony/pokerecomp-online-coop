@@ -38,6 +38,8 @@ const GIFT_TMS: Dictionary = {
 	944: 229, 1152: 239, 1791: 236,
 }
 const GIFT_COMMIT_PREFIX: String = "gift:"
+## OLD_AMBER, DOME_FOSSIL and HELIX_FOSSIL: each player revives their own (D52).
+const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
 ## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the
 ## three birds and MEWTWO. Each is one encounter for the whole campaign.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
@@ -118,11 +120,11 @@ static func may_join(player: PokeCoopPlayer, fit_count: int) -> StringName:
 
 
 ## A story gift reaches every player, committed once: the shared items
-## [param receiver] just gained and the TMs behind gift flags just set.
+## [param receiver] just gained and the TMs behind gift flags just set. Answers them.
 static func share_gifts(
 	campaign: PokeCoopCampaign, receiver: PokeCoopPlayer, others: Array,
 	flags_before: Dictionary, held_before: Dictionary,
-) -> void:
+) -> Array[int]:
 	var gifts: Array[int] = []
 	for item: int in SHARED_ITEMS:
 		if int(held_before.get(item, 0)) == 0 and receiver.item_count(item) > 0:
@@ -135,6 +137,27 @@ static func share_gifts(
 			for other: PokeCoopPlayer in others:
 				if other != receiver:
 					hand_over(other, item)
+	return gifts
+
+
+## Items gained with a story change reach everyone; a key item it took is taken from all (D52).
+static func share_found_items(
+	data: GameData, receiver: PokeCoopPlayer, others: Array, held_before: Dictionary, handled: Array[int],
+) -> void:
+	var touched: Dictionary = held_before.duplicate()
+	touched.merge(receiver.items)
+	for item: int in touched:
+		var change: int = receiver.item_count(item) - int(held_before.get(item, 0))
+		if change == 0 or handled.has(item) or SHARED_ITEMS.has(item):
+			continue
+		var key: bool = (int(data.item(item).get("permissions", 0)) & Gen2WorldPack.CANT_TOSS) != 0
+		for other: PokeCoopPlayer in others:
+			if other == receiver:
+				continue
+			if change > 0:
+				_stow(other, item, change)
+			elif key and not OWN_FOSSILS.has(item):
+				other.take_item(item, mini(-change, other.item_count(item)))
 
 
 ## Everything the campaign's players were given before [param player] joined.
@@ -143,15 +166,19 @@ static func hand_over_gifts(campaign: PokeCoopCampaign, player: PokeCoopPlayer) 
 		hand_over(player, int(commit_id.trim_prefix(GIFT_COMMIT_PREFIX)))
 
 
-## Into the bag, or the PC's items when the bag's twenty rows are taken.
 static func hand_over(player: PokeCoopPlayer, item: int) -> void:
 	var stored: Dictionary = player.world.get("pc_items", {})
-	if player.item_count(item) > 0 or int(stored.get(item, 0)) > 0:
+	if player.item_count(item) == 0 and int(stored.get(item, 0)) == 0:
+		_stow(player, item, 1)
+
+
+## Into the bag, or the PC's items when the bag's twenty rows are taken.
+static func _stow(player: PokeCoopPlayer, item: int, count: int) -> void:
+	if player.item_count(item) > 0 or player.items.size() < Gen1Layout.BAG_ITEM_CAPACITY:
+		player.give_item(item, count)
 		return
-	if player.items.size() < Gen1Layout.BAG_ITEM_CAPACITY:
-		player.give_item(item)
-		return
-	stored[item] = 1
+	var stored: Dictionary = player.world.get("pc_items", {})
+	stored[item] = mini(int(stored.get(item, 0)) + count, PokeCoopPlayer.MAX_ITEM_COUNT)
 	player.world["pc_items"] = stored
 
 

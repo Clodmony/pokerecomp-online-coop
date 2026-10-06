@@ -1,10 +1,9 @@
 class_name PokeCoopBattleTakeover
 extends RefCounted
 
-## A co-op window's own wild and trainer battles, taken over through the mod
-## seam and fought on the host as joinable sessions. The world keeps the trigger,
-## the script's branches, the party commit and the whiteout; the host keeps the
-## fight and the prize, so the world's prize is zeroed.
+## A co-op window's own battles, fought on the host as joinable sessions: the world
+## keeps the trigger, the script's branches, the party and the whiteout, the host
+## the fight and the prize, so the world's prize is zeroed.
 
 var client: PokeCoopClient = null
 var data: GameData = null

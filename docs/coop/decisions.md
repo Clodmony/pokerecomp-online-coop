@@ -631,3 +631,34 @@ its own change until the next state arrived; a map script that moves on two
 frames in a row ran an earlier step again. The window now keeps each patch it
 sent until the host's state reports that sequence number as applied, and
 leaves the entries of unconfirmed patches out of what it applies.
+
+## D52. Story items reach every player (2026-10-07)
+
+Only the key items and HMs on a fixed list and gift TMs were shared, so an item
+ball one player picked up (gone for everyone, since taken objects are the
+campaign's) or a present like OAK's five POKé BALLs reached only them. The owner
+asked to give every item to every player for now. An item a player gains in the
+same world patch that moves the shared story (a flag set, an object taken) now
+reaches every other player in the same number, and a key item that patch takes
+away (OAK's PARCEL delivered, the BIKE VOUCHER exchanged) is taken from
+everyone, except the three fossils, which each player revives on their own.
+Purchases, trades, use and hidden items move no shared story and stay personal;
+hidden items are each player's own flags already. A late joiner still receives
+only the shared list and gift TMs.
+
+## D53. A partner blocks the way (2026-10-07)
+
+Remote players were drawn but not solid, so two players could stand on one
+cell and hide each other. They are now solid actors, as people on the map are:
+the player's own steps and NPCs' wandering stop at them, while scripted and
+forced movement goes through as before.
+
+## D54. A Generation 1 script walking someone holds the player (2026-10-07)
+
+The cartridge's map scripts set `wJoyIgnore` around `MoveSprite`, and upstream
+does not model that byte, so the player could walk while the rival went to his
+POKé BALL and leave Oak's lab before his challenge (L10, also in single
+player). The world screen now refuses the player's own steps while any object
+walks a scripted stream on Generation 1, which is the narrow part of
+`wJoyIgnore` this needs; modelling the byte everywhere would also need every
+engine path that clears it.

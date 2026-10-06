@@ -57,9 +57,6 @@ or one after another:
   same shared flags, badges and beaten trainers as everyone else's. The rival
   keeps the starter he took in the first opening to finish. Someone still in
   the opening shows in the SELECT menu's list but not in the world.
-- Walking out right after the rival takes his POKé BALL can skip his
-  challenge; wait until he has said everything (the single-player game does
-  the same).
 
 ## Playing over the internet
 
@@ -86,10 +83,15 @@ or one after another:
 
 - Both players explore freely, on the same map or on different ones. The
   partner is drawn on your map in their own colour, with a "!" while they are
-  in a battle.
+  in a battle, and blocks your way like any person on the map.
 - Story flags, badges, beaten trainers and taken items on the ground are
   shared. Your team, PC, bag, money and position are yours.
-- Key items, HMs and gift TMs one player is given reach the other too.
+- Every item one player finds or is given along the story reaches the other
+  too, in the same number: POKé BALLs on the ground, presents from people,
+  key items, HMs and TMs. A key item the story takes (OAK's PARCEL, the BIKE
+  VOUCHER, the GOLD TEETH) is taken from everyone; fossils are not, so each of
+  you revives your own. What you buy, trade for or use stays yours. Hidden
+  items are each player's own to find.
 - **Saving**: START > SAVE and "Save the campaign" in the SELECT menu do the
   same thing: the host saves the whole campaign, everyone in it. You see
   "Campaign saved." and the others see "BLUE saved the campaign."; a save

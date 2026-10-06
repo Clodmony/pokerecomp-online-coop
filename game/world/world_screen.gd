@@ -1857,12 +1857,13 @@ func _renderer_input_free() -> bool:
 		and not _world.script_input_waiting()
 
 
+## A Generation 1 map script walking someone holds the pad as its `wJoyIgnore` does (L10).
 func move_player(direction: Vector2i) -> bool:
 	if _world == null or _overlay_open() or _world.fishing_busy() \
 		or _field_move_text or not _field_move_tail.is_empty() or not _oak_pc_pages.is_empty() \
 		or _world.phone_ring_active() \
 		or not _trainer_approach.is_empty() or _world.script_busy() \
-		or _world.player_step_in_progress():
+		or _world.player_step_in_progress() or (_world.is_gen1() and _world.gen1_object_movement_running()):
 		return false
 	var movement: Dictionary = _world.player_input_move(direction)
 	if not bool(movement.get("ok", false)):

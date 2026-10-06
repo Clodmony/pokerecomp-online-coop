@@ -97,6 +97,7 @@ func sprites() -> Array:
 			"sprite": Gen2WorldSprite.SPRITE_PLAYER, "facing": int(view["facing"]),
 			"position_cells": walk.get("at", Vector2(view["cell"] as Vector2i)),
 			"frame": _walk_frame(walk), "id": StringName(player_id), "colors": _colors(player_id),
+			"solid": true,
 		}
 		if not String(view.get("battle", "")).is_empty():
 			entry["emote"] = Gen2WorldActors.EMOTE_SHOCK
