@@ -2,8 +2,7 @@ class_name PokeCoopBattleField
 extends Control
 
 ## The panel's battle drawn as the cartridge draws one, through [Gen2BattleRenderer]
-## and the game's text box, from the host's view alone; commands stay with the
-## panel beside it.
+## and the game's text box, from the host's view alone.
 
 const HOLD_FRAMES: int = 50
 const GAP: int = 16
@@ -27,6 +26,8 @@ var _bar_goal: Dictionary = {}
 var _hp_before: Dictionary = {}
 var _hp_seen: Dictionary = {}
 var _anim_after: Dictionary = {}
+## The tilemap a thrown ball's scripts hand on, so a caught Pokémon stays hidden.
+var _carried_map: PackedByteArray = PackedByteArray()
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
 var _sounding: Dictionary = {}
@@ -169,6 +170,8 @@ func _take_events(view: Dictionary) -> void:
 	var key: String = "%s/%d/%s" % [view.get("battle", ""), int(view.get("revision", 0)), view.get("outcome", "")]
 	if key == _revision_key:
 		return
+	if _revision_key.get_slice("/", 0) != String(view.get("battle", "")):
+		_carried_map = PackedByteArray()
 	_revision_key = key
 	if int(view.get("revision", 0)) == 0:
 		_open(view)
@@ -198,6 +201,8 @@ func _take_events(view: Dictionary) -> void:
 		var rows: PackedStringArray = line.split("\n", false)
 		for page: int in range(0, rows.size(), 2):
 			_messages.append({"text": "\n".join(rows.slice(page, page + 2))})
+			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
+				_messages.append_array(toss_steps(event))
 		if sent:
 			_messages.append({"cry": int(out.get(int(event.get("side", 0)), 0))})
 	if String(view.get("outcome", "")) == "won":
@@ -245,6 +250,8 @@ func _advance_text() -> void:
 		_anim.advance_frame()
 		_play_sounds()
 		if _anim.finished() or _anim.failed():
+			if bool(_sounding.get("carry", false)):
+				_carried_map = _anim.background().bg_map
 			_anim = _applying()
 		return
 	if not _bar_goal.is_empty():
@@ -269,6 +276,8 @@ func _take_step(step: Dictionary) -> void:
 		_show(String(step["text"]))
 		_hold = HOLD_FRAMES if _messages.is_empty() or not (_messages[0] as Dictionary).has("anim") else 0
 	elif step.has("anim"):
+		if not bool(step.get("carry", false)):
+			_carried_map = PackedByteArray()
 		_sounding = step
 		_anim_after = step if int(step["after"]) != 0 and int(step["anim"]) < Gen2BattleScreen.ANIM_MOVE_LIMIT else {}
 		_anim = _animation(step)
@@ -296,21 +305,22 @@ func _drain_bar() -> void:
 		_bar_goal = {}
 
 
-## The cartridge's animation for an `ANIMATION` step, a move's or a status's; null
-## for a send-out, a ball, the battle scene off or a cache without animations.
+## The cartridge's animation for a step, a move's, a status's or a ball's; null for
+## a send-out, a move with the battle scene off or a cache without animations.
 func _animation(step: Dictionary) -> Gen2BattleAnimPlayer:
 	if _anim_data == null:
 		_anim_data = Gen2BattleAnimData.from_game_data(data)
 	var index: int = int(step["anim"])
-	if _anim_data == null or not _anim_data.gen1() \
-			or (index < Gen2BattleScreen.ANIM_MOVE_LIMIT and not Gen2OptionsStore.current().battle_scene):
+	var move: bool = index < Gen2BattleScreen.ANIM_MOVE_LIMIT and not bool(step.get("carry", false))
+	if _anim_data == null or not _anim_data.gen1() or (move and not Gen2OptionsStore.current().battle_scene):
 		return null
 	var enemy_turn: bool = bool(step["enemy"])
 	var row: int = index - 1
 	if index >= Gen2BattleScreen.ANIM_MOVE_LIMIT:
 		var pair: Variant = Gen2BattleScreen.GEN1_ANIM_IDS.get(index, null)
 		row = int((pair as Array)[1 if enemy_turn else 0]) - 1 if pair is Array else -1
-	return _seeded(Gen2BattleAnimPlayer.create_gen1(_anim_data, row, enemy_turn) if row >= 0 else null)
+	return _seeded(Gen2BattleAnimPlayer.create_gen1(_anim_data, row, enemy_turn, int(step.get("shakes", 0))) \
+		if row >= 0 else null, _carried_map if bool(step.get("carry", false)) else PackedByteArray())
 
 
 ## `PlayHitSound`, then the move's shake or blink from `AnimationTypePointerTable`.
@@ -336,10 +346,28 @@ func _applying() -> Gen2BattleAnimPlayer:
 	return _seeded(Gen2BattleAnimPlayer.create_gen1_applying(_anim_data, kind, bool(step["enemy"])))
 
 
-static func _seeded(player: Gen2BattleAnimPlayer) -> Gen2BattleAnimPlayer:
+static func _seeded(player: Gen2BattleAnimPlayer, map: PackedByteArray = PackedByteArray()) -> Gen2BattleAnimPlayer:
 	if player != null:
-		player.background().set_bg_map(Gen2BattleScreenMap.seeded())
+		player.background().set_bg_map(Gen2BattleScreenMap.seeded() if map.is_empty() else map)
 	return player
+
+
+## `TossBallAnimation`: the toss, the poof, a shake a wobble, and out unless caught.
+static func toss_steps(event: Dictionary) -> Array:
+	var wobbles: int = clampi(int(event.get("wobbles", 0)), 0, 3)
+	var caught: bool = bool(event.get("caught", false))
+	var rows: Array = [
+		int(Gen2BattleScreen.GEN1_TOSS_ANIMS.get(int(event.get("ball", 0)), Gen1Layout.ANIM_ID_ULTRATOSS)),
+		Gen1Layout.ANIM_ID_POOF,
+	]
+	if caught or wobbles > 0:
+		rows.append_array([Gen1Layout.ANIM_ID_HIDEPIC, Gen1Layout.ANIM_ID_SHAKE])
+	if not caught and wobbles > 0:
+		rows.append_array([Gen1Layout.ANIM_ID_POOF, Gen1Layout.ANIM_ID_SHOWPIC])
+	return rows.map(func(index: int) -> Dictionary: return {
+		"anim": index, "enemy": false, "after": 0, "carry": true, "species": 0,
+		"shakes": maxi(wobbles, 1) if index == Gen1Layout.ANIM_ID_SHAKE else 0,
+	})
 
 
 ## What the animation's last frame asked to hear: `GetMoveSound`'s row, a
@@ -388,12 +416,13 @@ func _move_sound(move: int) -> Dictionary:
 	return record
 
 
-## The running animation's tilemap and objects, and the bars as far as they
-## have drained, over [param view].
+## The running animation's tilemap, objects and scroll, and the drained bars.
 func _with_animation(view: Dictionary) -> Dictionary:
 	for side: int in _drawn_hp:
 		view["enemy_hp" if side == Gen2Battle.ENEMY else "player_hp"] = roundi(float(_drawn_hp[side]))
 	if _anim == null:
+		if not _carried_map.is_empty():
+			view["bg_map"] = _carried_map
 		return view
 	var background: Gen2BattleAnimBackground = _anim.background()
 	view["bg_map"] = background.bg_map
@@ -489,7 +518,8 @@ static func message(event: Dictionary, out: Dictionary, game: GameData, names: D
 static func _throw_line(event: Dictionary, thrower: String, wild: String, game: GameData) -> String:
 	var thrown: String = "%s used\n%s!" % [thrower, game.item_name(int(event.get("ball", 0)))]
 	if bool(event.get("caught", false)):
-		return thrown + "\nAll right!\n%s was caught!" % wild
+		var jingle: String = Gen2TextStream.sound_token(Gen1Sfx.SFX_CAUGHT_MON) if game.generation == RomRegistry.GEN1 else ""
+		return thrown + "\nAll right!\n%s was caught!%s" % [wild, jingle]
 	var near: Array[String] = [
 		"You missed the\nPOKéMON!", "Darn! The POKéMON\nbroke free!", "Aww! It appeared\nto be caught!",
 		"Shoot! It was so\nclose too!",

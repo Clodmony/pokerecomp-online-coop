@@ -817,6 +817,21 @@ func test_a_turns_animations_play_through_on_a_cache_without_them() -> void:
 	assert_false(field.is_playing(), "no hit sound or blink is left waiting on an animation never made")
 
 
+func test_a_thrown_ball_plays_the_cartridges_toss_shakes_and_break_out() -> void:
+	var rows: Callable = func(event: Dictionary) -> Array:
+		return PokeCoopBattleField.toss_steps(event).map(func(step: Dictionary) -> Array: return [step["anim"], step["shakes"]])
+	assert_eq(rows.call({"ball": Gen1Layout.ITEM_POKE_BALL, "wobbles": 0, "caught": false}),
+		[[Gen1Layout.ANIM_ID_TOSS, 0], [Gen1Layout.ANIM_ID_POOF, 0]], "missed: the poof and nothing inside")
+	assert_eq(rows.call({"ball": Gen1Layout.ITEM_GREAT_BALL, "wobbles": 2, "caught": false}), [
+		[Gen1Layout.ANIM_ID_GREATTOSS, 0], [Gen1Layout.ANIM_ID_POOF, 0], [Gen1Layout.ANIM_ID_HIDEPIC, 0],
+		[Gen1Layout.ANIM_ID_SHAKE, 2], [Gen1Layout.ANIM_ID_POOF, 0], [Gen1Layout.ANIM_ID_SHOWPIC, 0],
+	], "two shakes, then out again")
+	assert_eq(rows.call({"ball": Gen1Layout.ITEM_MASTER_BALL, "wobbles": 3, "caught": true}), [
+		[Gen1Layout.ANIM_ID_ULTRATOSS, 0], [Gen1Layout.ANIM_ID_POOF, 0], [Gen1Layout.ANIM_ID_HIDEPIC, 0],
+		[Gen1Layout.ANIM_ID_SHAKE, 3],
+	], "caught: it stays in the ball")
+
+
 func test_a_partner_who_never_offers_lets_the_trade_screen_go() -> void:
 	var cables: Array = _cables()
 	cables[0].offer_wait_msec = 0
