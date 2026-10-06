@@ -85,7 +85,8 @@ class Bridge extends Node:
 		var outcome: String = String(client.battle(_battle_id).get("outcome", ""))
 		if not _battle_id.is_empty() and not outcome.is_empty():
 			_take_party()
-			_finish(StringName(outcome) if outcome in ["won", "lost"] else &"ran")
+			## A catch ends a scripted battle as a win does: the object is gone.
+			_finish(&"won" if outcome in ["won", "caught"] else (&"lost" if outcome == "lost" else &"ran"))
 
 	## Why the host refused this fight, or empty. A trainer the campaign has
 	## already beaten counts as beaten here too.

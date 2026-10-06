@@ -186,12 +186,13 @@ func _take_events(view: Dictionary) -> void:
 			})
 		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
 			out[int(event.get("side", 0))] = species_at(view, int(event.get("side", 0)), int(event.get("index", 0)))
-		var line: String = message(event, out, data)
+		var line: String = message(event, out, data, _player_names())
 		var sent: bool = StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT
-		if not line.is_empty():
-			var used: bool = StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE
+		var rows: PackedStringArray = line.split("\n", false)
+		for page: int in range(0, rows.size(), 2):
+			var used: bool = page == 0 and StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE
 			_messages.append({
-				"text": line, "move": int(event.get("move", 0)) if used else 0,
+				"text": "\n".join(rows.slice(page, page + 2)), "move": int(event.get("move", 0)) if used else 0,
 				"enemy": int(event.get("side", 0)) == Gen2Battle.ENEMY,
 				"species": int(out.get(int(event.get("side", 0)), 0)),
 			})
@@ -392,8 +393,9 @@ func _player_name(player_id: String) -> String:
 
 
 ## An event's line in Red and Blue's words, [param out] being who is out on each side.
-static func message(event: Dictionary, out: Dictionary, game: GameData) -> String:
+static func message(event: Dictionary, out: Dictionary, game: GameData, names: Dictionary = {}) -> String:
 	var side: int = int(event.get("side", Gen2Battle.PLAYER))
+	var who_acted: String = String(names.get(String(event.get("player", "")), ""))
 	var who: String = ("Enemy " if side == Gen2Battle.ENEMY else "") + _species_name(game, int(out.get(side, 0)))
 	match StringName(event.get("type", &"")):
 		Gen2Battle.USED_MOVE:
@@ -413,4 +415,30 @@ static func message(event: Dictionary, out: Dictionary, game: GameData) -> Strin
 			return "All right!\n%s was caught!" % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.FLED:
 			return "Got away safely!"
+		PokeCoopBattleSession.JOINED:
+			return "%s joined\nthe battle!" % who_acted
+		PokeCoopBattleSession.ITEM_USED:
+			return "%s used\n%s!" % [who_acted, game.item_name(int(event.get("item", 0)))]
+		PokeCoopBattleSession.BALL_THROWN:
+			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
 	return ""
+
+
+## `ItemUseBall`'s lines: the throw, then the catch or how close it came.
+static func _throw_line(event: Dictionary, thrower: String, wild: String, game: GameData) -> String:
+	var thrown: String = "%s used\n%s!" % [thrower, game.item_name(int(event.get("ball", 0)))]
+	if bool(event.get("caught", false)):
+		return thrown + "\nAll right!\n%s was caught!" % wild
+	var near: Array[String] = [
+		"You missed the\nPOKéMON!", "Darn! The POKéMON\nbroke free!", "Aww! It appeared\nto be caught!",
+		"Shoot! It was so\nclose too!",
+	]
+	return thrown + "\n" + near[clampi(int(event.get("wobbles", 0)), 0, near.size() - 1)]
+
+
+func _player_names() -> Dictionary:
+	var out: Dictionary = {}
+	var everyone: Dictionary = panel.client.state.get("players", {}) if panel != null else {}
+	for player_id: String in everyone:
+		out[player_id] = String((everyone[player_id] as Dictionary).get("name", player_id))
+	return out

@@ -302,7 +302,9 @@ move with the attacker's cry, and the battle's music plays while it is up, a
 trainer's chosen by the class and index its encounter names, until the map's
 own music comes back as it closes. A battle seen from its start opens with
 "Wild X appeared!" and "Go! Y!" and their cries, a send-out later in the battle
-has its cry, and a win plays the wild or trainer fanfare. Still missing against
+has its cry, and a win plays the wild or trainer fanfare. The co-op events have
+lines of their own: a join, an item used, and a throw with the cartridge's
+catch or near-miss line. Still missing against
 the battle screen: the gym leaders' own fanfare, screen-scroll effects, battler
 slides and the sliding intro.
 
@@ -355,4 +357,7 @@ window joins the running fight, and once it is beaten or caught it is done for
 the campaign; losing or running leaves it, as on the cartridge. A caught unique
 encounter now counts as done as a beaten one does; before, a catch released it.
 Gift Pokémon (EEVEE, LAPRAS, the fossils, the Hitmons) stay with whoever is
-given them first.
+given them first. The world only takes won, lost or ran back from a battle it
+handed over, so a catch is reported to it as a win: on the cartridge a caught
+static Pokémon is gone as a beaten one is, and its event flag reaches the
+partner's world with the rest of the story.
