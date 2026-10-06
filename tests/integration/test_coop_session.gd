@@ -872,6 +872,25 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
 
 
+func test_a_level_up_shows_on_the_panel_and_a_full_moveset_asks_what_to_forget() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b7", "revision": 2, "active": 0, "controller": _red.player_id,
+		"phase": PokeCoopBattleSession.AWAITING_LEARN,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 15, "hp": 41, "max_hp": 41}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 5, "hp": 0, "max_hp": 20},
+		"events": [{"type": Gen2Battle.GREW_LEVEL, "side": Gen2Battle.PLAYER, "index": 0, "name": "CHARMANDER",
+			"old_level": 14, "new_level": 15, "new_stats": {"hp": 41}}],
+	}
+	field._take_events(view)
+
+	assert_eq(field._messages[0], {"grew": 15, "max_hp": 41}, "the panel takes the new level with the line")
+	assert_eq(field._waiting_text(view), "Which move should\nbe forgotten?")
+	assert_eq(PokeCoopBattleField.pages("CHARMANDER is trying\nto learn LEER!"),
+		PackedStringArray(["CHARMANDER is\ntrying", "to learn LEER!"]), "a row wider than the box wraps onto the next")
+
+
 func test_a_battles_last_line_stands_its_hold_before_a_can_close_it() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
@@ -885,6 +904,17 @@ func test_a_battles_last_line_stands_its_hold_before_a_can_close_it() -> void:
 	assert_true(field.is_playing(), "the line is up, but its hold is not over")
 	for frame: int in PokeCoopBattleField.HOLD_FRAMES + 1:
 		field._advance_text()
+	assert_false(field.is_playing())
+
+
+func test_a_view_the_field_has_not_played_yet_keeps_a_from_closing_the_battle() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
+	var field: PokeCoopBattleField = add_child_autofree(PokeCoopBattleField.over(panel, _data))
+	field.visible = true
+	assert_true(field.is_playing(), "the battle's view has come in, but the field has not read it")
+	field._take_events(panel.battle_view())
+	field._messages.clear()
 	assert_false(field.is_playing())
 
 
