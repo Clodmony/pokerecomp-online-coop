@@ -228,7 +228,9 @@ are gone; a joining device closes its link. Either way the world returns to the
 launcher and the session never reports ready again. A joiner told the session
 ended shows why over the world for three seconds first. A joiner whose link
 drops dials again as the same player every two seconds and gives up after ten
-tries as `host_unreachable`; ENet peers time out after two to six seconds so a
+tries as `host_unreachable` (the session's timers count milliseconds, since a
+window draws far more than sixty frames a second); ENet peers time out after
+two to six seconds so a
 lost player is freed for that. The host also writes the campaign whenever its
 last running battle ends, and at most every thirty seconds while anything has
 changed and no battle runs, so a crash loses at most the battle in progress and

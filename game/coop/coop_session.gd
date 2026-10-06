@@ -8,9 +8,9 @@ extends RefCounted
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
-const NOTICE_FRAMES: int = 240
-const LEAVE_FRAMES: int = 180
-const RECONNECT_FRAMES: int = 120
+const NOTICE_MSEC: int = 4000
+const LEAVE_MSEC: int = 3000
+const RECONNECT_MSEC: int = 2000
 const RECONNECT_ATTEMPTS: int = 10
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
@@ -39,10 +39,10 @@ var _whiteout_due: bool = false
 var _was_ready: bool = false
 var _closed: bool = false
 var _reconnect_attempts: int = 0
-var _reconnect_in: int = 0
-var _leaving_in: int = -1
+var _reconnect_at: int = 0
+var _leaving_at: int = -1
 var _notice: Label = null
-var _notice_frames: int = 0
+var _notice_until: int = 0
 var _noticed_save: int = -1
 
 
@@ -185,16 +185,15 @@ func _tend_world() -> void:
 ## A dropped link: dial again as the same player until the host takes them back,
 ## waiting out its refusal while it still counts them connected.
 func _keep_connected() -> void:
-	if not _was_ready or client.connected or _leaving_in >= 0 or _closed:
+	if not _was_ready or client.connected or _leaving_at >= 0 or _closed:
 		return
 	if client.ended_reason == "refused: already_connected":
 		client.ended_reason = ""
 	if not client.ended_reason.is_empty():
 		return
-	_reconnect_in -= 1
-	if _reconnect_in > 0:
+	if Time.get_ticks_msec() < _reconnect_at:
 		return
-	_reconnect_in = RECONNECT_FRAMES
+	_reconnect_at = Time.get_ticks_msec() + RECONNECT_MSEC
 	_reconnect_attempts += 1
 	if _reconnect_attempts > RECONNECT_ATTEMPTS:
 		client.ended_reason = "host_unreachable"
@@ -211,18 +210,16 @@ func _keep_connected() -> void:
 func _follow_session_end() -> void:
 	if screen == null or not is_instance_valid(screen):
 		return
-	if _leaving_in < 0 and not client.ended_reason.is_empty():
+	if _leaving_at < 0 and not client.ended_reason.is_empty():
 		say("The session ended: %s." % client.ended_reason.replace("_", " "))
-		_leaving_in = LEAVE_FRAMES
-	if _leaving_in > 0:
-		_leaving_in -= 1
-		if _leaving_in == 0:
-			leave()
+		_leaving_at = Time.get_ticks_msec() + LEAVE_MSEC
+	if _leaving_at > 0 and Time.get_ticks_msec() >= _leaving_at:
+		leave()
 
 
 ## Back to the launcher; a hosting device first tells every client the run ended.
 func leave() -> void:
-	_leaving_in = 0
+	_leaving_at = 0
 	_closed = true
 	if host != null and not host.ended:
 		host.shutdown()
@@ -245,8 +242,7 @@ func _finish_closing() -> void:
 
 ## The world printed its own "saved" line; a checkpoint the host refused says so.
 func _tell_refused_save() -> void:
-	_notice_frames -= 1
-	if _notice != null and _notice_frames == 0:
+	if _notice != null and _notice.visible and Time.get_ticks_msec() >= _notice_until:
 		_notice.visible = false
 	if link == null or link.save_seq < 0 or link.save_seq == _noticed_save:
 		return
@@ -262,7 +258,7 @@ func say(text: String) -> void:
 		return
 	_notice.text = text
 	_notice.visible = true
-	_notice_frames = NOTICE_FRAMES
+	_notice_until = Time.get_ticks_msec() + NOTICE_MSEC
 
 
 ## What a finished host battle owes this window's world: its player's Pokémon

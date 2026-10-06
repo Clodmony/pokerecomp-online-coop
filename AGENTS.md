@@ -15,6 +15,8 @@ Read before working:
 - [docs/coop/architecture.md](docs/coop/architecture.md): what exists and what changes next.
 - [docs/coop/progress.md](docs/coop/progress.md): implemented, verified, incomplete, blocked.
 - [docs/coop/decisions.md](docs/coop/decisions.md): decisions and trade-offs.
+- [docs/coop/playing.md](docs/coop/playing.md): how players host, join, battle and trade.
+- [docs/coop/readiness.md](docs/coop/readiness.md): what to check before a private build.
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): upstream's rules, which still apply
   (file budget, comment budget, test rules, style, no cartridge data).
 
