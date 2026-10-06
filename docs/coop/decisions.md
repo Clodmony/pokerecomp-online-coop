@@ -662,3 +662,45 @@ player). The world screen now refuses the player's own steps while any object
 walks a scripted stream on Generation 1, which is the narrow part of
 `wJoyIgnore` this needs; modelling the byte everywhere would also need every
 engine path that clears it.
+
+## D55. Three or more players in battles and trades (2026-10-07)
+
+The panel showed only the first partner's suggestion. It now marks every
+partner's suggestion, each named in that partner's colour, several on one row
+in join order; two players see the same single mark as before. The Cable Club
+named the first free player by id as the trade partner, so a third player was
+pointed at someone already trading. The partner is now an offer either side
+made; else the player's mate in the Trade Center or Colosseum, paired in id
+order and kept while both stay; else, from outside, someone waiting alone in a
+room; else the first other free player with no mate and no offer. A third
+player in a room of two gets no cable. A team the twelve-place allied roster has
+no room for now joins with its first fit Pokémon in party order instead of being
+refused, and the rest sit the battle out untouched; with no room left the join
+is refused (`roster_full`). If the alliance loses, everyone in the battle whites
+out, a trimmed joiner included.
+
+## D56. A SAVE the host would refuse fails in the game's own box (2026-10-07)
+
+A window's START > SAVE wrote its save and printed the cartridge's "<NAME> saved
+the game!" before asking the host for a checkpoint, so a refusal during a battle
+was only a notice over a line saying the opposite (L2). The host's state now
+carries why a checkpoint would be refused (`saved.blocked`, the rule
+`save_checkpoint` uses), and the world screen asks a `save_gate` before the START
+menu's SAVE writes. A window's gate answers with that reason, so the prompt takes
+its own FAILED step ("Save failed: battle in progress") and ends as a NO: nothing
+is written and no checkpoint is asked for. Only START > SAVE is gated; a
+service's save (box change, Cable Club, Hall of Fame) still writes the window's
+scratch save, so a partner's battle holds none of them up, and the host saves
+the campaign after the battle anyway. A battle that starts between the host's
+last state and the request is still refused by the host and told by the notice.
+
+## D57. A Generation 1 press faces its direction (2026-10-07)
+
+`.handleDirectionButtonPress` stores the pressed direction in
+`wPlayerDirection` before it decides whether to turn, so on the cartridge a
+press that bumps or does not turn still faces the pressed way. The world kept
+the old facing, and its turn rule only turns on a fresh press from a standstill,
+so a press made on the frame the player stopped never turned them (L11). After
+the Viridian Mart gives OAK'S PARCEL, the script leaves the player on the exit
+mat facing the counter, and pressing DOWN neither turned nor left the shop. The
+world now faces a pressed direction whenever no forced movement owns the step.

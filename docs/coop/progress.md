@@ -103,6 +103,10 @@ charged twice; the world's SAVE writes the campaign.
 | Local x86_64, opening and echo | Session tests: a player in the opening gets no starter, stands in the bedroom, sees nobody and is seen by nobody until the lab is left, keeps story changes off the campaign until then, and their rival fight is private and claims no campaign encounter; a window's stale echo no longer rewinds a map script it moved on twice (the test fails without the fix); a player part-way through the opening survives a save |
 | Local x86_64, story items and partners | Session tests: potions picked up with a story change reach the partner in the same number while an item bought stays the buyer's; OAK's PARCEL delivered is taken from both players while a fossil stays with each; a partner on the map is a solid actor |
 | Single player, Red: the lab's challenge (L10) | Driving the lab in a plain world, walking down at once after naming the starter: the player now stands still while the rival walks to his POKé BALL (D54), and walking down then meets "BLUE: Wait RED!" and the fight, where before the player left the lab without it |
+| Local x86_64, three players (in-memory loopback, synthetic cache) | `test_coop_three_players` 9/9: every partner's suggestion on the controller's panel in their colour, two-player mark unchanged; Trade Center pairing (pair kept when a third enters, re-paired when one leaves, id order on simultaneous arrival, a waiting player cabled from outside) and a trade between two of three; a third team trimmed to the two fit Pokémon left, refused with no room, queued joins sharing the room. Not played with three windows (D55) |
+| Local x86_64, refused save | `test_coop_save_refusal` 4/4: the host's state carries why a checkpoint would be refused; Red's Gen 1 save menu reaches its FAILED step during a battle, sends no checkpoint and saves after it; a real world screen's START > SAVE ends SAVE_FAILED and leaves the save untouched (D56). Not yet seen on a real cartridge |
+| Local x86_64, two-process ENet check (#47) | `tools/coop_two_process.sh <port>` runs the host, p1 and p2 as three processes on the synthetic cache: p1 starts a battle, p2 joins, the turn goes to p2's Pokémon and back, the battle is won, the host shuts down and both players end on `host_shutdown`. 30/30 passes (16 sequential, 5 pinned to one CPU, 9 as three concurrent runs); a busy port, a missing player, an unknown role and a 2 s cap all exit non-zero, and a demo that cannot listen now fails instead of passing 0 steps. The CI step is written but not run (GitHub paused) |
+| Local x86_64, whole suite after merging | 4942/4942 with the three branches above, the story items and the Gen 1 facing fix |
 | Builds, commit 2cacdc6e (then c86e20b4) | Stock 4.8-dev4 export templates installed (SHA-512 checked); `Windows Desktop` (119 MB) and `Linux` (85 MB) release builds exported, one file each, no cartridge data; the Linux build and the Windows build under Wine boot headless; the official Windows engine under Wine imported Red (same SHA-1 as the Linux side) and joined a host run by the Linux engine over a socket: given its starter, its world opened, each side saw the other. Not yet run on a real Windows PC |
 | Builds, commit c0a14aed | `Windows Desktop` and `Linux` release builds exported again with several campaigns and the opening (players meet after Oak's lab); the Linux build boots headless and the Windows build boots under Wine; zipped for the Windows player with an updated guide (the opening, hosting a named campaign). Not yet run on a real Windows PC |
 | Local x86_64, joining a host that never answers | a device test dials a port nobody hosts: after fifteen seconds the session reports `host_unreachable` and the Co-op tab explains the address, the Host button and UDP 24680; a cartridge mismatch now says both players need the same game file |
@@ -197,6 +201,8 @@ has **played** it by hand yet.
   the campaign.
 - Every item found or given along the story reaches every player, and a key
   item the story takes is taken from all (D52); partners block the way (D53).
+- Battles and trades ready for three or more players (D55); a refused SAVE
+  fails in the game's own box (D56).
 - Lifecycle: leave from the session menu, end notices, return to the
   launcher, reconnection, autosave between battles, on leaving and when a
   hosting app is paused (D28); a stand-in for a controller who stays away
@@ -207,8 +213,8 @@ has **played** it by hand yet.
 
 - The host does not check collision and trusts reported warps, world patches
   and the enemies a window's world prepared (#22, #25).
-- A world SAVE the host refuses (a battle is running) prints the game's own
-  "saved" line, with the refusal shown over it as a notice (L2).
+- A battle that starts between the host's last state and a window's SAVE is
+  still refused after the game's "saved" line, with the notice (D56).
 - A shared battle is drawn on the cartridge's battle field (pictures, status
   panels, HP bars and the turn's messages in the game's text box), but it is
   not the battle screen itself (#26): move animations play with their sounds,

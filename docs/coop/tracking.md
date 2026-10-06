@@ -62,7 +62,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 44 | Private Windows and Linux builds | partial: the stock 4.8-dev4 export templates are installed locally; `Windows Desktop` and `Linux` export from the existing presets (release, one file each, no cartridge data); a Windows engine under Wine joined a Linux host; not yet run on a real Windows PC | `coop/launcher` | comment, keep open until the first session on Windows |
 | 45 | Android client: lifecycle and reconnect | open: pause and resume handling exists (D46), no Android build or device run | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
-| 47 | Two-process ENet integration check in CI | partial: the ENet demo runs in CI in one process; two processes and two windows run locally only | | keep open |
+| 47 | Two-process ENet integration check in CI | partial: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes; `ci.yml` runs it after the demo, not yet run while GitHub is paused | `coop/launcher` (`d5e65c2f`) | close once the new CI step passes on a pull request |
 | 48 | Scripted co-op playthrough to the first gym (local cartridge only) | partial: scripted two-window runs cover the opening, Route 1, a joined wild battle, BROCK from the session menu, the Cable Club trade and OAK's PARCEL; no single run from the start to BROCK's gym | local scratch drivers | keep open |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
 | 50 | German Red/Blue support | open (later milestone) | | keep open |
@@ -80,7 +80,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L | Title | Milestone | Notes |
 |---|---|---|---|
 | L1 | Claim trainers fought from a window as unique encounters | M6 | done on `coop/m1-state-sync`: a second window joins the running fight, a beaten trainer stays beaten |
-| L2 | Tell a window when its SAVE was refused | M8 | done on `coop/launcher`: a notice over the world says why |
+| L2 | Tell a window when its SAVE was refused | M8 | done: a notice over the world says why; since D56 the game's own box says "Save failed: battle in progress" before anything is written, the notice remaining for a battle that starts on the way |
 | L3 | Leave a session from the game and return to the launcher | M9 | done on `coop/launcher`: LEAVE SESSION, the end notice and the window closing all leave through one path |
 | L4 | Window saves failed the game's own checks (slot -1), refusing PC and other validated services | M7 | done on `coop/launcher`: slot 0 under a scratch save root |
 | L5 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |
@@ -89,8 +89,9 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L7 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
 | L9 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
 | L10 | Upstream: the rival's challenge in Oak's lab can be walked past: the player can move while the rival walks to his POKé BALL (`wJoyIgnore` not modelled), and walking down at once leaves the lab without the fight | upstream | fixed in the fork's `world_screen.gd` (D54): no player step while a Gen 1 script walks someone; checked in single player. File upstream with the fix |
-| L11 | Upstream: a direction pressed on the frame the player stops is recorded as the last stop direction without turning, so further presses of it bump without turning until another direction is pressed | upstream | seen while driving the lab; not checked against hardware. File upstream |
+| L11 | Upstream: a direction pressed on the frame the player stops never turns them, and a press that does not turn leaves the facing alone, so after the Viridian Mart's parcel scene DOWN does not leave the shop | upstream | fixed in the fork's `world_api.gd` (D57): a Gen 1 press faces its direction as `wPlayerDirection` does; file upstream with the fix |
 | L12 | A new player plays the opening on a story of their own | M9 | done on `coop/launcher` (D50) |
 | L13 | A window's stale echo of its own world change rewound map scripts | M7 | fixed on `coop/launcher` (D51) |
 | L14 | Every item found or given along the story reaches every player; key items the story takes are taken from all | M7 | done on `coop/launcher` (D52) |
 | L15 | Partners are solid, so players do not stand on one cell | M3 | done on `coop/launcher` (D53) |
+| L16 | Three or more players: every partner's suggestion shown, Cable Club partner by room, a third team joins with what fits | M3 | done on `coop/launcher` (D55); tests only, not played with three |
