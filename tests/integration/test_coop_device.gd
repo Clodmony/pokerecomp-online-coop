@@ -119,3 +119,16 @@ func test_a_host_that_leaves_saves_the_campaign_and_tells_the_others() -> void:
 	assert_false(hosting.is_ready(), "a session that was left does not open its world again")
 	var saved: Dictionary = PokeCoopSave.read(PokeCoopSession.campaign_path(_data))
 	assert_eq((saved.get("players", []) as Array).size(), 2, "both players are in the saved campaign")
+
+
+func test_a_hosting_device_sent_to_the_background_keeps_the_campaign() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	if FileAccess.file_exists(PokeCoopSession.campaign_path(_data)):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(PokeCoopSession.campaign_path(_data)))
+
+	hosting.suspend()
+
+	var saved: Dictionary = PokeCoopSave.read(PokeCoopSession.campaign_path(_data))
+	assert_eq((saved.get("players", []) as Array).size(), 1, "the host's player is in the saved campaign")

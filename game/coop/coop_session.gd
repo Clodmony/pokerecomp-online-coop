@@ -336,6 +336,13 @@ func _claim_seams() -> void:
 	_takeover.data = data
 
 
+## The app went to the background, where a phone may end it unasked: a hosting
+## device keeps the campaign as it stands between battles.
+func suspend() -> void:
+	if host != null and not host.ended:
+		host.save_checkpoint()
+
+
 ## Ends the run: the host, when this device is it, tells everyone first.
 func close() -> void:
 	_closed = true

@@ -32,7 +32,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 16 | Classify every world, save and runtime field | done | `coop/m1-state-sync` (`9efac512`) | close when the branch merges |
 | 17 | Run the world logic against a campaign plus player projection | done (each window runs its own world, synced by patches) | `coop/m1-state-sync` (`a151f505`) | close when the branch merges |
 | 18 | GameRuntime co-op mode | done | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
-| 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player, gives up after ten tries; no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
+| 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player, gives up after ten tries; a hosting app sent to the background saves the campaign; no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
 | 25 | Host-side wild encounters and trainer sight per player | partial: the window's world rolls them, the host fights them | `coop/m1-state-sync` (`15028474`) | comment, keep open for host-side generation with #22 |
 | 26 | Drive the battle screen from authoritative session events | partial: the battle field (pictures, panels, HP bars, turn text) is drawn from the host's view (D32); no animations or cries | `coop/launcher` | comment, keep open |
 | 34 | Policy: a player joining a campaign late | partial: provisional rule implemented (starter of choice, intro done) | `coop/launcher` (`260ed3b0`) | comment with the rule, keep open for the owner's decision |

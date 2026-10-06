@@ -215,6 +215,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and coop != null:
 		coop.close()
 		coop = null
+	elif what == NOTIFICATION_APPLICATION_PAUSED and coop != null:
+		coop.suspend()
 
 
 ## Puts the app block's window and frame-rate settings into the engine. The
