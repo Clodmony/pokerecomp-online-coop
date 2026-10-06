@@ -538,7 +538,9 @@ fades after a few seconds. Every row is a link: a tap or a click puts the cursor
 on it (which is a suggestion when it is not your turn) and a second one chooses
 it, so touch play does not depend on the on-screen d-pad. The session menu says
 who else is playing and what a running battle is against. Rows keep their
-command text for scripts and tests; what is shown is a separate label. Over the
+command text for scripts and tests; what is shown is a separate label; the
+session menu also says where each partner is, by the town map's name for the
+area ("With RED (ROUTE 1)"). Over the
 world, a line on a dark backdrop says when a partner joins or leaves the session
 and when they start a battle this player is free to join ("RED is in a battle
 against wild RATTATA. SELECT to join."), so a battle on another map is not

@@ -34,6 +34,7 @@ host, so joining the same host again brings the same trainer back.
 
 ## Battles
 
+- The session menu (SELECT) says where your partner is ("With RED (ROUTE 1)").
 - Wild and trainer battles your world starts are fought on the host, so the
   partner can join; their window says so ("RED is in a battle against wild
   RATTATA. SELECT to join."), and also when a player joins or leaves. **SELECT** opens the session menu: join a running battle

@@ -213,6 +213,12 @@ func _foe(running: Dictionary) -> String:
 	return data.trainer_name(trainer) if trainer > 0 and data != null else "wild %s" % species
 
 
+func _place(map: Variant) -> String:
+	if not map is Vector2i or data == null or data.generation != RomRegistry.GEN1:
+		return ""
+	return data.landmark_name(data.area_landmark((map as Vector2i).y)).strip_edges()
+
+
 func _menu_text() -> String:
 	var lines: PackedStringArray = ["[b]CO-OP SESSION[/b]   you are %s" % _name_bb(client.player_id)]
 	var others: PackedStringArray = []
@@ -220,7 +226,9 @@ func _menu_text() -> String:
 	for player_id: String in everyone:
 		if player_id != client.player_id and bool((everyone[player_id] as Dictionary).get("connected", true)):
 			var busy_with: String = String((everyone[player_id] as Dictionary).get("battle", ""))
-			others.append(_name_bb(player_id) + (" (in a battle)" if not busy_with.is_empty() else ""))
+			var place: String = _place((everyone[player_id] as Dictionary).get("map"))
+			others.append(_name_bb(player_id) + (" (in a battle)" if not busy_with.is_empty() \
+				else (" (%s)" % _escaped(place) if not place.is_empty() else "")))
 	lines.append("[color=%s]With %s[/color]" % [MUTED, ", ".join(others) if not others.is_empty() else "nobody yet"])
 	lines.append("")
 	lines.append_array(_row_lines({}))
