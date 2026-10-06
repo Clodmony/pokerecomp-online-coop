@@ -92,3 +92,7 @@ jobs:
         run: |
           tools/ci_godot.sh ~/godot/godot --headless --path . \
             -s res://tools/coop_session.gd -- demo
+
+      # The same slice as a host and two players in three processes; caps each at 180s.
+      - name: Co-op over ENet in three processes
+        run: GODOT="$HOME/godot/godot" tools/coop_two_process.sh 24690 180
