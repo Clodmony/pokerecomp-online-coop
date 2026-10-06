@@ -208,3 +208,15 @@ func test_a_campaign_file_this_build_cannot_read_is_left_alone() -> void:
 	assert_null(hosting, "no new campaign is started over it")
 	assert_eq(PokeCoopSession.last_failure, "campaign_unreadable")
 	assert_string_contains(FileAccess.get_file_as_string(path), "999", "the file is as it was")
+
+
+func test_a_world_held_under_the_panel_keeps_its_audio_playing() -> void:
+	var world: Node = add_child_autofree(Node.new())
+	var audio := Node.new()
+	world.add_child(audio)
+
+	PokeCoopSession.hold_world(world, audio, true)
+	assert_eq([world.can_process(), audio.can_process()], [false, true], "the battle's music goes on")
+	PokeCoopSession.hold_world(world, audio, false)
+	assert_eq([world.can_process(), audio.can_process()], [true, true])
+	assert_eq(audio.process_mode, Node.PROCESS_MODE_INHERIT, "a paused game pauses it again")

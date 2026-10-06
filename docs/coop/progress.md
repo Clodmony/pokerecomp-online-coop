@@ -92,8 +92,10 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: move animations | In the BROCK fight, "CHARMANDER used SCRATCH!" is followed by the cartridge's claw marks over GEODUDE before "It's not very effective..."; recorded as a clip |
 | Screens (scripted), Red: draining bars | After "Enemy GEODUDE used TACKLE!" CHARMANDER's bar goes 34, 32, 29, 27 frame by frame, and a turn's lines, animations and bars play in order before the next choice is taken |
 | Screens (scripted), Red: move sounds | In the BROCK fight the field asked the world's audio player for four move sounds (SCRATCH, TACKLE, DEFENSE CURL rows), seen in a temporary log line; a Movie Maker recording has the audio track, which the overworld music dominates, so the sounds were checked by the calls rather than by ear |
-| Screens (scripted), Red: hit effects | In the BROCK fight, after SCRATCH lands GEODUDE's picture blinks off and on five times; "Enemy GEODUDE used DEFENSE CURL!" flashes the field's palettes; after "Enemy GEODUDE used TACKLE!" the whole field jolts down and back (the cartridge's vertical shake through the scroll registers); frames captured every ten frames and a Movie Maker recording with sound |
-| Screens (scripted), Red: battle music | Both windows start the battle music the cache has for the fight when the battle opens, and a window's map music comes back when the battle closes (temporary log lines) |
+| Screens (scripted), Red: hit effects | In the BROCK fight, after SCRATCH lands GEODUDE's picture blinks off and on five times; "Enemy GEODUDE used DEFENSE CURL!" flashes the field's palettes; after "Enemy GEODUDE used TACKLE!" the whole field jolts down and back (the cartridge's vertical shake through the scroll registers); frames captured every ten frames and a Movie Maker recording (whose battle part turned out silent, see battle audio) |
+| Screens (scripted), Red: battle audio | Every earlier recording was silent from the battle's first frame (-91 dB): the session held the world screen, and the audio player inside it, under the panel (D38). With the audio player kept running, a Movie Maker recording of RED's throws at a wild PIDGEY peaks between -3 and -6 dB through the whole battle |
+| Screens (scripted), Red: thrown balls | RED throws seven balls at a wild PIDGEY from the session menu: each plays the toss (GREAT BALL's own), the poof, PIDGEY hidden in a shaking ball, then the poof and PIDGEY back with "Shoot! It was so close too!" or "Aww! It appeared to be caught!"; the seventh catches it and "All right! PIDGEY was caught!" shows with PIDGEY still in the ball; frames every four frames and a recording with sound |
+| Screens (scripted), Red: battle music | Both windows start the battle music the cache has for the fight when the battle opens, and a window's map music comes back when the battle closes (temporary log lines; inaudible until D38) |
 | Screens (scripted), Red: opening and fanfare | A wild PIDGEY from the session menu opens with "Wild PIDGEY appeared!"; the win queued and played the wild fanfare (temporary log line) |
 | Screens (scripted), Red: ZAPDOS | RED and BLUE stand beside ZAPDOS in the Power Plant; RED talks to it, then BLUE does, and BLUE is joined into RED's battle rather than given a second ZAPDOS ("BLUE joined the battle!"); "RED used MASTER BALL!" and "All right! ZAPDOS was caught!"; RED's team gains ZAPDOS once, and EVENT_BEAT_ZAPDOS reaches BLUE's world, so it is gone in both |
 | Local x86_64, exit hang, co-op only | the co-op suites ran fifteen times in a row under the watcher and always exited, so the rare hang is not narrowed to them |
@@ -105,6 +107,7 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: stand-in | RED starts the BROCK fight, BLUE joins, and RED's window is closed on RED's turn: within five seconds BLUE's window shows "PAUSED: waiting for RED to reconnect" and "RED is away. Waiting..."; thirty seconds later "YOUR TURN for RED's POKéMON" and BLUE moves RED's CHARMANDER until the battle ends |
 | Screens (scripted), Red: Mart | BLUE buys a POKé BALL at the Pewter Mart: the window shows ¥3000 then ¥2800, and the host's record of BLUE (echoed in BLUE's own view) reads money 2800 and one POKé BALL |
 | Screens (scripted), Red: portrait | RED's window at 540x960 in the Brock fight: the battle field fills the width at the top and the co-op panel sits under it |
+| Local x86_64, whole suite after thrown balls and battle audio | 4902/4902; co-op suites 90/90; ENet demo 16/16; boot smoke and release gates pass |
 | Local x86_64, whole suite after the hit effects | 4900/4900; co-op suites 88/88; ENet demo 16/16; boot smoke and release gates pass |
 | Local x86_64, whole suite after the battle field | 4881/4881 twice; co-op suites 69/69; ENet demo 16/16; boot smoke and release gates pass. One earlier run passed every test and then did not exit (busy for minutes after GUT's summary); the rerun exited normally, and the cause is not known yet |
 | Local x86_64, whole suite after trades | 4879/4879; co-op suites 67/67; ENet demo 16/16; boot smoke and release gates pass |
@@ -167,9 +170,9 @@ has **played** it by hand yet.
 - A shared battle is drawn on the cartridge's battle field (pictures, status
   panels, HP bars and the turn's messages in the game's text box), but it is
   not the battle screen itself (#26): move animations play with their sounds,
-  hit sounds, blinks and screen shakes, and bars drain over the battle's music
-  with cries and the victory fanfare, but there is no thrown-ball or send-out
-  animation and no sliding intro.
+  hit sounds, blinks and screen shakes, thrown balls toss, shake and break out,
+  and bars drain over the battle's music with cries and the victory fanfare,
+  but there is no send-out animation and no sliding intro.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).

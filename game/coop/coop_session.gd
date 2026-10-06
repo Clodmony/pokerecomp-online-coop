@@ -177,10 +177,8 @@ func _advance_links() -> void:
 
 ## The world stands still under the panel and settles its player once it closes.
 func _tend_world() -> void:
-	var mode: Node.ProcessMode = Node.PROCESS_MODE_DISABLED if panel.is_open() \
-		else Node.PROCESS_MODE_INHERIT
-	if screen.process_mode != mode:
-		screen.process_mode = mode
+	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != panel.is_open():
+		hold_world(screen, screen.get("_audio_player"), panel.is_open())
 	_collect_evolutions()
 	_tell_refused_save()
 	if not panel.is_open() and _whiteout_due:
@@ -189,6 +187,13 @@ func _tend_world() -> void:
 	elif not panel.is_open() and not _evolving.is_empty():
 		screen.evolve_after_battle(_evolving)
 		_evolving = []
+
+
+## A held world's audio player goes on: the battle's music and sounds play through it.
+static func hold_world(world: Node, audio: Node, frozen: bool) -> void:
+	world.process_mode = Node.PROCESS_MODE_DISABLED if frozen else Node.PROCESS_MODE_INHERIT
+	if audio != null:
+		audio.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
 
 
 ## A dropped link: dial again as the same player until the host takes them back,
@@ -295,8 +300,7 @@ func _collect_evolutions() -> void:
 				_evolving.append(index)
 
 
-## The world screen for this player, built once the host has said who they are.
-## The caller puts it in the tree; the panel rides on it.
+## This player's world screen, once the host has said who they are, for the caller to add.
 func open_world() -> Gen2WorldScreen:
 	if not is_ready() or screen != null:
 		return screen
