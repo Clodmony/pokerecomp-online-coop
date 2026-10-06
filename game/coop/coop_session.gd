@@ -11,7 +11,8 @@ const TAKEOVER_ID: StringName = &"coop_battles"
 const NOTICE_MSEC: int = 4000
 const LEAVE_MSEC: int = 3000
 const RECONNECT_MSEC: int = 2000
-const RECONNECT_ATTEMPTS: int = 10
+const RECONNECT_ATTEMPTS: int = 60
+const RESUME_REDIAL_MSEC: int = 3000
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
@@ -48,6 +49,8 @@ var _notice: Label = null
 var _notice_until: int = 0
 var _noticed_save: int = -1
 var _partners_seen: Dictionary = {}
+var _paused: bool = false
+var _paused_at: int = 0
 
 
 static func campaign_path(game: GameData) -> String:
@@ -204,6 +207,8 @@ static func hold_world(world: Node, audio: Node, frozen: bool) -> void:
 func _keep_connected() -> void:
 	if client.welcomes != _welcomes_seen:
 		_welcomes_seen = client.welcomes
+		if _reconnect_attempts > 0:
+			say("Back in the session.")
 		_reconnect_attempts = 0
 	if not _was_ready or client.connected or _leaving_at >= 0 or _closed:
 		return
@@ -218,6 +223,7 @@ func _keep_connected() -> void:
 	if _reconnect_attempts > RECONNECT_ATTEMPTS:
 		client.ended_reason = "host_unreachable"
 		return
+	say("Lost the host: reconnecting...")
 	var link_again: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(
 		String(_greeting["address"]), int(_greeting["port"])
 	)
@@ -411,11 +417,24 @@ func _claim_seams() -> void:
 	_takeover.data = data
 
 
-## The app went to the background, where a phone may end it unasked: a hosting
-## device keeps the campaign as it stands between battles.
+## Into the background, where a phone may end the app: a host saves between battles.
 func suspend() -> void:
+	_paused = true
+	_paused_at = Time.get_ticks_msec()
 	if host != null and not host.ended:
 		host.save_checkpoint()
+
+
+## Back from a long pause, a joining device redials rather than wait out a dead link.
+func resume() -> void:
+	var away: int = Time.get_ticks_msec() - _paused_at if _paused else 0
+	_paused = false
+	if host != null or _closed or away < RESUME_REDIAL_MSEC or not client.connected:
+		return
+	client.transport.close()
+	client.connected = false
+	_reconnect_at = 0
+	_reconnect_attempts = 0
 
 
 ## Ends the run: the host, when this device is it, tells everyone first.

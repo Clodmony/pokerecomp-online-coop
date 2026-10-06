@@ -32,7 +32,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 16 | Classify every world, save and runtime field | done | `coop/m1-state-sync` (`9efac512`) | close when the branch merges |
 | 17 | Run the world logic against a campaign plus player projection | done (each window runs its own world, synced by patches) | `coop/m1-state-sync` (`a151f505`) | close when the branch merges |
 | 18 | GameRuntime co-op mode | done | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
-| 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player, gives up after ten tries; a hosting app sent to the background saves the campaign; no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
+| 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player for about two minutes with a notice; a hosting app sent to the background saves the campaign; a joiner back from a pause redials at once (D46); no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
 | 21 | Protocol hardening: limits, schema validation and fuzzing | done: seeded fuzz test over every message type, boundary readers and shape checks, 2 MiB packet cap (D35) | `coop/launcher` | close when the branch merges |
 | 23 | Remote players on the same map with interpolation | done | `coop/slice-1` (`PokeCoopRemoteActor`), screenshots in `progress.md` | close when the branch merges |
 | 25 | Host-side wild encounters and trainer sight per player | partial: the window's world rolls them, the host fights them | `coop/m1-state-sync` (`15028474`) | comment, keep open for host-side generation with #22 |

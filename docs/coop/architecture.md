@@ -159,7 +159,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
 | `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
-| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, closed when the window is |
+| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, closed when the window is, told when the app is paused and resumed |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
 | `.github/workflows/ci.yml` | co-op ENet demo step |

@@ -543,3 +543,16 @@ world, a line on a dark backdrop says when a partner joins or leaves the session
 and when they start a battle this player is free to join ("RED is in a battle
 against wild RATTATA. SELECT to join."), so a battle on another map is not
 missed.
+
+## D46. Reconnecting outlives a phone's pause (2026-10-06)
+
+A dropped link was redialled ten times, two seconds apart, before the window
+gave up and went back to the launcher, so a hosting phone sent to the
+background for twenty seconds ended its partner's session, and a joining phone
+coming back from a pause sat on a link that looked open until ENet timed it
+out. The window now redials for about two minutes with "Lost the host:
+reconnecting..." over the world and says "Back in the session." when the host
+takes it back. `Gen2GameRuntime` forwards `NOTIFICATION_APPLICATION_RESUMED`
+to the session, and a joining device that was paused for more than three
+seconds closes its link and dials straight away. A battle the world starts
+while the link is down is fought in the world itself, as before (D24).

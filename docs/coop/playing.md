@@ -61,7 +61,9 @@ partner's real party; trade-evolving Pokémon evolve on arrival.
 
 LEAVE SESSION in the SELECT menu returns you to the launcher. When the host
 leaves, everyone is told why and returned to the launcher. A dropped
-connection is retried for about twenty seconds.
+connection is retried for about two minutes ("Lost the host: reconnecting...",
+then "Back in the session."), so a host that restarts or a phone that comes
+back from the background picks up where it was.
 
 ## Known limits
 
