@@ -119,8 +119,8 @@ has **played** it by hand yet.
 
 - The host does not check collision and trusts reported warps, world patches
   and the enemies a window's world prepared (#22, #25).
-- A world SAVE the host refuses (a battle is running) still says "saved" in the
-  window (L2).
+- A world SAVE the host refuses (a battle is running) prints the game's own
+  "saved" line, with the refusal shown over it as a notice (L2).
 - The battle is a text panel, not the battle screen (#26): no animations,
   battle text or cries in a shared battle.
 - Gen 2 enemy AI in sessions is a random usable move (#27).

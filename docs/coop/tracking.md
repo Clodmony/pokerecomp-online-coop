@@ -45,4 +45,4 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L | Title | Milestone | Notes |
 |---|---|---|---|
 | L1 | Claim trainers fought from a window as unique encounters | M6 | done on `coop/m1-state-sync`: a second window joins the running fight, a beaten trainer stays beaten |
-| L2 | Tell a window when its SAVE was refused | M8 | the world says "saved" even when the host refused a checkpoint during a battle |
+| L2 | Tell a window when its SAVE was refused | M8 | done on `coop/launcher`: a notice over the world says why |
