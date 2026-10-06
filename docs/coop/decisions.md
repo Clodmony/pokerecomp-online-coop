@@ -196,3 +196,24 @@ beaten without a fight.
 fresh campaign sets EVENT_FOLLOWED_OAK_INTO_LAB, its second flag,
 OAK_ASKED_TO_CHOOSE_MON, GOT_STARTER and BATTLED_RIVAL_IN_OAKS_LAB (from the
 pinned pokered). Starting a campaign from the real intro is #34.
+
+## D26. Launcher co-op is one session class held by the runtime (2026-10-06)
+
+`PokeCoopSession` owns a device's run: the client, the in-process host when the
+device hosts (it listens on ENet and its own player dials 127.0.0.1 like
+anyone else), and the world screen with actor, takeover, link and panel.
+`Gen2GameRuntime.coop` holds it so it survives the change from the launcher to
+the world. Identities are remembered per cartridge, address and port in
+`user://coop_identity.json`; the hosting player has its own key, and a device
+whose remembered player is already connected joins as somebody new, so two
+windows on one machine are two players.
+
+## D27. Each world settles its own player after a host battle (2026-10-06)
+
+Evolution and whiteout are the world's own sequences (`EvolveAfterBattle`,
+`Script_BattleWhiteout`), so a window runs them for its player after any host
+battle its world did not open, through `Gen2WorldScreen.evolve_after_battle`
+and `white_out`. The host no longer charges a blackout, so the cost is paid
+exactly where the player is sent home. Captures are rolled on the host with
+`Gen2WorldPartyHost.roll_capture` and filed once to the recipient the thrower
+named.

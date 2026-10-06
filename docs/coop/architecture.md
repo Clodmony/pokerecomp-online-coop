@@ -88,6 +88,10 @@ Further findings that shape the design:
    decides and the partner's suggestion (D22). `tools/coop_play.gd` assembles a
    window: data from the local cache, the world screen on a local save, the
    actor, the panel, and the world held still while the panel is open.
+   `PokeCoopSession` is that assembly as one class, used by the launcher's
+   Co-op tab (`PokeCoopPage`) and by the tool; `Gen2GameRuntime.coop` holds the
+   live session and drives it each frame. After a host battle the session runs
+   the window's own evolution and whiteout for its player (D26, D27).
 6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version`, the
    campaign section and one section per player, written atomically through a
    temporary file. Refuses unknown kinds and newer versions.
@@ -113,6 +117,7 @@ Peer 1 is the host.
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order) |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
+| `hello` (new player) | adds `starter`, the species a new player chose |
 
 | Host to client | Fields |
 |---|---|
@@ -140,6 +145,10 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/party.gd` | `MAX_ALLIED_SIZE` and `add_members()`; `create()` unchanged |
 | `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded` |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
+| `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
+| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host |
+| `autoload/game_runtime.gd` | `coop` slot driven from `_process` |
+| `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
 | `.github/workflows/ci.yml` | co-op ENet demo step |
 | `.github/workflows/release.yml`, `export-templates.yml` | run only in `Decryptu/pokerecomp` |
@@ -150,10 +159,8 @@ Kept small so upstream merges stay cheap (#14):
 
 In order of the backlog:
 
-1. Give `Gen2GameRuntime` a co-op mode and launch co-op from the game's own
-   launcher instead of `tools/coop_play.gd` (#18, #42).
-2. Per-player actors in a host-side world per active map (#22), with
+1. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
-3. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,
+2. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,
    and share the enemy AI choice between the screen and sessions (#27).
-4. Route map-script flags and badges through campaign commits (#32).
+3. Route map-script flags and badges through campaign commits (#32).
