@@ -6,6 +6,13 @@ extends Control
 
 const HOLD_FRAMES: int = 50
 const BOX_COLUMNS: int = 18
+const WORDED: Array[StringName] = [
+	Gen2Battle.USED_MOVE, Gen2Battle.MISSED, Gen2Battle.CRITICAL_HIT, Gen2Battle.EFFECTIVENESS,
+	Gen2Battle.FAINTED, Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW, Gen2Battle.CAUGHT, Gen2Battle.FLED,
+	Gen2Battle.EXP_GAINED, Gen2Battle.GREW_LEVEL, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
+	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
+	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN,
+]
 const GAP: int = 16
 
 var panel: PokeCoopBattlePanel = null
@@ -26,6 +33,7 @@ var _hp_before: Dictionary = {}
 var _hp_seen: Dictionary = {}
 var _anim_after: Dictionary = {}
 var _board := PokeCoopBattleStage.new()
+var _words: Gen2BattleScreen = null
 var _scene_seen: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
@@ -102,7 +110,6 @@ func _process(delta: float) -> void:
 		_board.settle(scene)
 
 
-## Whether the last turn is still being shown: its lines, animations or bars.
 func is_playing() -> bool:
 	var view: Dictionary = panel.battle_view() if panel != null else {}
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
@@ -191,7 +198,8 @@ func _take_events(view: Dictionary) -> void:
 	var names: Dictionary = _player_names()
 	for event: Dictionary in events:
 		_queue(event, out, view)
-		var paged: PackedStringArray = pages(message(event, out, data, names, _trainer_name(view)))
+		var paged: PackedStringArray = pages(message(event, out, data, names, _trainer_name(view)) \
+			if StringName(event.get("type", &"")) in WORDED else _screen_line(event, out))
 		for page: int in paged.size():
 			_messages.append({"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
@@ -207,6 +215,24 @@ func _take_events(view: Dictionary) -> void:
 		Gen2Battle.ENEMY: int((view.get("enemy", {}) as Dictionary).get("hp", 0)),
 		Gen2Battle.PLAYER: int((allies[active] as Dictionary).get("hp", 0)) if active < allies.size() else 0,
 	}
+
+
+## The single-player screen's own words for an event, told who was out when it happened.
+func _screen_line(event: Dictionary, out: Dictionary) -> String:
+	if _words == null:
+		_words = Gen2BattleScreen.new()
+		_words.set("_data", data)
+	_words.set("_player", int(out.get(Gen2Battle.PLAYER, 0)))
+	_words.set("_enemy", int(out.get(Gen2Battle.ENEMY, 0)))
+	var named: Dictionary = event.duplicate()
+	named["type"] = StringName(event.get("type", &""))
+	return String(_words.call("_describe", named))
+
+
+func _exit_tree() -> void:
+	if _words != null:
+		_words.free()
+		_words = null
 
 
 static func _key_of(view: Dictionary) -> String:

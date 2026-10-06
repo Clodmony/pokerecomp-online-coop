@@ -485,3 +485,15 @@ put the back picture's head into OAM the Crystal and Gold way (six columns from
 a six-row picture), which scrambles Red and Blue's seven-row picture in the
 single-player battle screen too. `LoadPlayerBackPic` uses seven columns of
 three from $A0, $38; `Gen2BattleIntro` now does so for Generation 1 (L8).
+
+## D43. The field borrows the battle screen's words (2026-10-06)
+
+The field worded a dozen events itself, so stat changes, status effects,
+"But, it failed!", poison damage, multi-hit counts and the rest of a turn went
+unsaid. The single-player screen's sentences live in its `GEN1_LINES` table
+and handler methods that read only the game data and who is out, so the field
+keeps one `Gen2BattleScreen` out of the tree and asks its `_describe` for every
+event outside `WORDED`, telling it which species were out when the event
+happened. The co-op events, the trainer's own lines, the learn offer's split and
+the forgotten move stay the field's. `_describe` is upstream's private method;
+a change to it shows up in the co-op tests.
