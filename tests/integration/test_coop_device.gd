@@ -88,6 +88,25 @@ func test_a_device_whose_link_drops_comes_back_on_its_own() -> void:
 	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own tries")
 
 
+func test_a_player_who_lost_their_remembered_id_gets_their_trainer_back_by_name() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	var blue_id: String = joining.client.player_id
+	joining.close()
+	_sessions.erase(joining)
+	assert_true(_until(func() -> bool: return not hosting.host.player(blue_id).connected, 5000))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(IDENTITY))
+
+	var back: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.PIKACHU)
+	_sessions.append(back)
+	assert_true(_until_ready([hosting, back]))
+	assert_eq(back.client.player_id, blue_id, "the same trainer, not a new one")
+	assert_eq(hosting.host.players.size(), 2)
+
+
 func test_a_host_that_never_answers_is_reported_rather_than_waited_for() -> void:
 	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT + 7, "BLUE", Fixture.BULBASAUR)
 	_sessions.append(joining)
