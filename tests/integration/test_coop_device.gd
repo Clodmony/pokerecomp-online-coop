@@ -85,7 +85,28 @@ func test_a_device_whose_link_drops_comes_back_on_its_own() -> void:
 	), "the device dialled again and the host took the same player back")
 	assert_eq(joining.client.player_id, blue_id)
 	assert_eq(hosting.host.players.size(), 2)
-	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own ten tries")
+	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own tries")
+
+
+func test_a_joining_device_back_from_a_long_pause_dials_again_at_once() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	var blue_id: String = joining.client.player_id
+
+	joining.suspend()
+	joining.resume()
+	assert_true(joining.client.connected, "a moment in the background keeps the link")
+
+	joining.suspend()
+	joining.set("_paused_at", Time.get_ticks_msec() - PokeCoopSession.RESUME_REDIAL_MSEC - 1000)
+	joining.resume()
+	assert_false(joining.client.connected, "a long pause drops the link it can no longer trust")
+	assert_true(_until(func() -> bool:
+		return joining.client.connected and hosting.host.player(blue_id).connected, 10000
+	), "and dials straight back in as the same player")
 
 
 func test_a_device_that_comes_back_is_the_same_player() -> void:
