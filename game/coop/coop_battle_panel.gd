@@ -2,7 +2,7 @@ class_name PokeCoopBattlePanel
 extends PanelContainer
 
 ## The co-op overlay: the session menu on SELECT and, in a shared battle, the allies by
-## owner, who decides and the partner's suggestion. It sends intentions, decides nothing.
+## owner, who decides and each partner's suggestion. It sends intentions, decides nothing.
 
 signal leave_requested
 
@@ -437,7 +437,7 @@ func _turn_line(view: Dictionary) -> String:
 
 func _row_lines(view: Dictionary) -> PackedStringArray:
 	var lines: PackedStringArray = []
-	var suggested: Dictionary = _partner_suggestion(view)
+	var suggested: Dictionary = _suggesters(view)
 	var section: String = ""
 	for index: int in _rows.size():
 		var row: Dictionary = _rows[index]
@@ -445,23 +445,22 @@ func _row_lines(view: Dictionary) -> PackedStringArray:
 		if heading != section and not heading.is_empty():
 			lines.append("[color=%s]%s[/color]" % [MUTED, _escaped(heading.strip_edges())])
 		section = heading
-		var mark: String = ""
-		if not suggested.is_empty() and String(row.get("suggest", "")) == String(suggested["type"]) \
-				and int(row.get("value", -1)) == int(suggested["value"]):
-			mark = "   ◀ %s" % _name_bb(suggested["player"])
+		var by: Array = suggested.get("%s:%d" % [row["suggest"], int(row["value"])], []) if row.has("suggest") else []
+		var mark: String = "   ◀ %s" % ", ".join(PackedStringArray(by.map(_name_bb))) if not by.is_empty() else ""
 		var label: String = String(row.get("label", _escaped(String(row["text"]))))
 		lines.append("[url=%d]%s[/url]%s" % [index, ("[b]> %s[/b]" if index == _cursor else "   %s") % label, mark])
 	return lines
 
 
-func _partner_suggestion(view: Dictionary) -> Dictionary:
+func _suggesters(view: Dictionary) -> Dictionary:
 	var suggestions: Dictionary = view.get("suggestions", {})
-	for player_id: String in suggestions:
-		if player_id != client.player_id:
-			var suggestion: Dictionary = (suggestions[player_id] as Dictionary).duplicate()
-			suggestion["player"] = player_id
-			return suggestion
-	return {}
+	var out: Dictionary = {}
+	for player_id: Variant in view.get("participants", []):
+		var suggestion: Dictionary = suggestions.get(String(player_id), {})
+		if String(player_id) != client.player_id and not suggestion.is_empty():
+			var row: String = "%s:%d" % [suggestion.get("type", ""), int(suggestion.get("value", -1))]
+			(out.get_or_add(row, []) as Array).append(String(player_id))
+	return out
 
 
 func _status_line() -> String:
@@ -507,7 +506,7 @@ func _names_bb(player_ids: Variant) -> String:
 	var out: PackedStringArray = []
 	for player_id: Variant in player_ids as Array:
 		out.append(_name_bb(player_id))
-	return " and ".join(out)
+	return " and ".join(out) if out.size() < 3 else "%s and %s" % [", ".join(out.slice(0, -1)), out[-1]]
 
 
 static func _escaped(text: String) -> String:
