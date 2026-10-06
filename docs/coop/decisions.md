@@ -497,3 +497,31 @@ event outside `WORDED`, telling it which species were out when the event
 happened. The co-op events, the trainer's own lines, the learn offer's split and
 the forgotten move stay the field's. `_describe` is upstream's private method;
 a change to it shows up in the co-op tests.
+
+## D44. Fixes from a review of the battle field work (2026-10-06)
+
+A read-only review of everything since D38 found no state that stays stuck and
+confirmed the Generation 1 intro sprites against `LoadPlayerBackPic`; it found
+these, each now fixed:
+
+- The campaign write trusted `FileAccess.get_error()`, which reports reads, so
+  a write cut short by a full disk could still be renamed over the campaign;
+  the write now checks `store_string` and reads the staging file back before
+  anything is renamed (D40).
+- Pressing Host with no cartridge imported raised a script error naming the
+  backup file; hosting also no longer opens a socket it cannot use.
+- A trainer's switch was neither worded nor drawn: the enemy's withdraw line is
+  the screen's own now, and a send-out empties its square first, as the
+  screen's `_clear_entering_square` does.
+- A finished battle's last line stayed in the box through the next battle's
+  intro; a battle not seen before clears the box and anything still queued.
+- The player's send-out ignored `SendOutMon`'s other lines ("Do it!", "Get'm!",
+  "The enemy's weak!"), a level-up lost its jingle, and the screen's lines
+  named a trainer "Enemy"; the field now uses the event's line, leaves the
+  level-up to the screen and gives it the trainer's name.
+- Beating the Champion played the trainer fanfare; `RIVAL3_CLASS` gets the gym
+  leader's, as `_gen1_victory_music` gives it.
+- A final view that only adds an outcome to a turn already shown (an abandoned
+  battle) replayed that turn; it now plays only its own closing.
+- Two views of one battle read in the same poll kept only the second's events;
+  the client now keeps both turns' events.

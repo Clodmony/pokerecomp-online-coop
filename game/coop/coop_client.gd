@@ -17,6 +17,8 @@ var ended_reason: String = ""
 var welcomes: int = 0
 var _seq: int = 0
 var _greeting: Dictionary = {}
+## Battles a view arrived for in this poll: a later revision there adds its events.
+var _fresh: Dictionary = {}
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -42,6 +44,7 @@ func greet(
 
 
 func poll() -> void:
+	_fresh.clear()
 	for event: Dictionary in transport.poll():
 		var kind: StringName = StringName(event["kind"])
 		if kind == PokeCoopTransport.CONNECTED:
@@ -66,7 +69,12 @@ func _receive(message: Dictionary) -> void:
 			box = {"rev": int(message.get("rev", 0)), "rows": message.get("rows", [])}
 		"battle":
 			var view: Dictionary = message.get("view", {})
-			battles[String(view.get("battle", ""))] = view
+			var id: String = String(view.get("battle", ""))
+			var earlier: Dictionary = battles.get(id, {})
+			if _fresh.has(id) and int(view.get("revision", 0)) > int(earlier.get("revision", 0)):
+				view["events"] = (earlier.get("events", []) as Array) + (view.get("events", []) as Array)
+			_fresh[id] = true
+			battles[id] = view
 		"rejected":
 			rejections.append(message)
 			if int(message.get("seq", 0)) == -1:

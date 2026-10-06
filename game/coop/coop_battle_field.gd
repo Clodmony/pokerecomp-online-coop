@@ -9,7 +9,7 @@ const BOX_COLUMNS: int = 18
 const WORDED: Array[StringName] = [
 	Gen2Battle.USED_MOVE, Gen2Battle.MISSED, Gen2Battle.CRITICAL_HIT, Gen2Battle.EFFECTIVENESS,
 	Gen2Battle.FAINTED, Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW, Gen2Battle.CAUGHT, Gen2Battle.FLED,
-	Gen2Battle.EXP_GAINED, Gen2Battle.GREW_LEVEL, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
+	Gen2Battle.EXP_GAINED, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
 	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
 	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN,
 ]
@@ -90,6 +90,7 @@ func _process(delta: float) -> void:
 		_revision_key = ""
 		_idle_seen = ""
 		_scene_seen = {}
+		_box.visible = false
 		_out = {}
 		_hp_seen = {}
 		_drawn_hp.clear()
@@ -182,9 +183,15 @@ func _take_events(view: Dictionary) -> void:
 	var key: String = _key_of(view)
 	if key == _revision_key:
 		return
+	var same_turn: bool = _revision_key.get_slice("/", 0) == String(view.get("battle", "")) \
+		and _revision_key.get_slice("/", 1) == str(int(view.get("revision", 0)))
 	if _revision_key.get_slice("/", 0) != String(view.get("battle", "")):
-		_board.reset(data, bool(view.get("trainer", false)))
+		_begin_battle(view)
 	_revision_key = key
+	if same_turn:
+		if String(view.get("outcome", "")) == "won":
+			_queue_victory(view)
+		return
 	if int(view.get("revision", 0)) == 0:
 		_open(view)
 	_hp_before = _hp_seen
@@ -198,8 +205,7 @@ func _take_events(view: Dictionary) -> void:
 	var names: Dictionary = _player_names()
 	for event: Dictionary in events:
 		_queue(event, out, view)
-		var paged: PackedStringArray = pages(message(event, out, data, names, _trainer_name(view)) \
-			if StringName(event.get("type", &"")) in WORDED else _screen_line(event, out))
+		var paged: PackedStringArray = pages(_line_for(event, out, names, _trainer_name(view)))
 		for page: int in paged.size():
 			_messages.append({"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
@@ -217,13 +223,21 @@ func _take_events(view: Dictionary) -> void:
 	}
 
 
-## The single-player screen's own words for an event, told who was out when it happened.
-func _screen_line(event: Dictionary, out: Dictionary) -> String:
+## The field's own line for the events it words, the screen's for the rest and a trainer's switch.
+func _line_for(event: Dictionary, out: Dictionary, names: Dictionary, trainer: String) -> String:
+	var type: StringName = StringName(event.get("type", &""))
+	if type in WORDED and not (type == Gen2Battle.WITHDREW and int(event.get("side", 0)) == Gen2Battle.ENEMY):
+		return message(event, out, data, names, trainer)
+	return _screen_line(event, out, trainer)
+
+
+func _screen_line(event: Dictionary, out: Dictionary, trainer: String) -> String:
 	if _words == null:
 		_words = Gen2BattleScreen.new()
 		_words.set("_data", data)
 	_words.set("_player", int(out.get(Gen2Battle.PLAYER, 0)))
 	_words.set("_enemy", int(out.get(Gen2Battle.ENEMY, 0)))
+	_words.set("_world_battle_request", {"trainer_name": trainer})
 	var named: Dictionary = event.duplicate()
 	named["type"] = StringName(event.get("type", &""))
 	return String(_words.call("_describe", named))
@@ -237,6 +251,18 @@ func _exit_tree() -> void:
 
 static func _key_of(view: Dictionary) -> String:
 	return "%s/%d/%s" % [view.get("battle", ""), int(view.get("revision", 0)), view.get("outcome", "")]
+
+
+func _begin_battle(view: Dictionary) -> void:
+	_board.reset(data, bool(view.get("trainer", false)))
+	_messages.clear()
+	_bar_goal = {}
+	_drawn_hp.clear()
+	_anim = null
+	_anim_after = {}
+	_hold = 0
+	_sound_wait = false
+	_box.visible = false
 
 
 ## The sliding intro, `BattleStartMessage` and `DoBattle`'s opening, for a battle seen from its start.
@@ -341,7 +367,8 @@ func _queue_victory(view: Dictionary) -> void:
 	var trainer: bool = bool(view.get("trainer", false))
 	var me: String = _player_name(panel.client.player_id)
 	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
-	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))})
+	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
+		or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
 	var lines: Array = ["%s defeated\n%s!" % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
 	if prize > 0:
 		lines.append(("%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
@@ -576,7 +603,6 @@ func _move_sound(move: int) -> Dictionary:
 	return record
 
 
-## The running animation's tilemap, objects and scroll, and the drained bars.
 func _with_animation(view: Dictionary) -> Dictionary:
 	_board.over(view)
 	for side: int in _drawn_hp:
@@ -686,7 +712,8 @@ static func message(
 static func _entrance_line(event: Dictionary, species_name: String, trainer: String) -> String:
 	var enemy: bool = int(event.get("side", Gen2Battle.PLAYER)) == Gen2Battle.ENEMY
 	if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
-		return "Go! %s!" % species_name if not enemy else \
+		var go: Array[String] = Gen2BattleScreen.GEN1_SEND_OUT_LINES
+		return go[clampi(int(event.get("line", 0)), 0, go.size() - 1)] % species_name if not enemy else \
 			("%s sent\nout %s!" % [trainer, species_name] if not trainer.is_empty() else "")
 	if enemy or bool(event.get("quiet", false)):
 		return ""

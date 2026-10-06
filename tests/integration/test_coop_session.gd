@@ -908,6 +908,47 @@ func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
 	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
 
 
+func test_review_fixes_for_the_field_and_the_client() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var pikachu: String = String(_data.species(Fixture.PIKACHU)["name"])
+	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER, "line": 3},
+		{Gen2Battle.PLAYER: Fixture.PIKACHU}, _data), "The enemy's weak!\nGet'm! %s!" % pikachu, "the cartridge's own send-out line")
+
+	var view: Dictionary = {"battle": "b5", "revision": 3, "active": 0, "trainer": true, "trainer_class": Gen1Layout.RIVAL3_CLASS,
+		"allies": [{"species": Fixture.PIKACHU, "level": 9, "hp": 20, "max_hp": 20}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 9, "hp": 0, "max_hp": 20},
+		"events": [{"type": Gen2Battle.MISSED, "side": Gen2Battle.ENEMY}]}
+	field._take_events(view)
+	var queued: int = field._messages.size()
+	var fled: Dictionary = view.duplicate()
+	fled["outcome"] = "fled"
+	field._take_events(fled)
+	assert_eq(field._messages.size(), queued, "an outcome on the same turn replays nothing")
+	field._queue_victory(view)
+	assert_true(field._messages.has({"fanfare": true, "gym": true}), "the champion gets the gym leader's fanfare")
+
+	field._box.visible = true
+	var next: Dictionary = view.duplicate()
+	next["battle"] = "b6"
+	next["events"] = []
+	field._take_events(next)
+	assert_false(field._box.visible, "a new battle does not open on the last one's line")
+	assert_true(field._messages.is_empty())
+
+	var board := PokeCoopBattleStage.new()
+	board.reset(_data, true)
+	var cleared: PackedByteArray = board.map.duplicate()
+	Gen2BattleScreenMap.clear_battler(cleared, false, _data.generation)
+	board.enter({"side": Gen2Battle.ENEMY, "species": Fixture.PIKACHU}, _data)
+	assert_eq(board.map, cleared, "a trainer's switch empties the square before the next one grows")
+
+	_red._fresh.clear()
+	_red._receive({"type": "battle", "view": {"battle": "b8", "revision": 1, "events": [{"type": "a"}]}})
+	_red._receive({"type": "battle", "view": {"battle": "b8", "revision": 2, "events": [{"type": "b"}]}})
+	assert_eq(_red.battles["b8"]["events"], [{"type": "a"}, {"type": "b"}], "two revisions in one poll keep both turns")
+
+
 func test_a_battles_last_line_stands_its_hold_before_a_can_close_it() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
