@@ -305,9 +305,14 @@ own music comes back as it closes. A battle seen from its start opens with
 "Wild X appeared!" and "Go! Y!" and their cries, a send-out later in the battle
 has its cry, and a win plays the wild or trainer fanfare. The co-op events have
 lines of their own: a join, an item used, and a throw with the cartridge's
-catch or near-miss line. Still missing against
-the battle screen: the gym leaders' own fanfare, screen-scroll effects, battler
-slides and the sliding intro.
+catch or near-miss line. The field follows the battle's own `ANIMATION`
+events as the battle screen does: a move ends with `PlayHitSound` by its
+effectiveness and the blink or shake `AnimationTypePointerTable` names for it, a
+burn's or poison's own shake plays, and the scroll and palette effects an
+animation sets reach the renderer per scanline. With the battle scene off in
+the options, moves skip their animation but keep the hit and the shake. Still
+missing against the battle screen: the gym leaders' own fanfare, the thrown
+ball and send-out animations, and the sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 

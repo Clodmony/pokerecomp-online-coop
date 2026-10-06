@@ -18,16 +18,15 @@ var _music_for: String = ""
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
-## Each `{text, move, enemy}`, a line and the move whose animation follows it,
-## `{bar, hp, max_hp, snap}`, an HP bar moving to where the battle put it, or
-## `{cry}` and `{fanfare}`, a send-out's cry and the victory music.
+## Each `{text}`, `{anim, enemy, after, effectiveness, species}`, `{bar, hp,
+## max_hp, snap}` (where an HP bar drains to), `{cry}` or `{fanfare}`, in order.
 var _messages: Array = []
 ## The HP each side's bar shows while the turn plays, and where one is going.
 var _drawn_hp: Dictionary = {}
 var _bar_goal: Dictionary = {}
 var _hp_before: Dictionary = {}
 var _hp_seen: Dictionary = {}
-var _queued_move: Dictionary = {}
+var _anim_after: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
 var _sounding: Dictionary = {}
@@ -85,7 +84,7 @@ func _process(delta: float) -> void:
 		_drawn_hp.clear()
 		_bar_goal = {}
 		_messages.clear()
-		_queued_move = {}
+		_anim_after = {}
 		_anim = null
 		return
 	_place()
@@ -100,7 +99,7 @@ func _process(delta: float) -> void:
 ## Whether the last turn is still being shown: its lines, animations or bars.
 func is_playing() -> bool:
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
-		or not _queued_move.is_empty() or _box.is_revealing())
+		or not _anim_after.is_empty() or _box.is_revealing())
 
 
 ## `PlayBattleMusic` for a battle as it opens, a trainer's by the class and index
@@ -186,16 +185,19 @@ func _take_events(view: Dictionary) -> void:
 			})
 		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
 			out[int(event.get("side", 0))] = species_at(view, int(event.get("side", 0)), int(event.get("index", 0)))
+		if StringName(event.get("type", &"")) == Gen2Battle.ANIMATION:
+			var enemy_turn: bool = bool(event.get("enemy_turn", false))
+			_messages.append({
+				"anim": int(event.get("index", 0)), "enemy": enemy_turn,
+				"after": int(event.get("after_anim", 0)),
+				"effectiveness": int(event.get("effectiveness", Gen2Layout.MATCHUP_EFFECTIVE)),
+				"species": int(out.get(Gen2Battle.ENEMY if enemy_turn else Gen2Battle.PLAYER, 0)),
+			})
 		var line: String = message(event, out, data, _player_names())
 		var sent: bool = StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT
 		var rows: PackedStringArray = line.split("\n", false)
 		for page: int in range(0, rows.size(), 2):
-			var used: bool = page == 0 and StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE
-			_messages.append({
-				"text": "\n".join(rows.slice(page, page + 2)), "move": int(event.get("move", 0)) if used else 0,
-				"enemy": int(event.get("side", 0)) == Gen2Battle.ENEMY,
-				"species": int(out.get(int(event.get("side", 0)), 0)),
-			})
+			_messages.append({"text": "\n".join(rows.slice(page, page + 2))})
 		if sent:
 			_messages.append({"cry": int(out.get(int(event.get("side", 0)), 0))})
 	if String(view.get("outcome", "")) == "won":
@@ -216,10 +218,10 @@ func _open(view: Dictionary) -> void:
 	var opening: Dictionary = out_now(view)
 	if not bool(view.get("trainer", false)):
 		var wild: int = int(opening[Gen2Battle.ENEMY])
-		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, wild), "move": 0})
+		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, wild)})
 		_messages.append({"cry": wild})
 	var ally: int = int(opening[Gen2Battle.PLAYER])
-	_messages.append({"text": "Go! %s!" % _species_name(data, ally), "move": 0})
+	_messages.append({"text": "Go! %s!" % _species_name(data, ally)})
 	_messages.append({"cry": ally})
 
 
@@ -243,18 +245,12 @@ func _advance_text() -> void:
 		_anim.advance_frame()
 		_play_sounds()
 		if _anim.finished() or _anim.failed():
-			_anim = null
+			_anim = _applying()
 		return
 	if not _bar_goal.is_empty():
 		_drain_bar()
 		return
 	if _box.visible and _box.is_revealing():
-		return
-	if not _queued_move.is_empty():
-		_anim = _move_animation(int(_queued_move["move"]), bool(_queued_move["enemy"]))
-		_sounding = _queued_move
-		_queued_move = {}
-		_play_sounds()
 		return
 	if _hold > 0:
 		_hold -= 1
@@ -271,8 +267,14 @@ func _advance_text() -> void:
 func _take_step(step: Dictionary) -> void:
 	if step.has("text"):
 		_show(String(step["text"]))
-		_queued_move = step if int(step["move"]) > 0 else {}
-		_hold = HOLD_FRAMES
+		_hold = HOLD_FRAMES if _messages.is_empty() or not (_messages[0] as Dictionary).has("anim") else 0
+	elif step.has("anim"):
+		_sounding = step
+		_anim_after = step if int(step["after"]) != 0 and int(step["anim"]) < Gen2BattleScreen.ANIM_MOVE_LIMIT else {}
+		_anim = _animation(step)
+		if _anim == null:
+			_anim = _applying()
+		_play_sounds()
 	elif step.has("bar"):
 		var side: int = int(step["bar"])
 		_drawn_hp[side] = float(_drawn_hp.get(side, _hp_before.get(side, step["hp"])))
@@ -294,13 +296,47 @@ func _drain_bar() -> void:
 		_bar_goal = {}
 
 
-## The cartridge's own animation for [param move], over both pictures, or null
-## for a cartridge whose cache holds none.
-func _move_animation(move: int, enemy_turn: bool) -> Gen2BattleAnimPlayer:
+## The cartridge's animation for an `ANIMATION` step, a move's or a status's; null
+## for a send-out, a ball, the battle scene off or a cache without animations.
+func _animation(step: Dictionary) -> Gen2BattleAnimPlayer:
 	if _anim_data == null:
 		_anim_data = Gen2BattleAnimData.from_game_data(data)
-	var player: Gen2BattleAnimPlayer = Gen2BattleAnimPlayer.create_gen1(_anim_data, move - 1, enemy_turn) \
-		if _anim_data != null and _anim_data.gen1() else null
+	var index: int = int(step["anim"])
+	if _anim_data == null or not _anim_data.gen1() \
+			or (index < Gen2BattleScreen.ANIM_MOVE_LIMIT and not Gen2OptionsStore.current().battle_scene):
+		return null
+	var enemy_turn: bool = bool(step["enemy"])
+	var row: int = index - 1
+	if index >= Gen2BattleScreen.ANIM_MOVE_LIMIT:
+		var pair: Variant = Gen2BattleScreen.GEN1_ANIM_IDS.get(index, null)
+		row = int((pair as Array)[1 if enemy_turn else 0]) - 1 if pair is Array else -1
+	return _seeded(Gen2BattleAnimPlayer.create_gen1(_anim_data, row, enemy_turn) if row >= 0 else null)
+
+
+## `PlayHitSound`, then the move's shake or blink from `AnimationTypePointerTable`.
+func _applying() -> Gen2BattleAnimPlayer:
+	var step: Dictionary = _anim_after
+	_anim_after = {}
+	if step.is_empty():
+		return null
+	var after: int = int(step["after"])
+	var effectiveness: int = int(step["effectiveness"])
+	var damage: bool = after in [Gen2BattleAnimPlayer.AFTER_ANIM_ENEMY_DAMAGE, Gen2BattleAnimPlayer.AFTER_ANIM_PLAYER_DAMAGE]
+	if damage and effectiveness != 0 and audio != null:
+		var sfx: int = Gen2Sfx.SFX_SUPER_EFFECTIVE if effectiveness > Gen2Layout.MATCHUP_EFFECTIVE else \
+			(Gen2Sfx.SFX_NOT_VERY_EFFECTIVE if effectiveness < Gen2Layout.MATCHUP_EFFECTIVE else Gen2Sfx.SFX_DAMAGE)
+		var record: Dictionary = data.world_audio(&"sfx", sfx)
+		if not record.is_empty():
+			audio.play_record(record, &"waited_sfx", data.audio_assets())
+	var pair: Variant = Gen2BattleScreen.GEN1_APPLYING_TYPES.get(after, null)
+	if not pair is Array:
+		return null
+	var effect: int = int(data.move(int(step["anim"])).get("effect", 0))
+	var kind: int = int((pair as Array)[1 if effect != 0 else 0])
+	return _seeded(Gen2BattleAnimPlayer.create_gen1_applying(_anim_data, kind, bool(step["enemy"])))
+
+
+static func _seeded(player: Gen2BattleAnimPlayer) -> Gen2BattleAnimPlayer:
 	if player != null:
 		player.background().set_bg_map(Gen2BattleScreenMap.seeded())
 	return player
@@ -359,11 +395,28 @@ func _with_animation(view: Dictionary) -> Dictionary:
 		view["enemy_hp" if side == Gen2Battle.ENEMY else "player_hp"] = roundi(float(_drawn_hp[side]))
 	if _anim == null:
 		return view
-	view["bg_map"] = _anim.background().bg_map
+	var background: Gen2BattleAnimBackground = _anim.background()
+	view["bg_map"] = background.bg_map
 	view["anim_sprites"] = _anim.sprites()
 	view["anim_tiles"] = _anim.tiles()
-	view["anim_obp0"] = _anim.background().obp0
+	view["anim_obp0"] = background.obp0
+	view["bg_palette_maps"] = background.bg_palette_maps
+	view["ob_palette_maps"] = background.ob_palette_maps
+	view["raster_scx"] = _raster(background, Gen2BattleAnimBackground.LCDC_SCX)
+	view["raster_scy"] = _raster(background, Gen2BattleAnimBackground.LCDC_SCY)
 	return view
+
+
+static func _raster(background: Gen2BattleAnimBackground, register: int) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var base: int = background.scx if register == Gen2BattleAnimBackground.LCDC_SCX else background.scy
+	var windowed: bool = background.lcdc_pointer == register
+	if base == 0 and not windowed:
+		return out
+	out.resize(Gen2BattleAnimBackground.SCREEN_LINES)
+	for line: int in Gen2BattleAnimBackground.SCREEN_LINES:
+		out[line] = int(background.ly_overrides[line]) if windowed else base
+	return out
 
 
 func _show(text: String) -> void:
