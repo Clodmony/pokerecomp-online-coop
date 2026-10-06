@@ -164,14 +164,38 @@ func apply_world_patch(changes: Dictionary) -> bool:
 		return false
 	items = {}
 	for item: Variant in current["items"] as Dictionary:
-		give_item(int(item), int((current["items"] as Dictionary)[item]))
+		give_item(PokeCoopTransport.number(item), PokeCoopTransport.number((current["items"] as Dictionary)[item]))
 	var accounts: Dictionary = (current["money"] as Dictionary).duplicate()
-	money = clampi(int(accounts.get(0, 0)), 0, MAX_MONEY)
+	money = clampi(PokeCoopTransport.number(accounts.get(0, 0)), 0, MAX_MONEY)
 	accounts.erase(0)
 	current["money"] = accounts
 	current.erase("items")
 	world = current
 	return true
+
+
+static var _mon_shape: Dictionary = {}
+
+
+## A Pokémon a client sent, read only when each field has the type a save gives
+## it, so a made-up one is no Pokémon rather than a broken read.
+static func mon_from(raw: Variant) -> Gen2SaveMon:
+	if not raw is Dictionary:
+		return null
+	if _mon_shape.is_empty():
+		_mon_shape = Gen2SaveMon.new().to_dict()
+	for key: Variant in raw:
+		if not key is String or (_mon_shape.has(key) and not _fits((raw as Dictionary)[key], _mon_shape[key])):
+			return null
+	return Gen2SaveMon.from_dict(raw)
+
+
+static func _fits(value: Variant, shape: Variant) -> bool:
+	if shape is Array or shape is Dictionary:
+		var entries: Array = (value as Array) if value is Array else ((value as Dictionary).values() if value is Dictionary else [])
+		return typeof(value) == typeof(shape) and entries.all(func(entry: Variant) -> bool:
+			return entry is int or entry is float or entry is String or entry is bool)
+	return typeof(value) == typeof(shape) or (shape is int and value is float) or (shape is float and value is int)
 
 
 ## Who a Pokémon is, whatever happens to it: levels, moves and an evolution
@@ -190,7 +214,7 @@ func replace_team(rows: Array) -> bool:
 	var pool: Array = team + box
 	var used: Dictionary = {}
 	var next_team: Variant = _matched(rows, pool, used)
-	if rows.size() > MAX_TEAM or next_team == null:
+	if rows.is_empty() or rows.size() > MAX_TEAM or next_team == null:
 		return false
 	var before: Array = _rows_to_dicts(box)
 	box = pool.filter(func(entry: Dictionary) -> bool: return not used.has(entry["uid"]))
@@ -210,7 +234,7 @@ func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: i
 	var used: Dictionary = {}
 	var next_team: Variant = _matched(rows, pool, used)
 	var next_box: Variant = _matched(stored, pool, used) if stored is Array else box
-	if rows.size() > MAX_TEAM or next_team == null or next_box == null \
+	if rows.is_empty() or rows.size() > MAX_TEAM or next_team == null or next_box == null \
 			or _box_counts(next_box).any(func(count: int) -> bool: return count > BOX_CAPACITY):
 		return &"invalid_party"
 	if stored != null and _rows_to_dicts(next_box) != _rows_to_dicts(box):
@@ -225,18 +249,17 @@ func _matched(rows: Array, pool: Array, used: Dictionary) -> Variant:
 	var prints: Array = pool.map(func(entry: Dictionary) -> Array: return fingerprint(entry["mon"]))
 	var out: Array = []
 	for row: Variant in rows:
-		var mon: Gen2SaveMon = Gen2SaveMon.from_dict((row as Dictionary).get("mon", {})) \
-			if row is Dictionary else null
+		var mon: Gen2SaveMon = mon_from((row as Dictionary).get("mon")) if row is Dictionary else null
 		if mon == null:
 			return null
-		var uid: String = _match(pool, prints, String((row as Dictionary).get("uid", "")), mon, used)
+		var uid: String = _match(pool, prints, PokeCoopTransport.text((row as Dictionary).get("uid")), mon, used)
 		if uid.is_empty():
 			uid = "%s:%d" % [player_id, next_mon_serial]
 			next_mon_serial += 1
 		used[uid] = true
 		var entry: Dictionary = {"uid": uid, "mon": mon}
 		if (row as Dictionary).has("box"):
-			entry["box"] = clampi(int(row["box"]), 0, BOXES - 1)
+			entry["box"] = clampi(PokeCoopTransport.number(row["box"]), 0, BOXES - 1)
 		out.append(entry)
 	return out
 

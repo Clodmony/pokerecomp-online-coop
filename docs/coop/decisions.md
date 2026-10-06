@@ -311,3 +311,19 @@ their story too: its flags, badges and shared world keys become the
 campaign's, so a player can carry an existing Red run into co-op. A returning
 player is never replaced by a brought save, and nothing is written back to the
 single-player slot.
+
+## D35. The host reads every client field as untrusted (2026-10-06)
+
+A seeded fuzz test (`test_malformed_messages_are_refused_without_breaking_the_host`)
+sends every message type with wrong field types, commands at the battle's own
+revision, hellos over fresh links, and world patches and party rows in shapes
+no window sends; GUT fails on any script error. What it found is fixed at the
+boundary: text and numbers are read with `PokeCoopTransport.text` and
+`number`, a world patch keeps only entries in their key's own shape and type
+(`PokeCoopOwnership.well_formed`, and only plain numbered entries for the
+campaign's tables, which reach every window), a sent Pokémon is decoded only
+when every field has a save's type (`PokeCoopPlayer.mon_from`), a brought save
+is rebuilt from such parts, and a team is never replaced by an empty one. A
+packet may be up to 2 MiB, since a full PC is about a quarter of a megabyte;
+the old 64 KiB cap dropped the PC message of anyone with more than about sixty
+stored Pokémon.

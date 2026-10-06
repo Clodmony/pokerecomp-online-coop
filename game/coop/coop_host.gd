@@ -88,12 +88,12 @@ func poll() -> void:
 
 
 func _on_message(peer: int, message: Dictionary) -> void:
-	var kind: String = String(message.get("type", ""))
+	var kind: String = PokeCoopTransport.text(message.get("type"))
 	if kind == "hello":
 		_hello(peer, message)
 		return
 	var sender: PokeCoopPlayer = player(String(_peers.get(peer, "")))
-	var seq: int = int(message.get("seq", -1))
+	var seq: int = PokeCoopTransport.number(message.get("seq"), -1)
 	if sender == null:
 		transport.send(peer, _rejected(seq, &"hello_first"))
 		return
@@ -108,13 +108,13 @@ func _on_message(peer: int, message: Dictionary) -> void:
 
 
 func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> StringName:
-	var battle_id: String = String(message.get("battle", ""))
+	var battle_id: String = PokeCoopTransport.text(message.get("battle"))
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),
-				int(message.get("facing", sender.facing)), bool(message.get("warp", false)))
+				PokeCoopTransport.number(message.get("facing"), sender.facing), PokeCoopTransport.number(message.get("warp")) == 1)
 		"start_battle":
-			return start_battle(sender, String(message.get("encounter", "")))
+			return start_battle(sender, PokeCoopTransport.text(message.get("encounter")))
 		"window_battle":
 			return start_window_battle(sender, message)
 		"command":
@@ -126,8 +126,7 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 		"join":
 			return join_battle(sender, battle_id)
 		"world":
-			var changes: Variant = message.get("patch", {})
-			return apply_world(sender, changes if changes is Dictionary else {})
+			return apply_world(sender, PokeCoopOwnership.well_formed(message.get("patch", {})))
 		"party":
 			return apply_party(sender, message)
 		"save":
@@ -143,21 +142,21 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 
 func _hello(peer: int, message: Dictionary) -> void:
 	var refusal: StringName = _hello_refusal(message)
-	var joining: PokeCoopPlayer = player(String(message.get("player_id", "")))
+	var joining: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("player_id")))
 	if refusal == &"" and joining == null:
 		if not allow_new_players:
 			refusal = &"unknown_player"
 		else:
 			var joined_before: int = players.size()
 			var brought: Gen2SaveData = _brought_save(message.get("save", null))
-			joining = add_player(String(message.get("name", "")), seeds.randi() & 0xFFFF)
+			joining = add_player(PokeCoopTransport.text(message.get("name")), seeds.randi() & 0xFFFF)
 			if brought != null:
 				PokeCoopPolicy.import_save(
 					brought, joining, campaign if joined_before == 0 else null, _badge_flags
 				)
 			else:
 				PokeCoopPolicy.set_up_new_player(
-					data, joining, int(message.get("starter", 0)), joined_before
+					data, joining, PokeCoopTransport.number(message.get("starter")), joined_before
 				)
 			PokeCoopPolicy.hand_over_gifts(campaign, joining)
 	if refusal == &"" and joining.connected:
@@ -178,22 +177,47 @@ func _hello(peer: int, message: Dictionary) -> void:
 	broadcast()
 
 
-## A new player's own single-player save of this cartridge, its Pokémon and PC
-## checked by the game's own rules; the world is placed by the campaign.
+## A new player's own single-player save of this cartridge, rebuilt from its
+## vetted parts: Pokémon that pass the game's own rules, the world-state keys a
+## window could have sent, and where they stood.
 func _brought_save(raw: Variant) -> Gen2SaveData:
-	var save: Gen2SaveData = Gen2SaveData.from_dict(raw) if raw is Dictionary else null
-	if save == null or save.game_id != data.id:
+	if not raw is Dictionary or PokeCoopTransport.text(raw.get("game_id")) != String(data.id):
 		return null
-	var holdings: Gen2SaveData = Gen2SaveData.from_dict(raw)
-	holdings.world = null
-	return save if bool(Gen2SaveValidator.validate(holdings, data).get("ok", false)) else null
+	var save := Gen2SaveData.new()
+	save.game_id = data.id
+	save.rom_sha1 = data.sha1
+	save.slot = 0
+	save.player_name = PokeCoopTransport.text(raw.get("player_name"))
+	save.run_rules = Gen2Rules.new()
+	for row: Variant in raw.get("party") if raw.get("party") is Array else []:
+		save.party.append(PokeCoopPlayer.mon_from(row))
+	var boxes: Variant = raw.get("boxes")
+	for at: int in mini((boxes as Array).size(), save.boxes.size()) if boxes is Array else 0:
+		for row: Variant in boxes[at] if boxes[at] is Array else []:
+			if row != null and (save.boxes[at] as Gen2SaveBox).put(PokeCoopPlayer.mon_from(row)).get("ok") != true:
+				return null
+	save.current_box = clampi(PokeCoopTransport.number(raw.get("current_box")), 0, save.boxes.size() - 1)
+	if save.party.has(null) or not bool(Gen2SaveValidator.validate(save, data).get("ok", false)):
+		return null
+	var world: Variant = raw.get("world")
+	if world is Dictionary and not (world as Dictionary).is_empty():
+		save.world = Gen2WorldSnapshot.new()
+		save.world.map_id = _vector(world.get("map"))
+		save.world.player_cell = _vector(world.get("player_cell"))
+		save.world.player_facing = PokeCoopTransport.number(world.get("player_facing"))
+		var kept: Dictionary = {}
+		PokeCoopOwnership.apply_patch(kept, PokeCoopOwnership.well_formed(
+			PokeCoopOwnership.patch({}, world.get("world_state") if world.get("world_state") is Dictionary else {})
+		))
+		save.world.world_state = Gen2WorldState.from_dict(kept)
+	return save
 
 
 func _hello_refusal(message: Dictionary) -> StringName:
-	if int(message.get("protocol", -1)) != PROTOCOL:
+	if PokeCoopTransport.number(message.get("protocol"), -1) != PROTOCOL:
 		return &"protocol_mismatch"
-	if StringName(message.get("game_id", "")) != campaign.game_id \
-			or String(message.get("rom_sha1", "")) != campaign.rom_sha1:
+	if StringName(PokeCoopTransport.text(message.get("game_id"))) != campaign.game_id \
+			or PokeCoopTransport.text(message.get("rom_sha1")) != campaign.rom_sha1:
 		return &"content_mismatch"
 	return &""
 
@@ -272,7 +296,8 @@ func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not message.has("rev"):
 		return &"" if sender.replace_team(rows) else &"invalid_party"
 	return sender.replace_holdings(
-		rows, stored, int(message.get("current_box", 0)), int(message.get("rev", -1))
+		rows, stored, PokeCoopTransport.number(message.get("current_box")),
+		PokeCoopTransport.number(message.get("rev"), -1)
 	)
 
 
@@ -306,17 +331,18 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not initiator.is_free():
 		return &"already_in_battle"
-	var trainer: bool = String(message.get("kind", "wild")) == "trainer"
-	var encounter_id: String = "trainer:%d:%d" % [
-		int(message.get("trainer_class", 0)), int(message.get("trainer_index", 0)),
-	] if trainer else ""
+	var trainer: bool = PokeCoopTransport.text(message.get("kind"), "wild") == "trainer"
+	var trainer_class: int = PokeCoopTransport.number(message.get("trainer_class"))
+	var trainer_index: int = PokeCoopTransport.number(message.get("trainer_index"))
+	var encounter_id: String = "trainer:%d:%d" % [trainer_class, trainer_index] if trainer else ""
 	if trainer and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_DONE:
 		return &"encounter_done"
 	if trainer and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_ACTIVE:
 		return _join_window_battle(initiator, encounter_id)
 	var enemies: Array = []
-	for row: Variant in message.get("enemy", []) as Array:
-		var enemy: Gen2BattleMon = Gen2SaveBattleAdapter.to_battle_mon(data, Gen2SaveMon.from_dict(row))
+	var rows: Variant = message.get("enemy", [])
+	for row: Variant in rows if rows is Array else []:
+		var enemy: Gen2BattleMon = Gen2SaveBattleAdapter.to_battle_mon(data, PokeCoopPlayer.mon_from(row))
 		if enemy == null:
 			return &"invalid_enemy"
 		enemies.append(enemy)
@@ -329,8 +355,7 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	var info: Dictionary = {
 		"id": encounter_id if trainer else "window:%s" % battle_id,
 		"kind": "trainer" if trainer else "wild", "unique": trainer,
-		"trainer_class": int(message.get("trainer_class", 0)) if trainer else 0,
-		"trainer_index": int(message.get("trainer_index", 0)),
+		"trainer_class": trainer_class if trainer else 0, "trainer_index": trainer_index,
 	}
 	var session: PokeCoopBattleSession = PokeCoopBattleSession.start(
 		data, battle_id, seeds.randi(), initiator, party, info, _badge_mask()
@@ -563,5 +588,5 @@ static func _vector(raw: Variant) -> Vector2i:
 	if raw is Vector2i:
 		return raw
 	if raw is Array and (raw as Array).size() == 2:
-		return Vector2i(int(raw[0]), int(raw[1]))
+		return Vector2i(PokeCoopTransport.number(raw[0], -1), PokeCoopTransport.number(raw[1], -1))
 	return Vector2i(-1, -1)

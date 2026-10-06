@@ -87,6 +87,58 @@ static func badge_flags(data: GameData) -> Array[int]:
 	return out
 
 
+## A table the campaign keeps whose entries are named rather than numbered.
+const TEXT_KEYED: Array[String] = ["gen1_starters"]
+static var _reference: Dictionary = {}
+
+
+## [param changes] cut to what a window could have sent: each synced key in its
+## own shape and type, and the campaign's tables holding plain numbered entries,
+## so nothing a client makes up reaches another window.
+static func well_formed(changes: Variant) -> Dictionary:
+	if _reference.is_empty():
+		_reference = Gen2WorldState.new().to_dict()
+	var out: Dictionary = {}
+	for key: Variant in changes if changes is Dictionary else {}:
+		var change: Variant = (changes as Dictionary)[key]
+		if not key is String or not syncs(key) or not change is Dictionary or not _reference.has(key):
+			continue
+		var kept: Dictionary = {}
+		var expected: Variant = _reference[key]
+		if (change as Dictionary).has("value") and _same_kind(change["value"], expected) \
+				and (not expected is Dictionary or _plain_table(key, change["value"])):
+			kept["value"] = change["value"]
+		if expected is Dictionary and change.get("set") is Dictionary and _plain_table(key, change["set"]):
+			kept["set"] = change["set"]
+		if expected is Dictionary and change.get("erase") is Array and _plain_names(key, change["erase"]):
+			kept["erase"] = change["erase"]
+		if not kept.is_empty():
+			out[key] = kept
+	return out
+
+
+static func _same_kind(value: Variant, expected: Variant) -> bool:
+	var numbers: Array[int] = [TYPE_INT, TYPE_FLOAT]
+	return typeof(value) == typeof(expected) or (numbers.has(typeof(value)) and numbers.has(typeof(expected)))
+
+
+## Player tables only ever reach their own window; the campaign's reach all.
+static func _plain_table(key: String, entries: Dictionary) -> bool:
+	if StringName(WORLD_STATE.get(key, LOCAL)) == PLAYER:
+		return true
+	for entry: Variant in entries:
+		var value: Variant = entries[entry]
+		if not (entry is String if TEXT_KEYED.has(key) else entry is int) \
+				or not (value is bool or value is int or value is float):
+			return false
+	return true
+
+
+static func _plain_names(key: String, names: Array) -> bool:
+	return StringName(WORLD_STATE.get(key, LOCAL)) == PLAYER or names.all(
+		func(entry: Variant) -> bool: return entry is String if TEXT_KEYED.has(key) else entry is int)
+
+
 static func syncs(key: String) -> bool:
 	return StringName(WORLD_STATE.get(key, LOCAL)) != LOCAL
 
