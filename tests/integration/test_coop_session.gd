@@ -944,3 +944,14 @@ func _fuzz_holdings(rng: RandomNumberGenerator) -> void:
 			party["boxes"] = rows.duplicate() if rng.randf() < 0.5 else _fuzz_value(rng)
 		sender.send(party)
 		_pump()
+
+
+func test_a_change_between_battles_is_written_without_waiting_for_one() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	_host.autosave_msec = 0
+	red.state.set_event_flag(BEAT_LEADER)
+	_pump()
+
+	var saved: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	assert_true((saved.get("campaign", null) as PokeCoopCampaign).has_flag(BEAT_LEADER),
+		"the flag a window set is on disk before any battle or SAVE")

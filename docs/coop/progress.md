@@ -166,9 +166,9 @@ has **played** it by hand yet.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).
-- The campaign is saved whenever no battle runs, when the host leaves and when
-  a hosting app is paused; there is no recovery journal or save migration yet
-  (#39).
+- The campaign is saved after battles, every thirty seconds of changes, when
+  the host leaves and when a hosting app is paused; there is no recovery
+  journal or save migration yet (#39).
 - No private desktop or mobile builds yet: this machine has no Godot export
   templates for 4.8-dev4 (#44, #45).
 - Shared NPCs, scripts and cutscenes are not locked while one player uses them;

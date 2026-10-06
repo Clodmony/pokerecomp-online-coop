@@ -230,7 +230,9 @@ ended shows why over the world for three seconds first. A joiner whose link
 drops dials again as the same player every two seconds and gives up after ten
 tries as `host_unreachable`; ENet peers time out after two to six seconds so a
 lost player is freed for that. The host also writes the campaign whenever its
-last running battle ends, so a crash loses at most the battle in progress.
+last running battle ends, and at most every thirty seconds while anything has
+changed and no battle runs, so a crash loses at most the battle in progress and
+the last half minute.
 
 ## D29. A window's PC is the player's, copied whole against a revision (2026-10-06)
 
