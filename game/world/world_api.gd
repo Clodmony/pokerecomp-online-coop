@@ -7495,8 +7495,7 @@ func player_input_move(direction: Vector2i) -> Dictionary:
 			return {
 				"ok": true, "kind": &"turn", "facing": player_facing, "cell": player_cell,
 			}
-		## `.handleDirectionButtonPress` stores the press in `wPlayerDirection` first, so
-		## a press that does not turn still faces it, a wall or a door mat included (L11).
+		## `.handleDirectionButtonPress` stores the press in `wPlayerDirection` first (L11).
 		if forced == &"none":
 			player_facing = facing_for_direction(direction)
 	elif forced == &"none" and _player_turning_direction == 0:
