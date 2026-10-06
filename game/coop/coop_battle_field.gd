@@ -5,6 +5,7 @@ extends Control
 ## and the game's text box, from the host's view alone.
 
 const HOLD_FRAMES: int = 50
+const BOX_COLUMNS: int = 18
 const GAP: int = 16
 
 var panel: PokeCoopBattlePanel = null
@@ -103,8 +104,10 @@ func _process(delta: float) -> void:
 
 ## Whether the last turn is still being shown: its lines, animations or bars.
 func is_playing() -> bool:
+	var view: Dictionary = panel.battle_view() if panel != null else {}
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
-		or not _anim_after.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait)
+		or not _anim_after.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait \
+		or (not view.is_empty() and _key_of(view) != _revision_key))
 
 
 ## `PlayBattleMusic` as a battle opens, a trainer's by class and index; the map's after.
@@ -169,7 +172,7 @@ func _take_events(view: Dictionary) -> void:
 	if idle != _idle_seen:
 		_idle_seen = idle
 		_idle_text = idle
-	var key: String = "%s/%d/%s" % [view.get("battle", ""), int(view.get("revision", 0)), view.get("outcome", "")]
+	var key: String = _key_of(view)
 	if key == _revision_key:
 		return
 	if _revision_key.get_slice("/", 0) != String(view.get("battle", "")):
@@ -204,6 +207,10 @@ func _take_events(view: Dictionary) -> void:
 		Gen2Battle.ENEMY: int((view.get("enemy", {}) as Dictionary).get("hp", 0)),
 		Gen2Battle.PLAYER: int((allies[active] as Dictionary).get("hp", 0)) if active < allies.size() else 0,
 	}
+
+
+static func _key_of(view: Dictionary) -> String:
+	return "%s/%d/%s" % [view.get("battle", ""), int(view.get("revision", 0)), view.get("outcome", "")]
 
 
 ## The sliding intro, `BattleStartMessage` and `DoBattle`'s opening, for a battle seen from its start.
@@ -247,6 +254,10 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false))))
 		Gen2Battle.CRY:
 			_messages.append({"cry": int(event.get("species", 0))})
+		Gen2Battle.GREW_LEVEL:
+			if int(event.get("index", -1)) == int(view.get("active", 0)):
+				_messages.append({"grew": int(event.get("new_level", 0)),
+					"max_hp": int((event.get("new_stats", {}) as Dictionary).get("hp", 0))})
 		Gen2Battle.ANIMATION:
 			_queue_animation(event, out)
 
@@ -321,7 +332,14 @@ static func pages(line: String) -> PackedStringArray:
 	for mark: String in [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK,
 			Gen2TextStream.SCROLL_NOWAIT_BREAK, Gen2TextStream.PROMPT_BREAK]:
 		line = line.replace(mark, "\n")
-	var rows: PackedStringArray = line.split("\n", false)
+	var rows := PackedStringArray()
+	for row: String in line.split("\n", false):
+		while row.length() > BOX_COLUMNS:
+			var cut: int = row.rfind(" ", BOX_COLUMNS)
+			cut = cut if cut > 0 else BOX_COLUMNS
+			rows.append(row.left(cut))
+			row = row.substr(cut).strip_edges(true, false)
+		rows.append(row)
 	var out := PackedStringArray()
 	for page: int in range(0, rows.size(), 2):
 		out.append("\n".join(rows.slice(page, page + 2)))
@@ -385,6 +403,8 @@ func _take_step(step: Dictionary) -> void:
 		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
 	elif step.has("hold"):
 		_hold = int(step["hold"])
+	elif step.has("grew"):
+		_board.shown.merge({"player_level": int(step["grew"]), "player_max_hp": int(step["max_hp"])}, true)
 	elif step.has("enter"):
 		_board.enter(step["enter"], data)
 		_drawn_hp[int(step["enter"].get("side", 0))] = float(step["enter"].get("hp", 0))
@@ -578,8 +598,12 @@ func _waiting_text(view: Dictionary) -> String:
 	if bool(view.get("paused", false)):
 		return "%s is away.\nWaiting..." % _player_name(controller)
 	if controller == panel.client.player_id:
-		return "Bring out which\nPOKéMON?" if StringName(view.get("phase", &"")) == PokeCoopBattleSession.AWAITING_SEND_OUT \
-			else "What will\n%s do?" % out_now
+		match StringName(view.get("phase", &"")):
+			PokeCoopBattleSession.AWAITING_SEND_OUT:
+				return "Bring out which\nPOKéMON?"
+			PokeCoopBattleSession.AWAITING_LEARN:
+				return "Which move should\nbe forgotten?"
+		return "What will\n%s do?" % out_now
 	return "%s is\ndeciding..." % _player_name(controller)
 
 
@@ -609,6 +633,8 @@ static func message(
 			return "%s\nfainted!" % who
 		Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW:
 			return _entrance_line(event, _species_name(game, int(out.get(side, 0))), trainer)
+		Gen2Battle.MOVE_FORGOTTEN:
+			return _forgot_line(event, game)
 		Gen2Battle.CAUGHT:
 			return "All right!\n%s was caught!" % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.FLED:
@@ -620,7 +646,7 @@ static func message(
 		Gen2Battle.MOVE_LEARNED:
 			return "%s learned\n%s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		Gen2Battle.MOVE_OFFERED:
-			return "%s is trying\nto learn %s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
+			return "%s is\ntrying to learn\n%s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		PokeCoopBattleSession.JOINED:
 			return "%s joined\nthe battle!" % who_acted
 		PokeCoopBattleSession.ITEM_USED:
@@ -640,6 +666,13 @@ static func _entrance_line(event: Dictionary, species_name: String, trainer: Str
 		return ""
 	var lines: Array[String] = Gen2BattleScreen.GEN1_WITHDRAW_LINES
 	return lines[clampi(int(event.get("line", 0)), 0, lines.size() - 1)] % String(event.get("name", ""))
+
+
+static func _forgot_line(event: Dictionary, game: GameData) -> String:
+	var learner: String = String(event.get("name", ""))
+	return Gen2MoveForget.forgot_text(learner, String(game.move(int(event.get("forgot", 0))).get("name", "")),
+		game.generation, game.id == RomRegistry.YELLOW) + Gen2TextStream.PAGE_BREAK \
+		+ Gen2MoveForget.learned_text(learner, String(game.move(int(event.get("learned", 0))).get("name", "")), game.generation)
 
 
 ## `ItemUseBall`'s lines: the throw, then the catch or how close it came.

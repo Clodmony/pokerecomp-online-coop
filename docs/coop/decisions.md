@@ -297,7 +297,9 @@ cartridge's own animation for that move over both pictures, and each HP bar
 drains in the turn's own order, a pixel a frame from where the turn found it.
 A choice waits until the field has played the last turn out, its last line's
 hold included, as the cartridge's menus do, so the battle never runs ahead of
-what is on screen and a finished battle is not closed mid-line. The
+what is on screen and a finished battle is not closed mid-line; a view the
+field has not read yet counts as playing too, since the panel can see a press
+before the field sees the view it answers. The
 co-op panel beside it keeps the commands, the suggestions and the turn owner.
 Each animation's own move sounds go through the world's audio player, a cry
 move with the attacker's cry, and the battle's music plays while it is up, a
