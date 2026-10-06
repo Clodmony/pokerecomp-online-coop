@@ -9,6 +9,9 @@ const PROTOCOL: int = 1
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
+## How often a changed campaign is written while no battle runs, so a host that
+## crashes loses at most this much of what the windows did.
+var autosave_msec: int = 30000
 
 var data: GameData = null
 var campaign: PokeCoopCampaign = null
@@ -29,6 +32,8 @@ var _finished: Array = []
 var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
+var _changed: bool = false
+var _written_at: int = 0
 
 
 static func create(
@@ -82,6 +87,7 @@ func poll() -> void:
 			_on_message(peer, event["message"])
 	_drop_refused()
 	_announce_stand_ins()
+	_autosave()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
 		transport.close()
 		ended = true
@@ -102,6 +108,7 @@ func _on_message(peer: int, message: Dictionary) -> void:
 		return
 	_last_seq[sender.player_id] = seq
 	var refusal: StringName = _dispatch(sender, kind, message)
+	_changed = _changed or refusal == &""
 	if refusal != &"":
 		transport.send(peer, _rejected(seq, refusal))
 	broadcast()
@@ -220,6 +227,12 @@ func _hello_refusal(message: Dictionary) -> StringName:
 			or PokeCoopTransport.text(message.get("rom_sha1")) != campaign.rom_sha1:
 		return &"content_mismatch"
 	return &""
+
+
+func _autosave() -> void:
+	if _changed and battles.is_empty() and _closing_at < 0 \
+			and Time.get_ticks_msec() - _written_at >= autosave_msec and _write_campaign() == OK:
+		_changed = false
 
 
 ## A stand-in's turn starts with no message to answer, so it is announced.
@@ -502,6 +515,7 @@ func save_checkpoint() -> StringName:
 
 ## The campaign between battles: a battle still running when the host closes is left out.
 func _write_campaign() -> Error:
+	_written_at = Time.get_ticks_msec()
 	return PokeCoopSave.write(save_path, campaign, players.values()) \
 		if not save_path.is_empty() else ERR_UNCONFIGURED
 
