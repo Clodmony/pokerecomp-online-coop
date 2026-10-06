@@ -8,6 +8,7 @@ extends RefCounted
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
+const NOTICE_FRAMES: int = 240
 ## Which player this device was on each host, by cartridge, address and port.
 static var identity_path: String = "user://coop_identity.json"
 
@@ -27,6 +28,9 @@ var _retry_as_new: bool = false
 var _settled_battles: Dictionary = {}
 var _evolving: Array = []
 var _whiteout_due: bool = false
+var _notice: Label = null
+var _notice_frames: int = 0
+var _noticed_save: int = -1
 
 
 static func campaign_path(game: GameData) -> String:
@@ -129,12 +133,35 @@ func process() -> void:
 		if screen.process_mode != mode:
 			screen.process_mode = mode
 		_collect_evolutions()
+		_tell_refused_save()
 		if not panel.is_open() and _whiteout_due:
 			_whiteout_due = false
 			screen.white_out()
 		elif not panel.is_open() and not _evolving.is_empty():
 			screen.evolve_after_battle(_evolving)
 			_evolving = []
+
+
+## The world printed its own "saved" line; a checkpoint the host refused says so.
+func _tell_refused_save() -> void:
+	_notice_frames -= 1
+	if _notice != null and _notice_frames == 0:
+		_notice.visible = false
+	if link == null or link.save_seq < 0 or link.save_seq == _noticed_save:
+		return
+	for rejection: Dictionary in client.rejections:
+		if int(rejection.get("seq", -1)) == link.save_seq:
+			_noticed_save = link.save_seq
+			say("The campaign was not saved: %s." % String(rejection.get("reason", "")).replace("_", " "))
+
+
+## A line over the world for a few seconds.
+func say(text: String) -> void:
+	if _notice == null:
+		return
+	_notice.text = text
+	_notice.visible = true
+	_notice_frames = NOTICE_FRAMES
 
 
 ## What a finished host battle owes this window's world: its player's Pokémon
@@ -190,6 +217,13 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	screen.add_child(layer)
 	panel = PokeCoopBattlePanel.over(client, data)
 	layer.add_child(panel)
+	_notice = Label.new()
+	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE)
+	_notice.add_theme_color_override("font_outline_color", Color.BLACK)
+	_notice.add_theme_constant_override("outline_size", 6)
+	_notice.position = Vector2(24, 24)
+	_notice.visible = false
+	layer.add_child(_notice)
 
 
 func _claim_seams() -> void:

@@ -21,6 +21,8 @@ var _party_sent: Array = []
 var _uids: Array = []
 var _frames: int = 0
 var _saved_world: Object = null
+## The sequence number of the last checkpoint the world's SAVE asked for.
+var save_seq: int = -1
 
 
 static func over(
@@ -56,7 +58,7 @@ func advance() -> void:
 	if save.world != _saved_world:
 		_saved_world = save.world
 		_push_party()
-		client.request_save()
+		save_seq = client.request_save()
 
 
 func _push_world() -> void:
