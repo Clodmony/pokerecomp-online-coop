@@ -1,10 +1,9 @@
 class_name PokeCoopSession
 extends RefCounted
 
-## One co-op run on this device: the client, the host when this device hosts,
-## and the world screen with the partner actor, battle takeover, sync link and
-## panel. [Gen2GameRuntime] drives it once a frame. The actor and the takeover
-## are registered with the mod host once and follow whichever session is live.
+## One co-op run on this device: the client, the host when it hosts, and the world
+## screen with the partner actor, battle takeover, sync link and panel, driven once
+## a frame by [Gen2GameRuntime]. The actor and the takeover follow the live session.
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"

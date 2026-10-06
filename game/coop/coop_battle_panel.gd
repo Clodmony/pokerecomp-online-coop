@@ -1,9 +1,8 @@
 class_name PokeCoopBattlePanel
 extends PanelContainer
 
-## The co-op overlay over the world: the session menu on SELECT and, in a shared
-## battle, the allies by owner, who decides and the partner's suggestion. It sends
-## intentions and decides nothing; while it is open the world gets no buttons.
+## The co-op overlay: the session menu on SELECT and, in a shared battle, the allies by
+## owner, who decides and the partner's suggestion. It sends intentions, decides nothing.
 
 signal leave_requested
 

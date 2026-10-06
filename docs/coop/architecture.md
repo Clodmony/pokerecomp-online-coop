@@ -155,7 +155,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded` |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
-| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker |
+| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker; on Generation 1 the player does not walk while a map script walks someone (L10) |
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/oak_speech_screen.gd` | `preset_names`: a name settled before the speech is said rather than asked |
 | `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save |

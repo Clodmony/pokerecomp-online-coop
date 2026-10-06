@@ -335,9 +335,11 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 		return &""
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
-	campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
+	var story_moved: bool = campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
 	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
-	PokeCoopPolicy.share_gifts(campaign, sender, players.values(), flags_before, held_before)
+	var handled: Array[int] = PokeCoopPolicy.share_gifts(campaign, sender, players.values(), flags_before, held_before)
+	if story_moved:
+		PokeCoopPolicy.share_found_items(data, sender, players.values(), held_before, handled)
 	return &""
 
 

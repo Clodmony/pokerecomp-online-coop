@@ -1488,3 +1488,56 @@ func test_the_hosts_echo_of_an_older_change_does_not_rewind_a_newer_one() -> voi
 	assert_eq(red.state.gen1_map_script(0x28), 4, "the host's copy still says 3 when it arrives")
 	_pump()
 	assert_eq([red.state.gen1_map_script(0x28), int((_host.campaign.world["gen1_map_scripts"] as Dictionary)[0x28])], [4, 4])
+
+
+func test_an_item_found_along_the_story_reaches_every_player_and_a_purchase_does_not() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(0x301)
+	red.state.apply_changes({}, {}, {"items": {Fixture.POTION: 3}})
+	_pump()
+	assert_eq([red.state.item_quantity(Fixture.POTION), blue.state.item_quantity(Fixture.POTION)], [3, 3],
+		"the item ball is gone for both, so both have its potions")
+
+	red.state.apply_changes({}, {}, {"items": {Fixture.SMOKE_BALL: 2}})
+	_pump()
+	assert_gt(red.state.item_quantity(Fixture.SMOKE_BALL), 0)
+	assert_eq(blue.state.item_quantity(Fixture.SMOKE_BALL), 0, "an item bought at the Mart stays the buyer's")
+
+
+func test_a_key_item_the_story_takes_is_taken_from_everyone_but_a_fossil_is_not() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	const PARCEL: int = 0x46
+	const DOME_FOSSIL: int = 0x29
+	red.state.set_event_flag(0x302)
+	red.state.apply_changes({}, {}, {"items": {PARCEL: 1, DOME_FOSSIL: 1}})
+	_pump()
+	assert_eq([blue.state.item_quantity(PARCEL), blue.state.item_quantity(DOME_FOSSIL)], [1, 1])
+
+	var held: Dictionary = red.state.items().duplicate()
+	held.erase(PARCEL)
+	held.erase(DOME_FOSSIL)
+	red.state.set_event_flag(0x303)
+	var restored: Dictionary = red.state.to_dict()
+	restored["items"] = held
+	red.state.restore_from_dict(restored)
+	_pump()
+
+	assert_eq(red.state.item_quantity(PARCEL), 0)
+	assert_eq(blue.state.item_quantity(PARCEL), 0, "Oak has the parcel: nobody carries it on")
+	assert_eq(blue.state.item_quantity(DOME_FOSSIL), 1, "Blue revives their own fossil")
+
+
+func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:
+	var world := Gen2WorldAPI.new(_data, Gen2WorldMap.new(), null)
+	var actor: PokeCoopRemoteActor = PokeCoopRemoteActor.over(_red)
+	actor.set_world(world)
+	_red.state["nearby"] = [_blue.player_id]
+	(_red.state["players"][_blue.player_id] as Dictionary)["map"] = world.map_id()
+
+	var drawn: Array = actor.sprites()
+
+	assert_eq(drawn.size(), 1)
+	assert_true(bool((drawn[0] as Dictionary).get("solid", false)))
