@@ -1397,3 +1397,92 @@ func test_the_move_question_lists_the_learners_own_moves_and_the_new_one() -> vo
 	assert_string_contains(String(rows[0]["text"]), String(_data.move(Fixture.EMBER)["name"]))
 	assert_string_contains(String(rows[0]["text"]), slash)
 	panel.free()
+
+
+func _new_player(peer: int, player_name: String, starter: int) -> PokeCoopClient:
+	_host.allow_new_players = true
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, peer)
+	var client: PokeCoopClient = PokeCoopClient.over(link)
+	client.greet(player_name, _data.id, _data.sha1, "", starter)
+	_clients.append(client)
+	_pump()
+	return client
+
+
+func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab_is_behind_them() -> void:
+	_host.campaign.commit("story:early", {"flags": [BEAT_LEADER]})
+	var red: PokeCoopWorldLink = _window(_red)
+	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
+	var green: PokeCoopPlayer = _host.player(green_client.player_id)
+	var house: Vector2i = PokeCoopPolicy.OPENING_HOUSE[1]
+	assert_eq([green.team.size(), green.map, green.cell], [0, house, PokeCoopPolicy.OPENING_BEDROOM_CELL], "Oak hands the starter over")
+	assert_eq(String(green_client.me()["opening"]["stage"]), PokeCoopPolicy.OPENING_SPEECH)
+	var window: PokeCoopWorldLink = _window(green_client)
+	assert_false(window.state.is_event_flag_active(BEAT_LEADER), "the campaign's story is not theirs yet")
+
+	_host.player(_red.player_id).place(house, Vector2i(2, 2), 0)
+	assert_false(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "nobody is drawn in the house")
+	_send(func() -> void: green_client.send({"type": "opening", "rival": "GARY"}))
+	assert_eq([String(green.opening["stage"]), _host.campaign.rival_name], [PokeCoopPolicy.OPENING_HOME, "GARY"])
+	_host.player(_red.player_id).place(PALLET, Vector2i(6, 6), 0)
+	_send(func() -> void: green_client.step(PALLET, Vector2i(5, 6), 0, true))
+	assert_true(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "out of the house they meet")
+
+	window.state.set_event_flag(0x100)
+	_pump()
+	assert_false(_host.campaign.has_flag(0x100), "the opening's story stays the player's")
+	assert_false(red.state.is_event_flag_active(0x100))
+	window.state.set_event_flag(PokeCoopPolicy.OPENING_DONE_FLAG)
+	_send(func() -> void: green_client.step(PokeCoopPolicy.OPENING_LAB, Vector2i(4, 4), 0, true))
+	assert_false(green.opening.is_empty(), "still in Oak's lab")
+	_send(func() -> void: green_client.step(PALLET, Vector2i(12, 11), 0, true))
+
+	assert_true(green.opening.is_empty(), "the lab is behind them")
+	assert_true(window.state.is_event_flag_active(BEAT_LEADER), "the campaign's story is theirs now")
+	assert_false(window.state.is_event_flag_active(0x100))
+	assert_false(_host.campaign.has_flag(0x100))
+
+
+func test_the_rival_fight_of_an_opening_is_the_players_own() -> void:
+	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
+	_host.player(green_client.player_id).add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH], 300))
+	_host.broadcast()
+	var window: PokeCoopWorldLink = _window(green_client)
+	var results: Array = []
+	var bridge: Node = _take_over(green_client, _opened_by_world(
+		window, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0), Fixture.GEN1_LEADER
+	), results)
+	var battle_id: String = _battle_of(green_client)
+
+	assert_ne(battle_id, "")
+	assert_eq(_host.join_battle(_host.player(_blue.player_id), battle_id), &"private_battle")
+	assert_false(_blue.state["battles"].any(func(running: Dictionary) -> bool: return not bool(running["private"])))
+	_fight_out(battle_id)
+	bridge.call("_process", 0.0)
+	assert_eq(results, [{"outcome": &"won"}])
+	var encounter_id: String = "trainer:%d:0" % Fixture.GEN1_LEADER
+	assert_eq(_host.campaign.encounter_state(encounter_id), PokeCoopCampaign.ENCOUNTER_FREE,
+		"the campaign's own fight with that trainer is still to come")
+
+
+func test_a_player_who_skips_the_opening_is_given_their_starter_in_pallet_town() -> void:
+	var green_client: PokeCoopClient = _new_player(3, "GREEN", Fixture.BULBASAUR)
+
+	assert_eq(green_client.me()["opening"], {})
+	assert_eq(_host.player(green_client.player_id).team.size(), 1)
+
+
+func test_the_hosts_echo_of_an_older_change_does_not_rewind_a_newer_one() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.state.set_gen1_map_script(0x28, 3)
+	red.advance()
+	_host.poll()
+	red.state.set_gen1_map_script(0x28, 4)
+	red.advance()
+	_red.poll()
+	red.advance()
+
+	assert_eq(red.state.gen1_map_script(0x28), 4, "the host's copy still says 3 when it arrives")
+	_pump()
+	assert_eq([red.state.gen1_map_script(0x28), int((_host.campaign.world["gen1_map_scripts"] as Dictionary)[0x28])], [4, 4])

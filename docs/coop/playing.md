@@ -7,10 +7,15 @@ the cartridge is sent between devices.
 ## Starting
 
 1. Open the launcher and go to the **Co-op** tab.
-2. Under **You**, type your name and pick a starter. If the cartridge has a
-   single-player save on this device, **Bring** can take that trainer instead:
-   their team, PC, bag, money and place. The first player of a new campaign
-   who brings a save brings its story and badges too.
+2. Under **You**, type your name and choose how a newcomer starts (this only
+   matters the first time you join a campaign):
+   - **The opening: Play it** (the default): Oak's speech, your bedroom, Oak
+     stopping you at the grass, his lab, your starter and the rival's
+     challenge, as in the cartridge. See "The opening" below.
+   - **Skip it**: start in Pallet Town with the **Starter** you pick, level 5.
+   - **Bring**, if the cartridge has a single-player save on this device: that
+     trainer's team, PC, bag, money and place. The first player of a new
+     campaign who brings a save brings its story and badges too.
 3. One player picks a **Campaign** under **Host a campaign**: one of this
    device's campaigns (the latest is picked), or **A new campaign** with a name
    such as WITH ALEX, then presses **Host**. The card lists the addresses
@@ -33,6 +38,27 @@ device remembers who it played as in each campaign; a player joining from
 another device or address gets their trainer back by typing the same name as
 before. Only the campaign the host picked is played: the others see its name
 at the top of the SELECT menu.
+
+## The opening
+
+Everyone who plays the opening plays it in their own world, at the same time
+or one after another:
+
+- Oak asks for your name and already knows it from the Co-op tab. The rival's
+  name is asked only until somebody has named him; after that Oak remembers
+  it for everyone.
+- Each player wakes up in their own bedroom. Nobody else is drawn in the
+  house; once you step outside you see the others in Pallet Town and can walk
+  together, into Oak's lab as well.
+- Oak, the three POKé BALLs and the rival are yours alone until you have your
+  starter and have left the lab: you can both take CHARMANDER. The rival's
+  fight in the lab is yours alone too: nobody can join it.
+- Once you leave the lab with your starter, the campaign's story is yours: the
+  same shared flags, badges and beaten trainers as everyone else's. The rival
+  keeps the starter he took in the first opening to finish.
+- Walking out right after the rival takes his POKé BALL can skip his
+  challenge; wait until he has said everything (the single-player game does
+  the same).
 
 ## Playing over the internet
 

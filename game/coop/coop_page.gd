@@ -7,6 +7,7 @@ extends VBoxContainer
 
 const GAMES: Array[StringName] = [&"red", &"blue"]
 const STARTER_NAMES: Array[String] = ["BULBASAUR", "CHARMANDER", "SQUIRTLE"]
+const OPENINGS: Array[String] = ["Play it: Oak's speech, your room, his lab", "Skip it: start in Pallet Town with a starter"]
 const HIDDEN_NETWORKS: Array[String] = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "vEthernet"]
 const DEFAULT_NAME: String = "RED"
 const MAX_TITLE: int = 24
@@ -16,6 +17,7 @@ var _host_control: Control = null
 var _games: Array[StringName] = []
 var _game: int = 0
 var _starter: int = 1
+var _skip_opening: bool = false
 var _name: LineEdit = null
 var _address: LineEdit = null
 var _status: Label = null
@@ -80,10 +82,18 @@ func _build_player(card: VBoxContainer) -> void:
 	_name = _field(DEFAULT_NAME, "Your name")
 	_name.max_length = Gen2SaveData.MAX_PLAYER_NAME
 	card.add_child(Gen2LauncherUI.stacked(_theme, "Name", _name))
-	card.add_child(Gen2LauncherUI.choice(
-		_theme, &"sparkle", "Starter, if you are new to the campaign", STARTER_NAMES, _starter,
+	var starter_row: Control = Gen2LauncherUI.choice(
+		_theme, &"sparkle", "Starter", STARTER_NAMES, _starter,
 		func(index: int) -> void: _starter = index, _host_control
+	)
+	starter_row.visible = _skip_opening
+	card.add_child(Gen2LauncherUI.choice(
+		_theme, &"play", "The opening, if you are new to the campaign", OPENINGS, int(_skip_opening),
+		func(index: int) -> void:
+			_skip_opening = index == 1
+			starter_row.visible = _skip_opening, _host_control
 	))
+	card.add_child(starter_row)
 	_bring_row = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD)
 	card.add_child(_bring_row)
 	_build_bring()
@@ -99,7 +109,7 @@ func _build_bring() -> void:
 		func(row: Dictionary) -> bool: return bool(row["valid"]))
 	if _slots.is_empty():
 		return
-	var labels: Array = ["A new trainer with that starter"]
+	var labels: Array = ["A new trainer"]
 	for row: Dictionary in _slots:
 		labels.append("Slot %d: %s" % [int(row["slot"]) + 1, row["player_name"]])
 	_bring_row.add_child(Gen2LauncherUI.choice(
@@ -268,7 +278,7 @@ func _process(_delta: float) -> void:
 	if _session.is_ready():
 		_opening = true
 		Gen2GameRuntime.instance().select_game(_data().id)
-		get_tree().change_scene_to_node(_session.open_world())
+		get_tree().change_scene_to_node(_session.open_start())
 
 
 static func why_not(reason: String) -> String:
@@ -294,6 +304,8 @@ func _player_name() -> String:
 
 
 func _starter_species() -> int:
+	if not _skip_opening:
+		return PokeCoopPolicy.PLAY_OPENING
 	return PokeCoopPolicy.STARTERS[clampi(_starter, 0, PokeCoopPolicy.STARTERS.size() - 1)]
 
 

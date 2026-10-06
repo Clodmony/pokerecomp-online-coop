@@ -67,3 +67,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L8 | Upstream: the Gen 1 battle intro draws the player's back-picture head as Crystal's six-column OAM, scrambling it | upstream | fixed in the fork's `battle_intro.gd` (D42); file upstream with the fix |
 | L7 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
 | L9 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
+| L10 | Upstream: the rival's challenge in Oak's lab can be walked past: after "BLUE received a SQUIRTLE!" the player can move while the lab script is still on its previous step, and walking down at once leaves the lab without the fight | upstream | seen in a plain single-player world with the same driver (no co-op); `joy_ignore` is not modelled. File upstream |
+| L11 | Upstream: a direction pressed on the frame the player stops is recorded as the last stop direction without turning, so further presses of it bump without turning until another direction is pressed | upstream | seen while driving the lab; not checked against hardware. File upstream |
+| L12 | A new player plays the opening on a story of their own | M9 | done on `coop/launcher` (D50) |
+| L13 | A window's stale echo of its own world change rewound map scripts | M7 | fixed on `coop/launcher` (D51) |

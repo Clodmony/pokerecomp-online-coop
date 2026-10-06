@@ -1,11 +1,9 @@
 class_name PokeCoopWorldLink
 extends RefCounted
 
-## Keeps one window's world state and party in step with the host. Local changes
-## go out as patches and the host's come in as patches against what was last
-## seen of it, so neither side's change is overwritten by a stale copy. The
-## party and PC go out while the player is free and the host's own changes come
-## back whole. The world's own SAVE asks the host for a campaign checkpoint.
+## Keeps one window's world state and party in step with the host: world changes
+## travel as patches both ways, the party and PC go out while the player is free
+## and come back whole, and the world's own SAVE asks for a campaign checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
 
@@ -33,6 +31,8 @@ var _saved_frame: int = 0
 var save_seq: int = -1
 ## While the Cable Club trades on the window's party; the host's swap comes after.
 var hold_holdings: bool = false
+## Patches the host has not applied yet, by sequence number (D51).
+var _unacked: Dictionary = {}
 
 
 static func over(
@@ -54,10 +54,8 @@ func _on_state_changed() -> void:
 	_dirty = true
 
 
-## Once a frame: what this window changed goes out before what the host changed
-## comes in, so a pull never lands on an unsent local change.
-## Nothing goes out while the link is down: a send then is lost, and what was not
-## sent goes out whole once the host has the player back.
+## Once a frame, this window's changes go out before the host's come in. Nothing
+## goes out while the link is down; what was not sent goes out once it is back.
 func advance() -> void:
 	if client == null or client.me().is_empty() or not client.connected:
 		return
@@ -83,7 +81,7 @@ func _push_world() -> void:
 	var changes: Dictionary = PokeCoopOwnership.patch(_baseline, now)
 	_baseline = now
 	if not changes.is_empty():
-		client.send({"type": "world", "patch": changes})
+		_unacked[client.send({"type": "world", "patch": changes})] = changes
 
 
 func _host_world() -> Dictionary:
@@ -103,12 +101,32 @@ func _pull_world() -> void:
 		return
 	var changes: Dictionary = PokeCoopOwnership.patch(_host_seen, host)
 	_host_seen = host
+	var applied: int = int(client.state.get("last_seq", 0))
+	for seq: int in _unacked.keys():
+		if seq <= applied:
+			_unacked.erase(seq)
+	for pending: Dictionary in _unacked.values():
+		_drop_overlap(changes, pending)
 	if not changes.is_empty():
 		var merged: Dictionary = state.to_dict()
 		PokeCoopOwnership.apply_patch(merged, changes)
 		state.restore_from_dict(merged)
 	_baseline = state.to_dict()
 	_dirty = false
+
+
+static func _drop_overlap(changes: Dictionary, pending: Dictionary) -> void:
+	for key: String in pending:
+		if not changes.has(key):
+			continue
+		var mine: Dictionary = pending[key]
+		var theirs: Dictionary = changes[key]
+		if mine.has("value") or theirs.has("value"):
+			changes.erase(key)
+			continue
+		for entry: Variant in (mine.get("set", {}) as Dictionary).keys() + (mine.get("erase", []) as Array):
+			(theirs.get("set", {}) as Dictionary).erase(entry)
+			(theirs.get("erase", []) as Array).erase(entry)
 
 
 func _world_saved() -> bool:

@@ -30,6 +30,8 @@ var return_point: Dictionary = {}
 var battle_id: String = ""
 var connected: bool = false
 var next_mon_serial: int = 1
+## While the player plays the opening: its stage, the story it runs on and the rival's name.
+var opening: Dictionary = {}
 ## The player's keys of the world state other than the bag and the wallet,
 ## which [member items] and [member money] hold. See [PokeCoopOwnership].
 var world: Dictionary = {}
@@ -45,6 +47,10 @@ static func create(id: String, player_name: String, trainer: int) -> PokeCoopPla
 
 func is_free() -> bool:
 	return battle_id.is_empty()
+
+
+func is_hidden() -> bool:
+	return String(opening.get("stage", "")) in [PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.OPENING_HOME]
 
 
 func add_mon(mon: Gen2SaveMon) -> String:
@@ -328,6 +334,7 @@ func private_view() -> Dictionary:
 		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team),
 		"box": box.size(), "items": items.duplicate(), "money": money, "world": world_part(),
 		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box,
+		"opening": {"stage": opening.get("stage", ""), "rival": opening.get("rival", "")} if not opening.is_empty() else {},
 	}
 
 
@@ -343,7 +350,7 @@ func to_dict() -> Dictionary:
 		"items": item_rows, "money": money,
 		"map": [map.x, map.y], "cell": [cell.x, cell.y], "facing": facing,
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
-		"current_box": current_box,
+		"current_box": current_box, "opening": opening.duplicate(true),
 	}
 
 
@@ -394,6 +401,13 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:
 		out.world = PokeCoopOwnership.canonical(raw_world, PokeCoopOwnership.PLAYER)
+	var raw_opening: Variant = source.get("opening", {})
+	if raw_opening is Dictionary and (raw_opening as Dictionary).get("world") is Dictionary:
+		out.opening = {
+			"stage": String(raw_opening.get("stage", PokeCoopPolicy.OPENING_OUT)),
+			"rival": String(raw_opening.get("rival", "")),
+			"world": PokeCoopOwnership.canonical(raw_opening["world"], PokeCoopOwnership.CAMPAIGN),
+		}
 	return out
 
 

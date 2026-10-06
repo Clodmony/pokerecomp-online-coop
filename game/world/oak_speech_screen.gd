@@ -69,6 +69,8 @@ var _presentation := Gen2IntroPresentation.new()
 var _frame_clock := Gen2WorldAnimation.FrameClock.new()
 ## What to run when the queue empties, which is where the routine resumes.
 var _after: Callable = Callable()
+## Names already settled, by naming role: the speech says them rather than asking.
+var preset_names: Dictionary = {}
 
 
 ## Answers false when the cache carries no intro text, which the caller reports
@@ -220,6 +222,10 @@ func advance() -> void:
 	var role: String = String(_beats[_index].get("name", Gen2OakSpeech.NAME_NONE))
 	if role != Gen2OakSpeech.NAME_NONE:
 		_naming_role = role
+		if not String(preset_names.get(role, "")).is_empty():
+			_store_name(String(preset_names[role]))
+			_enter_next_beat()
+			return
 		_open_name_menu()
 		return
 	# `RotateThreePalettesRight` then `ClearTilemap`, after a beat that loads a new picture.

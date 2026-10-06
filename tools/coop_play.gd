@@ -5,7 +5,7 @@ extends SceneTree
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
 ## The same session the launcher's Co-op tab opens. SELECT opens the session menu.
 ## `keys=R,R,SELECT,A` presses buttons once the world is up, `-` waiting a slot;
-## `capture=<png>@<frames>` writes the window to a PNG outside the project.
+## `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays the opening.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
@@ -16,7 +16,8 @@ const KEYS: Dictionary = {
 }
 
 var _session: PokeCoopSession = null
-var _screen: Gen2WorldScreen = null
+var _screen: Control = null
+var _opening: bool = false
 var _player_id: String = ""
 var _keys: Array = []
 var _captures: Array = []
@@ -40,7 +41,10 @@ func _initialize() -> void:
 	var data: GameData = GameData.open(
 		StringName(positional[game_at] if positional.size() > game_at else "red")
 	)
-	_session = PokeCoopSession.joining(data, positional[0], port, _player_id.to_upper(), 0, _player_id)
+	_session = PokeCoopSession.joining(
+		data, positional[0], port, _player_id.to_upper(), PokeCoopPolicy.PLAY_OPENING if _opening else 0,
+		"" if _opening else _player_id
+	)
 	if _session == null:
 		push_error("coop play: no imported cache for that game, or no connection")
 		quit(1)
@@ -49,6 +53,9 @@ func _initialize() -> void:
 
 
 func _read_option(arg: String) -> bool:
+	if arg == "opening":
+		_opening = true
+		return true
 	if arg.begins_with("keys="):
 		for key: String in arg.trim_prefix("keys=").split(",", false):
 			_keys.append(KEYS.get(key.to_upper(), PokeButton.NONE))
@@ -71,10 +78,10 @@ func _process(_delta: float) -> bool:
 		quit(0)
 		return false
 	if _screen == null and _session.is_ready():
-		_screen = _session.open_world()
+		_screen = _session.open_start()
 		root.add_child(_screen)
 		current_scene = _screen
-		print("coop play: %s on map %s at %s" % [_player_id, _screen.map_group, _screen.start_cell])
+		print("coop play: %s opened %s" % [_player_id, _screen.name])
 	if _screen != null:
 		_frames += 1
 		_drive_keys()
