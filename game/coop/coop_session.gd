@@ -11,6 +11,7 @@ const TAKEOVER_ID: StringName = &"coop_battles"
 const NOTICE_MSEC: int = 4000
 const LEAVE_MSEC: int = 3000
 const RECONNECT_MSEC: int = 2000
+const JOIN_TIMEOUT_MSEC: int = 15000
 const RECONNECT_ATTEMPTS: int = 60
 const RESUME_REDIAL_MSEC: int = 3000
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
@@ -50,6 +51,7 @@ var _notice_until: int = 0
 var _noticed_save: int = -1
 var _partners_seen: Dictionary = {}
 var _paused: bool = false
+var _dialled_at: int = 0
 var _paused_at: int = 0
 
 
@@ -119,6 +121,7 @@ static func _connect(
 		"address": address, "port": port, "name": player_name, "starter": starter,
 		"save": brought.to_dict() if brought != null else {},
 	}
+	out._dialled_at = Time.get_ticks_msec()
 	return out if out._dial(out._identity_saved) else null
 
 
@@ -161,6 +164,8 @@ func process() -> void:
 		_dial("")
 		return
 	_was_ready = _was_ready or is_ready()
+	if not _was_ready and client.ended_reason.is_empty() and Time.get_ticks_msec() - _dialled_at > JOIN_TIMEOUT_MSEC:
+		client.ended_reason = "host_unreachable"
 	_keep_connected()
 	_follow_session_end()
 	_advance_links()

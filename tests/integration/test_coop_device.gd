@@ -88,6 +88,18 @@ func test_a_device_whose_link_drops_comes_back_on_its_own() -> void:
 	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own tries")
 
 
+func test_a_host_that_never_answers_is_reported_rather_than_waited_for() -> void:
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT + 7, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	joining.process()
+	assert_eq(joining.ended_reason(), "", "a fresh dial is given its time")
+	joining.set("_dialled_at", Time.get_ticks_msec() - PokeCoopSession.JOIN_TIMEOUT_MSEC - 1000)
+	joining.process()
+	assert_eq(joining.ended_reason(), "host_unreachable")
+	assert_string_contains(PokeCoopPage.why_not(joining.ended_reason()), "UDP port")
+	assert_string_contains(PokeCoopPage.why_not("refused: content_mismatch"), "same game file")
+
+
 func test_a_joining_device_back_from_a_long_pause_dials_again_at_once() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
 	_sessions.append(hosting)

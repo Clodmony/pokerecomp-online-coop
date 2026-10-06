@@ -196,7 +196,7 @@ func _process(_delta: float) -> void:
 	if _session == null or _opening:
 		return
 	if not _session.ended_reason().is_empty():
-		_say("The host said no: %s." % _session.ended_reason())
+		_say(why_not(_session.ended_reason()))
 		_session.close()
 		Gen2GameRuntime.instance().coop = null
 		_session = null
@@ -205,6 +205,19 @@ func _process(_delta: float) -> void:
 		_opening = true
 		Gen2GameRuntime.instance().select_game(_data().id)
 		get_tree().change_scene_to_node(_session.open_world())
+
+
+static func why_not(reason: String) -> String:
+	match reason:
+		"refused: content_mismatch":
+			return "The host plays a different cartridge. Both players need the same game file: Red and Blue, or two revisions of one, cannot play together."
+		"refused: protocol_mismatch":
+			return "The host runs a different version of the game. Both players need builds made from the same version."
+		"host_unreachable":
+			return "Could not reach the host. Check the address, that the host pressed Host, and that UDP port %d reaches their device (a shared VPN such as Tailscale avoids router setup)." % PokeCoopEnetTransport.DEFAULT_PORT
+		"host_shutdown":
+			return "The host closed the session."
+	return "The host said no: %s." % reason
 
 
 func _data() -> GameData:
