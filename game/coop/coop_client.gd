@@ -19,6 +19,7 @@ var _seq: int = 0
 var _greeting: Dictionary = {}
 ## Battles a view arrived for in this poll: a later revision there adds its events.
 var _fresh: Dictionary = {}
+var state_at: int = 0
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -65,6 +66,7 @@ func _receive(message: Dictionary) -> void:
 			_seq = maxi(_seq, int(message.get("last_seq", 0)))
 		"state":
 			state = message
+			state_at = Time.get_ticks_msec()
 		"box":
 			box = {"rev": int(message.get("rev", 0)), "rows": message.get("rows", [])}
 		"battle":

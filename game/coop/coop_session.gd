@@ -50,6 +50,7 @@ var _notice: Label = null
 var _notice_until: int = 0
 var _noticed_save: int = -1
 var _partners_seen: Dictionary = {}
+var _saves_seen: int = -1
 var _paused: bool = false
 var _dialled_at: int = 0
 var _paused_at: int = 0
@@ -192,6 +193,7 @@ func _tend_world() -> void:
 	_collect_evolutions()
 	_tell_refused_save()
 	_tell_partners()
+	_tell_saves()
 	if not panel.is_open() and _whiteout_due:
 		_whiteout_due = false
 		screen.white_out()
@@ -327,6 +329,26 @@ static func _against(session: PokeCoopClient, battle_id: String, game: GameData)
 		return " against %s" % (game.trainer_name(trainer) if trainer > 0 \
 			else "wild %s" % String(game.species(int(running.get("enemy", 0))).get("name", "")))
 	return ""
+
+
+func _tell_saves() -> void:
+	if client.state.is_empty():
+		return
+	var line: String = save_news(_saves_seen, client)
+	if not line.is_empty():
+		say(line)
+	_saves_seen = int((client.state.get("saved", {}) as Dictionary).get("count", 0))
+
+
+static func save_news(seen: int, session: PokeCoopClient) -> String:
+	var saved: Dictionary = session.state.get("saved", {})
+	if seen < 0 or int(saved.get("count", 0)) <= seen:
+		return ""
+	var by: String = String(saved.get("by", ""))
+	if by == session.player_id:
+		return "Campaign saved."
+	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(by, {})
+	return "%s saved the campaign." % String(view.get("name", by))
 
 
 ## A line over the world for a few seconds.

@@ -280,6 +280,19 @@ func test_a_message_delivered_twice_is_applied_once() -> void:
 	assert_eq(_red.last_rejection(), &"duplicate")
 
 
+func test_a_save_from_either_menu_is_confirmed_to_everyone() -> void:
+	var red_seen: int = int(_red.state["saved"]["count"])
+	var blue_seen: int = int(_blue.state["saved"]["count"])
+	assert_eq(PokeCoopBattlePanel.last_saved(_red).begins_with("Saved") or PokeCoopBattlePanel.last_saved(_red) == "Not saved yet.", true)
+	_send(func() -> void: _blue.request_save())
+
+	assert_eq(PokeCoopSession.save_news(blue_seen, _blue), "Campaign saved.")
+	var blue: String = String(_red.state["players"][_blue.player_id]["name"])
+	assert_eq(PokeCoopSession.save_news(red_seen, _red), "%s saved the campaign." % blue)
+	assert_eq(PokeCoopBattlePanel.last_saved(_red), "Saved just now.")
+	assert_eq(PokeCoopSession.save_news(int(_red.state["saved"]["count"]), _red), "", "said once")
+
+
 func test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone() -> void:
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	_send(func() -> void: _blue.request_save())

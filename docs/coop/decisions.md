@@ -570,3 +570,16 @@ every participant when the battle ends, through the same player-owned world
 patch a catch uses, so each window's Pokédex picks it up. A player who joined
 late is credited with the whole battle; the cartridge's own rule would only
 count what they saw.
+
+## D48. Saving says that it saved (2026-10-06)
+
+A save from the SELECT menu succeeded silently and only a refusal was shown,
+and nothing said that the game's own START > SAVE does the same or that the
+host saves by itself. The host's state now carries when the campaign was last
+written and how many saves players asked for, and by whom. A new save, from
+either menu, shows "Campaign saved." to the player who asked and "<NAME> saved
+the campaign." to the others; the session menu reads "Saved 8 seconds ago. It
+also saves itself after battles and every thirty seconds of changes." and its
+row says "Save the campaign (same as START > SAVE)". A returning player is
+also recognised by name when their device lost the id it remembered for the
+host (D44's review noted the id was keyed by address).

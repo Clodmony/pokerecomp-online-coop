@@ -201,10 +201,20 @@ func _menu_rows() -> Array:
 				"label": "Join %s against %s" % [_names_bb(running["participants"]), _foe(running)],
 				"action": "join", "id": running["battle"],
 			})
-	rows.append({"text": "SAVE CAMPAIGN", "label": "Save the campaign", "action": "save", "section": " "})
+	rows.append({"text": "SAVE CAMPAIGN", "label": "Save the campaign (same as START > SAVE)", "action": "save", "section": " "})
 	rows.append({"text": "LEAVE SESSION", "label": "Leave the session", "action": "leave"})
 	rows.append({"text": "CLOSE", "label": "Close", "action": "close"})
 	return rows
+
+
+static func last_saved(session: PokeCoopClient) -> String:
+	var ago: float = float((session.state.get("saved", {}) as Dictionary).get("ago", -1.0))
+	if ago < 0.0:
+		return "Not saved yet."
+	var seconds: int = int(ago) + (Time.get_ticks_msec() - session.state_at) / 1000
+	if seconds < 60:
+		return "Saved %d seconds ago." % seconds if seconds > 1 else "Saved just now."
+	return "Saved %d minutes ago." % (seconds / 60) if seconds >= 120 else "Saved a minute ago."
 
 
 func _foe(running: Dictionary) -> String:
@@ -230,6 +240,8 @@ func _menu_text() -> String:
 			others.append(_name_bb(player_id) + (" (in a battle)" if not busy_with.is_empty() \
 				else (" (%s)" % _escaped(place) if not place.is_empty() else "")))
 	lines.append("[color=%s]With %s[/color]" % [MUTED, ", ".join(others) if not others.is_empty() else "nobody yet"])
+	lines.append("[color=%s]%s It also saves itself after battles and every thirty seconds of changes.[/color]" % [
+		MUTED, last_saved(client)])
 	lines.append("")
 	lines.append_array(_row_lines({}))
 	lines.append(_status_line())
