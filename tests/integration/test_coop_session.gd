@@ -799,6 +799,24 @@ func test_the_battle_field_draws_the_hosts_view_and_names_who_was_out() -> void:
 		"Go! %s!" % pikachu, "the name is whoever was sent out, not who is out at the end")
 
 
+func test_a_turns_animations_play_through_on_a_cache_without_them() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 0}))
+	var view: Dictionary = _red.battle(battle_id)
+	assert_true((view["events"] as Array).any(func(event: Dictionary) -> bool:
+		return StringName(event["type"]) == Gen2Battle.ANIMATION), "the turn asks for its animations")
+
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	field.visible = true
+	field._take_events(view)
+	assert_true(field.is_playing())
+	for frame: int in 3000:
+		field._advance_text()
+	assert_false(field.is_playing(), "no hit sound or blink is left waiting on an animation never made")
+
+
 func test_a_partner_who_never_offers_lets_the_trade_screen_go() -> void:
 	var cables: Array = _cables()
 	cables[0].offer_wait_msec = 0
