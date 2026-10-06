@@ -17,6 +17,7 @@ var _messages: Array[String] = []
 var _hold: int = 0
 var _revision_key: String = ""
 var _idle_text: String = ""
+var _idle_seen: String = ""
 ## Who was out on each side when the last view was taken, by species.
 var _out: Dictionary = {}
 var _frames: float = 0.0
@@ -60,6 +61,7 @@ func _process(delta: float) -> void:
 		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		panel.position = Vector2(get_viewport_rect().size.x - panel.size.x - GAP, GAP)
 		_revision_key = ""
+		_idle_seen = ""
 		_out = {}
 		_messages.clear()
 		return
@@ -112,6 +114,10 @@ static func _species_name(game: GameData, species: int) -> String:
 
 ## A new revision's events become the messages the box plays in order.
 func _take_events(view: Dictionary) -> void:
+	var idle: String = _waiting_text(view)
+	if idle != _idle_seen:
+		_idle_seen = idle
+		_idle_text = idle
 	var key: String = "%s/%d/%s" % [view.get("battle", ""), int(view.get("revision", 0)), view.get("outcome", "")]
 	if key == _revision_key:
 		return
@@ -124,7 +130,7 @@ func _take_events(view: Dictionary) -> void:
 		if not line.is_empty():
 			_messages.append(line)
 	_out = out_now(view)
-	_idle_text = _waiting_text(view)
+	_idle_text = idle
 
 
 ## The species out on each side in [param view].
@@ -170,6 +176,8 @@ func _waiting_text(view: Dictionary) -> String:
 	var active: int = int(view.get("active", 0))
 	var out_now: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
 		if active >= 0 and active < allies.size() else ""
+	if bool(view.get("paused", false)):
+		return "%s is away.\nWaiting..." % _player_name(controller)
 	if controller == panel.client.player_id:
 		return "What will\n%s do?" % out_now
 	return "%s is\ndeciding..." % _player_name(controller)
