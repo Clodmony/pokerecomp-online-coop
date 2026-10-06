@@ -1415,7 +1415,7 @@ func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab
 	var red: PokeCoopWorldLink = _window(_red)
 	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
 	var green: PokeCoopPlayer = _host.player(green_client.player_id)
-	var house: Vector2i = PokeCoopPolicy.OPENING_HOUSE[1]
+	var house: Vector2i = PokeCoopPolicy.OPENING_BEDROOM
 	assert_eq([green.team.size(), green.map, green.cell], [0, house, PokeCoopPolicy.OPENING_BEDROOM_CELL], "Oak hands the starter over")
 	assert_eq(String(green_client.me()["opening"]["stage"]), PokeCoopPolicy.OPENING_SPEECH)
 	var window: PokeCoopWorldLink = _window(green_client)
@@ -1424,10 +1424,11 @@ func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab
 	_host.player(_red.player_id).place(house, Vector2i(2, 2), 0)
 	assert_false(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "nobody is drawn in the house")
 	_send(func() -> void: green_client.send({"type": "opening", "rival": "GARY"}))
-	assert_eq([String(green.opening["stage"]), _host.campaign.rival_name], [PokeCoopPolicy.OPENING_HOME, "GARY"])
+	assert_eq([String(green.opening["stage"]), _host.campaign.rival_name], [PokeCoopPolicy.OPENING_PLAYING, "GARY"])
 	_host.player(_red.player_id).place(PALLET, Vector2i(6, 6), 0)
 	_send(func() -> void: green_client.step(PALLET, Vector2i(5, 6), 0, true))
-	assert_true(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "out of the house they meet")
+	assert_false(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "nor in Pallet Town during the opening")
+	assert_true(_host.nearby(green).is_empty(), "and they see nobody either")
 
 	window.state.set_event_flag(0x100)
 	_pump()
@@ -1439,6 +1440,7 @@ func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab
 	_send(func() -> void: green_client.step(PALLET, Vector2i(12, 11), 0, true))
 
 	assert_true(green.opening.is_empty(), "the lab is behind them")
+	assert_true(_host.nearby(_host.player(_red.player_id)).has(green.player_id), "out of the lab they meet")
 	assert_true(window.state.is_event_flag_active(BEAT_LEADER), "the campaign's story is theirs now")
 	assert_false(window.state.is_event_flag_active(0x100))
 	assert_false(_host.campaign.has_flag(0x100))

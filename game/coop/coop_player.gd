@@ -50,7 +50,7 @@ func is_free() -> bool:
 
 
 func is_hidden() -> bool:
-	return String(opening.get("stage", "")) in [PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.OPENING_HOME]
+	return not opening.is_empty()
 
 
 func add_mon(mon: Gen2SaveMon) -> String:
@@ -404,7 +404,7 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	var raw_opening: Variant = source.get("opening", {})
 	if raw_opening is Dictionary and (raw_opening as Dictionary).get("world") is Dictionary:
 		out.opening = {
-			"stage": String(raw_opening.get("stage", PokeCoopPolicy.OPENING_OUT)),
+			"stage": String(raw_opening.get("stage", PokeCoopPolicy.OPENING_PLAYING)),
 			"rival": String(raw_opening.get("rival", "")),
 			"world": PokeCoopOwnership.canonical(raw_opening["world"], PokeCoopOwnership.CAMPAIGN),
 		}

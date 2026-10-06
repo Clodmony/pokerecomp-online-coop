@@ -17,13 +17,12 @@ const START_CELLS: Array[Vector2i] = [
 ## The campaign's story begins after Oak's intro: EVENT_FOLLOWED_OAK_INTO_LAB to
 ## BATTLED_RIVAL_IN_OAKS_LAB at the pinned pokered.
 const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
-## A new player who plays the opening runs a story of their own until Oak's lab (D50).
+## A new player who plays the opening runs a story of their own, unseen, until Oak's lab (D50).
 const PLAY_OPENING: int = -1
 const OPENING_SPEECH: String = "speech"
-const OPENING_HOME: String = "home"
-const OPENING_OUT: String = "out"
-## REDS_HOUSE_1F and _2F, OAKS_LAB and EVENT_GOT_STARTER at the pinned pokered.
-const OPENING_HOUSE: Array[Vector2i] = [Vector2i(0, 0x25), Vector2i(0, 0x26)]
+const OPENING_PLAYING: String = "playing"
+## REDS_HOUSE_2F, OAKS_LAB and EVENT_GOT_STARTER at the pinned pokered.
+const OPENING_BEDROOM: Vector2i = Vector2i(0, 0x26)
 const OPENING_BEDROOM_CELL: Vector2i = Vector2i(3, 6)
 const OPENING_LAB: Vector2i = Vector2i(0, 0x28)
 const OPENING_DONE_FLAG: int = 0x22
@@ -102,7 +101,7 @@ static func set_up_opening_player(data: GameData, player: PokeCoopPlayer) -> voi
 	if snapshot != null:
 		player.place(snapshot.map_id, snapshot.player_cell, snapshot.player_facing)
 	else:
-		player.place(OPENING_HOUSE[1], OPENING_BEDROOM_CELL, Gen2WorldSpawn.GEN1_HOME_FACING)
+		player.place(OPENING_BEDROOM, OPENING_BEDROOM_CELL, Gen2WorldSpawn.GEN1_HOME_FACING)
 
 
 ## Joining needs a free, connected player with somebody able to fight.

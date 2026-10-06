@@ -345,21 +345,19 @@ func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
 	if String(sender.opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH:
 		return &"not_in_speech"
 	var named: String = rival.strip_edges().left(Gen2SaveData.MAX_PLAYER_NAME)
-	sender.opening["stage"] = PokeCoopPolicy.OPENING_HOME
+	sender.opening["stage"] = PokeCoopPolicy.OPENING_PLAYING
 	sender.opening["rival"] = named
 	if campaign.rival_name.is_empty():
 		campaign.rival_name = named
 	return &""
 
 
-## Out of the house the player is drawn; with a starter and the lab left the story is the campaign's (D50).
+## With a starter and the lab left, the player is drawn and the story is the campaign's (D50).
 func _settle_opening(member: PokeCoopPlayer) -> void:
 	if member.opening.is_empty():
 		return
-	if member.is_hidden() and not PokeCoopPolicy.OPENING_HOUSE.has(member.map):
-		member.opening["stage"] = PokeCoopPolicy.OPENING_OUT
 	var story: Dictionary = member.opening["world"]
-	if member.opening["stage"] != PokeCoopPolicy.OPENING_OUT or member.map == PokeCoopPolicy.OPENING_LAB \
+	if member.map == PokeCoopPolicy.OPENING_LAB \
 			or not (story.get("event_flags", {}) as Dictionary).has(PokeCoopPolicy.OPENING_DONE_FLAG):
 		return
 	var blank: Dictionary = PokeCoopOwnership.route(
