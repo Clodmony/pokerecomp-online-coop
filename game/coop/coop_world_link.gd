@@ -23,8 +23,7 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## The world's own SAVE puts a fresh snapshot of the live world in the save; a
-## battle it handed over puts back a copy of the last one, frame count and all.
+## The world's SAVE puts in a fresh snapshot; a battle handed over puts back a copy, frames and all.
 var _saved_world: Object = null
 var _saved_frame: int = 0
 ## The sequence number of the last checkpoint the world's SAVE asked for.
@@ -127,6 +126,12 @@ static func _drop_overlap(changes: Dictionary, pending: Dictionary) -> void:
 		for entry: Variant in (mine.get("set", {}) as Dictionary).keys() + (mine.get("erase", []) as Array):
 			(theirs.get("set", {}) as Dictionary).erase(entry)
 			(theirs.get("erase", []) as Array).erase(entry)
+
+
+## The world's START > SAVE gate: the host's last state names why it would refuse a checkpoint.
+func save_refusal() -> Dictionary:
+	var blocked: String = String((client.state.get("saved", {}) as Dictionary).get("blocked", ""))
+	return {} if blocked.is_empty() else {"ok": false, "reason": blocked.replace("_", " ")}
 
 
 func _world_saved() -> bool:
