@@ -225,4 +225,8 @@ has **played** it by hand yet.
 
 Play a session by hand from the launcher's Co-op tab on two devices and note
 what feels wrong in `tracking.md`. Then builds once export templates are
-installed (#44), and the remaining battle-screen effects (#26).
+installed (#44, #45), which also opens the device checks for suspend (#20) and
+touch (#43). The largest open design item is the host-side world simulation
+(#22, #25): today each window walks its own world and the host trusts it, which
+also leaves the simultaneous-gift race of #24; it needs the owner's go-ahead
+before it starts, since it reworks the part every verified flow stands on.
