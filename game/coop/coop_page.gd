@@ -7,6 +7,7 @@ extends VBoxContainer
 
 const GAMES: Array[StringName] = [&"red", &"blue"]
 const STARTER_NAMES: Array[String] = ["BULBASAUR", "CHARMANDER", "SQUIRTLE"]
+const HIDDEN_NETWORKS: Array[String] = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "vEthernet"]
 const DEFAULT_NAME: String = "RED"
 
 var _theme: Gen2LauncherTheme = null
@@ -18,6 +19,8 @@ var _name: LineEdit = null
 var _address: LineEdit = null
 var _status: Label = null
 var _host_button: Gen2LauncherButton = null
+var _host_addresses: Label = null
+var _addresses_shown: String = ""
 var _session: PokeCoopSession = null
 var _opening: bool = false
 ## 0 brings a new trainer; above it, that row of [member _slots].
@@ -110,10 +113,9 @@ func _brought() -> Gen2SaveData:
 
 
 func _build_host(card: VBoxContainer) -> void:
-	card.add_child(Gen2LauncherUI.muted(
-		_theme, "Plays the campaign saved on this device and lets others on your network "
-		+ "join it at %s, port %d." % [", ".join(local_addresses()), PokeCoopEnetTransport.DEFAULT_PORT],
-	))
+	_host_addresses = Gen2LauncherUI.muted(_theme, "")
+	card.add_child(_host_addresses)
+	_show_addresses()
 	_host_button = Gen2LauncherButton.create(
 		_theme, "Host", Gen2LauncherButton.Variant.PRIMARY, &"play"
 	)
@@ -152,14 +154,27 @@ func focus_target() -> Control:
 	return _host_button
 
 
-## This device's addresses others on the network can reach it at.
+## Each address others can join at, by network (a WireGuard tunnel is its own); bridges left out.
 static func local_addresses() -> PackedStringArray:
 	var out := PackedStringArray()
-	for address: String in IP.get_local_addresses():
-		if address.count(".") == 3 and not address.begins_with("127.") \
-				and not address.begins_with("169.254."):
-			out.append(address)
+	for network: Dictionary in IP.get_local_interfaces():
+		var named: String = String(network.get("friendly", network.get("name", "")))
+		if HIDDEN_NETWORKS.any(func(prefix: String) -> bool:
+				return String(network.get("name", "")).begins_with(prefix) or named.begins_with(prefix)):
+			continue
+		for address: String in network.get("addresses", []):
+			if address.count(".") == 3 and not address.begins_with("127.") and not address.begins_with("169.254."):
+				out.append("%s  (%s)" % [address, named] if not named.is_empty() else address)
 	return out if not out.is_empty() else PackedStringArray(["this device's address"])
+
+
+func _show_addresses() -> void:
+	var text: String = "Plays the campaign saved on this device. Others join it at one of these addresses, port %d:\n%s" % [
+		PokeCoopEnetTransport.DEFAULT_PORT, "\n".join(local_addresses()),
+	]
+	if text != _addresses_shown and _host_addresses != null:
+		_addresses_shown = text
+		_host_addresses.text = text
 
 
 func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
@@ -193,6 +208,8 @@ func _begin(session: PokeCoopSession, failure: String) -> void:
 
 
 func _process(_delta: float) -> void:
+	if Engine.get_process_frames() % 120 == 0:
+		_show_addresses()
 	if _session == null or _opening:
 		return
 	if not _session.ended_reason().is_empty():
