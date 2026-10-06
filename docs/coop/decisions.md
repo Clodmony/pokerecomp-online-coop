@@ -462,5 +462,23 @@ trainer's fanfare, "<PLAYER> defeated <TRAINER>!", the trainer's own line and
 "<PLAYER> got ¥X for winning!", each window with its own player's name and
 share; a wild win with Pay Day money says it was picked up. A trainer's name is
 the request's, so a rival is called what the player named them. Session-menu
-encounters carry `gym` themselves and no win text. The trainer does not slide
-back in for the line.
+encounters carry `gym` themselves and no win text. The trainer slides back in
+for the line (D42).
+
+## D42. Co-op battles open with the sliding intro (2026-10-06)
+
+A battle seen from its start now opens as `DoBattle` does: `Gen2BattleIntro`
+slides the trainer or the wild Pokémon in from one side and the player's back
+picture from the other; a trainer says "wants to fight!", slides out and sends
+the first Pokémon out of the ball; a wild one cries, is named and gets its
+panel; then, after `DoBattle`'s 40 frames, the player's back picture slides out
+before "Go!". After a trainer win the trainer slides back in
+(`TrainerBattleVictory`) between the defeat line and their own. The stage keeps
+which trainer or back picture stands on a square, the renderer draws it, and a
+joiner who arrives mid-battle sees no intro.
+
+Driving the intro with Red's data showed that upstream's `Gen2BattleIntro`
+put the back picture's head into OAM the Crystal and Gold way (six columns from
+a six-row picture), which scrambles Red and Blue's seven-row picture in the
+single-player battle screen too. `LoadPlayerBackPic` uses seven columns of
+three from $A0, $38; `Gen2BattleIntro` now does so for Generation 1 (L8).

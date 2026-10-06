@@ -173,7 +173,7 @@ func _take_events(view: Dictionary) -> void:
 	if key == _revision_key:
 		return
 	if _revision_key.get_slice("/", 0) != String(view.get("battle", "")):
-		_board.reset(data.generation, bool(view.get("trainer", false)))
+		_board.reset(data, bool(view.get("trainer", false)))
 	_revision_key = key
 	if int(view.get("revision", 0)) == 0:
 		_open(view)
@@ -206,20 +206,25 @@ func _take_events(view: Dictionary) -> void:
 	}
 
 
-## A battle seen from its start opens as the cartridge's does: the wild Pokémon
-## appears or the trainer sends theirs out, then the first ally, each with a cry.
+## The sliding intro, `BattleStartMessage` and `DoBattle`'s opening, for a battle seen from its start.
 func _open(view: Dictionary) -> void:
 	var opening: Dictionary = out_now(view)
 	var enemy: int = int(opening[Gen2Battle.ENEMY])
-	_board.open()
+	_board.open(int(view.get("trainer_class", 0)))
+	_messages.append({"stage": PokeCoopBattleStage.INTRO, "side": Gen2Battle.ENEMY})
 	if bool(view.get("trainer", false)):
 		_messages.append({"text": "%s wants\nto fight!" % _trainer_name(view)})
+		_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.ENEMY})
 		_messages.append({"text": "%s sent\nout %s!" % [_trainer_name(view), _species_name(data, enemy)]})
 		_messages.append_array(send_out_steps(Gen2Battle.ENEMY))
+		_messages.append({"cry": enemy})
 	else:
+		_messages.append({"cry": enemy})
 		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, enemy)})
-	_messages.append({"cry": enemy})
+		_messages.append({"stage": PokeCoopBattleStage.PANEL, "side": Gen2Battle.ENEMY})
 	var ally: int = int(opening[Gen2Battle.PLAYER])
+	_messages.append({"hold": Gen2BattleScreen.PLAYER_ENTRANCE_FRAMES})
+	_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.PLAYER})
 	_messages.append({"text": "Go! %s!" % _species_name(data, ally)})
 	_messages.append_array(send_out_steps(Gen2Battle.PLAYER))
 	_messages.append({"cry": ally})
@@ -303,9 +308,12 @@ func _queue_victory(view: Dictionary) -> void:
 	var lines: Array = ["%s defeated\n%s!" % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
 	if prize > 0:
 		lines.append(("%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
-	for line: String in lines:
-		for page: String in pages(line):
+	for line: int in lines.size():
+		for page: String in pages(lines[line]):
 			_messages.append({"text": page})
+		if line == 0 and trainer:
+			_messages.append({"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY,
+				"trainer": int(view.get("trainer_class", 0))})
 
 
 ## [param line] two rows a page, the cartridge's paragraph and scroll breaks as new rows.
@@ -374,7 +382,9 @@ func _take_step(step: Dictionary) -> void:
 		var next: Dictionary = {} if _messages.is_empty() else _messages[0]
 		_hold = 0 if next.has("anim") or next.has("stage") else HOLD_FRAMES
 	elif step.has("stage"):
-		_board.begin(StringName(step["stage"]), int(step["side"]))
+		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
+	elif step.has("hold"):
+		_hold = int(step["hold"])
 	elif step.has("enter"):
 		_board.enter(step["enter"], data)
 		_drawn_hp[int(step["enter"].get("side", 0))] = float(step["enter"].get("hp", 0))

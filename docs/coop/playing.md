@@ -63,8 +63,7 @@ connection is retried for about twenty seconds.
 
 - The host trusts each window's world (positions, warps, the wild Pokémon it
   rolled).
-- Shared battles use the battle field with animations, sounds and music, but
-  without the single-player screen's sliding intro.
+- Shared battles are drawn as the cartridge draws them, intro to prize.
 - A won trainer battle tells each player their own share of the prize.
 - No phone or console builds yet.
 

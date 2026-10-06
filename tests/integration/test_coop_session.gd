@@ -877,19 +877,20 @@ func test_a_trainer_win_closes_with_the_defeat_the_trainers_line_and_the_prize()
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
 	var me: String = String(_red.state["players"][_red.player_id]["name"])
 	field._queue_victory({
-		"trainer": true, "trainer_name": "GARY", "gym": true, "prizes": {_red.player_id: 120, "p9": 119},
+		"trainer": true, "trainer_name": "GARY", "trainer_class": 1, "gym": true, "prizes": {_red.player_id: 120, "p9": 119},
 		"win_text": "I lost!%sOh well.%sNext time." % [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK],
 	})
 
 	assert_eq(field._messages, [
-		{"fanfare": true, "gym": true}, {"text": "%s defeated\nGARY!" % me}, {"text": "I lost!\nOh well."},
+		{"fanfare": true, "gym": true}, {"text": "%s defeated\nGARY!" % me},
+		{"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY, "trainer": 1}, {"text": "I lost!\nOh well."},
 		{"text": "Next time."}, {"text": "%s got ¥120\nfor winning!" % me},
 	])
 
 
 func test_a_fainted_side_stays_blank_until_its_send_out() -> void:
 	var board := PokeCoopBattleStage.new()
-	board.reset(RomRegistry.GEN1, true)
+	board.reset(_data, true)
 	var seeded: PackedByteArray = board.map.duplicate()
 	board.begin(PokeCoopBattleStage.FAINT, Gen2Battle.ENEMY)
 	while board.busy():
