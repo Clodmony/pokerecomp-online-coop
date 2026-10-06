@@ -78,11 +78,12 @@ func advance() -> void:
 			_routine["delay"] = int(Gen2BattleScreenMap.RETREAT_FRAMES[size])
 
 
-## The panel a `SENT_OUT` event names, shown from then on.
+## The panel a `SENT_OUT` event names, drawn once its send-out starts.
 func enter(event: Dictionary, game: GameData) -> void:
 	var side: int = int(event.get("side", Gen2Battle.PLAYER))
 	var prefix: String = "enemy_" if side == Gen2Battle.ENEMY else "player_"
 	var species: int = int(event.get("species", 0))
+	hidden[side] = true
 	var statuses: Array = event.get("statuses", [0, 0])
 	shown[prefix + "species"] = species
 	shown[prefix + "name"] = String(game.species(species).get("name", "")) if species > 0 else ""

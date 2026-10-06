@@ -851,10 +851,13 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 	field._take_events(view)
 
 	var kinds: Array = field._messages.map(func(step: Dictionary) -> String: return step.keys()[0])
-	assert_eq(kinds, ["stage", "text", "enter", "text", "stage", "cry"],
-		"the picture sinks before its line, and the next one grows out after the trainer's")
+	assert_eq(kinds, ["stage", "sound", "sound", "text", "enter", "text", "stage", "cry"],
+		"the picture sinks and lands before its line, and the next one grows out after the trainer's")
+	assert_eq([field._messages[1]["sound"], field._messages[2]["sound"]], [Gen1Sfx.SFX_FAINT_FALL, Gen1Sfx.SFX_FAINT_THUD])
+	assert_eq(PokeCoopBattleField.faint_sounds(Gen2Battle.ENEMY, Fixture.GEODUDE, false), [], "a wild faint is silent")
+	assert_eq(PokeCoopBattleField.faint_sounds(Gen2Battle.PLAYER, Fixture.CHARMANDER, false), [{"cry": Fixture.CHARMANDER}])
 	var trainer: String = _data.trainer_name(1)
-	assert_eq(field._messages[3]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
+	assert_eq(field._messages[5]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
 	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
 

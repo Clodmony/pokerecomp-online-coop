@@ -16,8 +16,7 @@ var _music_for: String = ""
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
-## The turn's steps in order: `{text}`, `{anim}`, `{bar}`, `{stage}`, `{enter}`,
-## `{cry}` or `{fanfare}`, each as [method _take_step] reads it.
+## The turn's steps in order, each keyed as [method _take_step] reads it.
 var _messages: Array = []
 ## The HP each side's bar shows while the turn plays, and where one is going.
 var _drawn_hp: Dictionary = {}
@@ -30,6 +29,8 @@ var _scene_seen: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
 var _sounding: Dictionary = {}
+var _sound_watch: Dictionary = {}
+var _sound_wait: bool = false
 var _hold: int = 0
 var _revision_key: String = ""
 var _idle_text: String = ""
@@ -239,6 +240,7 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			_messages.append({"enter": event})
 		Gen2Battle.FAINTED:
 			_messages.append({"stage": PokeCoopBattleStage.FAINT, "side": side})
+			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false))))
 		Gen2Battle.CRY:
 			_messages.append({"cry": int(event.get("species", 0))})
 		Gen2Battle.ANIMATION:
@@ -261,6 +263,13 @@ func _queue_animation(event: Dictionary, out: Dictionary) -> void:
 		"species": int(out.get(Gen2Battle.ENEMY if enemy_turn else Gen2Battle.PLAYER, 0)),
 		"restore": bool(event.get("restore_user_pic", false)),
 	})
+
+
+## `RemoveFaintedPlayerMon`'s cry, or a trainer's Pokémon's fall and thud; a wild one's is silent.
+static func faint_sounds(side: int, species: int, trainer: bool) -> Array:
+	if side == Gen2Battle.PLAYER:
+		return [{"cry": species}]
+	return [{"sound": Gen1Sfx.SFX_FAINT_FALL}, {"sound": Gen1Sfx.SFX_FAINT_THUD}] if trainer else []
 
 
 ## `SendOutMon`'s poof in front of the player's, then `AnimateSendingOutMon`.
@@ -321,6 +330,9 @@ func _advance_text() -> void:
 	if _hold > 0:
 		_hold -= 1
 		return
+	if _sound_wait and audio != null and audio.still_waiting(_sound_watch):
+		return
+	_sound_wait = false
 	if not _messages.is_empty():
 		_take_step(_messages.pop_front())
 	elif not _idle_text.is_empty():
@@ -355,7 +367,9 @@ func _take_step(step: Dictionary) -> void:
 			_drawn_hp[side] = float(step["hp"])
 	else:
 		_play_cue(step)
-		_hold = HOLD_FRAMES
+		_hold = HOLD_FRAMES if step.has("fanfare") else 0
+		_sound_watch = {}
+		_sound_wait = not step.has("fanfare")
 
 
 ## A pixel of the bar's forty-eight a frame, the way `UpdateHPBar` drains it.
@@ -450,14 +464,14 @@ func _play_sounds() -> void:
 			audio.play_record(record, &"sound", data.audio_assets())
 
 
-## A send-out's cry, or `PlayVictoryMusic`: the wild or the trainer fanfare.
+## A cry, a sound waited out, or `PlayVictoryMusic`'s wild or trainer fanfare.
 func _play_cue(cue: Dictionary) -> void:
 	if audio == null:
 		return
-	if cue.has("cry"):
-		var cry: Dictionary = data.species_cry(int(cue["cry"]))
-		if not cry.is_empty():
-			audio.play_record(cry, &"cry", data.audio_assets())
+	if cue.has("cry") or cue.has("sound"):
+		var record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
+		if not record.is_empty():
+			audio.play_record(record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
 		return
 	var music: int = Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON
 	var record: Dictionary = data.gen1_sound(Gen1Layout.VICTORY_MUSIC_BANK, music)
