@@ -2,14 +2,16 @@ extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- check host|p1|p2 [port]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
-## `demo` runs a host and two clients in one process over localhost sockets and
-## exits 0 only when every step of the first co-op slice passed. `host red` plays
-## an imported cartridge and keeps its campaign in `user://coop_campaigns/<game>/<game>.json`.
+## `demo` runs a host and two clients in one process, `check` one of them per process
+## (tools/coop_two_process.sh), over localhost sockets; each exits 0 only when every step
+## passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
+const CHECK_STEP_MSEC: int = 20000
 const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
 const BEAT_LEADER: int = 0x77
@@ -34,6 +36,10 @@ var _steps: Array = []
 var _step: int = 0
 var _frames: int = 0
 var _begun: bool = false
+var _begun_at: int = 0
+var _patience_msec: int = 0
+var _title: String = "demo"
+var _handed_at: int = -1
 var _acted: Dictionary = {}
 var _battle: String = ""
 var _known: Array = []
@@ -56,17 +62,18 @@ func _initialize() -> void:
 	match _mode:
 		"demo":
 			_start_demo(_port(args, 1))
+		"check":
+			_start_check(args[1] if args.size() > 1 else "", _port(args, 2))
 		"host":
 			_start_host(_port(args, 1), game)
 		"client":
 			_start_client(args)
 		_:
-			push_error("usage: demo [port] | host [port] | client <address> [port] <player_id>")
+			push_error("usage: demo [port] | check host|p1|p2 [port] | host [port] | client <address> [port] <player_id>")
 			_finish(2)
 
 
-## The cartridge: a host's first argument that is not a port, or the argument
-## after a client's player id.
+## The cartridge: a host's first argument that is not a port, or the one after a client's player id.
 static func _game_arg(args: PackedStringArray) -> String:
 	if args.is_empty():
 		return ""
@@ -214,6 +221,59 @@ func _start_demo(port: int) -> void:
 	]
 
 
+func _start_check(role: String, port: int) -> void:
+	_title = "check " + role
+	_patience_msec = CHECK_STEP_MSEC
+	match role:
+		"host":
+			if _new_host(port):
+				_host.save_path = ""
+				_steps = _hosting_steps()
+		"p1":
+			_red = _dial("127.0.0.1", port, "p1")
+			_steps = _starting_steps() if _red != null else []
+		"p2":
+			_blue = _dial("127.0.0.1", port, "p2")
+			_steps = _joining_steps() if _blue != null else []
+	if _steps.is_empty():
+		push_error("coop check: no %s on port %d (roles: host, p1, p2)" % [role, port])
+		_finish(1)
+
+
+func _hosting_steps() -> Array:
+	return [
+		["both players connect", _noop, func() -> bool: return _host.player("p1").connected and _host.player("p2").connected],
+		["a battle holds both players", _noop, _shared_battle_found],
+		["the shared battle ends", _noop, func() -> bool: return not _host.battles.has(_battle)],
+		["the host shuts down", func() -> void: _host.shutdown(), func() -> bool: return _host.ended],
+	]
+
+
+func _starting_steps() -> Array:
+	return [
+		["p1 is welcomed", _noop, func() -> bool: return _red.player_id == "p1"],
+		["p1 sees p2 connected", _noop, func() -> bool: return _sees(_red, "p2")],
+		["p1 starts a battle", func() -> void: _red.start_battle("wild:stall"), _red_battle_known],
+		["p2 joins p1's battle", _noop, func() -> bool: return (_red.battle(_battle).get("participants", []) as Array).has("p2")],
+		["switching to p2's Pokemon hands p2 the turn until p2 switches back", _hand_over, _handed_back],
+		["the shared battle is won", _noop, func() -> bool: return _won(_red, _battle)],
+		["host shutdown ends p1", _noop, func() -> bool: return _red.ended_reason == "host_shutdown"],
+	]
+
+
+func _joining_steps() -> Array:
+	return [
+		["p2 is welcomed", _noop, func() -> bool: return _blue.player_id == "p2"],
+		["p2 sees p1 connected", _noop, func() -> bool: return _sees(_blue, "p1")],
+		["p2 finds p1's battle", _noop, _listed_battle_found],
+		["p2 joins p1's battle", func() -> void: _blue.join_battle(_battle), func() -> bool: return (_blue.battle(_battle).get("participants", []) as Array).has("p2")],
+		["p1's switch hands p2 the turn", _noop, func() -> bool: return _blue.is_controller(_battle)],
+		["p2 hands the turn back", func() -> void: _blue.act(_battle, {"type": "switch", "index": 0}), func() -> bool: return not _blue.is_controller(_battle)],
+		["the shared battle is won", _noop, func() -> bool: return _won(_blue, _battle)],
+		["host shutdown ends p2", _noop, func() -> bool: return _blue.ended_reason == "host_shutdown"],
+	]
+
+
 func _noop() -> void:
 	pass
 
@@ -224,16 +284,16 @@ func _process(_delta: float) -> bool:
 	for client: PokeCoopClient in [_red, _blue]:
 		if client != null:
 			client.poll()
-	if _mode == "demo":
-		_advance_demo()
+	if not _steps.is_empty():
+		_advance_steps()
 	elif _mode == "client" and _red != null:
 		_watch_client()
 	return false
 
 
-func _advance_demo() -> void:
+func _advance_steps() -> void:
 	if _step >= _steps.size():
-		print("coop demo: all %d steps passed" % _steps.size())
+		print("coop %s: all %d steps passed" % [_title, _steps.size()])
 		_finish(0)
 		return
 	var row: Array = _steps[_step]
@@ -241,11 +301,12 @@ func _advance_demo() -> void:
 		(row[1] as Callable).call()
 		_begun = true
 		_frames = 0
+		_begun_at = Time.get_ticks_msec()
 	if (row[2] as Callable).call():
 		print("PASS  %s" % row[0])
 		_step += 1
 		_begun = false
-	elif _frames > STEP_FRAMES:
+	elif _frames > STEP_FRAMES and Time.get_ticks_msec() - _begun_at >= _patience_msec:
 		print("FAIL  %s" % row[0])
 		_finish(1)
 	_frames += 1
@@ -277,6 +338,35 @@ func _suggestion_seen() -> bool:
 	return (view.get("suggestions", {}) as Dictionary).has("p2") and _red.is_controller(_battle)
 
 
+static func _sees(client: PokeCoopClient, other: String) -> bool:
+	return bool((client.state.get("players", {}) as Dictionary).get(other, {}).get("connected", false))
+
+
+func _shared_battle_found() -> bool:
+	for session: PokeCoopBattleSession in _host.battles.values():
+		if session.participants.has("p1") and session.participants.has("p2"):
+			_battle = session.id
+	return not _battle.is_empty()
+
+
+func _listed_battle_found() -> bool:
+	for row: Dictionary in _blue.state.get("battles", []):
+		if (row["participants"] as Array).has("p1"):
+			_battle = String(row["battle"])
+	return not _battle.is_empty()
+
+
+func _hand_over() -> void:
+	_handed_at = int(_red.battle(_battle)["revision"])
+	_red.act(_battle, {"type": "switch", "index": 2})
+
+
+## Two views can land in one poll, so p2's turn is read off red's Pokemon back two revisions later.
+func _handed_back() -> bool:
+	var view: Dictionary = _red.battle(_battle)
+	return _red.is_controller(_battle) and int(view["active"]) == 0 and int(view["revision"]) >= _handed_at + 2
+
+
 func _fight(client: PokeCoopClient, encounter: String) -> void:
 	_known = client.battles.keys()
 	client.start_battle(encounter)
@@ -289,8 +379,7 @@ func _new_battle(client: PokeCoopClient) -> String:
 	return ""
 
 
-## True once [param battle_id] is over and won. Until then whichever demo client
-## holds the turn acts once per revision: the first move, or the next ally.
+## True once [param battle_id] is won; until then a client here holding the turn acts once a revision.
 func _won(client: PokeCoopClient, battle_id: String) -> bool:
 	var view: Dictionary = client.battle(battle_id)
 	if view.is_empty():
@@ -299,7 +388,7 @@ func _won(client: PokeCoopClient, battle_id: String) -> bool:
 		return String(view["outcome"]) == "won"
 	var turn_key: String = "%s@%d" % [battle_id, int(view["revision"])]
 	for player: PokeCoopClient in [_red, _blue]:
-		if player.is_controller(battle_id) and not _acted.has(turn_key):
+		if player != null and player.is_controller(battle_id) and not _acted.has(turn_key):
 			_acted[turn_key] = true
 			player.act(battle_id, _next_command(player.battle(battle_id)))
 	return false
