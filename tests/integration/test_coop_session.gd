@@ -891,6 +891,23 @@ func test_a_level_up_shows_on_the_panel_and_a_full_moveset_asks_what_to_forget()
 		PackedStringArray(["CHARMANDER is\ntrying", "to learn LEER!"]), "a row wider than the box wraps onto the next")
 
 
+func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 0}))
+	var view: Dictionary = _red.battle(battle_id)
+	assert_true((view["events"] as Array).any(func(event: Dictionary) -> bool:
+		return StringName(event["type"]) == Gen2Battle.STAT_CHANGED), "GROWL lowers a stat")
+
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	field._take_events(view)
+	var texts: Array = field._messages.filter(func(step: Dictionary) -> bool: return step.has("text")) \
+		.map(func(step: Dictionary) -> String: return step["text"])
+	var charmander: String = String(_data.species(Fixture.CHARMANDER)["name"])
+	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
+
+
 func test_a_battles_last_line_stands_its_hold_before_a_can_close_it() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
