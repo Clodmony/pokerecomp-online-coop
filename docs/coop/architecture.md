@@ -156,6 +156,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker |
+| `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
 | `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
 | `autoload/game_runtime.gd` | `coop` slot driven from `_process`, closed when the window is |
