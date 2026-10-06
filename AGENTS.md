@@ -74,6 +74,9 @@ godot --headless --path . -s res://addons/gut/gut_cmdln.gd \
 # Co-op slice over real localhost ENet sockets (exits non-zero on failure).
 godot --headless --path . -s res://tools/coop_session.gd -- demo
 
+# The same slice as three processes (host, p1, p2); exits non-zero if any fails or hangs.
+GODOT=godot tools/coop_two_process.sh 24690
+
 # Two processes: a host, then one client per player in other terminals.
 godot --headless --path . -s res://tools/coop_session.gd -- host 24680
 godot --headless --path . -s res://tools/coop_session.gd -- client 127.0.0.1 24680 p1
@@ -125,7 +128,8 @@ same steps locally instead.
 | `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |
 | `game/coop/coop_session.gd` | `PokeCoopSession`: one device's co-op run, held by `Gen2GameRuntime.coop` |
 | `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab |
-| `tools/coop_session.gd` | `demo`, `host [port] [game]` and `client` runners |
+| `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game]` and `client` runners |
+| `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd` | co-op tests |
 | `docs/coop/tracking.md` | issue status kept locally while GitHub is paused |
