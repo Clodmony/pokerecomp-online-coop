@@ -94,6 +94,9 @@ never identity.
 - A unique encounter (or any encounter carrying victory flags) has at most one
   active instance in the campaign. Defeating it marks it done for everybody;
   losing or fleeing releases it.
+- Red and Blue's one-off wild Pokémon (SNORLAX, the three birds, MEWTWO) are
+  unique encounters too, by species and map; beating or catching one ends it
+  for everybody.
 - Major progression (flags, badges, defeated encounters) is applied through a
   commit with a stable id (`victory:<encounter id>`), so it happens exactly once
   even if messages repeat.

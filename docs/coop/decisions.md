@@ -343,3 +343,16 @@ is rebuilt from such parts, and a team is never replaced by an empty one. A
 packet may be up to 2 MiB, since a full PC is about a quarter of a megabyte;
 the old 64 KiB cap dropped the PC message of anyone with more than about sixty
 stored Pokémon.
+
+## D36. Red and Blue's one-off wild Pokémon are campaign encounters (2026-10-06)
+
+A legendary bird, MEWTWO or a SNORLAX is a scripted wild battle that looks like
+a grass encounter in the world's request, so two windows could each fight and
+catch the same ARTICUNO. None of those species is ever met in the grass in Red
+and Blue, so `PokeCoopPolicy.UNIQUE_WILD` names them and the host makes a
+window's battle against one the encounter `static:<species>:<map>`: a second
+window joins the running fight, and once it is beaten or caught it is done for
+the campaign; losing or running leaves it, as on the cartridge. A caught unique
+encounter now counts as done as a beaten one does; before, a catch released it.
+Gift Pokémon (EEVEE, LAPRAS, the fossils, the Hitmons) stay with whoever is
+given them first.
