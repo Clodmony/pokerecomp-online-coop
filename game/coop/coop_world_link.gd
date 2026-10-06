@@ -25,8 +25,10 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## When the world last wrote its save: only its own SAVE does, never a battle.
-var _save_stamp: int = -1
+## The world's own SAVE puts a fresh snapshot of the live world in the save; a
+## battle it handed over puts back a copy of the last one, frame count and all.
+var _saved_world: Object = null
+var _saved_frame: int = 0
 ## The sequence number of the last checkpoint the world's SAVE asked for.
 var save_seq: int = -1
 ## While the Cable Club trades on the window's party; the host's swap comes after.
@@ -43,7 +45,7 @@ static func over(
 	out.badge_flags = PokeCoopOwnership.badge_flags(data)
 	out._rev_seen = int(session.me().get("holdings_rev", -1))
 	out._holdings_sent = out._holdings()
-	out._saved_on_disk()
+	out._world_saved()
 	world_state.changed.connect(out._on_state_changed)
 	return out
 
@@ -68,7 +70,7 @@ func advance() -> void:
 	if _frames % PARTY_CHECK_FRAMES == 0 and _is_free():
 		_push_party()
 	_pull_party()
-	if _frames % PARTY_CHECK_FRAMES == 0 and _saved_on_disk():
+	if _world_saved():
 		_push_party()
 		save_seq = client.request_save()
 
@@ -109,11 +111,13 @@ func _pull_world() -> void:
 	_dirty = false
 
 
-func _saved_on_disk() -> bool:
-	var path: String = Gen2SaveStore.path_for(save.game_id, save.rom_sha1, save.slot)
-	var stamp: int = FileAccess.get_modified_time(path) if FileAccess.file_exists(path) else 0
-	var saved: bool = _save_stamp >= 0 and stamp != _save_stamp
-	_save_stamp = stamp
+func _world_saved() -> bool:
+	if save.world == _saved_world:
+		return false
+	_saved_world = save.world
+	var frame: int = save.world.frame_number if save.world != null else _saved_frame
+	var saved: bool = frame != _saved_frame
+	_saved_frame = frame
 	return saved
 
 
