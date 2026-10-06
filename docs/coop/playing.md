@@ -21,6 +21,26 @@ user folder), and the checkpoint before the latest beside it as
 `coop_<game>_campaign.json.bak`. A device remembers who it played as on each
 host, so joining the same host again brings the same trainer back.
 
+## Playing over the internet
+
+- **Same version, same cartridge.** Both players run builds made from the same
+  version of this project, and both import the same game file: the same game
+  (Red with Red, Blue with Blue) and the same revision. The host checks both and
+  the Co-op tab says which one failed.
+- **Easiest: a shared VPN.** Install Tailscale (free) on both devices and sign
+  both into the same tailnet, or share the host's device with the other
+  account. The host's Co-op tab then lists a `100.x.y.z` address; the other
+  player joins that. No router setup is needed and it works behind any NAT.
+- **Without a VPN**, the host forwards UDP port 24680 on their router to their
+  device and gives the other player their public address. This does not work
+  behind carrier-grade NAT or DS-Lite, which many connections have.
+- **Firewall.** The host's device must let UDP 24680 in: on Linux with ufw,
+  `sudo ufw allow 24680/udp`; Windows asks the first time a build hosts.
+- **Windows builds are unsigned**, so SmartScreen warns on first start: choose
+  "More info", then "Run anyway".
+- If the host cannot be reached, joining gives up after fifteen seconds and
+  says what to check.
+
 ## In the world
 
 - Both players explore freely, on the same map or on different ones. The
