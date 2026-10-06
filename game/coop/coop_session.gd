@@ -321,7 +321,9 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	screen.add_child(layer)
 	panel = PokeCoopBattlePanel.over(client, data)
 	panel.leave_requested.connect(leave)
-	layer.add_child(PokeCoopBattleField.over(panel, data))
+	var field: PokeCoopBattleField = PokeCoopBattleField.over(panel, data)
+	panel.busy = field.is_playing
+	layer.add_child(field)
 	layer.add_child(panel)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE)
