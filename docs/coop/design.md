@@ -131,6 +131,6 @@ never identity.
 | Story gifts | A key item or HM one player is given (town map, bicycle, keys, S.S. ticket, coin case, itemfinder, Silph Scope, Poké Flute, Exp. All, rods, HM01 to HM05) and the TM behind any person's gift flag (gym leaders and others) reach every player, a late joiner included; into the PC's items when the bag is full. Items found on the ground, bought or traded for stay with whoever got them | L5 |
 | Trades | Through the Cable Club's Trade Center with the partner the host names; the host swaps the two Pokémon and applies trade evolutions | #38 |
 | Colosseum | Not a co-op battle: the takeover leaves link battles alone, so the window runs the cartridge's own link battle against a copy of the partner's team (not yet tried in a co-op run) | #38 |
-| Controller lost | Pause indefinitely until they reconnect | #30 |
+| Controller lost | Pause; after 30 seconds another participant decides for the absent player's Pokémon, which stay theirs, until they reconnect and take it back | #30 |
 | Exp. All in a shared battle | Off | #37 |
 | Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI | #27 |

@@ -33,8 +33,12 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 17 | Run the world logic against a campaign plus player projection | done (each window runs its own world, synced by patches) | `coop/m1-state-sync` (`a151f505`) | close when the branch merges |
 | 18 | GameRuntime co-op mode | done | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
 | 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player, gives up after ten tries; a hosting app sent to the background saves the campaign; no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
+| 23 | Remote players on the same map with interpolation | done | `coop/slice-1` (`PokeCoopRemoteActor`), screenshots in `progress.md` | close when the branch merges |
 | 25 | Host-side wild encounters and trainer sight per player | partial: the window's world rolls them, the host fights them | `coop/m1-state-sync` (`15028474`) | comment, keep open for host-side generation with #22 |
 | 26 | Drive the battle screen from authoritative session events | partial: the battle field (pictures, panels, HP bars, turn text) is drawn from the host's view (D32); no animations or cries | `coop/launcher` | comment, keep open |
+| 29 | Session menu: join a battle from another map and return afterwards | done (JOIN in the SELECT panel from any map; the return point is kept) | `coop/slice-1`, `coop/launcher` | close when the branch merges |
+| 30 | Controller loss: pause, timeout and resume | done: paused, a participant stands in after 30 s, the owner takes it back (D33) | `coop/launcher` | close when the branch merges |
+| 32 | Route map-script event flags and badges through campaign commits | done: flags and badges travel as campaign world patches (D23), trainer victories as commits | `coop/m1-state-sync` | close when the branch merges |
 | 34 | Policy: a player joining a campaign late | partial: provisional rule implemented (starter of choice, intro done) | `coop/launcher` (`260ed3b0`) | comment with the rule, keep open for the owner's decision |
 | 35 | Captures go to one explicitly chosen player | done | `coop/launcher` (`c01deca6`) | close when the branch merges |
 | 36 | Policy: prize money, Pay Day and blackout costs | partial: prize split on the host, blackout paid in each player's world | `coop/launcher` (`edd0a681`) | comment, keep open for the owner's decision |
@@ -42,6 +46,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 38 | Player services: Pokémon Center, Mart, PC and trades between players | done: each window's own Center, Mart and PC on the player's own team, bag, money and PC (D29); trades through the Cable Club (D31) | `coop/launcher` | close when the branch merges |
 | 39 | Save migration, autosave and recovery journal | partial: autosave between battles and when the host leaves; no journal or migration | `coop/launcher` | comment, keep open |
 | 42 | Host and join screens and the in-game session menu | done (launcher tab; the in-game menu is the SELECT panel) | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
+| 43 | Touch and pad input for co-op menus | partial: the on-screen pad's presses reach the panel by the same path as keys; a tall window puts the panel under the battle; not tried on a device | `coop/launcher` | comment, keep open |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
 
 ## Found while GitHub is paused

@@ -28,6 +28,7 @@ var _last_seq: Dictionary = {}
 var _finished: Array = []
 var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
+var _controllers: Dictionary = {}
 
 
 static func create(
@@ -80,6 +81,7 @@ func poll() -> void:
 		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0 and not _refused_peers.has(peer):
 			_on_message(peer, event["message"])
 	_drop_refused()
+	_announce_stand_ins()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
 		transport.close()
 		ended = true
@@ -177,6 +179,17 @@ func _hello_refusal(message: Dictionary) -> StringName:
 			or String(message.get("rom_sha1", "")) != campaign.rom_sha1:
 		return &"content_mismatch"
 	return &""
+
+
+## A stand-in's turn starts with no message to answer, so it is announced.
+func _announce_stand_ins() -> void:
+	var changed: bool = false
+	for session: PokeCoopBattleSession in battles.values():
+		var now: String = session.controller()
+		changed = changed or String(_controllers.get(session.id, now)) != now
+		_controllers[session.id] = now
+	if changed and _closing_at < 0:
+		broadcast()
 
 
 ## A refused client is let go after the grace a refusal needs to arrive.
