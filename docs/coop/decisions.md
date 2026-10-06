@@ -94,7 +94,8 @@ decoded without objects. LAN and direct IP need no relay or paid service.
 
 `PokeCoopSave` writes JSON with a campaign section and a section per player,
 through a temporary file and a rename. Saving is refused while any battle runs,
-so no session state is ever persisted. Recovery between checkpoints is #39.
+so no session state is ever persisted; a host that closes first ends its
+running battles as fled (D37). Recovery between checkpoints is #39.
 
 ## D13. Comment ceiling raised for the co-op subsystem (2026-10-05)
 
@@ -361,3 +362,33 @@ given them first. The world only takes won, lost or ran back from a battle it
 handed over, so a catch is reported to it as a win: on the cartridge a caught
 static Pokémon is gone as a beaten one is, and its event flag reaches the
 partner's world with the rest of the story.
+
+## D37. Fixes from a review of the co-op code (2026-10-06)
+
+A read-only review of `game/coop` found twelve defects, each confirmed against
+the code and covered by a test:
+
+- A join still queued when its battle ended (a faint, then everyone gone) left
+  the joiner marked in battle for good; the end now releases queued joiners
+  too.
+- A participant away when their battle ended never heard how; final views now
+  wait per player and go out when they are back.
+- A window sent world patches and party copies while its link was down and
+  counted them sent, so a deposit made then could later be lost or copied; the
+  link and the remote actor now hold until the host has the player back, and
+  the first position after a reconnect counts as a warp.
+- A move offered on the last knockout ended the battle unasked; the battle now
+  waits on it, and the panel lists the learner's own moves and the new one.
+- A battle everyone left kept every save refused until the host closed; after
+  the stand-in time it ends as fled, as do battles still running at shutdown,
+  so items used and damage taken stay consistent with the saved campaign.
+- A trainer brought from a save got a new trainer id, which made their own
+  Pokémon count as traded; the save's id is kept.
+- The redial budget was per session rather than per drop; it now resets each
+  time the host welcomes the player back.
+- An unreadable or newer campaign file was silently replaced by a new
+  campaign; hosting now refuses and leaves it as it is.
+- Every battle a window handed over looked like a world SAVE to the link; a
+  SAVE is now the world's save file being written.
+- A ball thrown for a player with no room anywhere lost the catch; it is
+  refused and kept, as the cartridge refuses it.

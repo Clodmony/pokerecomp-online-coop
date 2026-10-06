@@ -415,6 +415,14 @@ static func message(event: Dictionary, out: Dictionary, game: GameData, names: D
 			return "All right!\n%s was caught!" % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.FLED:
 			return "Got away safely!"
+		Gen2Battle.EXP_GAINED:
+			return "%s gained\n%d EXP. Points!" % [event.get("name", ""), int(event.get("amount", 0))]
+		Gen2Battle.GREW_LEVEL:
+			return "%s grew\nto level %d!" % [event.get("name", ""), int(event.get("new_level", 0))]
+		Gen2Battle.MOVE_LEARNED:
+			return "%s learned\n%s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
+		Gen2Battle.MOVE_OFFERED:
+			return "%s is trying\nto learn %s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		PokeCoopBattleSession.JOINED:
 			return "%s joined\nthe battle!" % who_acted
 		PokeCoopBattleSession.ITEM_USED:

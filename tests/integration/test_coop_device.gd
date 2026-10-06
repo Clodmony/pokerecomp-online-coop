@@ -84,6 +84,7 @@ func test_a_device_whose_link_drops_comes_back_on_its_own() -> void:
 	), "the device dialled again and the host took the same player back")
 	assert_eq(joining.client.player_id, blue_id)
 	assert_eq(hosting.host.players.size(), 2)
+	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own ten tries")
 
 
 func test_a_device_that_comes_back_is_the_same_player() -> void:
@@ -142,6 +143,7 @@ func _single_player_save(trainer: String, species: int) -> Gen2SaveData:
 	save.rom_sha1 = _data.sha1
 	save.slot = 0
 	save.player_name = trainer
+	save.player_id = 4321 if trainer == "RED" else 8765
 	save.run_rules = Gen2Rules.new()
 	for at: int in [species, Fixture.PIKACHU]:
 		var mon: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(
@@ -174,6 +176,7 @@ func test_a_campaign_hosted_from_a_save_takes_its_story_and_its_trainer() -> voi
 	assert_eq(red.team[0]["mon"].species, Fixture.CHARMANDER)
 	assert_eq([red.box.size(), int(red.box[0]["box"]), red.current_box], [1, 3, 3], "the PC came along")
 	assert_eq([red.item_count(Fixture.POTION), red.money], [2, 1234])
+	assert_eq(red.trainer_id, 4321, "their own Pokémon are not counted as traded")
 	var blue: PokeCoopPlayer = hosting.host.player(joining.client.player_id)
 	assert_eq(blue.team[0]["mon"].species, Fixture.BULBASAUR, "a later player brings their trainer only")
 	assert_eq(blue.money, 1234)
@@ -194,3 +197,14 @@ func test_a_full_pc_reaches_its_window_over_real_sockets() -> void:
 	assert_true(_until(func() -> bool:
 		return (hosting.client.box.get("rows", []) as Array).size() == 200, WAIT_MSEC
 	), "two hundred stored Pokémon arrived in one box message")
+
+
+func test_a_campaign_file_this_build_cannot_read_is_left_alone() -> void:
+	var path: String = PokeCoopSession.campaign_path(_data)
+	FileAccess.open(path, FileAccess.WRITE).store_string("{\"kind\": \"pokerecomp_coop_campaign\", \"format_version\": 999}")
+
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+
+	assert_null(hosting, "no new campaign is started over it")
+	assert_eq(PokeCoopSession.last_failure, "campaign_unreadable")
+	assert_string_contains(FileAccess.get_file_as_string(path), "999", "the file is as it was")

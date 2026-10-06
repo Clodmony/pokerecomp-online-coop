@@ -25,7 +25,8 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-var _saved_world: Object = null
+## When the world last wrote its save: only its own SAVE does, never a battle.
+var _save_stamp: int = -1
 ## The sequence number of the last checkpoint the world's SAVE asked for.
 var save_seq: int = -1
 ## While the Cable Club trades on the window's party; the host's swap comes after.
@@ -42,7 +43,7 @@ static func over(
 	out.badge_flags = PokeCoopOwnership.badge_flags(data)
 	out._rev_seen = int(session.me().get("holdings_rev", -1))
 	out._holdings_sent = out._holdings()
-	out._saved_world = window_save.world
+	out._saved_on_disk()
 	world_state.changed.connect(out._on_state_changed)
 	return out
 
@@ -53,8 +54,10 @@ func _on_state_changed() -> void:
 
 ## Once a frame: what this window changed goes out before what the host changed
 ## comes in, so a pull never lands on an unsent local change.
+## Nothing goes out while the link is down: a send then is lost, and what was not
+## sent goes out whole once the host has the player back.
 func advance() -> void:
-	if client == null or client.me().is_empty():
+	if client == null or client.me().is_empty() or not client.connected:
 		return
 	if not _host_seen.is_empty():
 		_push_world()
@@ -65,8 +68,7 @@ func advance() -> void:
 	if _frames % PARTY_CHECK_FRAMES == 0 and _is_free():
 		_push_party()
 	_pull_party()
-	if save.world != _saved_world:
-		_saved_world = save.world
+	if _frames % PARTY_CHECK_FRAMES == 0 and _saved_on_disk():
 		_push_party()
 		save_seq = client.request_save()
 
@@ -105,6 +107,14 @@ func _pull_world() -> void:
 		state.restore_from_dict(merged)
 	_baseline = state.to_dict()
 	_dirty = false
+
+
+func _saved_on_disk() -> bool:
+	var path: String = Gen2SaveStore.path_for(save.game_id, save.rom_sha1, save.slot)
+	var stamp: int = FileAccess.get_modified_time(path) if FileAccess.file_exists(path) else 0
+	var saved: bool = _save_stamp >= 0 and stamp != _save_stamp
+	_save_stamp = stamp
+	return saved
 
 
 ## The save a window's world explores on: this player's name, party and PC.

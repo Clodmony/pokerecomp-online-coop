@@ -28,7 +28,9 @@ var _refused_peers: Dictionary = {}
 var _peers: Dictionary = {}
 var _badge_flags: Array[int] = []
 var _last_seq: Dictionary = {}
-var _finished: Array = []
+## Each player's final battle views not yet delivered: a participant who was
+## away when a battle ended is told on coming back.
+var _finished: Dictionary = {}
 var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
@@ -86,6 +88,7 @@ func poll() -> void:
 		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0 and not _refused_peers.has(peer):
 			_on_message(peer, event["message"])
 	_drop_refused()
+	_end_abandoned()
 	_announce_stand_ins()
 	_autosave()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
@@ -195,6 +198,7 @@ func _brought_save(raw: Variant) -> Gen2SaveData:
 	save.rom_sha1 = data.sha1
 	save.slot = 0
 	save.player_name = PokeCoopTransport.text(raw.get("player_name"))
+	save.player_id = PokeCoopTransport.number(raw.get("player_id")) & 0xFFFF
 	save.run_rules = Gen2Rules.new()
 	for row: Variant in raw.get("party") if raw.get("party") is Array else []:
 		save.party.append(PokeCoopPlayer.mon_from(row))
@@ -233,6 +237,16 @@ func _autosave() -> void:
 	if _changed and battles.is_empty() and _closing_at < 0 \
 			and Time.get_ticks_msec() - _written_at >= autosave_msec and _write_campaign() == OK:
 		_changed = false
+
+
+## A battle everyone has left for longer than a stand-in waits ends as fled,
+## so it no longer holds up every save.
+func _end_abandoned() -> void:
+	for session: PokeCoopBattleSession in battles.values():
+		if session.everyone_away_for() >= PokeCoopPolicy.STAND_IN_MSEC:
+			session.abandon()
+			_finish(session)
+			broadcast()
 
 
 ## A stand-in's turn starts with no message to answer, so it is announced.
@@ -471,13 +485,13 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
-	for participant_id: String in session.participants:
-		var participant: PokeCoopPlayer = player(participant_id)
-		participant.battle_id = ""
-		participant.resume_exploration()
 	var final_view: Dictionary = session.view()
 	final_view["evolvable"] = session.evolvable_uids()
-	_finished.append(final_view)
+	for player_id: String in session.participants + session.pending_players():
+		var participant: PokeCoopPlayer = player(player_id)
+		participant.battle_id = ""
+		participant.resume_exploration()
+		(_finished.get_or_add(player_id, []) as Array).append(final_view)
 	battles.erase(session.id)
 	if battles.is_empty():
 		_write_campaign()
@@ -539,6 +553,9 @@ func _write_campaign() -> Error:
 func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE_MSEC) -> void:
 	if ended or _closing_at >= 0:
 		return
+	for session: PokeCoopBattleSession in battles.values():
+		session.abandon()
+		_finish(session)
 	_write_campaign()
 	for peer: int in _peers:
 		transport.send(peer, {"type": "ended", "reason": reason})
@@ -578,10 +595,9 @@ func broadcast() -> void:
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):
 				transport.send(peer, {"type": "battle", "view": session.view()})
-		for final_view: Dictionary in _finished:
-			if (final_view["participants"] as Array).has(viewer.player_id):
-				transport.send(peer, {"type": "battle", "view": final_view})
-	_finished.clear()
+		for final_view: Dictionary in _finished.get(viewer.player_id, []):
+			transport.send(peer, {"type": "battle", "view": final_view})
+		_finished.erase(viewer.player_id)
 
 
 ## The player's own view with the Cable Club's: their trade round and partner.

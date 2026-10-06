@@ -266,15 +266,21 @@ func _item_name(item: int) -> String:
 	return String(data.item(item).get("name", "ITEM %d" % item)) if data != null else "ITEM %d" % item
 
 
+## The Pokémon the offer is for, which need not be the one out, and its move.
 func _learn_rows(view: Dictionary) -> Array:
+	var offer: Dictionary = view.get("learning", {})
+	var allies: Array = view.get("allies", [])
+	var index: int = int(offer.get("index", -1))
+	var learner: Dictionary = allies[index] if index >= 0 and index < allies.size() else _active(view)
+	var taught: String = _move_name(int(offer.get("move", 0)))
 	var rows: Array = []
-	var moves: Array = _active(view).get("moves", [])
+	var moves: Array = learner.get("moves", [])
 	for slot: int in moves.size():
 		rows.append({
-			"text": "FORGET %s" % _move_name(int(moves[slot])),
+			"text": "%s: FORGET %s FOR %s" % [_mon_line(learner), _move_name(int(moves[slot])), taught],
 			"command": {"type": "learn", "forget_slot": slot},
 		})
-	rows.append({"text": "KEEP OLD MOVES", "command": {"type": "decline"}})
+	rows.append({"text": "KEEP OLD MOVES (NOT %s)" % taught, "command": {"type": "decline"}})
 	return rows
 
 

@@ -67,6 +67,11 @@ func store_mon_at(mon: Gen2SaveMon, at_box: int) -> String:
 	return _file(box, mon, clampi(at_box, 0, BOXES - 1))
 
 
+## Room for one more Pokémon, in the team or the PC: `ItemUseBall`'s full-box refusal.
+func has_room() -> bool:
+	return team.size() < MAX_TEAM or _box_with_room() >= 0
+
+
 func _box_with_room() -> int:
 	var counts: Array = _box_counts(box)
 	if int(counts[current_box]) < BOX_CAPACITY:

@@ -17,6 +17,8 @@ const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 const WINDOW_SAVES: String = "user://coop_window"
 ## Which player this device was on each host, by cartridge, address and port.
 static var identity_path: String = "user://coop_identity.json"
+## Why the last [method hosting] gave nothing back, for the launcher to say.
+static var last_failure: String = ""
 
 static var _actor: PokeCoopRemoteActor = null
 static var _takeover: PokeCoopBattleTakeover = null
@@ -41,6 +43,7 @@ var _closed: bool = false
 var _reconnect_attempts: int = 0
 var _reconnect_at: int = 0
 var _leaving_at: int = -1
+var _welcomes_seen: int = 0
 var _notice: Label = null
 var _notice_until: int = 0
 var _noticed_save: int = -1
@@ -56,10 +59,16 @@ static func campaign_path(game: GameData) -> String:
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null
 ) -> PokeCoopSession:
+	last_failure = ""
 	var link_out: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
 	if game == null or link_out == null:
 		return null
 	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game))
+	if loaded.is_empty() and FileAccess.file_exists(campaign_path(game)):
+		## Newer, foreign or damaged: never written over with a new campaign.
+		last_failure = "campaign_unreadable"
+		link_out.close()
+		return null
 	var campaign: PokeCoopCampaign = loaded.get("campaign", null)
 	if campaign == null:
 		campaign = PokeCoopCampaign.create(String(game.id), game.id, game.sha1)
@@ -185,6 +194,9 @@ func _tend_world() -> void:
 ## A dropped link: dial again as the same player until the host takes them back,
 ## waiting out its refusal while it still counts them connected.
 func _keep_connected() -> void:
+	if client.welcomes != _welcomes_seen:
+		_welcomes_seen = client.welcomes
+		_reconnect_attempts = 0
 	if not _was_ready or client.connected or _leaving_at >= 0 or _closed:
 		return
 	if client.ended_reason == "refused: already_connected":
