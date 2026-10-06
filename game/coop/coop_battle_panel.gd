@@ -13,6 +13,8 @@ const FONT_SIZE: int = 15
 
 var client: PokeCoopClient = null
 var data: GameData = null
+## Whatever is still playing the last turn out; a choice waits for it.
+var busy: Callable = Callable()
 var _label: Label = null
 var _rows: Array = []
 var _cursor: int = 0
@@ -107,7 +109,8 @@ func _press(button: int) -> void:
 		PokeButton.UP, PokeButton.DOWN:
 			_move_cursor(-1 if button == PokeButton.UP else 1)
 		PokeButton.A:
-			_choose()
+			if battle_view().is_empty() or not busy.is_valid() or not bool(busy.call()):
+				_choose()
 		PokeButton.B, PokeButton.SELECT:
 			_menu_open = false
 

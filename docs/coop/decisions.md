@@ -288,10 +288,13 @@ turns through it. Until then `PokeCoopBattleField` draws the host's battle view
 with the screen's own `Gen2BattleRenderer` (both pictures, status panels and HP
 bars) and plays each turn's events as Red and Blue's lines in the game's text
 box, naming whoever was out when each happened, and after each "used" line the
-cartridge's own animation for that move over both pictures. The co-op panel
-beside it keeps the commands, the suggestions and the turn owner. Still
-missing against the battle screen: cries and sounds, screen-scroll effects,
-battler slides, draining bars and the sliding intro.
+cartridge's own animation for that move over both pictures, and each HP bar
+drains in the turn's own order, a pixel a frame from where the turn found it.
+A choice waits until the field has played the last turn out, as the
+cartridge's menus do, so the battle never runs ahead of what is on screen. The
+co-op panel beside it keeps the commands, the suggestions and the turn owner.
+Still missing against the battle screen: cries and sounds, screen-scroll
+effects, battler slides and the sliding intro.
 
 ## D33. A participant stands in for a controller who stays away (2026-10-06)
 

@@ -13,8 +13,14 @@ var data: GameData = null
 var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
-## Each `{text, move, enemy}`: a line and the move whose animation follows it.
+## Each `{text, move, enemy}`, a line and the move whose animation follows it,
+## or `{bar, hp, max_hp, snap}`, an HP bar moving to where the battle put it.
 var _messages: Array = []
+## The HP each side's bar shows while the turn plays, and where one is going.
+var _drawn_hp: Dictionary = {}
+var _bar_goal: Dictionary = {}
+var _hp_before: Dictionary = {}
+var _hp_seen: Dictionary = {}
 var _queued_move: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
@@ -67,17 +73,26 @@ func _process(delta: float) -> void:
 		_revision_key = ""
 		_idle_seen = ""
 		_out = {}
+		_hp_seen = {}
+		_drawn_hp.clear()
+		_bar_goal = {}
 		_messages.clear()
 		_queued_move = {}
 		_anim = null
 		return
 	_place()
-	_renderer.set_view(_with_animation(scene_view(view, data)))
 	_take_events(view)
+	_renderer.set_view(_with_animation(scene_view(view, data)))
 	_frames += delta * 60.0
 	while _frames >= 1.0:
 		_frames -= 1.0
 		_advance_text()
+
+
+## Whether the last turn is still being shown: its lines, animations or bars.
+func is_playing() -> bool:
+	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
+		or not _queued_move.is_empty() or _box.is_revealing())
 
 
 ## At a whole multiple: left of the panel on a wide window, above it on a tall one.
@@ -128,8 +143,17 @@ func _take_events(view: Dictionary) -> void:
 	if key == _revision_key:
 		return
 	_revision_key = key
+	_hp_before = _hp_seen
+	if _drawn_hp.is_empty() and not (view.get("events", []) as Array).is_empty():
+		for side: int in _hp_before:
+			_drawn_hp[side] = float(_hp_before[side])
 	var out: Dictionary = _out if not _out.is_empty() else out_now(view)
 	for event: Dictionary in view.get("events", []):
+		if StringName(event.get("type", &"")) == Gen2Battle.HP_BAR:
+			_messages.append({
+				"bar": int(event.get("side", 0)), "hp": int(event.get("hp", 0)),
+				"max_hp": int(event.get("max_hp", 1)), "snap": bool(event.get("snap", false)),
+			})
 		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
 			out[int(event.get("side", 0))] = species_at(view, int(event.get("side", 0)), int(event.get("index", 0)))
 		var line: String = message(event, out, data)
@@ -141,6 +165,12 @@ func _take_events(view: Dictionary) -> void:
 			})
 	_out = out_now(view)
 	_idle_text = idle
+	var allies: Array = view.get("allies", [])
+	var active: int = int(view.get("active", 0))
+	_hp_seen = {
+		Gen2Battle.ENEMY: int((view.get("enemy", {}) as Dictionary).get("hp", 0)),
+		Gen2Battle.PLAYER: int((allies[active] as Dictionary).get("hp", 0)) if active < allies.size() else 0,
+	}
 
 
 ## The species out on each side in [param view].
@@ -164,6 +194,9 @@ func _advance_text() -> void:
 		if _anim.finished() or _anim.failed():
 			_anim = null
 		return
+	if not _bar_goal.is_empty():
+		_drain_bar()
+		return
 	if _box.visible and _box.is_revealing():
 		return
 	if not _queued_move.is_empty():
@@ -173,7 +206,14 @@ func _advance_text() -> void:
 	if _hold > 0:
 		_hold -= 1
 		return
-	if not _messages.is_empty():
+	if not _messages.is_empty() and (_messages[0] as Dictionary).has("bar"):
+		_bar_goal = _messages.pop_front()
+		var side: int = int(_bar_goal["bar"])
+		_drawn_hp[side] = float(_drawn_hp.get(side, _hp_before.get(side, _bar_goal["hp"])))
+		if bool(_bar_goal["snap"]):
+			_drawn_hp[side] = float(_bar_goal["hp"])
+			_bar_goal = {}
+	elif not _messages.is_empty():
 		var next: Dictionary = _messages.pop_front()
 		_show(String(next["text"]))
 		_queued_move = next if int(next["move"]) > 0 else {}
@@ -181,6 +221,18 @@ func _advance_text() -> void:
 	elif not _idle_text.is_empty():
 		_show(_idle_text)
 		_idle_text = ""
+	if _messages.is_empty() and _bar_goal.is_empty() and _anim == null:
+		_drawn_hp.clear()
+
+
+## A pixel of the bar's forty-eight a frame, the way `UpdateHPBar` drains it.
+func _drain_bar() -> void:
+	var side: int = int(_bar_goal["bar"])
+	var goal: float = float(_bar_goal["hp"])
+	var now: float = float(_drawn_hp[side])
+	_drawn_hp[side] = move_toward(now, goal, maxf(1.0, float(_bar_goal["max_hp"]) / 48.0))
+	if is_equal_approx(float(_drawn_hp[side]), goal):
+		_bar_goal = {}
 
 
 ## The cartridge's own animation for [param move], over both pictures, or null
@@ -195,8 +247,11 @@ func _move_animation(move: int, enemy_turn: bool) -> Gen2BattleAnimPlayer:
 	return player
 
 
-## The running animation's tilemap and objects over [param view].
+## The running animation's tilemap and objects, and the bars as far as they
+## have drained, over [param view].
 func _with_animation(view: Dictionary) -> Dictionary:
+	for side: int in _drawn_hp:
+		view["enemy_hp" if side == Gen2Battle.ENEMY else "player_hp"] = roundi(float(_drawn_hp[side]))
 	if _anim == null:
 		return view
 	view["bg_map"] = _anim.background().bg_map

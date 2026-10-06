@@ -90,6 +90,8 @@ charged twice; the world's SAVE writes the campaign.
 | Screens (scripted), Red: trade | RED and BLUE talk to Viridian's Cable Club receptionist, enter the Trade Center, see each other's real parties, and trade RATTATA for BLUE's MACHOKE; RED's window plays the trade movie and MACHOKE evolves into MACHAMP; the host's saved campaign has MACHAMP with RED (uid `p2:1`, OT BLUE) and RATTATA with BLUE (uid `p1:2`) |
 | Screens (scripted), Red: battle field | RED fights BROCK from the session menu and BLUE joins: both windows draw GEODUDE and then ONIX against whoever is out, with HP bars and "CHARMANDER used SCRATCH!", "It's not very effective...", "Enemy GEODUDE used DEFENSE CURL!" in the text box; the turn passes to BLUE when SQUIRTLE is out; recorded as a side-by-side video |
 | Screens (scripted), Red: move animations | In the BROCK fight, "CHARMANDER used SCRATCH!" is followed by the cartridge's claw marks over GEODUDE before "It's not very effective..."; recorded as a clip |
+| Screens (scripted), Red: draining bars | After "Enemy GEODUDE used TACKLE!" CHARMANDER's bar goes 34, 32, 29, 27 frame by frame, and a turn's lines, animations and bars play in order before the next choice is taken |
+| Local x86_64, exit hang | twice today a whole-suite run passed every test and then did not exit; four further runs under a watcher that would have dumped the stacks all exited cleanly, so the cause is still unknown |
 | Local x86_64, fuzz | the fuzz test passes for seeds 2026, 7 and 99 in the suite and was also run once over twenty other seeds; every crash it found is fixed (D35); a 200-Pokémon PC crosses real sockets in one message |
 | Launcher (scripted), Red: bring a save | A mid-game Red save in a scratch save root (two badges, VENUSAUR, PIDGEOTTO, PIKACHU, ¥9876) is chosen on the Co-op tab and hosted: the new campaign has both badges and Brock beaten, the party menu lists the three, and the trainer card shows ¥9876 with the BOULDER and CASCADE badges |
 | Screens (scripted), Red: stand-in | RED starts the BROCK fight, BLUE joins, and RED's window is closed on RED's turn: within five seconds BLUE's window shows "PAUSED: waiting for RED to reconnect" and "RED is away. Waiting..."; thirty seconds later "YOUR TURN for RED's POKéMON" and BLUE moves RED's CHARMANDER until the battle ends |
@@ -155,9 +157,8 @@ has **played** it by hand yet.
   "saved" line, with the refusal shown over it as a notice (L2).
 - A shared battle is drawn on the cartridge's battle field (pictures, status
   panels, HP bars and the turn's messages in the game's text box), but it is
-  not the battle screen itself (#26): move animations play, but no cries or
-  sounds, scroll effects, sliding intro or draining bars, and the text follows
-  the host's resolved turn.
+  not the battle screen itself (#26): move animations play and bars drain, but
+  there are no cries or sounds, scroll effects or sliding intro.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (ten tries, two seconds apart),
   but an Android or iOS suspend has not been tried on a device (#20, #45).
@@ -179,5 +180,5 @@ has **played** it by hand yet.
 ## Next concrete step
 
 Play a session by hand from the launcher's Co-op tab on two devices and note
-what feels wrong in `tracking.md`. Then cries, sounds and draining bars on the
-battle field (#26), and builds once export templates are installed (#44).
+what feels wrong in `tracking.md`. Then cries and sounds on the battle field
+(#26), and builds once export templates are installed (#44).
