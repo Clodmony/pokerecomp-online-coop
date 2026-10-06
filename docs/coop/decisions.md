@@ -433,6 +433,8 @@ names who came in, so a trainer's next Pokémon is not on the panel before its
 predecessor has fainted. A battle seen from its start opens with "BROCK wants
 to fight!" and "BROCK sent out GEODUDE!" for a trainer, and the battle view
 carries the trainer's class and index, so a trainer fought from the session
-menu also gets its own battle music. Still missing: the faint sounds, the
-trainer's own lines and prize money at the end, and the gym leader's fanfare,
-which needs the world's gym marker in the takeover summary.
+menu also gets its own battle music. A faint plays `RemoveFaintedPlayerMon`'s
+cry or a trainer's Pokémon's fall and thud, and a cry or sound is waited out as
+`PlayCry` does before the next line. Still missing: the trainer's own lines and
+prize money at the end, and the gym leader's fanfare, which needs the world's
+gym marker in the takeover summary.
