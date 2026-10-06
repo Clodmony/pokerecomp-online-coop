@@ -91,6 +91,8 @@ const WARP_MUSIC_FADE_FRAMES: int = 8
 @export_range(0, 6) var day: int = 0
 @export_range(0, 3) var time_of_day: int = Gen2WorldPalette.TIME_MORNING
 @export var encounter_seed: int = 0
+## Asked before START > SAVE writes: a refusal ends in the prompt's "Save failed" box, {} writes.
+var save_gate: Callable = Callable()
 
 var _data: GameData = null
 var _injected_data: GameData = null
@@ -3932,6 +3934,11 @@ func persist_world_snapshot() -> Dictionary:
 	return Gen2SaveStore.save(save, _data)
 
 
+func _save_from_menu() -> Dictionary:
+	var refusal: Dictionary = save_gate.call() if save_gate.is_valid() else {}
+	return refusal if not refusal.is_empty() else persist_world_snapshot()
+
+
 ## `GameTimer`, once a hardware frame; `wGameTimerPaused` is `Script_halloffame`'s.
 ## `TrackPlayTime` runs from VBlank with no pause bit, the Hall of Fame included.
 func _advance_game_time_frame() -> void:
@@ -7479,7 +7486,7 @@ func _open_start_menu_host(entry: Callable) -> void:
 		_injected_save == null
 	)
 	if not host.open(
-		_world, _data, Callable(self, "persist_world_snapshot"), _start_menu_cursor
+		_world, _data, Callable(self, "_save_from_menu"), _start_menu_cursor
 	):
 		Gen2Screen.drop(host)
 		_script_prompt = "Start menu unavailable"
