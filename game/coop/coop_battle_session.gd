@@ -3,7 +3,8 @@ extends RefCounted
 
 ## One battle of a co-op run with its own rng, participants, allied roster and
 ## revision. The owner of the Pokémon that is out decides; everybody else in the
-## battle may only suggest. Joins land at a turn boundary.
+## battle may only suggest. Joins land at a turn boundary; a team the roster has no
+## room for brings its first fit Pokémon in party order, the rest sitting it out.
 
 const AWAITING_ACTION: StringName = &"action"
 const AWAITING_SEND_OUT: StringName = &"send_out"
@@ -112,8 +113,7 @@ func phase() -> StringName:
 	return AWAITING_ACTION
 
 
-## Whoever decides now: the active Pokémon's owner, or a participant standing in
-## once the owner has been away for [constant PokeCoopPolicy.STAND_IN_MSEC].
+## The active Pokémon's owner, or a stand-in once they are away [constant PokeCoopPolicy.STAND_IN_MSEC].
 func controller() -> String:
 	var owner: String = owner_deciding()
 	if not _absent.has(owner) or Time.get_ticks_msec() - int(_absent[owner]) < PokeCoopPolicy.STAND_IN_MSEC:
@@ -351,18 +351,30 @@ func request_join(data: GameData, player: PokeCoopPlayer) -> StringName:
 	var refusal: StringName = PokeCoopPolicy.may_join(player, fit_count(fighters))
 	if refusal != &"":
 		return refusal
-	var queued: int = 0
+	var room: int = Gen2Party.MAX_ALLIED_SIZE - roster.size()
 	for join: Dictionary in _pending_joins:
-		queued += ((join["fighters"] as Dictionary)["mons"] as Array).size()
-	if roster.size() + queued + (fighters["mons"] as Array).size() > Gen2Party.MAX_ALLIED_SIZE:
+		room -= ((join["fighters"] as Dictionary)["mons"] as Array).size()
+	if room <= 0:
 		return &"roster_full"
 	player.battle_id = id
 	player.suspend_exploration()
-	_pending_joins.append({"player": player, "fighters": fighters})
+	_pending_joins.append({"player": player, "fighters": _within(fighters, room)})
 	if phase() == AWAITING_ACTION:
 		var events: Array = []
 		_advance(events)
 	return &""
+
+
+static func _within(fighters: Dictionary, room: int) -> Dictionary:
+	var mons: Array = fighters["mons"]
+	if mons.size() <= room:
+		return fighters
+	var out: Dictionary = {"mons": [], "uids": []}
+	for index: int in mons.size():
+		if (out["mons"] as Array).size() < room and not (mons[index] as Gen2BattleMon).is_fainted():
+			(out["mons"] as Array).append(mons[index])
+			(out["uids"] as Array).append((fighters["uids"] as Array)[index])
+	return out
 
 
 func _apply_joins(events: Array) -> void:
