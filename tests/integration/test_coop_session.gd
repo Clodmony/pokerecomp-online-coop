@@ -1729,6 +1729,29 @@ func test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own() 
 		"a window reopened on the saved campaign finds both")
 
 
+func test_a_map_script_that_follows_one_players_walk_stays_in_their_window() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var dock_check: int = PokeCoopOwnership.PLAYER_MAP_SCRIPTS["wVermilionCityCurScript"]
+	var oaks_lab: int = 0
+	red.state.set_gen1_map_script(dock_check, 4)
+	red.state.set_gen1_map_script(oaks_lab, 18)
+	_pump()
+
+	assert_eq(blue.state.gen1_map_script(dock_check), 0, "Blue, elsewhere in the city, does not send Red back to the sailor")
+	assert_eq(blue.state.gen1_map_script(oaks_lab), 18, "the lab's story step is the campaign's")
+	assert_eq(red.state.gen1_map_script(dock_check), 4, "Red walks on past the ticket check")
+	assert_eq(_host.save_checkpoint(), &"")
+	var reloaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	_host = PokeCoopHost.create(_data, reloaded["campaign"], PokeCoopTransport.new())
+	_host.adopt_players(reloaded["players"])
+	_clients = []
+	_links = []
+	var again: PokeCoopWorldLink = _window(_connect(1, _red.player_id))
+
+	assert_eq([again.state.gen1_map_script(dock_check), again.state.gen1_map_script(oaks_lab)], [4, 18])
+
+
 func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
 	var red: PokeCoopPlayer = _host.player(_red.player_id)
 	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
