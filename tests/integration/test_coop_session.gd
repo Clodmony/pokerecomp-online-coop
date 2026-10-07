@@ -100,9 +100,11 @@ func _send(call: Callable) -> void:
 	_pump()
 
 
-func _stand(link: PokeCoopWorldLink, map_id: Vector2i) -> void:
+## [param link]'s world stood on [param map_id], whose script table reads [param byte] (none when negative).
+func _stand(link: PokeCoopWorldLink, map_id: Vector2i, byte: int = -1) -> void:
 	var map := Gen2WorldMap.new()
 	map.number = map_id.y
+	map.scripts = {"entry": [{"op": "map_script_table", "byte": byte}]} if byte >= 0 else {}
 	link.world = Gen2WorldAPI.new(_data, map, null, Vector2i.ZERO, link.state)
 
 
@@ -1873,14 +1875,14 @@ func test_a_gift_given_before_its_scripts_flag_still_reaches_every_player() -> v
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
 	const DOME_FOSSIL: int = 0x29
-	red.hold_world = true
+	red.busy = &"script"
 	red.state.apply_changes({}, {}, {"items": {DOME_FOSSIL: 1}})
 	_pump()
 	red.state.set_event_flag(0x304)
 	_pump()
 	assert_eq(_host.player(_red.player_id).item_count(DOME_FOSSIL), 0, "nothing goes out while the script runs")
 
-	red.hold_world = false
+	red.busy = &""
 	_pump()
 	assert_eq([red.state.item_quantity(DOME_FOSSIL), blue.state.item_quantity(DOME_FOSSIL)], [1, 1],
 		"the fossil and the flag went out together, so the partner was given one too")
@@ -1889,19 +1891,183 @@ func test_a_gift_given_before_its_scripts_flag_still_reaches_every_player() -> v
 func test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
-	red.hold_world = true
+	red.busy = &"script"
 	blue.state.set_event_flag(0x305)
 	_pump()
 	assert_false(red.state.event_flags().has(0x305), "a running script is not changed under it")
 
-	red.hold_world = false
+	red.busy = &""
 	_pump()
 	assert_true(red.state.event_flags().has(0x305))
-	red.hold_world = true
-	red._held_since = Time.get_ticks_msec() - PokeCoopWorldLink.HOLD_MSEC
-	blue.state.set_event_flag(0x306)
+
+
+const SCENE_FRAMES: int = 40 * 60
+
+
+func test_a_long_scene_with_a_battle_in_it_reaches_the_partner_only_when_it_ends() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	red.busy = &"script"
+	red.state.set_event_flag(0x307)
+	var results: Array = []
+	var bridge: Node = _take_over(_red, _opened_by_world(red, Gen2Party.of(
+		Gen2BattleMon.create(_data, Fixture.BULBASAUR, 2, [Fixture.GROWL])
+	)), results)
+	red.busy = &"battle"
+	_fight_out(_battle_of(_red))
+	bridge.call("_process", 0.0)
+	red.busy = &""
+	for _gap: int in PokeCoopWorldLink.REST_FRAMES - 1:
+		red.advance()
+	red.busy = &"script"
+	red.state.set_event_flag(0x308)
+	for _frame: int in SCENE_FRAMES:
+		red.advance()
 	_pump()
-	assert_true(red.state.event_flags().has(0x306), "a script that runs on and on holds nothing back")
+
+	assert_eq(results, [{"outcome": &"won"}], "the battle in the scene was fought on the host")
+	assert_false(_host.campaign.has_flag(0x307) or _host.campaign.has_flag(0x308), "40 seconds in, nothing has gone out")
+	assert_false(blue.state.event_flags().has(0x307))
+	red.busy = &""
+	_pump()
+	assert_true(blue.state.event_flags().has(0x307) and blue.state.event_flags().has(0x308), "the scene's end sends it whole")
+
+
+func test_a_scenes_gift_pokemon_waits_for_its_end_unless_a_fight_in_it_needs_the_party() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+	red.busy = &"script"
+	red.save.party.append(_saved(Fixture.BULBASAUR, 5, [Fixture.TACKLE], 100))
+	_settle()
+	assert_eq(player.team.size(), 2, "the gift waits with its flag")
+
+	var takeover: PokeCoopBattleTakeover = PokeCoopBattleTakeover.over(_red, _data)
+	takeover.send_party = red.push_party
+	var bridge: Node = add_child_autofree(takeover.create_battle())
+	bridge.call("start", _opened_by_world(red, Gen2Party.of(Gen2BattleMon.create(_data, Fixture.GEODUDE, 2, [Fixture.GROWL]))))
+	_pump()
+	assert_eq(player.team.size(), 3, "the host fights with the party the window has")
+	assert_ne(_battle_of(_red), "")
+
+
+func test_a_scene_cut_off_by_leaving_leaves_the_host_on_the_last_resting_state() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.state.set_event_flag(0x309)
+	_pump()
+	red.busy = &"script"
+	red.state.set_event_flag(0x30A)
+	red.state.apply_changes({}, {}, {"items": {Fixture.POTION: 1}})
+	red.save.party.append(_saved(Fixture.BULBASAUR, 5, [Fixture.TACKLE], 100))
+	_settle()
+
+	_red.transport.close()
+	_pump()
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+	assert_true(_host.campaign.has_flag(0x309))
+	assert_false(_host.campaign.has_flag(0x30A), "the scene never reached the host")
+	assert_eq([player.item_count(Fixture.POTION), player.team.size()], [0, 2])
+	var again: PokeCoopWorldLink = _window(_connect(1, _red.player_id))
+	assert_true(again.state.event_flags().has(0x309))
+	assert_false(again.state.event_flags().has(0x30A), "opened again, the window plays the scene from its start")
+
+
+func test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot_does_not() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.busy = &"script"
+	red.state.set_event_flag(0x30B)
+	var given := Gen2WorldSnapshot.new()
+	given.frame_number = 1234
+	red.save.world = given
+	_pump()
+	assert_ne(red.save_seq, -1, "a transaction's snapshot still asks for a checkpoint")
+	assert_false(_host.campaign.has_flag(0x30B), "but the scene stays in the window")
+
+	assert_eq(red.save_refusal(), {})
+	var saved := Gen2WorldSnapshot.new()
+	saved.frame_number = 1240
+	red.save.world = saved
+	_pump()
+	assert_true((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).has_flag(0x30B), "the SAVE answers the host anyway")
+
+
+const PEWTER_GYM: Vector2i = Vector2i(0, 54)
+const BROCK_AFTER_BATTLE: int = 3
+
+
+func test_brock_beaten_in_one_window_hands_each_player_one_tm34() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var gym_script: int = PokeCoopOwnership.PLAYER_MAP_SCRIPTS["wPewterGymCurScript"]
+	_stand(blue, PEWTER_GYM, gym_script)
+	_stand(red, PEWTER_GYM, gym_script)
+	red.busy = &"script"
+	red.state.set_gen1_map_script(gym_script, BROCK_AFTER_BATTLE)
+	_settle()
+	red.state.set_event_flag(BEAT_LEADER)
+	red.state.apply_changes({}, {}, {"items": {TM34: 1}})
+	red.state.set_event_flag(EVENT_GOT_TM34)
+	red.state.set_gen1_map_script(gym_script, 0)
+	red.busy = &""
+	_pump()
+	red.state.set_gen1_map_script(gym_script, BROCK_AFTER_BATTLE)
+	_pump()
+
+	assert_eq(blue.state.gen1_map_script(gym_script), 0, "Blue's gym never runs Brock's after-battle step")
+	assert_eq([red.state.item_quantity(TM34), blue.state.item_quantity(TM34)], [1, 1])
+	assert_true(blue.state.event_flags().has(BEAT_LEADER))
+	_stand(blue, ROUTE_1)
+	_pump()
+	assert_eq(blue.state.gen1_map_script(gym_script), 0, "nor once Blue has walked out")
+
+
+func test_both_players_in_vermilion_city_each_pass_the_ticket_check_once() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var dock: int = PokeCoopOwnership.PLAYER_MAP_SCRIPTS["wVermilionCityCurScript"]
+	const ALLOWED_TO_PASS: int = 4
+	_stand(red, PokeCoopWorldLink.VERMILION_CITY, dock)
+	_stand(blue, PokeCoopWorldLink.VERMILION_CITY, dock)
+	red.state.set_gen1_map_script(dock, ALLOWED_TO_PASS)
+	_pump()
+	blue.state.set_gen1_map_script(dock, ALLOWED_TO_PASS)
+	_pump()
+	blue.state.set_gen1_map_script(dock, 0)
+	_pump()
+
+	assert_eq(red.state.gen1_map_script(dock), ALLOWED_TO_PASS, "Blue walking on does not send Red back to the sailor")
+	assert_eq(blue.state.gen1_map_script(dock), 0)
+
+
+func test_a_partners_step_for_the_map_a_window_stands_on_lands_at_its_next_map_load() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	const ROUTE_22 := Vector2i(0, 33)
+	const ROUTE_22_SCRIPT: int = 26
+	_stand(blue, ROUTE_22, ROUTE_22_SCRIPT)
+	red.state.set_gen1_map_script(ROUTE_22_SCRIPT, 2)
+	red.state.set_event_flag(0x30C)
+	_pump()
+	assert_true(blue.state.event_flags().has(0x30C), "a flag lands at once")
+	assert_eq(blue.state.gen1_map_script(ROUTE_22_SCRIPT), 0, "the step never lands under Blue's feet")
+
+	_stand(blue, ROUTE_1)
+	_pump()
+	assert_eq(blue.state.gen1_map_script(ROUTE_22_SCRIPT), 2, "Blue's next map load takes it")
+
+
+func test_an_object_a_partner_hides_leaves_the_map_a_window_stands_on_at_once() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	const MT_MOON_B2F_FOSSIL: int = 109
+	var cave := Gen2WorldMap.new()
+	cave.number = 61
+	cave.events = {"objects": [{"x": 12, "y": 6, "toggle_index": MT_MOON_B2F_FOSSIL, "toggle_on": true}]}
+	blue.world = Gen2WorldAPI.new(_data, cave, null, Vector2i(11, 25), blue.state)
+	assert_false((blue.world.objects[0] as Gen2WorldObject).flag_hidden)
+
+	red.state.set_object_toggled(MT_MOON_B2F_FOSSIL, true)
+	_pump()
+	assert_true((blue.world.objects[0] as Gen2WorldObject).flag_hidden, "the fossil Red took no longer bars Blue's way out")
 
 
 func test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle() -> void:

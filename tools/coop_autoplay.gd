@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -21,8 +21,9 @@ const TRADE_EVOLVED: Dictionary = {MACHOKE: 68}
 const FILM_FRAMES: int = 30
 const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
-	"surge": [&"_misty_legs", &"_surge_legs"],
+	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"],
 }
+const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
 	&"route_24": Vector2i(0, 35), &"route_25": Vector2i(0, 36), &"bills_house": Vector2i(0, 88),
 	&"trashed_house": Vector2i(0, 62), &"route_5": Vector2i(0, 16), &"underground_route_5": Vector2i(0, 71),
@@ -250,9 +251,13 @@ func _brock_legs() -> Array:
 		_grind.bind(_kit.BROCK_LEVEL, _kit.MANKEY_DEX),
 		["pewter_gym", p._warp_to(_kit.PEWTER_GYM), p._on_map(_kit.PEWTER_GYM)],
 		_meet_partner("meet_in_pewter_gym", p._flag(_kit.EVENT_BEAT_BROCK)),
-		["brock", p._talk_to(BROCK), p._flag(_kit.EVENT_BEAT_BROCK)],
+		["brock", _standing if _route == "watch_brock" else p._talk_to(BROCK), p._flag(_kit.EVENT_BEAT_BROCK)],
 		["boulder_badge", _standing, _badge(BOULDER_BADGE)],
 	]
+
+
+func _stand_by_legs() -> Array:
+	return [["stand_by", _standing, func(_world: Gen2WorldAPI) -> bool: return _seconds_since(_leg_started) > STAND_BY_SECONDS]]
 
 
 func _misty_legs() -> Array:

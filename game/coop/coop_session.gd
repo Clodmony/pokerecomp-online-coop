@@ -267,7 +267,7 @@ func _advance_links() -> void:
 	if link != null:
 		var shown: bool = screen != null and is_instance_valid(screen) and screen.world() != null
 		link.hold_holdings = shown and screen.get("_link_host") != null
-		link.hold_world = shown and screen.world().script_busy()
+		link.busy = PokeCoopWorldLink.unrest(screen) if shown else &""
 		link.advance()
 	if cable != null and not is_same(client.state, _cable_state):
 		_cable_state = client.state
@@ -485,7 +485,6 @@ static func save_news(seen: int, session: PokeCoopClient) -> String:
 	return "%s saved the campaign." % String(view.get("name", by))
 
 
-## A line over the world for a few seconds.
 func say(text: String) -> void:
 	journal.add(PokeCoopLog.WORLD, "say", {"text": text, "shown": _notice != null}, client.player_id)
 	if _notice == null:
@@ -578,6 +577,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	if world != null:
 		link = PokeCoopWorldLink.over(client, world.state, save, data)
 		link.world = world
+		_takeover.send_party = link.push_party
 		screen.save_gate = link.save_refusal
 		cable = PokeCoopLinkTransport.over(client)
 		world.state.set_link_transport(cable)
@@ -655,6 +655,7 @@ func _release_seams() -> void:
 	if _actor != null and _actor.client == client:
 		_actor.client = null
 		_takeover.client = null
+		_takeover.send_party = Callable()
 		Gen2SaveStore.use_root("")
 
 
