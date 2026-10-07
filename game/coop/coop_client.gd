@@ -4,6 +4,9 @@ extends RefCounted
 ## A player's end of a co-op session: numbered intentions out, the last authoritative state and battle
 ## views in. It decides nothing; a local menu cursor stays here until it is sent as a suggestion.
 
+## ENet drops data that arrives with a disconnect, so the last log batch is given a moment.
+const LAST_LOG_MSEC: int = 500
+
 var transport: PokeCoopTransport = null
 var player_id: String = ""
 var connected: bool = false
@@ -25,6 +28,7 @@ var journal: PokeCoopLog = PokeCoopLog.new()
 var streams_log: bool = true
 var _streamed_at: int = 0
 var _welcomed: bool = false
+var _close_at: int = -1
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -70,16 +74,20 @@ func poll() -> void:
 			_say_hello()
 	share_log()
 	journal.poll()
+	if _close_at >= 0 and Time.get_ticks_msec() >= _close_at:
+		_close_at = -1
+		transport.close()
 
 
-## [param now] sends what is left at once, as before leaving.
-func share_log(now: bool = false) -> void:
+## [param now] sends what is left at once, as before leaving; true when there was something.
+func share_log(now: bool = false) -> bool:
 	if not journal.share or not streams_log or not _welcomed or (not now and Time.get_ticks_msec() - _streamed_at < journal.stream_msec):
-		return
+		return false
 	_streamed_at = Time.get_ticks_msec()
 	var lines: Array = journal.take_stream()
 	if not lines.is_empty():
 		transport.send(PokeCoopTransport.HOST_PEER, {"type": "log", "lines": lines})
+	return not lines.is_empty()
 
 
 func _receive(message: Dictionary) -> void:
@@ -120,9 +128,11 @@ func _receive(message: Dictionary) -> void:
 		"ended":
 			ended_reason = String(message.get("reason", "ended"))
 			journal.add(PokeCoopLog.CLIENT, "ended", {"reason": ended_reason}, player_id)
-			share_log(true)
 			connected = false
-			transport.close()
+			if share_log(true):
+				_close_at = Time.get_ticks_msec() + LAST_LOG_MSEC
+			else:
+				transport.close()
 
 
 func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false) -> int:
