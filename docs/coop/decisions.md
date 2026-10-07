@@ -954,3 +954,14 @@ refuses it. That step kept the YES/NO drawn with YES picked under the failure
 line. Upstream's prompt marks a box with no question by a negative cursor, and
 its failure step asks nothing (any press ends it as a NO does), so it now sets
 the cursor to -1. One line in `save_prompt.gd`.
+
+## D71. A link room closes the wait box it was entered with (2026-10-07)
+
+The autoplayed Cable Club trade found upstream's Generation 1 link rooms
+keeping a finished box on screen: "OK, please wait just a moment." after the
+special warp into the Trade Center, "Just a moment." after the trade screen
+closed. On the cartridge both `SpecialEnterMap` and `ReturnToCableClubRoom`
+load the room again, so no box survives. The two steps now send the world
+screen's existing `text_closed` event first (two lines in
+`gen1_map_scripts.gd`). Every co-op trade shows the room clean, and so does a
+single-player link session.

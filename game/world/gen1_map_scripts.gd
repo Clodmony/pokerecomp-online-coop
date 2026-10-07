@@ -444,11 +444,13 @@ static func _gen1_linked(world: Gen2WorldAPI, step: Dictionary, events: Array, s
 			world.state.link_session().gen1_link_connected = bool(step["set"])
 			return true
 		&"special_warp":
+			events.append({"type": &"text_closed"})
 			var warped: Dictionary = Gen1FacilityScripts._gen1_special_warp(world, String(step["name"]))
 			if not warped.is_empty():
 				events.append(warped)
 			return true
 		&"cable_club_return":
+			events.append({"type": &"text_closed"})
 			events.append_array(Gen1FacilityScripts.gen1_return_to_cable_club_room(world))
 			return true
 		&"cup_menu":

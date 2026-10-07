@@ -194,6 +194,7 @@ a two-window check of each feature (D65).
 | Two windows, `lose_and_white_out` | RED alone loses to a wild ONIX L60: RED's window halves RED's money (3000 to 1500), heals the party and wakes in Pallet Town; BLUE untouched. A level 60 GEODUDE was tried first and blew itself up, which the cartridge counts as a win |
 | Two windows, `save_from_start_menu` | RED saves from START: "Campaign saved." in RED's window and "RED saved the campaign." in BLUE's; with BLUE in a battle RED's next SAVE ends in the game's box with "Save failed: battle in progress" (after D70 with no YES/NO left behind it) |
 | Two windows, launcher (D69) | `launcher_host_join`: RED hosts WITH BLUE from the Co-op tab with CHARMANDER, BLUE joins by address and plays the opening (rival named from the offered list), RED hears "BLUE joined the session." and the session menu says "With BLUE (in the opening)". `launcher_leave_rehost`: BLUE leaves, RED leaves, RED hosts SECOND, RED leaves while BLUE is in and BLUE lands on the Co-op tab with "The host closed the session.", RED picks FIRST from the list and BLUE rejoins as the same player; each campaign file holds RED and BLUE once (the scenario's `check()`). Both rerun on the merged branch, captures looked at. Five fixes from these runs (D69), each with a test |
+| Two windows, `cable_club_trade` (autoplay) | After BROCK both go to Pewter's Pokémon Center, P1 is given a level 20 MACHOKE by the save editor (the host files it as `p1:3`), both talk to the Cable Club receptionist, save, pick TRADE CENTER, meet and sit at the table. Round 1: P1 offers MACHOKE, P2 MANKEY, P2 picks CANCEL; neither team changes on the host. Round 2: both TRADE; the host swaps once and saves. P2's movie shows "No.067 MACHOKE OT/P1" and "Take good care of MACHOKE.", then "MACHOKE evolved into MACHAMP!" (D64). Saved: P1 [p1:2 MANKEY, p1:1 CHARMANDER, p2:2 MANKEY], P2 [p2:1 SQUIRTLE, p1:3 MACHAMP]; five Pokémon before and after, each uid held once. Four runs in a row passed (about six minutes each); the scenario's `check` reads the saved file |
 | Tests: D63, D64, D66, D67 | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own`; `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`; the journal and format 2 tests in `test_coop_state` and `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`; `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` and `test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends` |
 
 ## Slice 1 acceptance criteria
@@ -298,8 +299,7 @@ has **played** it by hand yet.
   `palette` key for Generation 1 trainers (#59); see also L6.
 - The autoplayed runs heal and cure their party between steps and grind with
   the save editor, as upstream's own check does, so they prove the co-op flow,
-  not the difficulty; they stop at MISTY, and a whiteout ends a run rather than
-  being retried.
+  not the difficulty; a whiteout ends a run rather than being retried.
 
 ## Blocked
 
