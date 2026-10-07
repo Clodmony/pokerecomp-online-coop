@@ -51,7 +51,7 @@ Red (or Blue) cartridge, the same one.
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
-| B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock | |
+| B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock, catch_for_partner | |
 | B02 | Switch to the partner's Pokémon | The turn passes to its owner | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out` | | |
 | B03 | Move the cursor as the one not deciding | The partner sees "◀ NAME" and nothing happens | `test_a_suggestion_never_acts...` | | |
 | B04 | LEAVE BATTLE as the joiner | Back in your world; your Pokémon fight on under the partner; you start no other battle until it ends, and one your world starts waits | `test_a_joiner_who_leaves_walks_on...`, `test_a_fight_the_world_opens_waits...` | leave_rejoin_takeover | |
@@ -59,8 +59,8 @@ Red (or Blue) cartridge, the same one.
 | B06 | Try to leave a battle your own world started | Not offered | `test_a_joiner_who_leaves_hands_their_pokemon_to_whoever_is_left` | | |
 | B07 | Close the deciding player's app | The battle waits; after 30 s the other is asked TAKE OVER or KEEP WAITING; the owner takes over again on return | `test_a_partner_stands_in_for_a_controller_who_stays_away` | leave_rejoin_takeover | |
 | B08 | Close the only player's app in a battle | Kept about 2 minutes, then ended as fled; saving works again | `test_a_battle_everyone_left_ends_and_stops_holding_up_saves` | | |
-| B09 | Throw a ball and name the partner | The catch is theirs (team, or PC when full) | `test_a_caught_pokemon_is_filed_once...` | | |
-| B10 | Use a Potion | It comes from the user's bag only | `test_an_item_comes_out_of_the_acting_players_bag_only` | | |
+| B09 | Throw a ball and name the partner | The catch is theirs (team, or PC when full) | `test_a_caught_pokemon_is_filed_once...` | catch_for_partner | |
+| B10 | Use a Potion | It comes from the user's bag only | `test_an_item_comes_out_of_the_acting_players_bag_only` | catch_for_partner | |
 | B11 | Win a trainer battle together | Each player gets the whole prize | `test_every_participant_is_paid_the_whole_prize` | playthrough_brock | |
 | B12 | Win with EXP.ALL in one bag | Fighters split as usual; each team's others share as they would alone | `test_one_exp_all_pays_every_team...` | | |
 | B13 | Level up into a new move or an evolution | The owner is asked; evolution plays in the owner's world | `test_a_level_up_shows_on_the_panel...` | | |

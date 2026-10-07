@@ -3,8 +3,8 @@ extends SceneTree
 ## One co-op player's window on the real world screen, the Co-op tab's session, against a host started
 ## with `tools/coop_session.gd -- host [port] <game>` and a locally imported cartridge:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## SELECT opens the session menu. `keys=R,R,SELECT,A` presses buttons once the world is up, `-` waiting a slot;
-## `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays the opening.
+## SELECT opens the session menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
+## picks the panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
@@ -57,7 +57,7 @@ func _read_option(arg: String) -> bool:
 		return true
 	if arg.begins_with("keys="):
 		for key: String in arg.trim_prefix("keys=").split(",", false):
-			_keys.append(KEYS.get(key.to_upper(), PokeButton.NONE))
+			_keys.append(key.substr(1) if key.begins_with("@") else KEYS.get(key.to_upper(), PokeButton.NONE))
 		return true
 	if arg.begins_with("capture="):
 		var spec: String = arg.trim_prefix("capture=")
@@ -99,9 +99,21 @@ func _drive_keys() -> void:
 	if _held != PokeButton.NONE and at % KEY_HOLD_FRAMES == KEY_HOLD_FRAMES - 2:
 		input.release(_held)
 		_held = PokeButton.NONE
-	elif at % KEY_HOLD_FRAMES == 0 and slot < _keys.size() and int(_keys[slot]) != PokeButton.NONE:
-		_held = int(_keys[slot])
+	elif at % KEY_HOLD_FRAMES == 0 and slot < _keys.size() and (_keys[slot] is String or int(_keys[slot]) != PokeButton.NONE):
+		if _keys[slot] is String and not _point_at_row(String(_keys[slot])):
+			return
+		_held = PokeButton.A if _keys[slot] is String else int(_keys[slot])
 		input.press(_held)
+
+
+func _point_at_row(pattern: String) -> bool:
+	var panel: PokeCoopBattlePanel = _session.panel
+	var matcher := RegEx.create_from_string(pattern)
+	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(
+		func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null)
+	if index >= 0:
+		panel._set_cursor(index)
+	return index >= 0
 
 
 func _capture_due() -> void:
