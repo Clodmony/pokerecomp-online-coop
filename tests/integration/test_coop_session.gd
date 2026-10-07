@@ -1737,3 +1737,38 @@ func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
 		"items": {"set": {Fixture.POTION: 1, Fixture.SMOKE_BALL: 1}, "erase": []}, "money": {"set": {0: blue.money - 10}, "erase": []},
 	}))
 	assert_eq(blue.item_count(Fixture.SMOKE_BALL), 1, "a purchase in the same change is not taken back")
+
+
+func test_a_gift_given_before_its_scripts_flag_still_reaches_every_player() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	const DOME_FOSSIL: int = 0x29
+	red.hold_world = true
+	red.state.apply_changes({}, {}, {"items": {DOME_FOSSIL: 1}})
+	_pump()
+	red.state.set_event_flag(0x304)
+	_pump()
+	assert_eq(_host.player(_red.player_id).item_count(DOME_FOSSIL), 0, "nothing goes out while the script runs")
+
+	red.hold_world = false
+	_pump()
+	assert_eq([red.state.item_quantity(DOME_FOSSIL), blue.state.item_quantity(DOME_FOSSIL)], [1, 1],
+		"the fossil and the flag went out together, so the partner was given one too")
+
+
+func test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	red.hold_world = true
+	blue.state.set_event_flag(0x305)
+	_pump()
+	assert_false(red.state.event_flags().has(0x305), "a running script is not changed under it")
+
+	red.hold_world = false
+	_pump()
+	assert_true(red.state.event_flags().has(0x305))
+	red.hold_world = true
+	red._held_since = Time.get_ticks_msec() - PokeCoopWorldLink.HOLD_MSEC
+	blue.state.set_event_flag(0x306)
+	_pump()
+	assert_true(red.state.event_flags().has(0x306), "a script that runs on and on holds nothing back")

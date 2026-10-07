@@ -264,7 +264,9 @@ func _note_opening() -> void:
 
 func _advance_links() -> void:
 	if link != null:
-		link.hold_holdings = screen != null and is_instance_valid(screen) and screen.get("_link_host") != null
+		var shown: bool = screen != null and is_instance_valid(screen) and screen.world() != null
+		link.hold_holdings = shown and screen.get("_link_host") != null
+		link.hold_world = shown and screen.world().script_busy()
 		link.advance()
 	if cable != null and not is_same(client.state, _cable_state):
 		_cable_state = client.state

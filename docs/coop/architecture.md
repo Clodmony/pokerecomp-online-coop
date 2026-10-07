@@ -99,9 +99,13 @@ Further findings that shape the design:
    Co-op tab (`PokeCoopPage`) and by the tool; `Gen2GameRuntime.coop` holds the
    live session and drives it each frame. After a host battle the session runs
    the window's own evolution and whiteout for its player (D26, D27).
-6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version`, the
+6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version` (2), the
    campaign section and one section per player, written atomically through a
-   temporary file. Refuses unknown kinds and newer versions.
+   temporary file, the replaced checkpoint kept as `.bak`. Refuses unknown kinds
+   and newer versions; a format 1 file is settled once on read. Between
+   checkpoints the host appends the state after each story change to
+   `<campaign>.json.journal`, which the next checkpoint removes; `read` returns
+   the newest whole line newer than the checkpoint (D66).
 
 ## Protocol
 

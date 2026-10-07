@@ -5,6 +5,7 @@ extends RefCounted
 ## while the player is free and back whole, and the world's own SAVE asks for a campaign checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
+const HOLD_MSEC: int = 15000
 
 var client: PokeCoopClient = null
 var state: Gen2WorldState = null
@@ -27,8 +28,10 @@ var _saved_world: Object = null
 var _saved_frame: int = 0
 ## The sequence number of the last checkpoint the world's SAVE asked for.
 var save_seq: int = -1
-## While the Cable Club trades on the window's party; the host's swap comes after.
+## While the Cable Club trades on the window's party, and while a script runs, so what it gives goes out with its flag.
 var hold_holdings: bool = false
+var hold_world: bool = false
+var _held_since: int = -1
 ## Patches the host has not applied yet, by sequence number (D51).
 var _unacked: Dictionary = {}
 
@@ -56,9 +59,10 @@ func _on_state_changed() -> void:
 func advance() -> void:
 	if client == null or client.me().is_empty() or not client.connected:
 		return
-	if not _host_seen.is_empty():
-		_push_world()
-	_pull_world()
+	if not _holding_world():
+		if not _host_seen.is_empty():
+			_push_world()
+		_pull_world()
 	_frames += 1
 	if hold_holdings:
 		return
@@ -68,6 +72,15 @@ func advance() -> void:
 	if _world_saved():
 		_push_party()
 		save_seq = client.request_save()
+
+
+func _holding_world() -> bool:
+	if not hold_world:
+		_held_since = -1
+		return false
+	if _held_since < 0:
+		_held_since = Time.get_ticks_msec()
+	return Time.get_ticks_msec() - _held_since < HOLD_MSEC
 
 
 func _push_world() -> void:

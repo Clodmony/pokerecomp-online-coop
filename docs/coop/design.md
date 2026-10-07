@@ -36,9 +36,10 @@ never identity.
   wallet, step counters, Pokédex and the rest are the player's own.
   Vermilion Gym's trash-can locks are the campaign's, so both windows search
   the same cans; every other Gen 1 script byte (the SURF high score, the lucky
-  slot machine) stays with its player (D63). A change
-  made in either window reaches the other as a patch, entry by entry, so two
-  flags set at once both survive.
+  slot machine) stays with its player (D63). A change made in either window
+  reaches the other as a patch, entry by entry, so two flags set at once both
+  survive. What a script changes goes out as one patch when it ends, so an
+  item given before its flag is shared like the rest (D67).
 - The party a window shows follows the host: battle results replace it, and a
   heal, a gift, a deposit or a withdrawal made in the window goes to the host.
   A Pokémon missing from the window's party is kept in the host's box.
@@ -144,6 +145,9 @@ never identity.
   pending. A save request during a battle is refused with a reason.
 - The save is one versioned file with a campaign section and one section per
   player; it is never a merged single-player save.
+- Between checkpoints, every change to the campaign is journaled with the
+  players as they stand, so a crash loses no story change and nothing that came
+  with it, only player changes made after the last story change (D66).
 
 ## Policies
 
