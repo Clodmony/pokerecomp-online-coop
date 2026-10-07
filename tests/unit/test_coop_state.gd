@@ -4,7 +4,9 @@ extends GutTest
 ## themselves, and how both survive a save.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
+const Seed := preload("res://tools/coop_seed.gd")
 const SAVE_PATH: String = "user://coop_state_test.json"
+const SEED_DIR: String = "user://coop_seed_test"
 const STORY_FLAG: int = 0x77
 const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
@@ -20,6 +22,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
+	RomCache.clear(SEED_DIR)
 	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -200,6 +203,36 @@ func test_a_trainer_brought_from_a_save_stands_where_they_saved() -> void:
 
 	assert_eq([red.map, red.cell, red.facing], [ROUTE_1, Vector2i(4, 9), Gen2WorldSprite.FACING_UP])
 	assert_eq(red.team.size(), 1)
+
+
+func test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save() -> void:
+	var save := Gen2SaveData.new()
+	save.player_id = 0xFFFF
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	save.world = Gen2WorldSnapshot.new()
+	save.world.map_id = ROUTE_1
+	save.world.player_cell = Vector2i(4, 9)
+	save.world.rival_name = "GARY"
+	save.world.world_state = Gen2WorldState.new({STORY_FLAG: true}, {}, {Fixture.POTION: 3}, {0: 1234})
+	save.world.world_state.set_engine_flag(Gen2WorldState.gen1_badge_flag(0))
+
+	assert_eq(Seed.write_seed(_data, save, SEED_DIR, Vector2i(5, 9)), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SEED_DIR.path_join(PokeCoopSession.campaign_path(_data).trim_prefix("user://")))
+
+	var campaign: PokeCoopCampaign = loaded["campaign"]
+	assert_eq([campaign.has_flag(STORY_FLAG), campaign.has_badge(0), campaign.rival_name], [true, true, "GARY"])
+	var players: Array = loaded["players"]
+	assert_eq(players.map(func(held: PokeCoopPlayer) -> Array:
+		return [held.player_id, held.name, held.map, held.cell, held.item_count(Fixture.POTION), held.money]), [
+		["p1", "P1", ROUTE_1, Vector2i(4, 9), 3, 1234], ["p2", "P2", ROUTE_1, Vector2i(5, 9), 3, 1234]],
+		"the ids and names the scenario windows join as, side by side")
+	for held: PokeCoopPlayer in players:
+		var mon: Gen2SaveMon = held.mon(held.player_id + ":1")
+		assert_eq([mon.species, mon.ot_id, mon.original_trainer], [Fixture.CHARMANDER, held.trainer_id, held.name],
+			"a Pokémon of their own, so it obeys them")
+	assert_ne(players[0].trainer_id, players[1].trainer_id)
+	var known: Variant = JSON.parse_string(FileAccess.get_file_as_string(SEED_DIR.path_join("coop_identity.json")))
+	assert_eq(known.get("testgame/127.0.0.1:%d" % PokeCoopEnetTransport.DEFAULT_PORT), {"testgame": "p2"})
 
 
 func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() -> void:

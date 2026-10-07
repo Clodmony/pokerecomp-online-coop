@@ -28,6 +28,8 @@ Red (or Blue) cartridge, the same one.
 | S12 | Close the hosting window with the window's close button | The joiner hears "ended" at once instead of redialling | `test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits` | | |
 | S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
 | S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
+| S15 | Host a campaign again while a player stands inside a building | That window opens inside it on the campaign's story and leaves by the building's own door; a coord script already done (the Cerulean thief) does not run again | `test_a_window_opened_again_inside_a_building_leaves_by_its_own_door`, `test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place` | | |
+| S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
 
 ## Exploration and story
 
@@ -47,6 +49,11 @@ Red (or Blue) cartridge, the same one.
 | W12 | Both enter Vermilion Gym; one finds the first switch | Both windows search the same trash cans; each player's SURF score and slot machine stay their own | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own` | | |
 | W13 | One player takes the DOME (or HELIX) FOSSIL in Mt. Moon | Both players hold one; each revives their own | `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` | playthrough_misty | |
 | W14 | Walk Pokémon Tower without the SILPH SCOPE, then with it | Without it a GHOST appears in the window's own battle and can only be run from; with it MAROWAK is a normal fight the partner can join | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
+| W15 | One player is given the S.S. TICKET by Bill, TM28 by the Cerulean thief and HM01 by the S.S. Anne's CAPTAIN | Every player holds each one once | `test_an_item_found_along_the_story_reaches_every_player...` | playthrough_surge | |
+| W16 | Both in Vermilion City; one stands on the dock's ticket check while the other walks the city (the same in Cerulean City) | Each window's city script follows its own player: the check shows once, the partner's walk does not reset it | `test_a_map_script_that_follows_one_players_walk_stays_in_their_window` | playthrough_surge | |
+| W17 | Both in Vermilion Gym; one finds the second switch | The door to LT. SURGE opens in both windows at once | `test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too` | playthrough_surge | |
+| W18 | Teach CUT, then use it from START > POKéMON on the tree outside Vermilion Gym | The tree is cut in that window and grows back at the next map load, as on the cartridge | | playthrough_surge | |
+| W19 | One player searches Vermilion Gym's trash cans while the partner walks into Vermilion City (or out of the gym) | The switches stay in their cans: the searcher finds the first switch where it was; a wrong second can hides it anew for both; with nobody in the city or gym, the next arrival hides it afresh | `test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches`, `test_vermilion_city_rolls_a_new_first_lock_while_nobody_else_is_in_the_city_or_gym` | vermilion_locks | |
 
 ## Battles
 
