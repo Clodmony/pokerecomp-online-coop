@@ -543,7 +543,7 @@ static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 	return {
 		"species": member.species, "level": member.level, "hp": member.hp,
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
-		"pp": member.pp.duplicate(),
+		"pp": member.pp.duplicate(), "disabled": member.disabled_slot,
 	}
 
 
