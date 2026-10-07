@@ -135,18 +135,19 @@ Peer 1 is the host.
 | `log` | `lines` (no `seq`): a sharing device's own session-log lines; the host passes them on (D59) |
 | `leave_battle` | `seq`, `battle`: back to the player's world while their Pokémon fight on, or a queued join called off (protocol 4, D62) |
 | `stand_in` | `seq`, `battle`: decide for the Pokémon of an owner who dropped, once the view says `stand_in_due` (protocol 4, D62) |
+| `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.RIVAL_SCENES` started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
 
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
-| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
 
-The protocol is version 4 (`PokeCoopHost.PROTOCOL`); a peer of another version is
+The protocol is version 5 (`PokeCoopHost.PROTOCOL`); a peer of another version is
 refused with `protocol_mismatch`.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
