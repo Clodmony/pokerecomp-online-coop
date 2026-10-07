@@ -164,6 +164,7 @@ func _target_row(view: Dictionary, rows: Array) -> int:
 
 
 func _leg_button(screen: Gen2WorldScreen) -> int:
+	_cure_poison()
 	while _leg < _legs.size() and _legs[_leg] is Callable:
 		if not bool((_legs[_leg] as Callable).call()):
 			return _fail("step %d refused" % _leg)
@@ -182,6 +183,11 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 	if _seconds_since(_leg_started) > LEG_SECONDS:
 		return _fail("%s took longer than %d s: %s" % [row[0], LEG_SECONDS, _played._where()])
 	return _played._button_for(row[1])
+
+
+func _cure_poison() -> void:
+	for mon: Gen2SaveMon in _played._screen.active_save().party:
+		mon.status &= ~Gen2Status.POISON
 
 
 func _route_legs() -> Array:
