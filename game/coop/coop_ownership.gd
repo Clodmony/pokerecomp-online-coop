@@ -73,8 +73,7 @@ const GAME_RUNTIME: Dictionary = {
 }
 
 
-## The engine flag behind each campaign badge bit: Kanto's eight on Generation
-## 1, all sixteen on Generation 2.
+## The engine flag behind each campaign badge bit: Kanto's eight on Generation 1, all sixteen on Generation 2.
 static func badge_flags(data: GameData) -> Array[int]:
 	var out: Array[int] = []
 	if data == null or data.generation == RomRegistry.GEN1:
