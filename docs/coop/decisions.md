@@ -929,3 +929,19 @@ catch. The takeover summary now carries the world's ghost kind (one line in
 window's own cartridge battle, as it already leaves the Safari Zone; the
 partner cannot join it, and there is nothing to do in it but run. The SILPH
 SCOPE's unveiled MAROWAK is an ordinary fight and stays on the host.
+
+## D69. The launcher path is checked in two windows (2026-10-07)
+
+Players start co-op from the launcher's Co-op tab, which no window check
+covered. `tools/coop_launcher_play.gd` drives the real launcher's Co-op tab
+through its own tab button, fields, choice rows and buttons, round after round,
+so leaving and hosting again run as a player does them; the runner gains
+`HOST_TOOL=none` (the first window hosts) and a scenario `check()` that can fail
+a run. The runs found five things, all fixed with tests: a pad landing on Host
+scrolled past it while the page still took its height; the first partner in a
+new campaign went unannounced; a partner in the opening was placed in Pallet
+Town in the session menu (now "in the opening"); leaving landed on the Play tab
+with no reason (now the Co-op tab, with "You left the session." or why the host
+ended it); and the tab forgot the name and address (now `user://coop_tab.json`).
+Left as they are: the campaign list clips long labels (upstream's sheet
+layout), and the toast covers a row until it fades.

@@ -14,19 +14,20 @@ Red (or Blue) cartridge, the same one.
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
-| S01 | Host a new campaign on the Co-op tab; join from the other device by the listed address | Both worlds open, each with the chosen starter, in Pallet Town | `test_coop_device`: hosts and joins with their own starters | every scenario (tool host) | |
+| S01 | Host a new campaign on the Co-op tab; join from the other device by the listed address | Both worlds open, each with the chosen starter, in Pallet Town; the host hears "<NAME> joined the session." | `test_coop_device`: hosts and joins with their own starters | every scenario (tool host), launcher_host_join, launcher_leave_rehost | |
 | S02 | Join with a different cartridge | Refused with a reason the Co-op tab explains | `test_a_client_with_another_cartridge_is_told_why_and_let_go` | | |
-| S03 | Start a second campaign on the host device, then pick the first again | Each keeps its own trainers; the device is remembered per campaign | `test_each_campaign_keeps_its_own_trainers...` | | |
+| S03 | Start a second campaign on the host device, then pick the first again | Each keeps its own trainers; the device is remembered per campaign | `test_each_campaign_keeps_its_own_trainers...` | launcher_leave_rehost | |
 | S04 | A new player brings a single-player save; the first player of a new campaign brings one | Their team, PC, bag and money come along; the first player's story becomes the campaign's | `test_a_campaign_hosted_from_a_save_takes_its_story_and_its_trainer` | | |
-| S05 | A new player plays the opening (Oak's speech, bedroom, lab, rival) | Hidden from the others until the lab is left with a starter; the rival's name and starter are kept for the campaign | `test_a_player_who_plays_the_opening_has_a_story_of_their_own...` | playthrough_brock | |
-| S06 | A new player skips the opening | A level 5 starter of their choice, 3000 money, Pallet Town | `test_a_player_who_skips_the_opening_is_given_their_starter_in_pallet_town` | | |
+| S05 | A new player plays the opening (Oak's speech, bedroom, lab, rival) | Hidden from the others until the lab is left with a starter; the rival's name and starter are kept for the campaign | `test_a_player_who_plays_the_opening_has_a_story_of_their_own...` | playthrough_brock, launcher_host_join | |
+| S06 | A new player skips the opening | A level 5 starter of their choice, 3000 money, Pallet Town | `test_a_player_who_skips_the_opening_is_given_their_starter_in_pallet_town` | launcher_leave_rehost | |
 | S07 | SAVE from START on either device | "Saved" in both; refused with "Save failed" while any battle runs | `test_a_save_from_either_menu_is_confirmed_to_everyone`, `test_coop_save_refusal` | save_from_start_menu | |
 | S08 | Close both apps and host the campaign again | Every player, the story and the PC come back as saved | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone` | | |
 | S09 | Pull the joiner's network for a minute | "Lost the host: reconnecting...", then "Back in the session." | `test_a_device_whose_link_drops_comes_back_on_its_own` | | |
 | S10 | Send a phone app to the background and back | A host saves first; a joiner redials at once | `test_a_hosting_device_sent_to_the_background_keeps_the_campaign` | | |
-| S11 | LEAVE SESSION on the joiner, then on the host | The joiner returns to the launcher; the host ending tells everyone why | `test_a_host_that_leaves_saves_the_campaign_and_tells_the_others` | | |
+| S11 | LEAVE SESSION on the joiner, then on the host | The joiner returns to the launcher's Co-op tab saying "You left the session."; the host ending sends everyone back there saying "The host closed the session." | `test_a_host_that_leaves_saves_the_campaign_and_tells_the_others` | launcher_leave_rehost | |
 | S12 | Close the hosting window with the window's close button | The joiner hears "ended" at once instead of redialling | `test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits` | | |
 | S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
+| S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
 
 ## Exploration and story
 
@@ -39,7 +40,7 @@ Red (or Blue) cartridge, the same one.
 | W05 | Both take EEVEE, LAPRAS, a HITMON and the MAGIKARP for sale | Each player can take each once | `test_each_player_is_given_their_own_eevee_and_dojo_pokemon` | | |
 | W06 | Both pick up the same item ball at the same moment | Each player has it once | `test_a_gift_two_windows_hand_out_at_once_is_kept_once` | | |
 | W07 | Use a Pokémon Center, a Mart and Bill's PC in each world | Each works on that player's own team, bag, money and PC | `test_a_heal_and_a_deposit...`, `test_a_window_opened_later_finds_its_pc_as_it_left_it` | | |
-| W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "SELECT to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | | |
+| W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "SELECT to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | launcher_host_join | |
 | W09 | Both walk into the same trainer | One battle both fight; once beaten the trainer stays beaten | `test_one_trainer_opened_in_two_windows_is_one_battle_both_fight` | playthrough_brock | |
 | W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
