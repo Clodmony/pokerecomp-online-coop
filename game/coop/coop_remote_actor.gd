@@ -1,10 +1,8 @@
 class_name PokeCoopRemoteActor
 extends RefCounted
 
-## The other players of a co-op session as world actors, registered the way a
-## mod's actor is, and this player's own position reported to the host. Remote
-## steps are eased over a walk's frames; a player in a battle wears the shock emote.
-## Each player keeps one colour in every window, by their place in the session.
+## The other players as world actors, registered as a mod's are, eased over a walk's frames in one colour
+## each in every window and wearing the shock emote in a battle; this player's position goes to the host.
 
 const STEP_FRAMES: int = 16
 const PLAYER_COLORS: Array = [
@@ -47,6 +45,8 @@ func _report() -> void:
 		return
 	var walked: bool = not _reported.is_empty() and here["map"] == _reported["map"] \
 		and _distance(here["cell"], _reported["cell"]) <= PokeCoopHost.MAX_STEP_CELLS
+	if here["map"] != _reported.get("map"):
+		client.journal.add(PokeCoopLog.WORLD, "map", {"map": here["map"], "cell": here["cell"], "from": _reported.get("map")}, client.player_id)
 	_reported = here
 	client.step(here["map"], here["cell"], here["facing"], not walked)
 

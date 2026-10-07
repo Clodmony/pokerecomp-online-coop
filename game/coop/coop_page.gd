@@ -1,9 +1,8 @@
 class_name PokeCoopPage
 extends VBoxContainer
 
-## The launcher's Co-op tab: host one of this device's campaigns, or a new one, or join
-## one on the network by address. A new player picks a starter; the device
-## remembers who it was in each campaign. The world opens once the host answers.
+## The launcher's Co-op tab: host one of this device's campaigns or a new one, or join one by address. A new
+## player picks a starter; the device remembers who it was in each campaign. The world opens once the host answers.
 
 const GAMES: Array[StringName] = [&"red", &"blue"]
 const STARTER_NAMES: Array[String] = ["BULBASAUR", "CHARMANDER", "SQUIRTLE"]
@@ -56,6 +55,7 @@ func _build() -> void:
 	_build_player(_card(column, "You"))
 	_build_host(_card(column, "Host a campaign"))
 	_build_join(_card(column, "Join a campaign"))
+	_build_logs(_card(column, "Debug logs"))
 	_status = Gen2LauncherUI.muted(_theme, "" if not _games.is_empty() \
 		else "Import Red or Blue on the Play tab first: co-op plays them.")
 	column.add_child(_status)
@@ -99,8 +99,7 @@ func _build_player(card: VBoxContainer) -> void:
 	_build_bring()
 
 
-## A new player can bring a trainer from one of this cartridge's own save slots
-## instead of a starter; a new campaign hosted that way starts from its story.
+## A new player may bring a trainer from a save slot instead of a starter; a campaign hosted so starts from its story.
 func _build_bring() -> void:
 	Gen2Screen.drop_children(_bring_row)
 	_bring = 0
@@ -187,6 +186,27 @@ func _build_join(card: VBoxContainer) -> void:
 	card.add_child(join)
 
 
+func _build_logs(card: VBoxContainer) -> void:
+	card.add_child(Gen2LauncherUI.switch(
+		_theme, &"bug", "Share debug logs with the other players", PokeCoopLog.sharing(),
+		func(on: bool) -> void: PokeCoopLog.set_sharing(on)
+	))
+	card.add_child(Gen2LauncherUI.muted(_theme,
+		"Every session is written to this device's logs folder. Shared, each player's file also holds the others' lines."))
+	var folder: Gen2LauncherButton = Gen2LauncherButton.create(
+		_theme, "Open the logs folder", Gen2LauncherButton.Variant.NEUTRAL, &"folder"
+	)
+	folder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	folder.pressed.connect(open_logs_folder)
+	card.add_child(folder)
+
+
+static func open_logs_folder() -> void:
+	var folder: String = ProjectSettings.globalize_path(PokeCoopLog.DIRECTORY)
+	DirAccess.make_dir_recursive_absolute(folder)
+	OS.shell_open(folder)
+
+
 func _game_titles() -> Array:
 	var out: Array = []
 	for game: StringName in _games:
@@ -236,7 +256,7 @@ func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
 		else PokeCoopSession.new_campaign_id(data) if data != null else ""
 	var session: PokeCoopSession = PokeCoopSession.hosting(
 		data, port, _player_name(), _starter_species(), _brought(), id,
-		"" if picked else _title.text.strip_edges().to_upper()
+		"" if picked else _title.text.strip_edges().to_upper(), PokeCoopLog.create(PokeCoopLog.sharing())
 	)
 	var kept: String = PokeCoopSession.campaign_path(data, id).get_file() + PokeCoopSave.BACKUP_SUFFIX \
 		if data != null else ""
@@ -249,8 +269,8 @@ func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PO
 	if address.is_empty():
 		_say("Type the host's address first.")
 		return
-	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species(), "", _brought()),
-		"Could not reach %s." % address)
+	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species(), "", _brought(),
+		PokeCoopLog.create(PokeCoopLog.sharing())), "Could not reach %s." % address)
 
 
 func _begin(session: PokeCoopSession, failure: String) -> void:

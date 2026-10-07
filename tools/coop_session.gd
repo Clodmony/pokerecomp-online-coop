@@ -1,13 +1,13 @@
 extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
-##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- check host|p1|p2 [port]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- check host|p1|p2 [port] [logs]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
-## `demo` runs a host and two clients in one process, `check` one of them per process
-## (tools/coop_two_process.sh), over localhost sockets; each exits 0 only when every step
-## passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`.
+## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh), over
+## localhost; each exits 0 only if every step passed. `host red` plays an imported cartridge, campaign in
+## `user://coop_campaigns/<game>/<game>.json`. Session logs go to `user://coop_logs` (`demo`, `check`: with `logs`).
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -44,11 +44,16 @@ var _acted: Dictionary = {}
 var _battle: String = ""
 var _known: Array = []
 var _mode: String = ""
+var _logging: bool = false
+var _journals: Array = []
 
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_mode = args[0] if not args.is_empty() else "demo"
+	_logging = args.has("logs") or _mode in ["host", "client"]
+	if args.has("logs"):
+		args.remove_at(args.find("logs"))
 	_directory = RomCache.directory_for(
 		StringName("coop%s%d" % [_mode, OS.get_process_id()]), "0123456789abcdef"
 	)
@@ -98,6 +103,7 @@ func _new_host(port: int) -> bool:
 		return false
 	_host = PokeCoopHost.create(_data, PokeCoopCampaign.create("demo", _data.id, _data.sha1), link)
 	_host.save_path = SAVE_PATH
+	_host.journal = _journal("host", "HOST", port)
 	var red: PokeCoopPlayer = _host.add_player("RED", 100)
 	red.place(PALLET, Vector2i(5, 5), 0)
 	red.add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH, Fixture.GROWL], 100))
@@ -128,8 +134,18 @@ func _dial(address: String, port: int, player_id: String) -> PokeCoopClient:
 	if link == null:
 		return null
 	var client: PokeCoopClient = PokeCoopClient.over(link)
+	client.journal = _journal("join", player_id.to_upper(), port)
 	client.greet(player_id, _data.id, _data.sha1, player_id)
 	return client
+
+
+func _journal(role: String, name: String, port: int) -> PokeCoopLog:
+	if not _logging:
+		return PokeCoopLog.new()
+	var out: PokeCoopLog = PokeCoopLog.create(PokeCoopLog.sharing())
+	out.open(role, name, {"tool": "coop_session " + _mode, "port": port, "game_id": String(_data.id), "rom_sha1": _data.sha1})
+	_journals.append(out)
+	return out
 
 
 func _start_host(port: int, game: String) -> void:
@@ -148,6 +164,7 @@ func _start_host(port: int, game: String) -> void:
 	var campaign: PokeCoopCampaign = loaded.get("campaign", PokeCoopCampaign.create(game, _data.id, _data.sha1))
 	_host = PokeCoopHost.create(_data, campaign, link)
 	_host.save_path = path
+	_host.journal = _journal("host", "HOST", port)
 	if loaded.is_empty():
 		_cartridge_players()
 		PokeCoopPolicy.start_campaign(campaign)
@@ -420,6 +437,8 @@ func _save_matches() -> bool:
 func _finish(code: int) -> void:
 	if _host != null:
 		_host.shutdown("host_shutdown", 0)
+	for journal: PokeCoopLog in _journals:
+		journal.close()
 	if DirAccess.dir_exists_absolute(_directory):
 		RomCache.clear(_directory)
 	if _mode == "demo":
