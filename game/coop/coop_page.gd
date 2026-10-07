@@ -10,6 +10,9 @@ const OPENINGS: Array[String] = ["Play it: Oak's speech, your room, his lab", "S
 const HIDDEN_NETWORKS: Array[String] = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "vEthernet"]
 const DEFAULT_NAME: String = "RED"
 const MAX_TITLE: int = 24
+const REMEMBERED: String = "user://coop_tab.json"
+
+static var remembered_path: String = REMEMBERED
 
 var _theme: Gen2LauncherTheme = null
 var _host_control: Control = null
@@ -48,6 +51,7 @@ func _build() -> void:
 	add_child(Gen2LauncherUI.title(_theme, "Co-op", Gen2LauncherTheme.FONT_DISPLAY))
 	var scroll: Gen2LauncherScroll = Gen2LauncherScroll.create()
 	add_child(scroll)
+	scroll.content().resized.connect(func() -> void: _keep_focus_shown.call_deferred(scroll))
 	var column: VBoxContainer = Gen2LauncherUI.column(Gen2LauncherUI.GAP_LG)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.content().add_child(column)
@@ -59,6 +63,20 @@ func _build() -> void:
 		else "Import Red or Blue on the Play tab first: co-op plays them.")
 	column.add_child(_status)
 	_build_logs(_card(column, "Debug logs"))
+	var ended: String = PokeCoopSession.ended_note
+	PokeCoopSession.ended_note = ""
+	if not ended.is_empty():
+		_tell_ended.call_deferred("You left the session." if ended == "left" else why_not(ended))
+
+
+func _tell_ended(text: String) -> void:
+	_say(text)
+	var shell: Node = get_parent()
+	while shell != null and not shell is Gen2LauncherShell:
+		shell = shell.get_parent()
+	if shell != null:
+		(shell as Gen2LauncherShell).select(&"coop")
+		(shell as Gen2LauncherShell).toast().show_message(&"info", text, "")
 
 
 func _card(host: VBoxContainer, title: String) -> VBoxContainer:
@@ -79,7 +97,7 @@ func _build_player(card: VBoxContainer) -> void:
 				_build_bring()
 				_build_campaigns(), _host_control
 		))
-	_name = _field(DEFAULT_NAME, "Your name")
+	_name = _field(String(_remembered().get("name", DEFAULT_NAME)), "Your name")
 	_name.max_length = Gen2SaveData.MAX_PLAYER_NAME
 	card.add_child(Gen2LauncherUI.stacked(_theme, "Name", _name))
 	var starter_row: Control = Gen2LauncherUI.choice(
@@ -176,7 +194,7 @@ static func campaign_label(row: Dictionary) -> String:
 
 
 func _build_join(card: VBoxContainer) -> void:
-	_address = _field("", "The host's address, for example 192.168.1.20")
+	_address = _field(String(_remembered().get("address", "")), "The host's address, for example 192.168.1.20")
 	card.add_child(Gen2LauncherUI.stacked(_theme, "Address", _address))
 	var join: Gen2LauncherButton = Gen2LauncherButton.create(
 		_theme, "Join", Gen2LauncherButton.Variant.NEUTRAL, &"chevron"
@@ -226,6 +244,15 @@ func focus_target() -> Control:
 	return _host_button
 
 
+## A pad lands on Host while the page is still taking its height, which scrolled past it: back to the least scroll.
+func _keep_focus_shown(scroll: Gen2LauncherScroll) -> void:
+	var focused: Control = get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	if focused == null or not scroll.is_ancestor_of(focused) or scroll.get_global_rect().encloses(focused.get_global_rect()):
+		return
+	var bottom: float = focused.get_global_rect().end.y - scroll.content().get_global_rect().position.y
+	scroll.scroll_vertical = maxi(0, ceili(bottom - scroll.size.y))
+
+
 ## Each address others can join at, by network (a WireGuard tunnel is its own); bridges left out.
 static func local_addresses() -> PackedStringArray:
 	var out := PackedStringArray()
@@ -249,7 +276,20 @@ func _show_addresses() -> void:
 		_host_addresses.text = text
 
 
+static func _remembered() -> Dictionary:
+	var known: Variant = JSON.parse_string(FileAccess.get_file_as_string(remembered_path)) \
+		if FileAccess.file_exists(remembered_path) else {}
+	return known if known is Dictionary else {}
+
+
+func _remember(address: String) -> void:
+	var file: FileAccess = FileAccess.open(remembered_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({"name": _player_name(), "address": address}))
+
+
 func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
+	_remember(_address.text.strip_edges())
 	var data: GameData = _data()
 	var picked: bool = _campaign > 0 and _campaign <= _campaigns.size()
 	var id: String = String((_campaigns[_campaign - 1] as Dictionary)["id"]) if picked \
@@ -269,6 +309,7 @@ func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PO
 	if address.is_empty():
 		_say("Type the host's address first.")
 		return
+	_remember(address)
 	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species(), "", _brought(),
 		PokeCoopLog.create(PokeCoopLog.sharing())), "Could not reach %s." % address)
 
