@@ -100,6 +100,18 @@ func _send(call: Callable) -> void:
 	_pump()
 
 
+func _stand(link: PokeCoopWorldLink, map_id: Vector2i) -> void:
+	var map := Gen2WorldMap.new()
+	map.number = map_id.y
+	link.world = Gen2WorldAPI.new(_data, map, null, Vector2i.ZERO, link.state)
+
+
+func _first_locks(red: PokeCoopWorldLink, blue: PokeCoopWorldLink) -> Array:
+	var shared: Dictionary = _host.campaign.world.get("gen1_bytes", {})
+	var lock: String = Gen2WorldAPI.GEN1_FIRST_LOCK
+	return [red.state.gen1_byte(lock), blue.state.gen1_byte(lock), int(shared.get(lock, 0))]
+
+
 func _battle_of(client: PokeCoopClient) -> String:
 	return String(client.current_battle().get("battle", ""))
 
@@ -1795,9 +1807,7 @@ func test_a_map_script_that_follows_one_players_walk_stays_in_their_window() -> 
 func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
-	var gym := Gen2WorldMap.new()
-	gym.number = PokeCoopWorldLink.VERMILION_GYM.y
-	blue.world = Gen2WorldAPI.new(_data, gym, null, Vector2i.ZERO, blue.state)
+	_stand(blue, PokeCoopWorldLink.VERMILION_GYM)
 	var door_load: int = 1 << Gen1Layout.MAP_LOADED_2_BIT
 
 	red.state.set_event_flag(Gen1Layout.LOCK_2ND_EVENT)
@@ -1806,6 +1816,40 @@ func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too(
 	assert_true(blue.state.is_event_flag_active(Gen1Layout.LOCK_2ND_EVENT))
 	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & door_load, door_load,
 		"Blue's world redraws the door as the window that found the switch does")
+
+
+func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	red.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 6)
+	_send(func() -> void: _red.step(PokeCoopWorldLink.VERMILION_GYM, Vector2i(4, 16), 0, true))
+	_stand(blue, PokeCoopWorldLink.VERMILION_CITY)
+	blue.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 10)
+	_pump()
+
+	assert_eq(_first_locks(red, blue), [6, 6, 6], "Blue's arrival rolls no new first switch while Red searches the gym")
+
+	red.state.set_event_flag(Gen1Layout.LOCK_1ST_EVENT)
+	_pump()
+	red.state.clear_event_flag(Gen1Layout.LOCK_1ST_EVENT)
+	red.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 12)
+	_pump()
+
+	assert_eq(_first_locks(red, blue), [12, 12, 12], "a wrong second can still hides the first switch anew for both")
+	assert_false(blue.state.is_event_flag_active(Gen1Layout.LOCK_1ST_EVENT))
+
+
+func test_vermilion_city_rolls_a_new_first_lock_while_nobody_else_is_in_the_city_or_gym() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	red.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 6)
+	_send(func() -> void: _red.step(PokeCoopWorldLink.VERMILION_GYM, Vector2i(4, 16), 0, true))
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 5), 0, true))
+	_stand(blue, PokeCoopWorldLink.VERMILION_CITY)
+	blue.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 10)
+	_pump()
+
+	assert_eq(_first_locks(red, blue), [10, 10, 10], "with Red gone, Blue's arrival hides the switch afresh, as on the cartridge")
 
 
 func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
