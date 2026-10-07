@@ -11,7 +11,7 @@ keep the snapshot below current.
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Next free decision number:** D77 (D72 to D76 are recorded).
+- **Next free decision number:** D78 (D72 to D77 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
@@ -26,7 +26,7 @@ keep the snapshot below current.
 
 ## Next tasks
 
-1. [ ] **#86** Fix the Cerulean thief's stuck TM28 box (upstream), with a GUT
+1. [x] **#86** Fix the Cerulean thief's stuck TM28 box (upstream), with a GUT
    test. Done when a no-press text followed by a fade leaves no box.
 2. [ ] **#87** Merge `coop/autoplay-surge` into `coop/playthrough`. Conflicts
    expected in `tools/coop_autoplay.gd`. Then: co-op suites, whole suite,
@@ -45,8 +45,8 @@ keep the snapshot below current.
    for its next map load. Tests: one TM34 when a partner stands in Pewter Gym;
    the Vermilion dock with both in the city. Then `world_pull` logs the busy
    state, and `design.md` lists what is not shared.
-6. [ ] **#85** Vermilion Gym's locks kept by the host while someone is in the
-   city or gym; scenario: a partner enters mid-search and the cans stay.
+6. [x] **#85** Vermilion Gym's locks stay while someone is in the city or gym:
+   the entering window keeps them (D77); `vermilion_locks` shows the cans stay.
 7. [ ] **#24** (approved, D72) the first player in drives a contested rival
    scene: every rival scene after the opening (Route 22 twice, Cerulean, S.S.
    Anne, Pokémon Tower, Silph Co.).

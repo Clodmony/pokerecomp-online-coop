@@ -1,5 +1,5 @@
 # BLUE walks out into Vermilion City while RED searches the gym's trash cans, and the first switch
-# stays in its can: RED finds it where it was before BLUE arrived (#85; test case W15).
+# stays in its can: RED finds it where it was before BLUE arrived (#85; test case W19).
 # SEED is a campaign saved after LT. SURGE's badge (playthrough_surge's end). The scenario edits a
 # copy beside the out dir into the search: no THUNDERBADGE, locks, TM24 or LT. SURGE win, the first
 # switch in can 4 (column 2, middle row), RED below the closed door facing can 5 under it, BLUE in

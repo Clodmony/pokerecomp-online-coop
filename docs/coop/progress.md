@@ -208,6 +208,7 @@ The owner settled the open questions (D72); the work follows `tasks.md`.
 | Two windows, `cable_club_trade` on the merge | passes in 367 and 385 s: MACHOKE arrives in P2's party and evolves into MACHAMP, five Pokémon before and after, each uid once |
 | Seeded runs | `SEED=<dir>` and the autopilot's `from=<leg>`: two windows opened on a campaign saved after LT. SURGE, both on their saved cells in Vermilion Gym, and finished `from=lt_surge` at once |
 | #86 (D76), upstream: a no-press box held up by its row's own fade | `CloseTextDisplay` now takes it down at the row's end (`_gen1_close_text_display`); test `test_a_gen1_rows_end_takes_down_a_no_press_box_its_fade_held_up`; on the Red import the thief's leg passes and the player walks on, and upstream's `played` check passes from the intro to the Cerulean Gym exit (30 battles). Cosmetic, not fixed: the receipt's `text_waitbutton` shows an arrow and an empty last page where the cartridge keeps "Bye!" through the fade |
+| #85 (D77), Vermilion Gym's first lock kept while a partner is near | two GUT tests; two windows, `vermilion_locks` from an edited after-Surge seed: BLUE walks from the Pokémon Center into the city twice while RED searches, BLUE's window rolls 6 (10 in another run) and keeps 4, RED finds the first switch in can 4 and opens the first lock; three passing runs. Control run with the change off: BLUE's entry sends lock 10 and RED finds only trash in can 4 |
 
 ## Slice 1 acceptance criteria
 

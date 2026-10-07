@@ -70,8 +70,8 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
 | 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
 | 84 | World sharing: share the campaign at rest points, never mid-scene | in progress: adopted (D72), steps 1 and 2 on `coop/rest-points` | | |
-| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | in progress on `coop/vermilion-locks` | | |
-| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | in progress on `coop/tm28-box` | | |
+| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | done (D77): a window entering keeps the first lock while a partner is near | `coop/playthrough` (`209ba387`) | close when the branch merges |
+| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | done (D76): a row's end closes a no-press box | `coop/playthrough` (`fa244045`) | close when the branch merges |
 | 87 | Review and merge coop/autoplay-surge | done: merged (`91e8c1c6`), D73 to D75 | `coop/playthrough` | close with the scenario runs |
 | 88 | Autoplayed two-window run to the Hall of Fame | in progress: done to LT. SURGE; Celadon and ERIKA on `coop/autoplay-erika`; campaign seeds for parallel stretches on `coop/campaign-seed` | | |
 
