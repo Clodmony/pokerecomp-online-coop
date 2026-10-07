@@ -64,7 +64,6 @@ static func create(
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
 	out.trades = PokeCoopTrades.create(game_data)
-	PokeCoopPolicy.settle_intro(run)
 	return out
 
 
