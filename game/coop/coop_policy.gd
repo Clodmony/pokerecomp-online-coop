@@ -14,9 +14,13 @@ const START_MAP: Vector2i = Vector2i(0, 0)
 const START_CELLS: Array[Vector2i] = [
 	Vector2i(5, 6), Vector2i(13, 6), Vector2i(6, 6), Vector2i(12, 6),
 ]
-## The campaign's story begins after Oak's intro: EVENT_FOLLOWED_OAK_INTO_LAB to
-## BATTLED_RIVAL_IN_OAKS_LAB at the pinned pokered.
-const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23]
+## Where a played opening leaves the story (D58): its flags at the pinned pokered, the lab's,
+## Pallet Town's and the house's script steps, and the objects it took away.
+const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23, 0x27]
+const INTRO_DONE_WORLD: Dictionary = {
+	"gen1_map_scripts": {"set": {0: 18, 1: 5, 28: 1}, "erase": []},
+	"toggled_objects": {"set": {0x2A: true, 0x2B: true, 0x2C: true, 0x2E: true}, "erase": []},
+}
 const PLAY_OPENING: int = -1
 const OPENING_SPEECH: String = "speech"
 const OPENING_PLAYING: String = "playing"
@@ -60,7 +64,6 @@ static func prize_split(total: int, participants: Array, initiator: String) -> D
 	return out
 
 
-## A late joiner starts with shared progress, no Pokémon and starting money.
 static func new_player_money() -> int:
 	return NEW_PLAYER_MONEY
 
@@ -68,6 +71,25 @@ static func new_player_money() -> int:
 ## A new campaign begins after Oak's intro, which its players never see.
 static func start_campaign(campaign: PokeCoopCampaign) -> void:
 	campaign.commit("intro:starters_given", {"flags": INTRO_DONE_FLAGS})
+	settle_intro(campaign)
+
+
+## A campaign begun after the intro gets the intro's world where it has none (D58).
+static func settle_intro(campaign: PokeCoopCampaign) -> void:
+	if not campaign.has_flag(INTRO_DONE_FLAGS[4]):
+		return
+	var changed: bool = not campaign.has_flag(INTRO_DONE_FLAGS[5])
+	campaign.flags[INTRO_DONE_FLAGS[5]] = true
+	for key: String in INTRO_DONE_WORLD:
+		var table: Dictionary = (campaign.world.get(key, {}) as Dictionary).duplicate()
+		var wanted: Dictionary = (INTRO_DONE_WORLD[key] as Dictionary)["set"]
+		for entry: int in wanted:
+			if not table.has(entry):
+				table[entry] = wanted[entry]
+				changed = true
+		campaign.world[key] = table
+	if changed:
+		campaign.revision += 1
 
 
 ## A player new to the campaign: [param starter] if it is one of the three, at

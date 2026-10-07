@@ -704,3 +704,17 @@ so a press made on the frame the player stopped never turned them (L11). After
 the Viridian Mart gives OAK'S PARCEL, the script leaves the player on the exit
 mat facing the counter, and pressing DOWN neither turned nor left the shop. The
 world now faces a pressed direction whenever no forced movement owns the step.
+
+## D58. A campaign begins where a played opening leaves the story (2026-10-07)
+
+A new campaign marked the intro done with five flags and nothing else, so for a
+player who skipped the opening Oak's lab was still in its state before the intro:
+no Oak, the rival by the table and all three POKé BALLs, and OAK's PARCEL could
+not be delivered (L17). The state a real opening leaves was captured from a
+played one on Red: the five flags and EVENT_OAK_APPEARED_IN_PALLET, the lab's
+script at step 18, Pallet Town's at 5 and the house's at 1, and four objects
+toggled (the town map, the lab's rival and two starter balls). A new campaign
+starts with it, and a campaign from an earlier build that began after the intro
+is given whatever of it is missing when it is hosted, without moving on any
+script step it already has. The rival's own starter is still set by the first
+player to finish an opening (D50).
