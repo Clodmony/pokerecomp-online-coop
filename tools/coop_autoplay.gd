@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|erika|tower|koga|blaine|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -25,7 +25,8 @@ const ROUTES: Dictionary = {
 	"erika": [&"_misty_legs", &"_surge_legs", &"_erika_legs"],
 	"tower": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs"],
 	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
-	"blaine": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_blaine_legs"],
+	"sabrina": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs"],
+	"blaine": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs", &"_blaine_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -844,6 +845,211 @@ func _koga_done() -> bool:
 	print("coop autoplay: %s after KOGA: badges %d, team on host %s, missing %s" % [
 		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
 			func(row: Dictionary) -> int: return int(row["mon"]["species"])), missing])
+	return missing.is_empty()
+
+
+const SABRINA_MAPS: Dictionary = {
+	&"route_8": Vector2i(0, 19), &"underground_route_8": Vector2i(0, 80), &"underground_west_east": Vector2i(0, 121),
+	&"underground_route_7": Vector2i(0, 77), &"route_7": Vector2i(0, 18), &"celadon_city": Vector2i(0, 6),
+	&"route_7_gate": Vector2i(0, 76), &"saffron_city": Vector2i(0, 10), &"silph_1f": Vector2i(0, 181),
+	&"silph_2f": Vector2i(0, 207), &"silph_3f": Vector2i(0, 208), &"silph_4f": Vector2i(0, 209),
+	&"silph_5f": Vector2i(0, 210), &"silph_7f": Vector2i(0, 212), &"silph_9f": Vector2i(0, 233),
+	&"silph_11f": Vector2i(0, 235), &"saffron_gym": Vector2i(0, 178),
+}
+const CELADON_MART_FLOORS: Array[int] = [122, 123, 124, 125, 136, 126]
+const ROUTE_15_WEST_DOOR := Vector2i(7, 8)
+const ROUTE_15_GATE_EAST := Vector2i(7, 4)
+const ROUTE_14_EAST_EDGE := Vector2i(19, 8)
+const ROUTE_12_GATE_SOUTH_DOOR := Vector2i(10, 21)
+const ROUTE_12_GATE_NORTH := Vector2i(4, 0)
+const ROUTE_8_UNDERGROUND := Vector2i(13, 3)
+const BELOW_VENDING_MACHINES: Array[Vector2i] = [Vector2i(10, 2), Vector2i(11, 2)]
+const ROUTE_7_GATE_EAST := Vector2i(5, 3)
+const ROUTE_7_EAST_DOOR_X: int = 18
+const SILPH_STAIRS_UP: Array[Vector2i] = [Vector2i(26, 0), Vector2i(26, 0), Vector2i(24, 0), Vector2i(26, 0)]
+const SILPH_5F_PAD := Vector2i(9, 15)
+const SILPH_9F_PAD := Vector2i(17, 15)
+const BESIDE_CARD_KEY := Vector2i(20, 16)
+const SILPH_5F_PAD_TO_3F := Vector2i(11, 5)
+const SILPH_3F_DOOR_SIDE := Vector2i(18, 8)
+const SILPH_3F_PAD_TO_7F := Vector2i(11, 11)
+const LAPRAS_WORKER := Vector2i(1, 5)
+const SILPH_7F_PAD_TO_11F := Vector2i(5, 7)
+const SILPH_11F_DOOR_SIDE := Vector2i(6, 14)
+const SILPH_GIOVANNI := Vector2i(6, 9)
+const PRESIDENT := Vector2i(7, 5)
+const SILPH_11F_PAD_TO_7F := Vector2i(3, 2)
+const SILPH_7F_PAD_TO_3F := Vector2i(5, 3)
+const SILPH_3F_STAIRS_DOWN := Vector2i(26, 0)
+const SILPH_2F_STAIRS_DOWN := Vector2i(24, 0)
+const SAFFRON_GYM_PADS: Array[Vector2i] = [Vector2i(11, 15), Vector2i(15, 15), Vector2i(15, 5), Vector2i(1, 5)]
+const SAFFRON_GYM_LANDINGS: Array[Vector2i] = [Vector2i(19, 17), Vector2i(19, 3), Vector2i(1, 3), Vector2i(11, 11)]
+const SABRINA := Vector2i(9, 8)
+const SABRINA_ROOM_REACH: int = 5
+const FRESH_WATER: int = 0x3C
+const CARD_KEY: int = 0x30
+const MASTER_BALL: int = 0x01
+const LAPRAS_DEX: int = 131
+const MARSHBADGE: int = 5
+const GAVE_GUARDS_DRINK_BIT: int = 6
+const EVENT_GOT_MASTER_BALL: int = 1933
+const EVENT_BEAT_SILPH_CO_GIOVANNI: int = 1935
+const GIOVANNI_CLASS: int = 29
+const SABRINA_CLASS: int = 40
+const RIVAL_CLASS: int = 42
+const SILPH_LEVEL: int = 52
+const SABRINA_LEVEL: int = 54
+
+
+func _sabrina_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = SABRINA_MAPS
+	var k: Dictionary = KOGA_MAPS
+	var drink: Callable = _either(p._holds(FRESH_WATER), p._engine(Gen1Layout.status_flag_1(GAVE_GUARDS_DRINK_BIT)))
+	var east_of_gate: Callable = func(world: Gen2WorldAPI) -> bool:
+		return world.map_id() == m.route_7 and world.player_cell.x >= ROUTE_7_EAST_DOOR_X
+	var legs: Array = [
+		["fuchsia_gym_out", p._warp_to(k.fuchsia_city), p._on_map(k.fuchsia_city)],
+		["fuchsia_to_route_15", p._cross(Vector2i.RIGHT, k.route_15), p._on_map(k.route_15)],
+		["route_15_gate_back", p._walk(ROUTE_15_WEST_DOOR), p._on_map(k.route_15_gate)],
+		["route_15_gate_east", p._walk(ROUTE_15_GATE_EAST), p._on_map(k.route_15)],
+		["route_15_to_route_14", p._cross(Vector2i.RIGHT, k.route_14), p._on_map(k.route_14)],
+		["route_14_to_route_13", _cross_at(ROUTE_14_EAST_EDGE, Vector2i.RIGHT), p._on_map(k.route_13)],
+		["route_13_to_route_12", p._cross(Vector2i.UP, k.route_12), p._on_map(k.route_12)],
+		["route_12_gate_back", p._walk(ROUTE_12_GATE_SOUTH_DOOR), p._on_map(k.route_12_gate)],
+		["route_12_gate_north", p._walk(ROUTE_12_GATE_NORTH), p._on_map(k.route_12)],
+		["route_12_to_lavender", p._cross(Vector2i.UP, k.lavender_town), p._on_map(k.lavender_town)],
+		["lavender_to_route_8", p._cross(Vector2i.LEFT, m.route_8), p._on_map(m.route_8)],
+		["route_8_to_underground", p._walk(ROUTE_8_UNDERGROUND), p._on_map(m.underground_route_8)],
+		["underground_east_entrance", p._warp_to(m.underground_west_east), p._on_map(m.underground_west_east)],
+		["underground_west_exit", p._warp_to(m.underground_route_7), p._on_map(m.underground_route_7)],
+		["underground_to_route_7", p._warp_to(m.route_7), p._on_map(m.route_7)],
+		["route_7_to_celadon", p._cross(Vector2i.LEFT, m.celadon_city), p._on_map(m.celadon_city)],
+	]
+	var floors: Array = [m.celadon_city] + CELADON_MART_FLOORS.map(func(number: int) -> Vector2i: return Vector2i(0, number))
+	for floor: int in range(1, floors.size()):
+		legs.append(["celadon_mart_up_%d" % floor, p._warp_to(floors[floor]), p._on_map(floors[floor])])
+	var meet: Array = _meet_partner("meet_on_the_roof", p._holds(FRESH_WATER))
+	meet[1] = func(world: Gen2WorldAPI) -> int: return p._walk(_vending_cell()).call(world)
+	legs.append(meet)
+	legs.append(["fresh_water", func(world: Gen2WorldAPI) -> int: return p._talk(_vending_cell(), UP).call(world), drink])
+	for floor: int in range(floors.size() - 2, -1, -1):
+		legs.append(["celadon_mart_down_%d" % floor, p._warp_to(floors[floor]), p._on_map(floors[floor])])
+	return legs + [
+		["celadon_to_route_7", p._cross(Vector2i.RIGHT, m.route_7), p._on_map(m.route_7)],
+		["route_7_gate", p._warp_to(m.route_7_gate), p._on_map(m.route_7_gate)],
+		["route_7_gate_east", p._walk(ROUTE_7_GATE_EAST), east_of_gate],
+		["route_7_to_saffron", p._cross(Vector2i.RIGHT, m.saffron_city), p._on_map(m.saffron_city)],
+	] + _silph_legs() + _saffron_gym_legs()
+
+
+func _silph_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = SABRINA_MAPS
+	var key: Callable = p._holds(CARD_KEY)
+	var giovanni: Callable = p._flag(EVENT_BEAT_SILPH_CO_GIOVANNI)
+	var ball: Callable = _either(p._holds(MASTER_BALL), p._flag(EVENT_GOT_MASTER_BALL))
+	var legs: Array = [["saffron_to_silph_co", p._warp_to(m.silph_1f), p._on_map(m.silph_1f)], _grind.bind(SILPH_LEVEL, 0)]
+	var floors: Array = [m.silph_1f, m.silph_2f, m.silph_3f, m.silph_4f, m.silph_5f]
+	for floor: int in SILPH_STAIRS_UP.size():
+		legs.append(["silph_%df_to_%df" % [floor + 1, floor + 2], p._walk(SILPH_STAIRS_UP[floor]), p._on_map(floors[floor + 1])])
+	return legs + [
+		["silph_5f_pad_to_9f", _ride(SILPH_5F_PAD), _either(p._on_map(m.silph_9f), key)],
+		["silph_9f_pad_back", _ride(SILPH_9F_PAD), p._on_map(m.silph_5f)],
+		["card_key", p._talk(BESIDE_CARD_KEY, Gen2WorldSprite.FACING_RIGHT), key],
+		["silph_5f_pad_to_9f_again", _ride(SILPH_5F_PAD), _either(p._on_map(m.silph_9f), _reaches(SILPH_5F_PAD_TO_3F))],
+		["silph_9f_pad_back_again", _ride(SILPH_9F_PAD), p._on_map(m.silph_5f)],
+		["silph_5f_pad_to_3f", _ride(SILPH_5F_PAD_TO_3F), p._on_map(m.silph_3f)],
+		["silph_3f_door", p._talk(SILPH_3F_DOOR_SIDE, Gen2WorldSprite.FACING_LEFT), _open(SILPH_3F_DOOR_SIDE + Vector2i.LEFT)],
+		["silph_3f_pad_to_7f", _ride(SILPH_3F_PAD_TO_7F), p._on_map(m.silph_7f)],
+		["lapras", _join_or(p._talk_to(LAPRAS_WORKER)), _has_lapras],
+		["silph_7f_pad_to_11f", _join_or(_ride(SILPH_7F_PAD_TO_11F)), p._on_map(m.silph_11f)],
+		_meet_to_join("meet_on_silph_11f", giovanni),
+		["silph_11f_door", _join_or(p._talk(SILPH_11F_DOOR_SIDE, UP)),
+			_either(_open(SILPH_11F_DOOR_SIDE + Vector2i.UP), ball)],
+		["giovanni", _join_or(p._talk_to(SILPH_GIOVANNI)), giovanni],
+		["master_ball", p._talk_to(PRESIDENT), ball],
+		["silph_11f_pad_to_7f", _ride(SILPH_11F_PAD_TO_7F), p._on_map(m.silph_7f)],
+		["silph_7f_pad_to_3f", _ride(SILPH_7F_PAD_TO_3F), p._on_map(m.silph_3f)],
+		["silph_3f_to_2f", p._walk(SILPH_3F_STAIRS_DOWN), p._on_map(m.silph_2f)],
+		["silph_2f_to_1f", p._walk(SILPH_2F_STAIRS_DOWN), p._on_map(m.silph_1f)],
+		["silph_co_exit", p._warp_to(m.saffron_city), p._on_map(m.saffron_city)],
+	]
+
+
+func _saffron_gym_legs() -> Array:
+	var p: Variant = _played
+	var marsh: Callable = _badge(MARSHBADGE)
+	var legs: Array = [
+		_grind.bind(SABRINA_LEVEL, 0),
+		["saffron_gym", p._warp_to(SABRINA_MAPS.saffron_gym), p._on_map(SABRINA_MAPS.saffron_gym)],
+		_meet_to_join("meet_in_saffron_gym", marsh),
+	]
+	for pad: int in SAFFRON_GYM_PADS.size():
+		legs.append(["saffron_gym_pad_%d" % (pad + 1), _join_or(_ride(SAFFRON_GYM_PADS[pad])),
+			_either(p._at(SAFFRON_GYM_LANDINGS[pad]), marsh)])
+	return legs + [
+		["meet_before_sabrina", _join_or(_standing), _either(_partner_near(SABRINA_MAPS.saffron_gym, SABRINA, SABRINA_ROOM_REACH), marsh)],
+		["sabrina", _join_or(p._talk_to(SABRINA)), marsh], _sabrina_done,
+	]
+
+
+func _ride(pad: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		if world.player_cell != pad:
+			return _played._walk(pad).call(world)
+		for direction: Vector2i in [Vector2i.DOWN, Vector2i.UP, Vector2i.LEFT, Vector2i.RIGHT]:
+			var off: Vector2i = pad + direction
+			if not world.step_blocked_from(pad, direction) and world.can_walk_to(off) and world.warp_at(off).is_empty():
+				return _played._direction_button(direction)
+		return PokeButton.NONE
+
+
+func _meet_to_join(label: String, or_done: Callable) -> Array:
+	var row: Array = _meet_partner(label, or_done)
+	row[1] = _join_or(_standing)
+	return row
+
+
+func _reaches(cell: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		return world.player_cell == cell or _played._step_toward(world, _played._is(cell)) != PokeButton.NONE
+
+
+func _open(door: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return world.can_walk_to(door)
+
+
+func _vending_cell() -> Vector2i:
+	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
+	ids.sort()
+	return BELOW_VENDING_MACHINES[clampi(ids.find(_session.client.player_id), 0, BELOW_VENDING_MACHINES.size() - 1)]
+
+
+func _has_lapras(_world: Gen2WorldAPI) -> bool:
+	return _played._screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool: return mon.species == LAPRAS_DEX)
+
+
+func _sabrina_done() -> bool:
+	var world: Gen2WorldAPI = _played._screen.world()
+	var me: Dictionary = _session.client.me()
+	var rows: Array = (me.get("party", []) as Array) + (_session.client.box.get("rows", []) as Array)
+	var laprases: Array = rows.filter(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == LAPRAS_DEX)
+	var missing: PackedStringArray = []
+	if not bool(_badge(MARSHBADGE).call(world)):
+		missing.append("MARSHBADGE")
+	if world.state.item_quantity(MASTER_BALL) != 1 or int((me.get("items", {}) as Dictionary).get(MASTER_BALL, 0)) != 1:
+		missing.append("one MASTER BALL")
+	if laprases.size() != 1 or not String(laprases[0]["uid"]).begins_with(_session.client.player_id + ":") \
+			or not _has_lapras(world):
+		missing.append("own LAPRAS")
+	var defeated: Array = (_session.client.state.get("campaign", {}) as Dictionary).get("defeated", [])
+	print("coop autoplay: %s after SABRINA: badges %d, team on host %s, MASTER BALLs %d, beaten %s, missing %s" % [
+		_player_id, world.state.badge_count(), rows.map(func(row: Dictionary) -> String: return "%s %d" % [
+			row["uid"], int(row["mon"]["species"])]), world.state.item_quantity(MASTER_BALL),
+		defeated.filter(func(id: String) -> bool: return [GIOVANNI_CLASS, SABRINA_CLASS, RIVAL_CLASS].any(
+			func(trainer_class: int) -> bool: return id.begins_with("trainer:%d:" % trainer_class))),
+		missing])
 	return missing.is_empty()
 
 

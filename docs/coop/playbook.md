@@ -21,7 +21,8 @@ D65):
 | Rock Tunnel, Celadon, ERIKA, Rocket Hideout | works: `playthrough_erika` from a new campaign, about 34 minutes (D83) |
 | Pokémon Tower, MAROWAK, Mr. Fuji | works from a story seed (`tower`, D82) |
 | SNORLAX, Safari Zone, KOGA | works from a story seed (`koga`, D81) |
-| Silph Co. to the Hall of Fame | not tried in co-op (#88) |
+| Saffron, Silph Co., SABRINA | works from the KOGA run's campaign (`sabrina`, D85) |
+| Cinnabar to the Hall of Fame | in progress (#88) |
 
 The automated runs heal between fights and grind with the save editor, so they
 prove the co-op flow, not balance or feel; a hand-played session (#44) is the

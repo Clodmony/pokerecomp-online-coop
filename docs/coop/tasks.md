@@ -15,12 +15,14 @@ keep the snapshot below current.
   - `erika` (D83), `tower` (D82) and `koga` (D81) are merged and chained after
     `surge`; `playthrough_koga` runs them all from a new campaign. After every
     merge of `tools/coop_autoplay.gd`, run one seeded window: GUT never loads it.
-  - `coop/autoplay-sabrina` (#88 Saffron, Silph Co., SABRINA) and
-    `coop/autoplay-blaine` (Cinnabar, BLAINE): agents started from seeds. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
+  - `sabrina` (D85) merged after `koga`. Agents on `coop/autoplay-blaine`
+    (Cinnabar, BLAINE) and `coop/autoplay-victory` (GIOVANNI, Route 22's
+    second rival, Victory Road); the Elite Four stretch is not started.
+  - Question for the owner: should Saffron's gate guards (the drink) be the
+    campaign's? Today each player hands over their own drink (D85). One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
     panel. Check each worktree, finish or restart the stretch from its story
     seed (`tools/coop_seed.gd`), merge one by one.
-  - `coop/rival-scenes` (#24): agent stopped before any commit; start again.
-- **Next free decision number:** D84 (D72 to D83 are recorded).
+- **Next free decision number:** D86 (D72 to D85 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
@@ -57,7 +59,7 @@ keep the snapshot below current.
    state, and `design.md` lists what is not shared.
 6. [x] **#85** Vermilion Gym's locks stay while someone is in the city or gym:
    the entering window keeps them (D77); `vermilion_locks` shows the cans stay.
-7. [ ] **#24** (approved, D72) the first player in drives a contested rival
+7. [x] **#24** (approved, D72; built as D84) the first player in drives a contested rival
    scene: every rival scene after the opening (Route 22 twice, Cerulean, S.S.
    Anne, Pokémon Tower, Silph Co.).
 8. [ ] **#88** Extend the autopilot stretch by stretch to the Hall of Fame;
