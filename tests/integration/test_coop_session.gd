@@ -49,7 +49,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
@@ -1241,6 +1241,33 @@ func test_a_change_between_battles_is_written_without_waiting_for_one() -> void:
 	var saved: Dictionary = PokeCoopSave.read(SAVE_PATH)
 	assert_true((saved.get("campaign", null) as PokeCoopCampaign).has_flag(BEAT_LEADER),
 		"the flag a window set is on disk before any battle or SAVE")
+
+
+func test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	assert_eq(_host.save_checkpoint(), &"")
+	_send(func() -> void: _blue.start_battle("wild:stall"))
+	_send(func() -> void: _red.start_battle("trainer:leader"))
+	_fight_out(_battle_of(_red))
+	red.state.apply_changes({}, {}, {"items": {HM01: 1}})
+	_pump()
+	assert_eq(_host.battles.size(), 1, "Blue's battle holds every checkpoint off")
+
+	var checkpoint: Dictionary = PokeCoopSave.from_dict(JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH)))
+	assert_false((checkpoint["campaign"] as PokeCoopCampaign).has_flag(BEAT_LEADER))
+	var recovered: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	var story: PokeCoopCampaign = recovered["campaign"]
+	assert_true(story.has_flag(BEAT_LEADER) and story.has_badge(0), "what a restarted host reads keeps the win")
+	assert_eq(story.encounter_state("trainer:leader"), PokeCoopCampaign.ENCOUNTER_DONE)
+	var kept: Dictionary = {}
+	for member: PokeCoopPlayer in recovered["players"]:
+		kept[member.player_id] = member
+	assert_eq((kept[_red.player_id] as PokeCoopPlayer).money, _host.player(_red.player_id).money, "with the prize")
+	assert_eq((kept[_blue.player_id] as PokeCoopPlayer).item_count(HM01), 1, "and the HM handed to the partner")
+
+	_host.shutdown("host_shutdown", 0)
+	assert_false(FileAccess.file_exists(SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX), "the closing checkpoint takes its place")
+	assert_true((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).has_flag(BEAT_LEADER))
 
 
 func test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each() -> void:

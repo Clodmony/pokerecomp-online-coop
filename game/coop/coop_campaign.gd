@@ -1,9 +1,8 @@
 class_name PokeCoopCampaign
 extends RefCounted
 
-## What every player of a co-op run shares: story flags, badges and which unique
-## encounters are taken. Progress only moves through [method commit], keyed by an
-## id, so a message delivered twice cannot apply twice.
+## What every player of a co-op run shares: story flags, badges and which unique encounters are taken. Progress
+## only moves through [method commit], keyed by an id, so a message delivered twice cannot apply twice.
 
 const ENCOUNTER_FREE: StringName = &"free"
 const ENCOUNTER_ACTIVE: StringName = &"active"

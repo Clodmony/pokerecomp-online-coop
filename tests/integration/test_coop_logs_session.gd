@@ -49,7 +49,7 @@ func after_each() -> void:
 		journal.close()
 	_journals = []
 	RomCache.clear(_directory)
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	if DirAccess.dir_exists_absolute(DIR):
@@ -425,7 +425,7 @@ func test_a_hosting_device_writes_one_file_for_its_host_and_client_and_the_joine
 	joining.close()
 	PokeCoopSession.identity_path = identity_before
 	for path: String in ["user://coop_logs_session_test_identity.json", PokeCoopSession.campaign_path(_data, hosting.host.campaign.campaign_id)]:
-		for file: String in [path, path + PokeCoopSave.BACKUP_SUFFIX]:
+		for file: String in [path, path + PokeCoopSave.BACKUP_SUFFIX, path + PokeCoopSave.JOURNAL_SUFFIX]:
 			if FileAccess.file_exists(file):
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
 	var campaigns: String = PokeCoopSession.campaign_path(_data).get_base_dir()
