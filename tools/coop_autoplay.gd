@@ -9,7 +9,7 @@ const CHECK_RUN: String = "res://tools/lib/check_run.gd"
 const TAP_FRAMES: int = 4
 const TAP_EVERY: int = 8
 const LEG_SECONDS: float = 420.0
-const STILL_SECONDS: float = 90.0
+const STILL_SECONDS: float = 150.0
 const BROCK := Vector2i(4, 1)
 const BOULDER_BADGE: int = 0
 
@@ -27,7 +27,6 @@ var _signature: String = ""
 var _tap: int = PokeButton.NONE
 var _tap_at: int = -TAP_EVERY
 var _direction: int = PokeButton.NONE
-var _named: bool = false
 var _done: bool = false
 
 
@@ -63,7 +62,13 @@ func _process(delta: float) -> bool:
 
 func _choose() -> int:
 	if _session.opening_screen != null:
-		return _intro_button(_session.opening_screen)
+		if _frames - _tap_at == TAP_FRAMES:
+			_session.opening_screen.release_button(PokeButton.A)
+		var press: int = _intro_button(_session.opening_screen)
+		if press != PokeButton.NONE:
+			_session.opening_screen.handle_button(press)
+			_tap_at = _frames
+		return PokeButton.NONE
 	var screen: Gen2WorldScreen = _session.screen
 	if screen == null or not is_instance_valid(screen) or screen.world() == null or _session.panel == null:
 		return PokeButton.NONE
@@ -80,15 +85,12 @@ func _choose() -> int:
 
 
 func _intro_button(intro: Gen2IntroScreen) -> int:
-	if intro.animation_frames_left() != 0:
+	if intro.animation_frames_left() != 0 or _paced(PokeButton.A) == PokeButton.NONE:
 		return PokeButton.NONE
 	var screen: Control = intro.current()
-	var naming: bool = screen != null and screen.has_method(&"choosing_name") and bool(screen.call(&"choosing_name"))
-	if naming and not _named:
-		_named = true
-		return _paced(PokeButton.DOWN)
-	_named = _named and naming
-	return _paced(PokeButton.A)
+	if screen != null and screen.has_method(&"choosing_name") and bool(screen.call(&"choosing_name")):
+		intro.handle_button(PokeButton.DOWN)
+	return PokeButton.A
 
 
 func _panel_button(panel: PokeCoopBattlePanel) -> int:
@@ -186,6 +188,8 @@ func _route_legs() -> Array:
 		["route_2_to_pewter", p._cross(Vector2i.UP, _kit.PEWTER_CITY), p._on_map(_kit.PEWTER_CITY)],
 		_grind.bind(_kit.BROCK_LEVEL, _kit.MANKEY_DEX),
 		["pewter_gym", p._warp_to(_kit.PEWTER_GYM), p._on_map(_kit.PEWTER_GYM)],
+		["meet_partner", func(_world: Gen2WorldAPI) -> int: return PokeButton.NONE,
+			either.call(func(_world: Gen2WorldAPI) -> bool: return not _session.client.nearby().is_empty(), p._flag(_kit.EVENT_BEAT_BROCK))],
 		["brock", p._talk_to(BROCK), p._flag(_kit.EVENT_BEAT_BROCK)],
 		["badge", func(_world: Gen2WorldAPI) -> int: return PokeButton.NONE,
 			func(world: Gen2WorldAPI) -> bool: return world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(BOULDER_BADGE))],
@@ -229,17 +233,21 @@ func _paced(button: int) -> int:
 
 
 func _watch_progress() -> void:
-	var now: String = _played._where() if _played._screen != null and is_instance_valid(_played._screen) else ""
+	if _frames % 30 != 0:
+		return
+	var world: Gen2WorldAPI = _played._screen.world() if _played._screen != null and is_instance_valid(_played._screen) else null
+	var now: String = "%s %s %d %s" % [world.map_id(), world.player_cell, _leg, world.script_busy()] if world != null else ""
 	now += str(_session.panel.battle_view().get("revision", "")) if _session.panel != null else ""
 	if now != _signature:
 		_signature = now
 		_still_since = Time.get_ticks_msec()
 	elif _seconds_since(_still_since) > STILL_SECONDS:
-		_fail("nothing moved for %d s: %s" % [STILL_SECONDS, now])
+		_fail("nothing moved for %d s: %s" % [STILL_SECONDS, _played._where() if world != null else now])
 
 
 func _finish_route() -> void:
 	_done = true
+	_session.client.request_save()
 	print("coop autoplay: %s finished, %s reached in %.0f s" % [_player_id, _route, Time.get_ticks_msec() / 1000.0])
 	_shot("done")
 

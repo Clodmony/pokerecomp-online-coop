@@ -83,6 +83,7 @@ for (( waited = 0; waited < DURATION; waited += 2 )); do
 	sleep 2
 	if [[ "$P1_TOOL$P2_TOOL" == *coop_autoplay* ]] && ended p1 "$P1_TOOL" && ended p2 "$P2_TOOL"; then break; fi
 done
+sleep 3
 grep -h "autoplay:" "$out/p1.log" "$out/p2.log" || true
 finish
 sleep 1
