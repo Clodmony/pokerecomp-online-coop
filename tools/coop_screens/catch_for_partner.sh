@@ -7,7 +7,7 @@ for at in 12 15 18 21 24 27 30 33 36 39 42 45 48 51; do
 done
 shot p1 9.5 red_rows
 shot p1 54 red_after
-press p2 6.6 SELECT D D D A           # JOIN
+press p2 6.6 SELECT @JOIN
 shot p2 9 blue_joined
 shot p2 30 blue_mid
 shot p2 56 blue_after
