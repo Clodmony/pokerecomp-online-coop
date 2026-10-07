@@ -9,8 +9,12 @@ extends RefCounted
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Owned entry by entry: badges are the campaign's engine flags, a player's own gifts their event flags and objects.
+## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among
+## the Gen 1 bytes, and every event flag and object but a player's own gifts.
 const BY_FLAG: StringName = &"by_flag"
+const CAMPAIGN_BYTES: Array[String] = [
+	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
+]
 const KANTO_BADGES: int = 8
 
 const WORLD_STATE: Dictionary = {
@@ -33,7 +37,7 @@ const WORLD_STATE: Dictionary = {
 	"maptile_decorations": PLAYER, "kurt_apricorn_quantity": PLAYER,
 	"picked_fruit_trees": CAMPAIGN, "toggled_objects": BY_FLAG,
 	"gen1_map_scripts": CAMPAIGN, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
-	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": CAMPAIGN,
+	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": BY_FLAG,
 	"npc_trades": PLAYER, "registered_item": PLAYER, "day_care_man": PLAYER,
 	"day_care_lady": PLAYER, "day_care_mons": PLAYER, "steps_to_egg": PLAYER,
 	"day_care_egg": PLAYER, "battle_caught_celebi": CAMPAIGN, "lucky_id_number": PLAYER,
@@ -86,13 +90,12 @@ static func badge_flags(data: GameData) -> Array[int]:
 	return out
 
 
-## A table the campaign keeps whose entries are named rather than numbered.
-const TEXT_KEYED: Array[String] = ["gen1_starters"]
+const TEXT_KEYED: Array[String] = ["gen1_starters", "gen1_bytes"]
 static var _reference: Dictionary = {}
 
 
 ## [param changes] cut to what a window could have sent: each synced key in its own
-## shape and type, the campaign's tables holding plain numbered entries.
+## shape and type, the campaign's tables holding plain numbered or named entries.
 static func well_formed(changes: Variant) -> Dictionary:
 	if _reference.is_empty():
 		_reference = Gen2WorldState.new().to_dict()
@@ -197,6 +200,8 @@ static func route(changes: Dictionary, badges: Array[int], own: Dictionary = {})
 static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Array, out: Dictionary) -> void:
 	var halves: Dictionary = {CAMPAIGN: {"set": {}, "erase": []}, PLAYER: {"set": {}, "erase": []}}
 	var shared: Callable = func(flag: Variant) -> bool:
+		if key == "gen1_bytes":
+			return CAMPAIGN_BYTES.has(flag)
 		return badges.has(int(flag)) if key == "engine_flags" else not own.has(int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
