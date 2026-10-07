@@ -29,7 +29,7 @@ keep the snapshot below current.
 
 1. [x] **#86** Fix the Cerulean thief's stuck TM28 box (upstream), with a GUT
    test. Done when a no-press text followed by a fade leaves no box.
-2. [ ] **#87** Merge `coop/autoplay-surge` into `coop/playthrough`. Conflicts
+2. [x] **#87** Merge `coop/autoplay-surge` into `coop/playthrough`. Conflicts
    expected in `tools/coop_autoplay.gd`. Then: co-op suites, whole suite,
    `playthrough_misty`, `cable_club_trade`, `playthrough_surge` (should pass
    after task 1), D72 onward for its three fixes, test-case rows (re-host inside
