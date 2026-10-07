@@ -71,6 +71,16 @@ Red (or Blue) cartridge, the same one.
 | W34 | Both walk the Rocket Hideout's spinner floors; one takes the LIFT KEY | Both hold the LIFT KEY once; the ball leaves the partner's map at once; each rides the elevator on its own | | playthrough_erika | |
 | W35 | GIOVANNI beaten on B4F, by one player or both | Both hold one SILPH SCOPE; GIOVANNI and the ball are gone in both windows | | playthrough_erika | |
 | W36 | Both walk Rock Tunnel without FLASH | Walking, ladders and trainers work in the dark; the partner is drawn in full colour in the dark (left as it is) | | playthrough_erika | |
+| W37 | One player walks into a rival scene (Route 22, Nugget Bridge, S.S. Anne 2F, Pokémon Tower 2F, Silph Co. 7F) while the partner is on that map | The partner's world stands still under "<name> is facing the rival here…"; SELECT > JOIN fights the rival together; when the scene ends the rival is gone in both windows and the partner walks on without replaying it | `test_the_first_window_into_a_rival_scene_drives_it_and_a_partner_there_waits_for_its_result`, `test_a_partner_waiting_on_ss_anne_2f_takes_the_scenes_last_step_and_never_meets_that_rival` | rival_scene | |
+| W38 | The partner walks onto the map during the scene | Held from its first stop, never mid-step, under the same line | `test_a_window_arriving_during_a_rival_scene_waits_from_its_first_rest_point` | rival_scene | |
+| W39 | The player in the rival scene closes the window, loses the link, or whites out | The partner is let go at once; after a close or lost link the rival still waits and that player meets him again from the start | `test_a_window_dropped_in_its_rival_scene_lets_the_partner_go_and_meets_the_rival_again`, `test_a_scene_is_claimed_only_on_a_rival_map_and_given_back_when_its_driver_leaves_the_map` | rival_scene_killed | |
+| W40 | Both step onto the rival's trigger at the same moment | Both see the scene; one battle both fight; the rival is beaten once for the campaign | `test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_one_battle` | | |
+| W41 | Both players buy a drink and walk into a Saffron gate | Each guard takes the walker's own drink; each player needs one | | playthrough_sabrina | |
+| W42 | One player picks up Silph Co.'s CARD KEY | Both hold it; the partner opens doors and skips the 5F detour | the D52 tests | playthrough_sabrina | |
+| W43 | Both players talk to Silph Co. 7F's LAPRAS worker | Each gets their own LAPRAS, with their own uid on the host | | playthrough_sabrina | |
+| W44 | One player gets the MASTER BALL from Silph Co.'s president | Each holds exactly one, in the window and on the host | the D52 tests | playthrough_sabrina | |
+| W45 | One player steps onto GIOVANNI's cell on Silph Co. 11F | The partner joins with SELECT > JOIN; both are participants | | playthrough_sabrina | |
+| W46 | A partner on the same Silph Co. floor when a card-key door opens | The door stays drawn shut in the partner's window until the partner opens it with the shared CARD KEY (left as it is) | | playthrough_sabrina | |
 
 ## Battles
 

@@ -1,8 +1,7 @@
 class_name PokeCoopClient
 extends RefCounted
 
-## A player's end of a co-op session: numbered intentions out, the last authoritative state and battle
-## views in. It decides nothing; a local menu cursor stays here until it is sent as a suggestion.
+## A player's end of a co-op session, deciding nothing: numbered intentions out, the authoritative state and battle views in.
 
 ## ENet drops data that arrives with a disconnect, so the last log batch is given a moment.
 const LAST_LOG_MSEC: int = 500

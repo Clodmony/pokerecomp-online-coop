@@ -1,8 +1,8 @@
 extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
-##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir>
-## walks preview_world_story.gd's legs through <last leg>; p1 imports the save as a host's first player does, p2 a copy beside.
+##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>]
+## walks preview_world_story.gd's legs through <last leg>, the party grown to level=; p1 imports it as a host's first player, p2 a copy.
 
 const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
@@ -26,10 +26,10 @@ func _initialize() -> void:
 		push_error("coop seed: no imported Generation 1 cache for %s" % args[0])
 		quit(1)
 		return
-	quit(_seed(data, args[1], args[2]))
+	quit(_seed(data, args[1], args[2], int(args[3].trim_prefix("level=")) if args.size() > 3 else 0))
 
 
-func _seed(data: GameData, last: String, out_dir: String) -> int:
+func _seed(data: GameData, last: String, out_dir: String, level: int = 0) -> int:
 	var story: Dictionary = _gen1_story_start(data)
 	if not story.has("world"):
 		push_error("coop seed: %s" % story.get("reason", ""))
@@ -50,10 +50,24 @@ func _seed(data: GameData, last: String, out_dir: String) -> int:
 		push_error("coop seed: no rest after stepping out of the door")
 		return 1
 	save.world = world.snapshot()
+	if level > 0:
+		_raise(data, save, level)
 	var written: Error = write_seed(data, save, out_dir, _beside(world))
 	print("coop seed: %s on %s %s, badges %d, %s" % [
 		last, world.map_id(), world.player_cell, world.state.badge_count(), error_string(written)])
 	return 0 if written == OK else 1
+
+
+static func _raise(data: GameData, save: Gen2SaveData, level: int) -> void:
+	var editor := Gen2SaveEditor.new()
+	editor.data = data
+	editor.save = save
+	for mon: Gen2SaveMon in save.party:
+		editor.set_level(mon, level)
+		var known: Array = data.moves_at_level(mon.species, level)
+		for slot: int in Gen2SaveMon.MAX_MOVES:
+			editor.set_move(mon, slot, int(known[slot]) if slot < known.size() else Gen2SaveEditor.NO_MOVE)
+		mon.hp = editor.max_hp_for(mon)
 
 
 static func _leg_name(leg: Callable) -> String:

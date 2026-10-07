@@ -1154,7 +1154,7 @@ func test_a_partner_stands_in_for_a_controller_who_stays_away() -> void:
 
 const FUZZ_TYPES: Array = [
 	"move", "start_battle", "window_battle", "command", "suggest", "join", "world", "party",
-	"save", "trade", "nonsense",
+	"save", "trade", "scene", "nonsense",
 ]
 ## Real ids and command words, so the fuzz reaches past the first lookup.
 const FUZZ_WORDS: Array = [
@@ -1164,7 +1164,7 @@ const FUZZ_WORDS: Array = [
 const FUZZ_KEYS: Array = [
 	"battle", "encounter", "command", "suggestion", "patch", "rows", "boxes", "rev", "current_box",
 	"map", "cell", "facing", "warp", "partner", "slot", "answer", "leave", "kind", "enemy",
-	"trainer_class", "trainer_index", "type", "value", "revision", "item", "recipient", "index",
+	"trainer_class", "trainer_index", "type", "value", "revision", "item", "recipient", "index", "on",
 ]
 
 
@@ -2135,8 +2135,6 @@ func test_both_players_in_vermilion_city_each_pass_the_ticket_check_once() -> vo
 func test_a_partners_step_for_the_map_a_window_stands_on_lands_at_its_next_map_load() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
-	const ROUTE_22 := Vector2i(0, 33)
-	const ROUTE_22_SCRIPT: int = 26
 	_stand(blue, ROUTE_22, ROUTE_22_SCRIPT)
 	red.state.set_gen1_map_script(ROUTE_22_SCRIPT, 2)
 	red.state.set_event_flag(0x30C)
@@ -2172,3 +2170,197 @@ func test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle() -> void:
 	assert_false(takeover.takes_battle(met), "a GHOST without the SILPH SCOPE can only be run from, as on the cartridge")
 	met["gen1_ghost"] = Gen1Layout.GHOST_UNVEILED
 	assert_true(takeover.takes_battle(met), "the SILPH SCOPE's MAROWAK is fought on the host like any other")
+
+
+const ROUTE_22 := Vector2i(0, 33)
+## wRoute22CurScript, its first rival fight's opening and exit states, and the result Route22Rival1ExitScript leaves.
+const ROUTE_22_SCRIPT: int = 26
+const RIVAL1_START_BATTLE: int = 1
+const RIVAL1_EXIT: int = 3
+const BEAT_RIVAL_1: int = 0x525
+const RIVAL_WANTS_BATTLE: int = 0x527
+const ROUTE_22_RIVAL_1: int = 0x22
+
+
+## The windows on Route 22 with the rival waiting for a fight.
+func _on_route_22(links: Array) -> void:
+	for link: PokeCoopWorldLink in links:
+		_stand(link, ROUTE_22, ROUTE_22_SCRIPT)
+	(links[0] as PokeCoopWorldLink).state.set_event_flag(RIVAL_WANTS_BATTLE)
+	_pump()
+
+
+func _rival_scene_starts(link: PokeCoopWorldLink) -> void:
+	link.busy = &"script"
+	link.state.set_gen1_map_script(ROUTE_22_SCRIPT, RIVAL1_START_BATTLE)
+	_pump()
+
+
+func _rival_battle(client: PokeCoopClient, link: PokeCoopWorldLink, results: Array) -> Node:
+	link.busy = &"battle"
+	return _take_over(client, _opened_by_world(
+		link, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0), Fixture.GEN1_LEADER
+	), results)
+
+
+## The rival walks off: the beaten flag, his object hidden, the challenge cleared and the byte back at rest.
+func _rival_scene_ends(link: PokeCoopWorldLink) -> void:
+	link.busy = &"script"
+	link.state.set_gen1_map_script(ROUTE_22_SCRIPT, RIVAL1_EXIT)
+	link.state.set_event_flag(BEAT_RIVAL_1)
+	link.state.set_object_toggled(ROUTE_22_RIVAL_1, true)
+	link.state.clear_event_flag(RIVAL_WANTS_BATTLE)
+	link.state.set_gen1_map_script(ROUTE_22_SCRIPT, 0)
+	link.busy = &""
+	_pump()
+
+
+func _sees_rival_beaten(link: PokeCoopWorldLink) -> bool:
+	var flags: Dictionary = link.state.event_flags()
+	return flags.has(BEAT_RIVAL_1) and not flags.has(RIVAL_WANTS_BATTLE) and link.state.is_object_toggled(ROUTE_22_RIVAL_1)
+
+
+func test_the_first_window_into_a_rival_scene_drives_it_and_a_partner_there_waits_for_its_result() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_on_route_22([red, blue])
+	_rival_scene_starts(red)
+	assert_eq(_host.scenes, {ROUTE_22: _red.player_id}, "Red's window drives the scene")
+	assert_eq([red.scene_driver, blue.scene_driver], ["", _red.player_id], "Blue's window waits on Red")
+
+	var results: Array = []
+	var bridge: Node = _rival_battle(_red, red, results)
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_fight_out(battle_id)
+	bridge.call("_process", 0.0)
+	assert_eq(results, [{"outcome": &"won"}])
+	assert_true((_blue.battle(battle_id).get("participants", []) as Array).has(_blue.player_id), "Blue joined the rival battle with SELECT")
+	assert_eq(blue.scene_driver, _red.player_id, "the scene goes on after its battle")
+	assert_false(_sees_rival_beaten(blue))
+
+	_rival_scene_ends(red)
+	assert_true(_host.scenes.is_empty(), "given back at Red's rest point")
+	assert_eq(blue.scene_driver, "")
+	assert_true(_sees_rival_beaten(blue), "Blue walks on with the rival gone")
+	assert_eq(blue.state.gen1_map_script(ROUTE_22_SCRIPT), 0, "Blue's world never started a copy")
+
+
+func test_a_window_arriving_during_a_rival_scene_waits_from_its_first_rest_point() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_on_route_22([red])
+	_stand(blue, ROUTE_1)
+	_rival_scene_starts(red)
+	assert_eq(blue.scene_driver, "", "a scene on another map holds nobody")
+
+	_stand(blue, ROUTE_22, ROUTE_22_SCRIPT)
+	blue.busy = &"map_load"
+	_pump()
+	assert_eq(blue.scene_driver, "", "never in the middle of something")
+	blue.busy = &""
+	_pump()
+	assert_eq(blue.scene_driver, _red.player_id)
+	blue.busy = &"panel"
+	_pump()
+	assert_eq(blue.scene_driver, _red.player_id, "the session menu opened over the wait keeps it")
+
+	blue.busy = &""
+	_rival_scene_ends(red)
+	assert_eq(blue.scene_driver, "")
+	assert_true(_sees_rival_beaten(blue))
+
+
+func test_a_window_dropped_in_its_rival_scene_lets_the_partner_go_and_meets_the_rival_again() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_on_route_22([red, blue])
+	_rival_scene_starts(red)
+	red.state.set_event_flag(BEAT_RIVAL_1)
+	_pump()
+	assert_eq(blue.scene_driver, _red.player_id)
+
+	_red.transport.close()
+	_pump()
+	assert_true(_host.scenes.is_empty(), "a dropped window drives nothing")
+	assert_eq(blue.scene_driver, "", "Blue walks on")
+	assert_false(_host.campaign.has_flag(BEAT_RIVAL_1), "the cut-off scene never reached the campaign")
+	assert_true(blue.state.event_flags().has(RIVAL_WANTS_BATTLE), "the rival still waits on Route 22")
+	var again: PokeCoopWorldLink = _window(_connect(1, _red.player_id))
+	assert_eq(again.state.gen1_map_script(ROUTE_22_SCRIPT), 0, "reopened, Red's window plays the scene from its start")
+	assert_false(again.state.event_flags().has(BEAT_RIVAL_1))
+
+
+func test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_one_battle() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_on_route_22([red, blue])
+	for link: PokeCoopWorldLink in [red, blue]:
+		link.busy = &"script"
+		link.state.set_gen1_map_script(ROUTE_22_SCRIPT, RIVAL1_START_BATTLE)
+	_pump()
+	assert_eq(_host.scenes, {ROUTE_22: _red.player_id}, "the claim the host reads first drives")
+	assert_eq(_blue.last_rejection(), &"scene_taken")
+	assert_eq(blue.scene_driver, "", "a window already in its own copy plays on")
+
+	var red_results: Array = []
+	var blue_results: Array = []
+	var red_bridge: Node = _rival_battle(_red, red, red_results)
+	var blue_bridge: Node = _rival_battle(_blue, blue, blue_results)
+	assert_eq(_host.battles.size(), 1, "the rival is one battle for both")
+	_fight_out(_battle_of(_red))
+	red_bridge.call("_process", 0.0)
+	blue_bridge.call("_process", 0.0)
+	assert_eq([red_results, blue_results], [[{"outcome": &"won"}], [{"outcome": &"won"}]])
+
+	_rival_scene_ends(blue)
+	assert_eq(_host.scenes, {ROUTE_22: _red.player_id}, "Blue gives back nothing it did not hold")
+	assert_eq(blue.scene_driver, _red.player_id, "at rest again, Blue waits for Red's copy to end")
+	_rival_scene_ends(red)
+	assert_true(_host.scenes.is_empty())
+	assert_eq(blue.scene_driver, "")
+	assert_true(_sees_rival_beaten(red) and _sees_rival_beaten(blue), "both copies leave the same result")
+	assert_true(_host.campaign.has_flag(BEAT_RIVAL_1) and not _host.campaign.has_flag(RIVAL_WANTS_BATTLE))
+
+
+const SS_ANNE_2F := Vector2i(0, 0x60)
+## wSSAnne2FCurScript: no flag guards its rival, only SCRIPT_SSANNE2F_NOOP once he has gone.
+const SS_ANNE_2F_SCRIPT: int = 117
+const SS_ANNE_2F_NOOP: int = 4
+
+
+func test_a_partner_waiting_on_ss_anne_2f_takes_the_scenes_last_step_and_never_meets_that_rival() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	for link: PokeCoopWorldLink in [red, blue]:
+		_stand(link, SS_ANNE_2F, SS_ANNE_2F_SCRIPT)
+	_pump()
+	red.busy = &"script"
+	red.state.set_gen1_map_script(SS_ANNE_2F_SCRIPT, 1)
+	_pump()
+	assert_eq(blue.scene_driver, _red.player_id)
+
+	blue.busy = &"panel"
+	red.state.set_gen1_map_script(SS_ANNE_2F_SCRIPT, SS_ANNE_2F_NOOP)
+	red.busy = &""
+	_pump()
+	assert_true(_host.scenes.is_empty())
+	assert_eq(blue.scene_driver, _red.player_id, "the wait ends only at Blue's next rest point")
+	assert_eq(blue.state.gen1_map_script(SS_ANNE_2F_SCRIPT), 0)
+	blue.busy = &""
+	_pump()
+	assert_eq(blue.scene_driver, "")
+	assert_eq(blue.state.gen1_map_script(SS_ANNE_2F_SCRIPT), SS_ANNE_2F_NOOP, "the scene's last step lands where Blue stands")
+
+
+func test_a_scene_is_claimed_only_on_a_rival_map_and_given_back_when_its_driver_leaves_the_map() -> void:
+	_send(func() -> void: _red.send({"type": "scene", "map": ROUTE_1, "on": true}))
+	assert_eq(_red.last_rejection(), &"not_a_scene")
+	_send(func() -> void: _red.step(ROUTE_22, Vector2i(30, 5), 0, true))
+	_send(func() -> void: _red.send({"type": "scene", "map": ROUTE_22, "on": true}))
+	assert_eq(_host.scenes, {ROUTE_22: _red.player_id})
+	assert_eq(((_blue.state["players"] as Dictionary)[_red.player_id] as Dictionary).get("scene"), ROUTE_22,
+		"every window is told who drives it")
+
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 5), 0, true))
+	assert_true(_host.scenes.is_empty(), "a whiteout out of the scene gives it back")
