@@ -1,7 +1,10 @@
 # Brief
 
 The repository owner's brief for the co-op project, kept verbatim below the line.
-Where later decisions refine it, `decisions.md` says so.
+Where later decisions refine it, `decisions.md` says so. The owner approved
+one reading of the Architecture's item 3 (D72): the host is authoritative for
+the campaign and for battles; each window simulates the maps, NPCs and
+movement it shows, and shares the campaign at rest points.
 
 ---
 
