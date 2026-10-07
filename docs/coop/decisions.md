@@ -1121,3 +1121,14 @@ D72 adopted the rule; this is how a window keeps it (#84).
   sees its story step only after leaving it; a partner's news waits while a
   window is in a scene, the panel or a menu. Per-walk event flags such as
   `EVENT_IN_SAFARI_ZONE` are still the campaign's.
+
+## D80. Only a real SAVE asks for a campaign checkpoint (2026-10-07)
+
+The link took any fresh world snapshot in the window's save for the world's
+SAVE, and every heal, purchase and gift writes one (`Gen2WorldTransaction`):
+about 40 "Campaign saved." lines in a ten-minute run, each a host checkpoint.
+The world screen now calls `save_written` (beside `save_gate`, one line in
+`persist_world_snapshot`) after any SAVE: the START menu's, a link room's, a
+box change's or the Hall of Fame's. Only that asks the host for a checkpoint;
+a transaction still sends the party at the next rest point, and the host's
+own autosave keeps the rest.
