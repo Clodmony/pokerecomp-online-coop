@@ -25,6 +25,7 @@ const CHARMANDER: int = 4
 const SQUIRTLE: int = 7
 const PIDGEY: int = 16
 const RATTATA: int = 19
+const ONIX: int = 95
 const POKE_BALL: int = 4
 const POTION: int = 20
 
@@ -196,6 +197,7 @@ func _cartridge_players() -> void:
 func _cartridge_encounters() -> void:
 	_host.register_encounter("wild:pidgey", {"species": PIDGEY, "level": 5, "label": "wild PIDGEY L5"})
 	_host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
+	_host.register_encounter("wild:onix", {"species": ONIX, "level": 60, "label": "wild ONIX L60"})
 	_host.register_encounter("trainer:brock", {
 		"kind": "trainer", "trainer_class": BROCK_CLASS, "trainer_index": 0,
 		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)", "gym": true,
