@@ -133,6 +133,19 @@ connection is retried for about two minutes ("Lost the host: reconnecting...",
 then "Back in the session."), so a host that restarts or a phone that comes
 back from the background picks up where it was.
 
+## Logs
+
+Every session is written to a file on your device, in `coop_logs` in the
+game's data folder: the Co-op tab's "Open the logs folder" opens it. On Linux it
+is `~/.local/share/godot/app_userdata/pokerecomp/coop_logs`, on Windows
+`%APPDATA%\Godot\app_userdata\pokerecomp\coop_logs`. The last 30 sessions are
+kept. With "Share debug logs with the other players" on (the default), your file
+also gets the other players' lines, so one file usually shows the whole session;
+turned off, your device neither sends nor receives them. To report a bug, send
+the file for that session's date and time (`..._host_...` or `..._join_...`)
+privately to whoever is debugging. The files hold player names, the host's
+addresses and some of the game's own text, so never post them publicly.
+
 ## Known limits
 
 - The host trusts each window's world (positions, warps, the wild Pokémon it

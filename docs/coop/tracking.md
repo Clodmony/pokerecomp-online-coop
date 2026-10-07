@@ -96,3 +96,5 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L15 | Partners are solid, so players do not stand on one cell | M3 | done on `coop/launcher` (D53) |
 | L16 | Three or more players: every partner's suggestion shown, Cable Club partner by room, a third team joins with what fits | M3 | done on `coop/launcher` (D55); tests only, not played with three |
 | L17 | A campaign of players who skipped the opening had Oak's lab before the intro: no Oak, so the parcel could not be delivered | M6 | fixed on `coop/launcher` (D58) |
+| L18 | Session logs for host and clients, and a debug stream that copies each player's lines to the others | tooling | done on `coop/launcher` (D59) |
+| L19 | Closing a hosting window ends the session with no grace: the joiner gets no "ended" and keeps redialling, and the host's last log lines miss it | M2 | open; seen while testing the logs |

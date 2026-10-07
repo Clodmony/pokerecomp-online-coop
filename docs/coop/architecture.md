@@ -125,7 +125,10 @@ Peer 1 is the host.
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
-| `hello` (new player) | adds `starter`, the species a new player chose |
+| `hello` (new player) | adds `starter`, the species a new player chose, `opening` (true to play the opening, D50), `save` (a brought trainer), and `known` (this device's player in each campaign of the host, D49) |
+| `hello` (protocol 3) | adds `logs` (`device`, `share`) for the debug stream (D59) |
+| `opening` | `seq`, `rival`: Oak's speech is over and the name given to the rival |
+| `log` | `lines` (no `seq`): a sharing device's own session-log lines; the host passes them on (D59) |
 
 | Host to client | Fields |
 |---|---|
@@ -135,6 +138,10 @@ Peer 1 is the host.
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
+| `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
+
+The protocol is version 3 (`PokeCoopHost.PROTOCOL`); a peer of another version is
+refused with `protocol_mismatch`.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
 after `SHUTDOWN_GRACE_MSEC`. On shutdown the host sends `ended`, ignores further messages and closes once all
