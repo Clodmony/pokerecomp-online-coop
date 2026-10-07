@@ -1772,3 +1772,13 @@ func test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends() -
 	blue.state.set_event_flag(0x306)
 	_pump()
 	assert_true(red.state.event_flags().has(0x306), "a script that runs on and on holds nothing back")
+
+
+func test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle() -> void:
+	var takeover: PokeCoopBattleTakeover = PokeCoopBattleTakeover.over(_red, _data)
+	var met: Dictionary = {"battle_kind": &"wild"}
+	assert_true(takeover.takes_battle(met))
+	met["gen1_ghost"] = Gen1Layout.GHOST_UNIDENTIFIED
+	assert_false(takeover.takes_battle(met), "a GHOST without the SILPH SCOPE can only be run from, as on the cartridge")
+	met["gen1_ghost"] = Gen1Layout.GHOST_UNVEILED
+	assert_true(takeover.takes_battle(met), "the SILPH SCOPE's MAROWAK is fought on the host like any other")

@@ -917,3 +917,15 @@ partner's story changes wait until then too, so a running script is never
 changed under it. A script still running after 15 s (a long cutscene, a
 trainer battle) stops holding, as before. Cost: the partner sees a story change
 up to a script's length later.
+
+## D68. An unidentified GHOST stays in the window's own battle (2026-10-07)
+
+In Pokémon Tower without the SILPH SCOPE a wild Pokémon is a GHOST that nobody
+can hit or catch and that every run escapes (`IsGhostBattle`); upstream's battle
+models it with `gen1_ghost`. A takeover rebuilt the fight on the host from the
+enemy's rows, so it became a plain GASTLY that a co-op party could beat or
+catch. The takeover summary now carries the world's ghost kind (one line in
+`world_screen.gd`), and the co-op takeover leaves an unidentified GHOST to the
+window's own cartridge battle, as it already leaves the Safari Zone; the
+partner cannot join it, and there is nothing to do in it but run. The SILPH
+SCOPE's unveiled MAROWAK is an ordinary fight and stays on the host.

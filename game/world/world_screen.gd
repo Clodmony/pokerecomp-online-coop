@@ -6445,6 +6445,7 @@ func _takeover_summary(prepared: Dictionary) -> Dictionary:
 		"trainer_index": int(prepared.get("trainer_index", 0)),
 		"trainer_name": String(request.get("trainer_name", "")), "win_text": request.get("win_text", {}),
 		"lone_attack": int(request.get("lone_attack", 0)),
+		"gen1_ghost": StringName(request.get("gen1_ghost", &"")),
 		"player_party": sides[Gen2Battle.PLAYER], "enemy_party": sides[Gen2Battle.ENEMY],
 		"generation": _data.generation,
 		"map_group": _world.map_id().x if _world != null else -1,
