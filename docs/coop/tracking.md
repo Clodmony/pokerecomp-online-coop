@@ -15,6 +15,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
 | `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
 | `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
+| `coop/playthrough` | `coop/owner-rules` | test cases, two-window runner, autopilot playthrough, #66, #82, #39 | to push |
 
 ## Issues
 
@@ -55,7 +56,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 45 | Android client: lifecycle and reconnect | open: pause and resume handling exists (D46), no Android build or device run | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
 | 47 | Two-process ENet integration check in CI | done: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes, and the CI step passed on #80 | `coop/launcher` (`d5e65c2f`), #80 | closes when #80 merges |
-| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | partial: scripted two-window runs cover the opening, Route 1, a joined wild battle, BROCK from the session menu, the Cable Club trade and OAK's PARCEL; no single run from the start to BROCK's gym | local scratch drivers | keep open |
+| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `tools/coop_autoplay.gd` plays two windows from Oak's speech to BROCK's badge (`playthrough_brock`, about five minutes, three clean runs); MISTY and beyond in progress | `coop/playthrough` | close when the branch merges |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
 | 50 | German Red/Blue support | open (later milestone) | | keep open |
 | 51 | Internet relay option | open (later milestone); WireGuard or a forwarded port work today | | keep open |
@@ -66,7 +67,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 56 | Investigate iOS App Store feasibility | open | | keep open |
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
-| 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | open: found while building #81 | | keep open |
+| 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
 
 ## Found while GitHub was paused
 
@@ -79,7 +80,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L5 | #64 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |
 | L6 | #65 | Upstream: a Gen 1 link trade from a save slot puts the catch rate in the item byte, so a Pokémon whose catch rate is not an item (RATTATA, 255) fails the arriving save's check | upstream | seen in co-op before the co-op cable sent host rows; file upstream with a repro |
 | L8 | #67 | Upstream: the Gen 1 battle intro draws the player's back-picture head as Crystal's six-column OAM, scrambling it | upstream | fixed in the fork's `battle_intro.gd` (D42); file upstream with the fix |
-| L7 | #66 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
+| L7 | #66 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream Fixed on `coop/playthrough` (`4dd8cba6`, D64): the movie is built before the evolution |
 | L9 | #68 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
 | L10 | #69 | Upstream: the rival's challenge in Oak's lab can be walked past: the player can move while the rival walks to his POKé BALL (`wJoyIgnore` not modelled), and walking down at once leaves the lab without the fight | upstream | fixed in the fork's `world_screen.gd` (D54): no player step while a Gen 1 script walks someone; checked in single player. File upstream with the fix |
 | L11 | #70 | Upstream: a direction pressed on the frame the player stops never turns them, and a press that does not turn leaves the facing alone, so after the Viridian Mart's parcel scene DOWN does not leave the shop | upstream | fixed in the fork's `world_api.gd` (D57): a Gen 1 press faces its direction as `wPlayerDirection` does; file upstream with the fix |

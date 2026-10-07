@@ -163,7 +163,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/party.gd` | `MAX_ALLIED_SIZE` and `add_members()`; `create()` unchanged |
 | `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded`; `exp_all_groups`, the party indices each EXP.ALL pass splits over (D62) |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
-| `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
+| `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64) |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker; on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2) |
 | `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11) |
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
@@ -174,6 +174,7 @@ Kept small so upstream merges stay cheap (#14):
 | `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
+| `tests/unit/test_link.gd` | `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`, the regression test for D64 |
 | `.github/workflows/ci.yml` | co-op ENet demo and three-process check steps |
 | `.github/workflows/release.yml`, `export-templates.yml` | run only in `Decryptu/pokerecomp` |
 | `.githooks/pre-push` | attribution-trailer check removed |

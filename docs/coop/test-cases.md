@@ -18,7 +18,7 @@ Red (or Blue) cartridge, the same one.
 | S02 | Join with a different cartridge | Refused with a reason the Co-op tab explains | `test_a_client_with_another_cartridge_is_told_why_and_let_go` | | |
 | S03 | Start a second campaign on the host device, then pick the first again | Each keeps its own trainers; the device is remembered per campaign | `test_each_campaign_keeps_its_own_trainers...` | | |
 | S04 | A new player brings a single-player save; the first player of a new campaign brings one | Their team, PC, bag and money come along; the first player's story becomes the campaign's | `test_a_campaign_hosted_from_a_save_takes_its_story_and_its_trainer` | | |
-| S05 | A new player plays the opening (Oak's speech, bedroom, lab, rival) | Hidden from the others until the lab is left with a starter; the rival's name and starter are kept for the campaign | `test_a_player_who_plays_the_opening_has_a_story_of_their_own...` | | |
+| S05 | A new player plays the opening (Oak's speech, bedroom, lab, rival) | Hidden from the others until the lab is left with a starter; the rival's name and starter are kept for the campaign | `test_a_player_who_plays_the_opening_has_a_story_of_their_own...` | playthrough_brock | |
 | S06 | A new player skips the opening | A level 5 starter of their choice, 3000 money, Pallet Town | `test_a_player_who_skips_the_opening_is_given_their_starter_in_pallet_town` | | |
 | S07 | SAVE from START on either device | "Saved" in both; refused with "Save failed" while any battle runs | `test_a_save_from_either_menu_is_confirmed_to_everyone`, `test_coop_save_refusal` | | |
 | S08 | Close both apps and host the campaign again | Every player, the story and the PC come back as saved | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone` | | |
@@ -33,21 +33,22 @@ Red (or Blue) cartridge, the same one.
 |---|---|---|---|---|---|
 | W01 | Walk together, then onto different maps | Each sees the other in their colour on a shared map only | `test_two_clients_each_move_their_own_player...` | every scenario | |
 | W02 | Try to walk through the partner | Blocked like a person | `test_a_partner_on_the_map_blocks_the_way_like_a_person_does` | | |
-| W03 | One player beats a gym leader | The badge and the leader's flags show in both worlds | `test_a_badge_won_in_a_battle_reaches_both_windows` | | |
-| W04 | One player picks up an item ball, is given an item, or loses a key item to the story | Every player gets the same item; a key item the story takes goes from all; bought items stay the buyer's | `test_an_item_found_along_the_story_reaches_every_player...`, `test_a_key_item_the_story_takes...` | | |
+| W03 | One player beats a gym leader | The badge and the leader's flags show in both worlds | `test_a_badge_won_in_a_battle_reaches_both_windows` | playthrough_brock | |
+| W04 | One player picks up an item ball, is given an item, or loses a key item to the story | Every player gets the same item; a key item the story takes goes from all; bought items stay the buyer's | `test_an_item_found_along_the_story_reaches_every_player...`, `test_a_key_item_the_story_takes...` | playthrough_brock | |
 | W05 | Both take EEVEE, LAPRAS, a HITMON and the MAGIKARP for sale | Each player can take each once | `test_each_player_is_given_their_own_eevee_and_dojo_pokemon` | | |
 | W06 | Both pick up the same item ball at the same moment | Each player has it once | `test_a_gift_two_windows_hand_out_at_once_is_kept_once` | | |
 | W07 | Use a Pokémon Center, a Mart and Bill's PC in each world | Each works on that player's own team, bag, money and PC | `test_a_heal_and_a_deposit...`, `test_a_window_opened_later_finds_its_pc_as_it_left_it` | | |
 | W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "SELECT to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | | |
-| W09 | Both walk into the same trainer | One battle both fight; once beaten the trainer stays beaten | `test_one_trainer_opened_in_two_windows_is_one_battle_both_fight` | | |
+| W09 | Both walk into the same trainer | One battle both fight; once beaten the trainer stays beaten | `test_one_trainer_opened_in_two_windows_is_one_battle_both_fight` | playthrough_brock | |
 | W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
+| W12 | Both enter Vermilion Gym; one finds the first switch | Both windows search the same trash cans; each player's SURF score and slot machine stay their own | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own` | | |
 
 ## Battles
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
-| B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover | |
+| B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock | |
 | B02 | Switch to the partner's Pokémon | The turn passes to its owner | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out` | | |
 | B03 | Move the cursor as the one not deciding | The partner sees "◀ NAME" and nothing happens | `test_a_suggestion_never_acts...` | | |
 | B04 | LEAVE BATTLE as the joiner | Back in your world; your Pokémon fight on under the partner; you start no other battle until it ends, and one your world starts waits | `test_a_joiner_who_leaves_walks_on...`, `test_a_fight_the_world_opens_waits...` | leave_rejoin_takeover | |
@@ -57,11 +58,11 @@ Red (or Blue) cartridge, the same one.
 | B08 | Close the only player's app in a battle | Kept about 2 minutes, then ended as fled; saving works again | `test_a_battle_everyone_left_ends_and_stops_holding_up_saves` | | |
 | B09 | Throw a ball and name the partner | The catch is theirs (team, or PC when full) | `test_a_caught_pokemon_is_filed_once...` | | |
 | B10 | Use a Potion | It comes from the user's bag only | `test_an_item_comes_out_of_the_acting_players_bag_only` | | |
-| B11 | Win a trainer battle together | Each player gets the whole prize | `test_every_participant_is_paid_the_whole_prize` | | |
+| B11 | Win a trainer battle together | Each player gets the whole prize | `test_every_participant_is_paid_the_whole_prize` | playthrough_brock | |
 | B12 | Win with EXP.ALL in one bag | Fighters split as usual; each team's others share as they would alone | `test_one_exp_all_pays_every_team...` | | |
 | B13 | Level up into a new move or an evolution | The owner is asked; evolution plays in the owner's world | `test_a_level_up_shows_on_the_panel...` | | |
 | B14 | Lose a shared battle | Each player whites out in their own world and pays half their own money | `test_the_world_whites_out_its_own_player...` | | |
-| B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line, the prize | `test_a_trainer_win_closes_with_the_defeat...` | | |
+| B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line, the prize | `test_a_trainer_win_closes_with_the_defeat...` | playthrough_brock | |
 
 ## Trades
 
