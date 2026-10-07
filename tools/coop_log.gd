@@ -225,7 +225,7 @@ static func replay(timeline: Array, data: GameData) -> Dictionary:
 	elif not summaries.is_empty():
 		var shared: Variant = JSON.parse_string(JSON.stringify(PokeCoopLog.plain(host.campaign.summary())))
 		out["end"] = "campaign matches" if shared == summaries[-1]["data"] else "differs"
-	for suffix: String in ["", PokeCoopSave.BACKUP_SUFFIX, ".tmp"]:
+	for suffix: String in ["", PokeCoopSave.BACKUP_SUFFIX, PokeCoopSave.JOURNAL_SUFFIX, ".tmp"]:
 		if FileAccess.file_exists(REPLAY_SAVE + suffix):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(REPLAY_SAVE + suffix))
 	return out

@@ -16,8 +16,7 @@ const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
 const BEAT_LEADER: int = 0x77
 const SAVE_PATH: String = "user://coop_demo_campaign.json"
-## `constants/event_constants.asm` at the pinned pokered commit, and Pallet Town's
-## two doorsteps. Brock is trainer class 34, party 0.
+## `constants/event_constants.asm` at the pinned pokered commit, Pallet's two doorsteps; Brock is class 34, party 0.
 const EVENT_BEAT_BROCK: int = 0x77
 const BROCK_CLASS: int = 34
 const PALLET_RED: Vector2i = Vector2i(5, 6)
@@ -449,6 +448,6 @@ func _finish(code: int) -> void:
 
 
 static func _remove_demo_files() -> void:
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

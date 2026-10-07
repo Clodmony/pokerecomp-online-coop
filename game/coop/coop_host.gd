@@ -35,6 +35,8 @@ var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
 var _changed: bool = false
+var _kept_revision: int = 0
+var _boxes_written: Dictionary = {}
 var _written_at: int = 0
 var _saves: int = 0
 var _saved_by: String = ""
@@ -64,7 +66,7 @@ static func create(
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
 	out.trades = PokeCoopTrades.create(game_data)
-	PokeCoopPolicy.settle_intro(run)
+	out._kept_revision = run.revision
 	return out
 
 
@@ -112,6 +114,7 @@ func poll() -> void:
 	_end_abandoned()
 	_announce_stand_ins()
 	_autosave()
+	_keep_story()
 	_note_campaign()
 	_share_log()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
@@ -796,9 +799,21 @@ func _write_campaign(why: String) -> Error:
 		if not save_path.is_empty() else ERR_UNCONFIGURED
 	if written == OK:
 		_saved_unix = Time.get_unix_time_from_system()
+		_kept_revision = campaign.revision
+		for member: PokeCoopPlayer in players.values():
+			_boxes_written[member.player_id] = member.box_rev
 	journal.add(PokeCoopLog.HOST, "save" if written in [OK, ERR_UNCONFIGURED] else "save_error",
 		{"why": why, "path": save_path, "result": error_string(written)})
 	return written
+
+
+func _keep_story() -> void:
+	if campaign.revision == _kept_revision or save_path.is_empty():
+		return
+	_kept_revision = campaign.revision
+	var kept: Error = PokeCoopSave.append(save_path, campaign, players.values(), _boxes_written)
+	if kept != OK:
+		journal.add(PokeCoopLog.HOST, "journal_error", {"path": save_path, "result": error_string(kept)})
 
 
 ## Tells every client the session is over, closing once all left or after [param grace_msec], so the notice arrives.
