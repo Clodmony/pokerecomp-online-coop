@@ -12,6 +12,9 @@ const LEG_SECONDS: float = 420.0
 const STILL_SECONDS: float = 150.0
 const BROCK := Vector2i(4, 1)
 const BOULDER_BADGE: int = 0
+const CASCADE_BADGE: int = 1
+const UP: int = Gen2WorldSprite.FACING_UP
+const ROUTES: Dictionary = {"brock": [], "misty": [&"_misty_legs"]}
 
 var _played: Variant = null
 var _kit: GDScript = null
@@ -156,26 +159,34 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 
 
 func _route_legs() -> Array:
+	var legs: Array = _opening_legs() + _brock_legs()
+	for stretch: StringName in ROUTES.get(_route, []):
+		legs += call(stretch)
+	return legs
+
+
+func _opening_legs() -> Array:
 	var p: Variant = _played
-	var up: int = Gen2WorldSprite.FACING_UP
 	var game: StringName = _session.data.id
+	if String((_session.client.me().get("opening", {}) as Dictionary).get("stage", "")).is_empty():
+		return []
+	return [
+		["bedroom_to_1f", p._warp_to(_kit.REDS_HOUSE_1F), p._on_map(_kit.REDS_HOUSE_1F)],
+		["house_to_pallet", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
+		["north_path_to_lab", p._walk(_kit.PALLET_NORTH_PATH[game]), p._on_map(_kit.OAKS_LAB)],
+		["starter", p._talk(_kit.LAB_STARTER_BALLS[game] + Vector2i(_ball, 0), UP), p._flag(_kit.EVENT_GOT_STARTER)],
+		["rival_and_out", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
+	]
+
+
+func _brock_legs() -> Array:
+	var p: Variant = _played
 	var pokedex: Callable = p._flag(_kit.EVENT_GOT_POKEDEX)
-	var either: Callable = func(first: Callable, second: Callable) -> Callable:
-		return func(world: Gen2WorldAPI) -> bool: return bool(first.call(world)) or bool(second.call(world))
-	var legs: Array = []
-	if String((_session.client.me().get("opening", {}) as Dictionary).get("stage", "")) != "":
-		legs += [
-			["bedroom_to_1f", p._warp_to(_kit.REDS_HOUSE_1F), p._on_map(_kit.REDS_HOUSE_1F)],
-			["house_to_pallet", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
-			["north_path_to_lab", p._walk(_kit.PALLET_NORTH_PATH[game]), p._on_map(_kit.OAKS_LAB)],
-			["starter", p._talk(_kit.LAB_STARTER_BALLS[game] + Vector2i(_ball, 0), up), p._flag(_kit.EVENT_GOT_STARTER)],
-			["rival_and_out", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
-		]
-	legs += [
+	return [
 		_grind.bind(_kit.ROUTE_1_LEVEL, 0),
-		["parcel", p._fetch(_kit.OAKS_PARCEL), either.call(p._holds(_kit.OAKS_PARCEL), pokedex)],
+		["parcel", p._fetch(_kit.OAKS_PARCEL), _either(p._holds(_kit.OAKS_PARCEL), pokedex)],
 		["parcel_to_lab", p._route(_kit.OAKS_LAB), p._on_map(_kit.OAKS_LAB)],
-		["pokedex", p._talk(_kit.LAB_BELOW_OAK, up), pokedex],
+		["pokedex", p._talk(_kit.LAB_BELOW_OAK, UP), pokedex],
 		["lab_out", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
 		["pallet_to_route_1", p._cross(Vector2i.UP, _kit.ROUTE_1), p._on_map(_kit.ROUTE_1)],
 		["route_1_to_viridian", p._cross(Vector2i.UP, _kit.VIRIDIAN_CITY), p._on_map(_kit.VIRIDIAN_CITY)],
@@ -188,13 +199,49 @@ func _route_legs() -> Array:
 		["route_2_to_pewter", p._cross(Vector2i.UP, _kit.PEWTER_CITY), p._on_map(_kit.PEWTER_CITY)],
 		_grind.bind(_kit.BROCK_LEVEL, _kit.MANKEY_DEX),
 		["pewter_gym", p._warp_to(_kit.PEWTER_GYM), p._on_map(_kit.PEWTER_GYM)],
-		["meet_partner", func(_world: Gen2WorldAPI) -> int: return PokeButton.NONE,
-			either.call(func(_world: Gen2WorldAPI) -> bool: return not _session.client.nearby().is_empty(), p._flag(_kit.EVENT_BEAT_BROCK))],
+		_meet_partner("meet_in_pewter_gym", p._flag(_kit.EVENT_BEAT_BROCK)),
 		["brock", p._talk_to(BROCK), p._flag(_kit.EVENT_BEAT_BROCK)],
-		["badge", func(_world: Gen2WorldAPI) -> int: return PokeButton.NONE,
-			func(world: Gen2WorldAPI) -> bool: return world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(BOULDER_BADGE))],
+		["boulder_badge", _standing, _badge(BOULDER_BADGE)],
 	]
-	return legs
+
+
+func _misty_legs() -> Array:
+	var p: Variant = _played
+	var fossil: Callable = p._flag(_kit.EVENT_GOT_DOME_FOSSIL[_session.data.id])
+	return [
+		["gym_out", p._warp_to(_kit.PEWTER_CITY), p._on_map(_kit.PEWTER_CITY)],
+		["pewter_to_route_3", p._cross(Vector2i.RIGHT, _kit.ROUTE_3), p._on_map(_kit.ROUTE_3)],
+		["route_3_to_route_4", p._cross(Vector2i.UP, _kit.ROUTE_4), p._on_map(_kit.ROUTE_4)],
+		_grind.bind(_kit.MT_MOON_LEVEL, 0),
+		["route_4_to_mt_moon", p._warp_to(_kit.MT_MOON_1F), p._on_map(_kit.MT_MOON_1F)],
+		["mt_moon_1f_to_b1f", p._walk(_kit.MT_MOON_1F_LADDER), p._on_map(_kit.MT_MOON_B1F)],
+		["mt_moon_b1f_to_b2f", p._warp_to(_kit.MT_MOON_B2F), p._on_map(_kit.MT_MOON_B2F)],
+		["super_nerd", p._walk(_kit.MT_MOON_NERD_CELL), _either(p._at(_kit.MT_MOON_NERD_CELL), fossil)],
+		["dome_fossil", p._talk(_kit.MT_MOON_BELOW_DOME, UP), fossil],
+		["mt_moon_b2f_to_b1f", p._walk(_kit.MT_MOON_B2F_EXIT_LADDER), p._on_map(_kit.MT_MOON_B1F)],
+		["mt_moon_b1f_to_route_4", p._walk(_kit.MT_MOON_B1F_EXIT), p._on_map(_kit.ROUTE_4)],
+		["route_4_to_cerulean", p._cross(Vector2i.RIGHT, _kit.CERULEAN_CITY), p._on_map(_kit.CERULEAN_CITY)],
+		_grind.bind(_kit.MISTY_LEVEL, _kit.ODDISH_DEX),
+		["cerulean_gym", p._warp_to(_kit.CERULEAN_GYM), p._on_map(_kit.CERULEAN_GYM)],
+		_meet_partner("meet_in_cerulean_gym", _badge(CASCADE_BADGE)),
+		["misty", p._talk_to(_kit.MISTY), _badge(CASCADE_BADGE)],
+	]
+
+
+func _either(first: Callable, second: Callable) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return bool(first.call(world)) or bool(second.call(world))
+
+
+func _meet_partner(label: String, or_done: Callable) -> Array:
+	return [label, _standing, _either(func(_world: Gen2WorldAPI) -> bool: return not _session.client.nearby().is_empty(), or_done)]
+
+
+func _standing(_world: Gen2WorldAPI) -> int:
+	return PokeButton.NONE
+
+
+func _badge(bit: int) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(bit))
 
 
 func _grind(level: int, caught: int) -> bool:
