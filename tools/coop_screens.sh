@@ -12,7 +12,8 @@
 #   close <p1|p2> <second>          closes that window, in seconds after it was launched
 # and may set GAME (red), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
-# early once both windows print "autoplay: ... finished" or "FAILED").
+# early once both windows print "autoplay: ... finished" or "FAILED"), and may
+# define verify, run once the windows are closed: non-zero fails the scenario.
 # The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
 # process logged a script error.
@@ -96,6 +97,10 @@ if grep -h "SCRIPT ERROR" "$out"/host.log "$out"/p1.log "$out"/p2.log; then
 fi
 if grep -q "autoplay: .*FAILED" "$out"/p1.log "$out"/p2.log; then
 	echo "coop_screens: $name: an autoplayed window failed" >&2
+	exit 1
+fi
+if declare -F verify > /dev/null && ! verify; then
+	echo "coop_screens: $name: verify found the result wrong" >&2
 	exit 1
 fi
 echo "coop_screens: $name done, captures in $out"
