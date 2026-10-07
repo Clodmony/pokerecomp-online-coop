@@ -295,3 +295,22 @@ func test_start_save_in_a_window_during_a_battle_ends_in_save_failed() -> void:
 	_pump()
 	assert_ne(link.save_seq, -1)
 	assert_eq(_saves(_blue), saves + 1, "and the host wrote the campaign")
+
+
+func test_a_window_is_at_a_rest_point_only_where_the_cartridge_could_save() -> void:
+	await _open_world()
+	var world: Gen2WorldAPI = _world_screen._world
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"", "standing free on the map")
+	world._gen1_steps = [{"type": &"text", "text": ""}]
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"script", "a script holds the player")
+	world._gen1_steps = []
+	var bridge: Node = PokeCoopBattleTakeover.over(_blue, _data).create_battle()
+	_world_screen._takeover_host = bridge
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"battle", "a battle the world opened, fought on the host")
+	_world_screen._takeover_host = null
+	bridge.free()
+	_world_screen._map_fade = {"frames": 1}
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"locked", "a warp's fade")
+	PokeCoopSession.hold_world(_world_screen, null, true)
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"panel", "a world held still under the panel, wherever it stopped")
+	PokeCoopSession.hold_world(_world_screen, null, false)
