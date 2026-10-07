@@ -55,10 +55,10 @@ func _build() -> void:
 	_build_player(_card(column, "You"))
 	_build_host(_card(column, "Host a campaign"))
 	_build_join(_card(column, "Join a campaign"))
-	_build_logs(_card(column, "Debug logs"))
 	_status = Gen2LauncherUI.muted(_theme, "" if not _games.is_empty() \
 		else "Import Red or Blue on the Play tab first: co-op plays them.")
 	column.add_child(_status)
+	_build_logs(_card(column, "Debug logs"))
 
 
 func _card(host: VBoxContainer, title: String) -> VBoxContainer:
