@@ -11,7 +11,7 @@ keep the snapshot below current.
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Next free decision number:** D79 (D72 to D78 are recorded).
+- **Next free decision number:** D80 (D72 to D79 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
@@ -37,11 +37,11 @@ keep the snapshot below current.
    Vermilion Gym's door for both; CUT), progress rows, PR #83's description.
 3. [x] **Owner decisions** (playbook, "Decisions waiting on the owner"):
    answered 2026-10-07, recorded as D72.
-4. [ ] **#84 step 1** Hold a window's world patches until a rest point
+4. [x] **#84 step 1** Hold a window's world patches until a rest point
    (`script_busy()` false and no map load pending) instead of 15 s; a partial
    patch only on SAVE or LEAVE. Tests: a 40 s scene with a battle sends nothing
    until it ends; LEAVE mid-scene sends the last resting state.
-5. [ ] **#84 step 2** Map-script steps: resting values only; classify the gym
+5. [x] **#84 step 2** Map-script steps: resting values only; classify the gym
    bytes BROCK to GIOVANNI as per player; a step for the window's own map waits
    for its next map load. Tests: one TM34 when a partner stands in Pewter Gym;
    the Vermilion dock with both in the city. Then `world_pull` logs the busy
