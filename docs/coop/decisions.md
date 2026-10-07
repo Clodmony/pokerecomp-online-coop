@@ -718,3 +718,29 @@ starts with it, and a campaign from an earlier build that began after the intro
 is given whatever of it is missing when it is hosted, without moving on any
 script step it already has. The rival's own starter is still set by the first
 player to finish an opening (D50).
+
+## D59. Every device logs its session and shares it (2026-10-07)
+
+The owner asked for host and client logs complete enough to retrace a session,
+and a debug stream so each player's file holds every player's lines. Each device
+writes one JSON-lines file per session to `user://coop_logs`, keeping the last 30
+files and at most 256 MB. Every line carries unix ms, frame, a random device id
+and the player's name, a per-device number, a source, a player id where there is
+one, a kind and plain JSON data. The host logs its start (the campaign and
+players as a save holds them, encounters, the generator's seed and state), every
+message it takes in full with its result, battles with their seeds and each
+revision's view, commits, saves and its end state; with these,
+`tools/coop_log.gd replay` re-runs a fresh host and checks it ends the same.
+Clients log everything they send, a digest of every state change apart from
+other players' steps (the whole state after a welcome and every 30 s), battle
+views, refusals and the end. The window logs maps, pulled patches and the echoes
+it dropped, takeovers, whiteouts, evolutions, notices and the opening. Engine
+errors during a session are copied in. Sharing is on by default (Co-op tab,
+`user://coop_settings.json`): a sharing client sends its own lines to the host
+every 2 s in batches of at most 64 KB, the overflow counted in a
+`stream_dropped` line and a line over 8 KB sent without its data; the host takes
+only never-relayed lines of the sender's own device and passes them to every
+other sharing device, its own included, with a 256 KB backlog for late joiners.
+Receivers mark lines `relay` and never send them on. Protocol 3. This is a
+second record beside upstream's engine log, kept because a co-op bug needs both
+devices' timelines side by side.
