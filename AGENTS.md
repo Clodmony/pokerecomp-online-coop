@@ -9,6 +9,8 @@ here.
 
 Read before working:
 
+- [docs/coop/tasks.md](docs/coop/tasks.md): **start here**, the next tasks in order and the current state.
+- [docs/coop/playbook.md](docs/coop/playbook.md): the plan to a fully playable run, the world-sharing rule and the owner's open decisions.
 - [docs/coop/brief.md](docs/coop/brief.md): the owner's brief, the source of
   truth for goals and constraints.
 - [docs/coop/design.md](docs/coop/design.md): agreed behaviour and ownership rules.

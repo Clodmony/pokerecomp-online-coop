@@ -69,6 +69,11 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
 | 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
+| 84 | World sharing: share the campaign at rest points, never mid-scene | open: D67 holds for 15 s; plan in playbook.md, owner decision pending | | |
+| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | open | | |
+| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | open: found by the Surge route, reproduced in single player | | |
+| 87 | Review and merge coop/autoplay-surge | open: branch pushed at `79eb3529` | `coop/autoplay-surge` | |
+| 88 | Autoplayed two-window run to the Hall of Fame | open: done to MISTY and a trade, LT. SURGE pending #87 | | |
 
 ## Found while GitHub was paused
 

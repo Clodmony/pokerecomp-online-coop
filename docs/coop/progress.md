@@ -307,46 +307,8 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Handoff, 2026-10-07 (the session stopped at the owner's usage limit):
-
-1. Review and merge `coop/autoplay-surge` (pushed at `79eb3529`, not reviewed;
-   its agent finished) into `coop/playthrough`: the autopilot's road from MISTY to
-   LT. SURGE (`route=surge`, `playthrough_surge.sh`) and three co-op fixes it
-   found, each with a test: a window opens its world as a Continue does (the
-   campaign's story at once, its own last outside map, so a door in a building
-   reopened after a re-host no longer leads to Pallet Town and the Cerulean
-   thief is not fought twice); `wCeruleanCityCurScript` and
-   `wVermilionCityCurScript` are each player's (a partner reset the dock
-   sailor's check forever); Vermilion Gym's door opens in a partner's window
-   when the second switch is found. Expect conflicts in `tools/coop_autoplay.gd`
-   (the trade route and the heal merged since it branched at `72a724fb`). Rerun
-   `playthrough_surge`, `playthrough_misty`, `cable_club_trade` and the
-   co-op suites after merging, write its D-entries (D72 on), test cases and
-   progress rows, and update PR #83's description.
-   Its agent's findings, not yet in the decisions:
-   - The full route reached the THUNDERBADGE in both windows only with a local
-     workaround (run9, about 1240 s). The committed `playthrough_surge` stops
-     at an **upstream bug, reproduced in single player**: after the Cerulean
-     Rocket thief, the "recovered TM28!" box stays drawn (empty, A does
-     nothing) while the world is idle and walkable; `played.gd`'s idle check
-     then waits forever. Fix that first (the thief's after-battle text, fade,
-     toggles and fade-in in `gen1_map_scripts.gd` / the world screen).
-   - The other Gen 1 map-script bytes are still shared: a partner standing in
-     Vermilion Gym plays LT. SURGE's after-battle lines without fighting.
-   - TM34 was doubled once in five runs: a partner window's replayed BROCK
-     gift arrived in a patch with no story flag, which the D62 race guard
-     does not catch.
-   - One freeze not reproduced (a window on S.S. Anne 2F stopped when the
-     partner sailed the ship).
-   - Proposed test-case rows: S13 (re-host inside a building), W12 (ticket,
-     TM28, HM01 for everyone), W13 (per-player city scripts), W14 (gym door
-     opens for both), W15 (CUT on the gym tree).
-   - Its captures and local scripts are under `/tmp/claude-1000/agent-surge/`
-     (not in the repository, lost on reboot).
-2. A hand-played session on the owner's devices (#44) when the owner is ready;
-   `test-cases.md` is the checklist.
-3. Android (#45, #20, #43): needs the owner to install a JDK and the Android
-   SDK and accept Google's licence, or to allow it.
-4. German Red/Blue (#50): needs the owner's own German dump imported locally.
-5. Once #58, #79, #80, #81 and #83 are merged, the upstream merge to 0.1.74
-   (#14).
+See [tasks.md](tasks.md) (the next tasks in order) and
+[playbook.md](playbook.md) (the plan to a fully playable run). In short: fix the
+Cerulean thief's stuck box (#86), merge `coop/autoplay-surge` (#87), share the
+campaign at rest points (#84, #85, owner decision pending), then play on to the
+Hall of Fame (#88) before the owner's hand-played session (#44).
