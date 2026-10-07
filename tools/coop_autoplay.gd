@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|tower|koga|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|erika|tower|koga|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -22,8 +22,9 @@ const FILM_FRAMES: int = 30
 const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
 	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"],
-	"tower": [&"_misty_legs", &"_surge_legs", &"_tower_legs"],
-	"koga": [&"_misty_legs", &"_surge_legs", &"_tower_legs", &"_koga_legs"],
+	"erika": [&"_misty_legs", &"_surge_legs", &"_erika_legs"],
+	"tower": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs"],
+	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -52,6 +53,41 @@ const EVENT_GOT_HM01: int = 0x5E0
 const S_S_TICKET: int = 0x3F
 const SURGE_LEVEL: int = 30
 const SANDSHREW_DEX: int = 27
+const ERIKA_MAPS: Dictionary = {
+	&"route_9": Vector2i(0, 20), &"route_10": Vector2i(0, 21), &"rock_tunnel_1f": Vector2i(0, 82),
+	&"rock_tunnel_b1f": Vector2i(0, 232), &"lavender_town": Vector2i(0, 4), &"route_8": Vector2i(0, 19),
+	&"underground_route_8": Vector2i(0, 80), &"underground_west_east": Vector2i(0, 121),
+	&"underground_route_7": Vector2i(0, 77), &"route_7": Vector2i(0, 18), &"celadon_city": Vector2i(0, 6),
+	&"celadon_gym": Vector2i(0, 134), &"game_corner": Vector2i(0, 135), &"hideout_b1f": Vector2i(0, 199),
+	&"hideout_b2f": Vector2i(0, 200), &"hideout_b3f": Vector2i(0, 201), &"hideout_b4f": Vector2i(0, 202),
+	&"hideout_elevator": Vector2i(0, 203),
+}
+const ROUTE_9_TREE := Vector2i(5, 8)
+const ROCK_TUNNEL_LADDERS: Array = [
+	[&"rock_tunnel_b1f", Vector2i(37, 3)], [&"rock_tunnel_1f", Vector2i(27, 3)],
+	[&"rock_tunnel_b1f", Vector2i(17, 11)], [&"rock_tunnel_1f", Vector2i(3, 3)],
+]
+const ROCK_TUNNEL_SOUTH_EXIT := Vector2i(15, 33)
+const CELADON_TREE := Vector2i(35, 32)
+const CELADON_GYM_TREE := Vector2i(5, 7)
+const ERIKA := Vector2i(4, 3)
+const RAINBOW_BADGE: int = 3
+const GAME_CORNER_ROCKET := Vector2i(9, 5)
+const GAME_CORNER_STAIRS := Vector2i(17, 4)
+const HIDEOUT_ROCKET_3 := Vector2i(11, 2)
+const LIFT_KEY_BALL := Vector2i(10, 2)
+const CAR_PANEL_FRONT := Vector2i(1, 2)
+const CAR_DOOR := Vector2i(2, 1)
+const DOOR_ROCKETS: Array = [Vector2i(23, 12), Vector2i(26, 12)]
+const GIOVANNI := Vector2i(25, 3)
+const LIFT_KEY: int = 0x4A
+const SILPH_SCOPE: int = 0x48
+const EVENT_ROCKET_DROPPED_LIFT_KEY: int = 1702
+const EVENT_BEAT_DOOR_ROCKETS: Array = [1698, 1699]
+const EVENT_BEAT_ROCKET_HIDEOUT_GIOVANNI: int = 1703
+const ROCK_TUNNEL_LEVEL: int = 34
+const ERIKA_LEVEL: int = 38
+const GROWLITHE_DEX: int = 58
 
 var _played: Variant = null
 var _kit: GDScript = null
@@ -179,12 +215,13 @@ func _target_row(view: Dictionary, rows: Array) -> int:
 		if wanted != "move":
 			return index
 		var slot: int = int(command["slot"])
-		var power: int = int(_session.data.move(int(active["moves"][slot])).get("power", 0)) \
-			if int((active.get("pp", []) as Array)[slot]) > 0 else -1
-		if power > best_power:
+		var usable: bool = int((active.get("pp", []) as Array)[slot]) > 0 and slot != int(active.get("disabled", -1))
+		var power: int = int(_session.data.move(int(active["moves"][slot])).get("power", 0)) if usable else -1
+		if power > best_power or best < 0:
 			best_power = power
 			best = index
-	return best
+	var switch: int = rows.find_custom(func(row: Dictionary) -> bool: return row.get("command", {}).get("type") == "switch")
+	return switch if best_power <= 0 and switch >= 0 else best
 
 
 func _leg_button(screen: Gen2WorldScreen) -> int:
@@ -206,7 +243,8 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 		return PokeButton.NONE
 	if _seconds_since(_leg_started) > LEG_SECONDS:
 		return _fail("%s took longer than %d s: %s" % [row[0], LEG_SECONDS, _played._where()])
-	return _played._button_for(row[1])
+	var car: int = _elevator_button(screen)
+	return car if car >= 0 else _played._button_for(row[1])
 
 
 func _route_legs() -> Array:
@@ -318,7 +356,7 @@ func _surge_legs() -> Array:
 		["captain", p._talk_to(CAPTAIN), hm01],
 		["ss_anne_out", p._route(m.vermilion_city), p._on_map(m.vermilion_city)],
 		_teach_cut,
-		["gym_tree", _cut_tree.bind(p._talk(GYM_TREE_FRONT, Gen2WorldSprite.FACING_DOWN)), _tree_cut],
+		["gym_tree", _cut_tree.bind(p._talk(GYM_TREE_FRONT, Gen2WorldSprite.FACING_DOWN)), _tree_gone(GYM_TREE)],
 		["vermilion_gym", p._warp_to(m.vermilion_gym), p._on_map(m.vermilion_gym)],
 		["trash_cans", _search_cans, _either(p._flag(Gen1Layout.LOCK_2ND_EVENT), _badge(THUNDER_BADGE))],
 		_meet_partner("meet_in_vermilion_gym", _badge(THUNDER_BADGE)),
@@ -347,8 +385,143 @@ func _cut_tree(world: Gen2WorldAPI, face: Callable) -> int:
 	return PokeButton.NONE
 
 
-func _tree_cut(world: Gen2WorldAPI) -> bool:
-	return Gen1Layout.cut_tile(world.current_map.tileset, int(world.call(&"_gen1_tile_drawn_at", GYM_TREE))) < 0
+func _tree_gone(tree: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		return Gen1Layout.cut_tile(world.current_map.tileset, int(world.call(&"_gen1_tile_drawn_at", tree))) < 0
+
+
+func _erika_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = ERIKA_MAPS
+	var s: Dictionary = SURGE_MAPS
+	var lift_key: Callable = _either(p._holds(LIFT_KEY), p._holds(SILPH_SCOPE))
+	var legs: Array = [
+		["surge_gym_out", p._warp_to(s.vermilion_city), p._on_map(s.vermilion_city)],
+		_grind.bind(ROCK_TUNNEL_LEVEL, 0),
+		_teach_cut,
+		["gym_tree_inside", _cut_tree.bind(p._talk(GYM_TREE + Vector2i.DOWN, UP)), _tree_gone(GYM_TREE)],
+		["vermilion_to_route_6", p._cross(Vector2i.UP, s.route_6), p._on_map(s.route_6)],
+		["route_6_to_underground", p._warp_to(s.underground_route_6), p._on_map(s.underground_route_6)],
+		["underground_stairs_south", p._warp_to(s.underground_path), p._on_map(s.underground_path)],
+		["underground_path_north", p._warp_to(s.underground_route_5), p._on_map(s.underground_route_5)],
+		["underground_to_route_5", p._warp_to(s.route_5), p._on_map(s.route_5)],
+		["route_5_to_cerulean", p._cross(Vector2i.UP, _kit.CERULEAN_CITY), p._on_map(_kit.CERULEAN_CITY)],
+		["cerulean_to_route_9", p._cross(Vector2i.RIGHT, m.route_9), p._on_map(m.route_9)],
+		["route_9_tree", _cut_tree.bind(p._talk(ROUTE_9_TREE + Vector2i.LEFT, RIGHT)), _tree_gone(ROUTE_9_TREE)],
+		["route_9_to_route_10", p._cross(Vector2i.RIGHT, m.route_10), p._on_map(m.route_10)],
+		["route_10_to_rock_tunnel", p._warp_to(m.rock_tunnel_1f), p._on_map(m.rock_tunnel_1f)],
+	]
+	for ladder: int in ROCK_TUNNEL_LADDERS.size():
+		var row: Array = ROCK_TUNNEL_LADDERS[ladder]
+		legs.append(["rock_tunnel_ladder_%d" % (ladder + 1), p._walk(row[1]), p._on_map(m[row[0]])])
+	return legs + [
+		["rock_tunnel_south_exit", p._walk(ROCK_TUNNEL_SOUTH_EXIT), p._on_map(m.route_10)],
+		["route_10_to_lavender", p._cross(Vector2i.DOWN, m.lavender_town), p._on_map(m.lavender_town)],
+		["lavender_to_route_8", p._cross(Vector2i.LEFT, m.route_8), p._on_map(m.route_8)],
+		["route_8_to_underground", p._warp_to(m.underground_route_8), p._on_map(m.underground_route_8)],
+		["underground_stairs_east", p._warp_to(m.underground_west_east), p._on_map(m.underground_west_east)],
+		["underground_path_west", p._warp_to(m.underground_route_7), p._on_map(m.underground_route_7)],
+		["underground_to_route_7", p._warp_to(m.route_7), p._on_map(m.route_7)],
+		["route_7_to_celadon", p._cross(Vector2i.LEFT, m.celadon_city), p._on_map(m.celadon_city)],
+		_grind.bind(ERIKA_LEVEL, GROWLITHE_DEX),
+		_teach_cut,
+		["celadon_tree", _cut_tree.bind(p._talk(CELADON_TREE + Vector2i.UP, Gen2WorldSprite.FACING_DOWN)),
+			_tree_gone(CELADON_TREE)],
+		["celadon_gym", p._warp_to(m.celadon_gym), p._on_map(m.celadon_gym)],
+		["celadon_gym_tree", _cut_tree.bind(p._talk(CELADON_GYM_TREE + Vector2i.DOWN, UP)), _tree_gone(CELADON_GYM_TREE)],
+		_meet_partner("meet_in_celadon_gym", _badge(RAINBOW_BADGE)),
+		["erika", _join_or(p._talk_to(ERIKA)), _badge(RAINBOW_BADGE)],
+		["erika_gym_out", p._warp_to(m.celadon_city), p._on_map(m.celadon_city)],
+		["celadon_tree_inside", _cut_tree.bind(p._talk(CELADON_TREE + Vector2i.DOWN, UP)), _tree_gone(CELADON_TREE)],
+		["game_corner", p._warp_to(m.game_corner), p._on_map(m.game_corner)],
+		["poster", _poster, func(world: Gen2WorldAPI) -> bool: return world.can_walk_to(GAME_CORNER_STAIRS)],
+		["game_corner_stairs", p._warp_to(m.hideout_b1f), p._on_map(m.hideout_b1f)],
+		["hideout_b1f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
+		["hideout_b2f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
+		["hideout_b3f_to_b4f", _glide_to(m.hideout_b4f), p._on_map(m.hideout_b4f)],
+		["lift_key_rocket", p._talk_to(HIDEOUT_ROCKET_3), _either(p._flag(EVENT_ROCKET_DROPPED_LIFT_KEY), lift_key)],
+		["lift_key", p._talk(LIFT_KEY_BALL + Vector2i.DOWN, UP), lift_key],
+		["hideout_b4f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
+		["hideout_b3f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
+		["hideout_b2f_elevator", _glide_to(m.hideout_elevator), p._on_map(m.hideout_elevator)],
+		["elevator_panel", p._talk(CAR_PANEL_FRONT, UP), _car_bound_for(m.hideout_b4f)],
+		["elevator_to_b4f", p._walk(CAR_DOOR), p._on_map(m.hideout_b4f)],
+		["door_rocket_1", p._talk_to(DOOR_ROCKETS[0]), p._flag(EVENT_BEAT_DOOR_ROCKETS[0])],
+		["door_rocket_2", p._talk_to(DOOR_ROCKETS[1]), p._flag(EVENT_BEAT_DOOR_ROCKETS[1])],
+		["giovanni", _join_or(p._talk_to(GIOVANNI)), p._flag(EVENT_BEAT_ROCKET_HIDEOUT_GIOVANNI)],
+		["silph_scope", p._talk(GIOVANNI, UP), p._holds(SILPH_SCOPE)],
+	]
+
+
+func _poster(world: Gen2WorldAPI) -> int:
+	if world.object_at(GAME_CORNER_ROCKET) != null:
+		return _played._talk_button(world, GAME_CORNER_ROCKET)
+	return _played._talk(GAME_CORNER_ROCKET, UP).call(world)
+
+
+func _car_bound_for(map: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
+
+
+func _elevator_button(screen: Gen2WorldScreen) -> int:
+	var host: Gen2WorldServiceScreen = screen.get("_service_host")
+	if host == null or int(host.get("_mode")) != Gen2WorldServiceScreen.MODE.ELEVATOR or bool(host.call(&"_box_printing")):
+		return -1
+	var floors: Array = host.call(&"_elevator_floors")
+	var wanted: int = floors.find_custom(func(row: Dictionary) -> bool: return int(row["map"]) == ERIKA_MAPS.hideout_b4f.y)
+	if wanted < 0:
+		return -1
+	return _paced(PokeButton.A if host.selected_index() == wanted else PokeButton.DOWN)
+
+
+func _glide_to(map: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		for warp: Dictionary in world.current_map.events.get("warps", []):
+			if _played._warp_target(world, warp) == map:
+				var button: int = _glide_button(world, Vector2i(int(warp["x"]), int(warp["y"])))
+				if button != PokeButton.NONE:
+					return button
+		return PokeButton.NONE
+
+
+func _glide_button(world: Gen2WorldAPI, target: Vector2i) -> int:
+	if world.player_cell == target:
+		return _played._warp_press(world, target)
+	var spins: Dictionary = _spin_landings(world)
+	var goal: Callable = _played._is(target)
+	var first: Dictionary = {world.player_cell: Vector2i.ZERO}
+	var frontier: Array[Vector2i] = [world.player_cell]
+	while not frontier.is_empty():
+		var at: Vector2i = frontier.pop_front()
+		if at == target:
+			return _played._direction_button(first[at])
+		for direction: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next: Vector2i = _played._neighbour(world, at, direction, goal)
+			next = spins.get(next, next)
+			if next.x >= 0 and not first.has(next):
+				first[next] = direction if at == world.player_cell else first[at]
+				frontier.append(next)
+	return PokeButton.NONE
+
+
+func _spin_landings(world: Gen2WorldAPI) -> Dictionary:
+	var out: Dictionary = {}
+	var pending: Array = [world.current_map.scripts.get("states", [])]
+	while not pending.is_empty():
+		for node: Variant in pending.pop_back():
+			if not node is Dictionary:
+				continue
+			for key: String in Gen1Layout.SCRIPT_BRANCH_KEYS + ["nodes"]:
+				if node.has(key) and node[key] is Array:
+					pending.append(node[key])
+			if String(node.get("op", "")) != "arrow_movement":
+				continue
+			for cell: Dictionary in node["cells"]:
+				var landing := Vector2i(int(cell["x"]), int(cell["y"]))
+				for leg: Dictionary in cell["moves"]:
+					landing += world.movement_direction(int(leg["direction"])) * int(leg["steps"])
+				out[Vector2i(int(cell["x"]), int(cell["y"]))] = landing
+	return out
 
 
 func _search_cans(world: Gen2WorldAPI) -> int:
@@ -594,13 +767,14 @@ func _join_button(encounter: String) -> int:
 
 
 func _menu_button(panel: PokeCoopBattlePanel) -> int:
+	var wanted: String = _joining if not _joining.is_empty() else _partner_fight()
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
-		return String(entry.get("action", "")) == "join" and String(entry.get("id", "")) == _joining)
-	if _joining.is_empty() or row < 0:
+		return String(entry.get("action", "")) == "join" and String(entry.get("id", "")) == wanted)
+	if wanted.is_empty() or row < 0:
 		return _paced(PokeButton.B)
 	var press: int = _paced(PokeButton.A if panel._cursor == row else PokeButton.DOWN)
 	if press == PokeButton.A:
-		print("coop autoplay: %s joins %s from the session menu" % [_player_id, _joining])
+		print("coop autoplay: %s joins %s from the session menu" % [_player_id, wanted])
 		_joining = ""
 	return press
 
@@ -680,6 +854,20 @@ func _either(first: Callable, second: Callable) -> Callable:
 
 func _meet_partner(label: String, or_done: Callable) -> Array:
 	return [label, _standing, _either(func(_world: Gen2WorldAPI) -> bool: return not _session.client.nearby().is_empty(), or_done)]
+
+
+func _partner_fight() -> String:
+	if _session.client.nearby().is_empty():
+		return ""
+	for running: Dictionary in _session.client.state.get("battles", []):
+		if String(running.get("encounter", "")).begins_with("trainer:") and not bool(running.get("private", false)) \
+				and not (running.get("participants", []) as Array).has(_player_id) and running.get("phase") != "over":
+			return String(running["battle"])
+	return ""
+
+
+func _join_or(goal: Callable) -> Callable:
+	return func(world: Gen2WorldAPI) -> int: return PokeButton.SELECT if not _partner_fight().is_empty() else goal.call(world)
 
 
 func _standing(_world: Gen2WorldAPI) -> int:

@@ -4,3 +4,4 @@
 source "$(dirname "${BASH_SOURCE[0]}")/playthrough_tower.sh"
 P1_ARGS="${P1_ARGS/route=tower/route=koga}"
 P2_ARGS="${P2_ARGS/route=tower/route=koga}"
+DURATION=14400

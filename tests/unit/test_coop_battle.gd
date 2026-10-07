@@ -385,3 +385,19 @@ func test_a_partner_stands_in_for_a_dropped_controller_only_once_asked() -> void
 	assert_eq(session.controller(), "red", "the owner takes their Pokémon back")
 	session.set_absent("red", true)
 	assert_true(session.is_paused(), "and is waited for again the next time")
+
+
+func test_the_panel_names_a_move_that_is_disabled_or_out_of_pp() -> void:
+	var red: PokeCoopPlayer = _red()
+	var session: PokeCoopBattleSession = _start(red, _enemy())
+	var out: Gen2BattleMon = session.battle.mon(Gen2Battle.PLAYER)
+	out.disabled_slot = 1
+	assert_eq(StringName(_act(session, red, {"type": "move", "slot": 1})["reason"]), &"invalid_move")
+	out.pp[0] = 0
+
+	var view: Dictionary = session.view()
+	assert_eq(int(view["allies"][0]["disabled"]), 1, "the view says which slot DISABLE locked")
+	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(null, _data))
+	var labels: Array = panel._move_rows(view).map(func(row: Dictionary) -> String: return String(row["label"]))
+	assert_eq(labels, ["%s (NO PP)" % _data.move(Fixture.GROWL)["name"], "%s (DISABLED)" % _data.move(Fixture.TACKLE)["name"]])
+	assert_true(PokeCoopBattlePanel.REFUSALS.has(&"invalid_move"), "a refused move is told in words")
