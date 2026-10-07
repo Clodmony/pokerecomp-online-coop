@@ -1855,6 +1855,28 @@ func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> v
 	assert_false(_host.campaign.has_flag(in_purified_zone))
 
 
+func test_the_mansion_switch_and_the_fossil_lab_are_each_players_own() -> void:
+	var switch_on: int = 0x278
+	var gave_fossil: int = 0x2E0
+	var still_reviving: int = 0x2E1
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	for flag: int in [switch_on, gave_fossil, still_reviving]:
+		red.state.set_event_flag(flag)
+	blue.state.set_event_flag(switch_on)
+	_pump()
+	blue.state.clear_event_flag(switch_on)
+	_pump()
+
+	for flag: int in [switch_on, gave_fossil, still_reviving]:
+		assert_true(red.state.is_event_flag_active(flag), "Red's own switch and fossil stand (flag %d)" % flag)
+		assert_false(_host.campaign.has_flag(flag))
+	assert_false(blue.state.is_event_flag_active(gave_fossil),
+		"Blue, who gave the lab nothing, is not told a fossil of Blue's is being revived")
+	assert_false(blue.state.is_event_flag_active(switch_on))
+
+
 func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
