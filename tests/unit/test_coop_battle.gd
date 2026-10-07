@@ -294,3 +294,94 @@ func test_an_item_comes_out_of_the_acting_players_bag_only() -> void:
 		StringName(_act(session, red, {"type": "item", "item": Fixture.POTION, "target": 0})["reason"]),
 		&"item_not_held"
 	)
+
+
+## What each allied Pokémon gained in a fight Red's lead wins alone against a level 2 BULBASAUR.
+func _gains(red: PokeCoopPlayer, blue: PokeCoopPlayer) -> Array:
+	var session: PokeCoopBattleSession = _start(red, _enemy(Fixture.BULBASAUR, 2))
+	if blue != null:
+		session.request_join(_data, blue)
+	var party: Gen2Party = session.battle.party(Gen2Battle.PLAYER)
+	var before: Array = party.mons.map(func(mon: Gen2BattleMon) -> int: return mon.exp)
+	_fight_out(session, {"red": red, "blue": blue})
+	assert_eq(session.outcome(), &"won")
+	return range(party.size()).map(func(index: int) -> int: return party.at(index).exp - int(before[index]))
+
+
+func test_one_exp_all_pays_every_team_as_it_would_pay_one_team_alone() -> void:
+	var holder: PokeCoopPlayer = _red(2)
+	holder.give_item(Gen1Layout.ITEM_EXP_ALL)
+	var alone: Array = _gains(holder, null)
+	var red: PokeCoopPlayer = _red(2)
+	red.give_item(Gen1Layout.ITEM_EXP_ALL)
+	var together: Array = _gains(red, _blue(2))
+
+	assert_gt(int(alone[1]), 0, "EXP.ALL pays Red's bench")
+	assert_eq(together.slice(0, 2), alone, "Red's team gains what it would alone")
+	assert_eq(together.slice(2), [alone[1], alone[1]], "Blue's team is split over its own two, not over four")
+	var carrier: PokeCoopPlayer = _blue(2)
+	carrier.give_item(Gen1Layout.ITEM_EXP_ALL)
+	assert_eq(_gains(_red(2), carrier), together, "the joiner's EXP.ALL counts for everyone")
+	assert_eq(_gains(_red(2), _blue(2)).slice(1), [0, 0, 0], "without one only the Pokémon that fought gain")
+
+
+func test_a_joiner_who_leaves_hands_their_pokemon_to_whoever_is_left() -> void:
+	var red: PokeCoopPlayer = _red()
+	var blue: PokeCoopPlayer = _blue()
+	red.place(Vector2i(0, 0), Vector2i(1, 1), 0)
+	blue.place(Vector2i(0, 12), Vector2i(4, 4), 0)
+	var session: PokeCoopBattleSession = _start(red, _enemy())
+	session.request_join(_data, blue)
+	_act(session, red, {"type": "switch", "index": 1})
+	assert_eq(session.controller(), "blue")
+
+	assert_eq(session.leave(red), &"attached", "the player whose fight it is stays in it")
+	assert_eq(session.leave(blue), &"")
+	assert_eq(session.controller(), "red", "Red decides at once for the Pokémon Blue left behind")
+	assert_false(session.is_paused())
+	assert_eq([blue.map, blue.cell, blue.return_point], [Vector2i(0, 12), Vector2i(4, 4), {}], "Blue is back where they were")
+	assert_eq(session.roster.owner_at(1), "blue", "and their Pokémon stay theirs")
+	session.set_absent("blue", false)
+	assert_true(session.has_left("blue"), "coming back to the session is not rejoining the battle")
+
+	assert_eq(session.request_join(_data, blue), &"")
+	assert_eq([session.has_left("blue"), session.controller(), session.participants.count("blue")], [false, "blue", 1])
+
+
+func test_a_queued_join_can_be_called_off() -> void:
+	var red: PokeCoopPlayer = _player("red", RED_ID, [_saved(Fixture.PIKACHU, 5, [Fixture.GROWL], RED_ID),
+		_saved(Fixture.PIKACHU, 5, [Fixture.GROWL], RED_ID)])
+	var blue: PokeCoopPlayer = _blue()
+	var session: PokeCoopBattleSession = _start(red, _enemy(Fixture.GEODUDE, 50, [Fixture.SLASH]))
+	for _turn: int in 10:
+		if session.phase() == PokeCoopBattleSession.AWAITING_SEND_OUT:
+			break
+		_act(session, red, {"type": "move", "slot": 0})
+	session.request_join(_data, blue)
+
+	assert_eq(session.leave(blue), &"")
+	assert_true(blue.is_free())
+	assert_eq(session.pending_players(), [] as Array[String])
+	_act(session, red, {"type": "send_out", "index": 1})
+	assert_false(session.participants.has("blue"), "nobody joins after calling it off")
+
+
+func test_a_partner_stands_in_for_a_dropped_controller_only_once_asked() -> void:
+	var red: PokeCoopPlayer = _red()
+	var blue: PokeCoopPlayer = _blue()
+	var session: PokeCoopBattleSession = _start(red, _enemy())
+	session.request_join(_data, blue)
+	session.set_absent("red", true)
+	assert_eq([session.is_paused(), session.stand_in_due()], [true, false])
+	assert_eq(session.stand_in("blue"), &"no_stand_in_due", "not before the owner has been away a while")
+
+	session.set_absent("red", true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+	assert_eq([session.stand_in_due(), session.controller()], [true, "red"], "the battle waits until somebody takes over")
+	assert_eq(session.stand_in("red"), &"not_a_participant", "the one who is away cannot")
+	assert_eq(session.stand_in("blue"), &"")
+	assert_eq([session.controller(), session.owner_deciding(), session.stand_in_due()], ["blue", "red", false])
+
+	session.set_absent("red", false)
+	assert_eq(session.controller(), "red", "the owner takes their Pokémon back")
+	session.set_absent("red", true)
+	assert_true(session.is_paused(), "and is waited for again the next time")

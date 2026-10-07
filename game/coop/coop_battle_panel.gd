@@ -18,6 +18,8 @@ const REFUSALS: Dictionary = {
 	&"encounter_taken": "Someone is already fighting that.", &"battle_over": "That battle is over.",
 	&"item_has_no_effect": "It won't have any effect.", &"no_fit_pokemon": "None of your POKéMON can fight.",
 	&"save_failed": "The campaign could not be saved.",
+	&"attached": "Your own world started this battle: you stay in it.",
+	&"in_battle": "Your POKéMON are still in a battle.",
 }
 
 var client: PokeCoopClient = null
@@ -29,6 +31,8 @@ var _rows: Array = []
 var _cursor: int = 0
 var _menu_open: bool = false
 var _dismissed: Dictionary = {}
+var _recalled: Dictionary = {}
+var _kept_waiting: Dictionary = {}
 var _shown: String = ""
 var _turn_key: String = ""
 var _refusals_seen: int = 0
@@ -70,12 +74,12 @@ func is_open() -> bool:
 	return _menu_open or not battle_view().is_empty()
 
 
-## The battle this player is in, or the last one they have not closed yet.
+## The battle this player is in, or the last one they have not closed yet; one they left only when recalled.
 func battle_view() -> Dictionary:
 	var finished: Dictionary = {}
 	for battle_id: String in client.battles:
 		var view: Dictionary = client.battles[battle_id]
-		if _dismissed.has(battle_id) or not _involves_me(view):
+		if _dismissed.has(battle_id) or not _involves_me(view) or (_has_left(view) and not _recalled.has(battle_id)):
 			continue
 		if String(view.get("outcome", "")).is_empty():
 			return view
@@ -86,6 +90,15 @@ func battle_view() -> Dictionary:
 func _involves_me(view: Dictionary) -> bool:
 	return (view.get("participants", []) as Array).has(client.player_id) \
 		or (view.get("pending", []) as Array).has(client.player_id)
+
+
+func _has_left(view: Dictionary) -> bool:
+	return (view.get("left", []) as Array).has(client.player_id)
+
+
+func recall(battle_id: String) -> void:
+	_recalled[battle_id] = true
+	_dismissed.erase(battle_id)
 
 
 func _process(_delta: float) -> void:
@@ -164,7 +177,9 @@ func _choose() -> void:
 	if _rows.is_empty():
 		return
 	var row: Dictionary = _rows[_cursor]
-	if view.is_empty():
+	if not view.is_empty() and row.has("session"):
+		_run_battle_row(String(view["battle"]), String(row["session"]))
+	elif view.is_empty():
 		_run_menu_row(row)
 	elif _controls(view) and row.has("command"):
 		client.act(String(view["battle"]), row["command"])
@@ -174,6 +189,18 @@ func _choose() -> void:
 
 func _controls(view: Dictionary) -> bool:
 	return String(view.get("controller", "")) == client.player_id
+
+
+func _run_battle_row(battle_id: String, kind: String) -> void:
+	match kind:
+		"leave":
+			client.leave_battle(battle_id)
+		"rejoin":
+			client.join_battle(battle_id)
+		"stand_in":
+			client.stand_in(battle_id)
+		"wait":
+			_kept_waiting[battle_id] = true
 
 
 func _run_menu_row(row: Dictionary) -> void:
@@ -194,7 +221,10 @@ func _menu_rows() -> Array:
 	for offer: Dictionary in client.state.get("encounters", []):
 		rows.append({"text": "FIGHT %s" % offer["label"], "label": "Fight %s" % offer["label"], "action": "fight", "id": offer["id"]})
 	for running: Dictionary in client.state.get("battles", []):
-		if not (running["participants"] as Array).has(client.player_id) and not bool(running.get("private", false)):
+		if (running.get("left", []) as Array).has(client.player_id):
+			rows.append({"text": "REJOIN %s" % running["battle"], "label": "Rejoin the battle against %s" % _foe(running),
+				"action": "join", "id": running["battle"]})
+		elif not (running["participants"] as Array).has(client.player_id) and not bool(running.get("private", false)):
 			rows.append({
 				"text": "JOIN %s (%s)" % [running["battle"], _names(running["participants"])],
 				"label": "Join %s against %s" % [_names_bb(running["participants"]), _foe(running)],
@@ -250,18 +280,37 @@ func _menu_text() -> String:
 
 
 func _battle_rows(view: Dictionary) -> Array:
+	if _has_left(view):
+		return [{"text": "REJOIN", "label": "Rejoin the battle", "session": "rejoin"}]
+	if bool(view.get("stand_in_due", false)) and (view.get("participants", []) as Array).has(client.player_id):
+		var owner: String = String(view.get("owner", ""))
+		var rows: Array = [{"text": "TAKE OVER for %s" % _name(owner), "label": "Take over for %s" % _name_bb(owner), "session": "stand_in"}]
+		if not _kept_waiting.has(String(view["battle"])):
+			rows.append({"text": "KEEP WAITING", "label": "Keep waiting", "session": "wait"})
+		return rows + _leave_rows(view)
 	match String(view.get("phase", "")):
 		"action":
 			return _move_rows(view) + _switch_rows(view, "switch") + _item_rows(view) + [
 				{"text": "RUN", "label": "Run", "section": " ", "command": {"type": "run"}, "suggest": "run", "value": 0},
-			]
+			] + _leave_rows(view)
 		"send_out":
-			return _switch_rows(view, "send_out") + [{"text": "RUN", "label": "Run", "section": " ", "command": {"type": "run"}}]
+			return _switch_rows(view, "send_out") + [{"text": "RUN", "label": "Run", "section": " ", "command": {"type": "run"}}] \
+				+ _leave_rows(view)
 		"learn":
 			return _learn_rows(view)
 		"mimic":
 			return _mimic_rows(view)
-	return []
+	return _leave_rows(view)
+
+
+func _leave_rows(view: Dictionary) -> Array:
+	if (view.get("attached", []) as Array).has(client.player_id) or not String(view.get("outcome", "")).is_empty():
+		return []
+	if (view.get("pending", []) as Array).has(client.player_id):
+		return [{"text": "CANCEL JOIN", "label": "Don't join after all", "section": " ", "session": "leave"}]
+	if not (view.get("participants", []) as Array).has(client.player_id):
+		return []
+	return [{"text": "LEAVE BATTLE", "label": "Leave the battle (your POKéMON fight on)", "section": " ", "session": "leave"}]
 
 
 func _active(view: Dictionary) -> Dictionary:
@@ -409,7 +458,7 @@ func _ally_lines(view: Dictionary) -> PackedStringArray:
 		if not owners.has(String(ally["owner"])):
 			owners.append(String(ally["owner"]))
 	for owner: String in owners:
-		lines.append(_name_bb(owner))
+		lines.append(_name_bb(owner) + (" [color=%s](left)[/color]" % MUTED if (view.get("left", []) as Array).has(owner) else ""))
 		for ally: Dictionary in view.get("allies", []):
 			if String(ally["owner"]) != owner:
 				continue
@@ -423,13 +472,19 @@ func _turn_line(view: Dictionary) -> String:
 	var controller: String = String(view.get("controller", ""))
 	if not String(view.get("outcome", "")).is_empty():
 		return "Battle over"
+	if _has_left(view):
+		return "You left this battle; your POKéMON fight on in it."
 	if (view.get("pending", []) as Array).has(client.player_id):
 		return "You join at the start of the next turn."
+	var owner: String = String(view.get("owner", controller))
+	if bool(view.get("stand_in_due", false)):
+		return ("Waiting for %s. You can still take over." if _kept_waiting.has(String(view.get("battle", ""))) \
+			else "%s is still away. Take over their POKéMON, or keep waiting?") % _name_bb(owner)
 	if bool(view.get("paused", false)):
 		return "Waiting for %s to come back..." % _name_bb(controller)
-	var owner: String = String(view.get("owner", controller))
 	if controller == client.player_id and owner != controller:
-		return "%s is away: you choose for their POKéMON." % _name_bb(owner)
+		return "%s %s: you choose for their POKéMON." % [_name_bb(owner),
+			"left" if (view.get("left", []) as Array).has(owner) else "is away"]
 	if controller == client.player_id:
 		return "Your turn" if String(view.get("phase", "")) == "action" else "Your choice"
 	return "%s is choosing. Your cursor is a suggestion." % _name_bb(controller)

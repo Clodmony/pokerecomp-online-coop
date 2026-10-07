@@ -15,6 +15,10 @@ const RESUME_REDIAL_MSEC: int = 3000
 const QUIT_HOST_MSEC: int = 2500
 const QUIT_JOIN_MSEC: int = 600
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
+const LEFT_BATTLE_ENDED: Dictionary = {
+	"won": "The battle you left was won.", "lost": "The battle you left was lost.",
+	"caught": "The battle you left ended in a catch.",
+}
 const INTRO_SCENE: String = "res://game/world/intro_screen.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
@@ -269,6 +273,8 @@ func _advance_links() -> void:
 
 ## The world stands still under the panel and settles its player once it closes.
 func _tend_world() -> void:
+	if _takeover != null and not _takeover.waiting_on.is_empty():
+		panel.recall(_takeover.waiting_on)
 	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != panel.is_open():
 		hold_world(screen, screen.get("_audio_player"), panel.is_open())
 	var world: Gen2WorldAPI = screen.get("_world")
@@ -493,6 +499,8 @@ func _collect_evolutions() -> void:
 		if _settled_battles.has(battle_id) or String(view.get("outcome", "")).is_empty():
 			continue
 		_settled_battles[battle_id] = true
+		if (view.get("left", []) as Array).has(client.player_id):
+			say(LEFT_BATTLE_ENDED.get(String(view["outcome"]), "The battle you left is over."))
 		if _takeover != null and _takeover.claimed.has(battle_id):
 			continue
 		if String(view["outcome"]) == "lost":

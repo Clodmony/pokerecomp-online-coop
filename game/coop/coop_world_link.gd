@@ -85,10 +85,11 @@ func _host_world() -> Dictionary:
 	var shared: Dictionary = (client.state.get("campaign", {}) as Dictionary).get("world", {})
 	var own: Dictionary = client.me().get("world", {})
 	var out: Dictionary = shared.duplicate(true)
-	out.merge(own, true)
-	var engine: Dictionary = (shared.get("engine_flags", {}) as Dictionary).duplicate()
-	engine.merge(own.get("engine_flags", {}) as Dictionary, true)
-	out["engine_flags"] = engine
+	for key: String in own:
+		if out.get(key) is Dictionary and own[key] is Dictionary:
+			(out[key] as Dictionary).merge(own[key], true)
+		else:
+			out[key] = own[key]
 	return out
 
 
