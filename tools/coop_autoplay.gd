@@ -540,8 +540,6 @@ const TOWER_MAPS: Dictionary = {
 	&"tower_3f": Vector2i(0, 144), &"tower_4f": Vector2i(0, 145), &"tower_5f": Vector2i(0, 146),
 	&"tower_6f": Vector2i(0, 147), &"tower_7f": Vector2i(0, 148), &"mr_fujis_house": Vector2i(0, 149),
 }
-const CAR_PANEL_FRONT := Vector2i(1, 2)
-const CAR_DOOR := Vector2i(2, 1)
 const HIDEOUT_B1F_DOOR_ROCKET := Vector2i(28, 18)
 const TOWER_RIVAL_CELLS: Array = [Vector2i(14, 6), Vector2i(15, 5)]
 const ABOVE_RARE_CANDY := Vector2i(6, 7)
