@@ -68,7 +68,7 @@ Red (or Blue) cartridge, the same one.
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
 | T01 | Trade at a Cable Club | Each Pokémon arrives with its owner's new trainer; nothing is duplicated | `test_two_players_trade_at_the_cable_club...` | | |
-| T02 | Trade a MACHOKE, KADABRA, HAUNTER or GRAVELER | Arrives evolved | `test_a_pokemon_that_evolves_by_trade_arrives_evolved` | | |
+| T02 | Trade a MACHOKE, KADABRA, HAUNTER or GRAVELER | The trade movie shows it as sent (MACHOKE), then it evolves and arrives evolved | `test_a_pokemon_that_evolves_by_trade_arrives_evolved`, `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved` | | |
 | T03 | Cancel the trade on either side | Nobody's party changes | `test_a_trade_either_side_cancels_moves_nobody` | | |
 | T04 | Fight in the Colosseum | The cartridge's link battle against the partner's team (not yet tried) | | | |
 
