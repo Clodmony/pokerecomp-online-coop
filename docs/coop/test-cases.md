@@ -29,6 +29,7 @@ Red (or Blue) cartridge, the same one.
 | S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
 | S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
 | S15 | Host a campaign again while a player stands inside a building | That window opens inside it on the campaign's story and leaves by the building's own door; a coord script already done (the Cerulean thief) does not run again | `test_a_window_opened_again_inside_a_building_leaves_by_its_own_door`, `test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place` | | |
+| S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
 
 ## Exploration and story
 

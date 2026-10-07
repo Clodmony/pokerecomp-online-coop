@@ -1063,3 +1063,19 @@ correction message, and the host would have to tell a roll from a reset by a
 while the partner is inside keeps the lock rather than re-rolling; two players
 arriving at the same moment may both roll, and the later roll wins before
 anyone searches; a dropped partner does not count as present.
+
+## D78. Stretch seeds come from upstream's story walk (2026-10-07)
+
+Extending the autopilot to the Hall of Fame one stretch at a time (#88) needs a
+campaign at each stretch's start, and the only ones came from the end of the
+previous stretch's two-window run, so stretches had to go one after another.
+`tools/coop_seed.gd` runs `preview_world_story.gd`'s Gen 1 legs to a named one
+(upstream's walk, split into `_gen1_story_start` and `_gen1_story_legs` with its
+output unchanged), steps out of the last door as the cartridge does, and
+imports the save as a campaign's first player brings one
+(`PokeCoopPolicy.import_save`): `p1` brings the story, `p2` gets its own copy on
+a free cell beside, with its own trainer as each Pokémon's OT. Costs: the
+story's thin party (one or two Pokémon, which the autopilot's grinding makes
+up), only the trainers the story fought, and no host `defeated` encounters or
+gift commits (event flags still stop re-fights). A stretch is proven from a
+seed; the Hall of Fame run is proven from a new campaign.
