@@ -151,6 +151,8 @@ func _pull_world() -> void:
 		PokeCoopOwnership.apply_patch(merged, changes)
 		state.restore_from_dict(merged)
 		_owe_map_loads((changes.get("event_flags", {}) as Dictionary).get("set", {}))
+		if world != null and changes.has("toggled_objects"):
+			world.load_object_masks()
 	_baseline = state.to_dict()
 	_dirty = false
 
