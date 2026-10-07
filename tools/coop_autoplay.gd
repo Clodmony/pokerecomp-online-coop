@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "autoplay: <player> finished" or "FAILED".
+##     [route=brock|misty|trade] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "autoplay: <player> finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -14,7 +14,12 @@ const BROCK := Vector2i(4, 1)
 const BOULDER_BADGE: int = 0
 const CASCADE_BADGE: int = 1
 const UP: int = Gen2WorldSprite.FACING_UP
-const ROUTES: Dictionary = {"brock": [], "misty": [&"_misty_legs"]}
+const RIGHT: int = Gen2WorldSprite.FACING_RIGHT
+const CABLE_CLUB_RECEPTIONIST := Vector2i(11, 2)
+const MACHOKE: int = 67
+const TRADE_EVOLVED: Dictionary = {MACHOKE: 68}
+const FILM_FRAMES: int = 30
+const ROUTES: Dictionary = {"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"]}
 
 var _played: Variant = null
 var _kit: GDScript = null
@@ -31,6 +36,9 @@ var _tap: int = PokeButton.NONE
 var _tap_at: int = -TAP_EVERY
 var _direction: int = PokeButton.NONE
 var _done: bool = false
+var _trade: Dictionary = {}
+var _trade_rounds: int = 0
+var _link_pressed_at: int = 0
 
 
 func _read_option(arg: String) -> bool:
@@ -84,6 +92,10 @@ func _choose() -> int:
 		_legs = _route_legs()
 		_leg_started = Time.get_ticks_msec()
 	_played._editor.save = screen.active_save()
+	if screen.get("_link_host") != null:
+		return _link_button(screen)
+	_hide_wait_box_left_over_the_link_room(screen)
+	_cure_status_between_fights(screen)
 	return _leg_button(screen)
 
 
@@ -300,6 +312,8 @@ func _finish_route() -> void:
 
 
 func _fail(why: String) -> int:
+	if _done:
+		return PokeButton.NONE
 	_done = true
 	print("coop autoplay: %s FAILED at leg %d: %s" % [_player_id, _leg, why])
 	_shot("failed")
@@ -315,3 +329,220 @@ func _shot(name: String) -> void:
 
 static func _seconds_since(msec: int) -> float:
 	return (Time.get_ticks_msec() - msec) / 1000.0
+
+
+func _trade_legs() -> Array:
+	var p: Variant = _played
+	var center: Vector2i = p._named(&"PEWTER_POKECENTER")
+	var room: Dictionary = _session.data.gen1_cable_club_warp("trade_center")
+	var trade_center := Vector2i(0, int(room["map"]))
+	return [
+		["gym_out", p._warp_to(_kit.PEWTER_CITY), p._on_map(_kit.PEWTER_CITY)],
+		["pewter_center", p._warp_to(center), p._on_map(center)],
+		_give_machoke,
+		["machoke_on_host", _standing, _machoke_on_host],
+		["cable_club", p._talk_to(CABLE_CLUB_RECEPTIONIST), p._on_map(trade_center)],
+		_meet_partner("meet_in_trade_center", _traded),
+		["trade", p._talk(Vector2i(int(room["x"]), int(room["y"])), RIGHT), _traded],
+		["window_takes_the_swap", _standing, _window_matches_host],
+		_check_trade,
+	]
+
+
+func _give_machoke() -> bool:
+	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
+	ids.sort()
+	if ids.size() < 2 or ids[0] != _session.client.player_id:
+		return true
+	var save: Gen2SaveData = _played._screen.active_save()
+	if not bool(_played._editor.add_party_member(MACHOKE, _kit.BROCK_LEVEL).get("ok", false)):
+		return false
+	var machoke: Gen2SaveMon = save.party.back()
+	machoke.ot_id = save.player_id
+	machoke.original_trainer = save.player_name
+	_played._screen.call(&"_refresh_party_summary")
+	return true
+
+
+func _hide_wait_box_left_over_the_link_room(screen: Gen2WorldScreen) -> void:
+	var box: Gen2TextBox = screen.get("_text_box")
+	var world: Gen2WorldAPI = screen.world()
+	if box != null and box.visible and not box.is_revealing() and PokeCoopTrades.LINK_ROOMS.has(world.map_id()) \
+			and not world.script_busy() and not world.script_input_waiting() and world.pending_runtime_request().is_empty():
+		box.visible = false
+
+
+func _cure_status_between_fights(screen: Gen2WorldScreen) -> void:
+	var party: Array = screen.active_save().party
+	if not party.any(func(mon: Gen2SaveMon) -> bool: return mon.status != 0) or not _played._idle():
+		return
+	for mon: Gen2SaveMon in party:
+		mon.status = 0
+	screen.call(&"_refresh_party_summary")
+
+
+func _machoke_on_host(_world: Gen2WorldAPI) -> bool:
+	return _slot_of(_rows(false), MACHOKE) >= 0 or _slot_of(_rows(true), MACHOKE) >= 0
+
+
+func _rows(partner: bool) -> Array:
+	var me: Dictionary = _session.client.me()
+	return (me.get("trade_partner", {}) as Dictionary).get("party", []) if partner else me.get("party", [])
+
+
+static func _slot_of(rows: Array, species: int) -> int:
+	return rows.find_custom(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == species)
+
+
+static func _species_of(rows: Array, uid: String) -> int:
+	var at: int = rows.find_custom(func(row: Dictionary) -> bool: return String(row["uid"]) == uid)
+	return int(rows[at]["mon"]["species"]) if at >= 0 else 0
+
+
+func _traded(_world: Gen2WorldAPI) -> bool:
+	return String(_trade.get("outcome", "")) == PokeCoopTrades.TRADED
+
+
+func _window_matches_host(_world: Gen2WorldAPI) -> bool:
+	var window: Array = _played._screen.active_save().party.map(func(mon: Gen2SaveMon) -> int: return mon.species)
+	return window == _rows(false).map(func(row: Dictionary) -> int: return int(row["mon"]["species"]))
+
+
+func _link_button(screen: Gen2WorldScreen) -> int:
+	for overlay: StringName in [&"_trade_anim_host", &"_evolution_host"]:
+		if screen.get(overlay) != null:
+			if _frames % FILM_FRAMES == 0:
+				_shot("%s_%05d" % [String(overlay).trim_prefix("_").trim_suffix("_host"), _frames])
+			return _link_paced(PokeButton.A) if overlay == &"_evolution_host" else PokeButton.NONE
+	var host: Gen2LinkScreen = screen.get("_link_host")
+	var state: Dictionary = host.trade_state()
+	match host.step():
+		Gen2LinkScreen.STEP.SELECT:
+			return _link_paced(_select_button(screen, state))
+		Gen2LinkScreen.STEP.FOOTER:
+			var press: int = _link_paced(
+				PokeButton.A if int(state["footer"]) == Gen2LinkScreen.FOOTER_TRADE else PokeButton.RIGHT)
+			_trade["offered"] = bool(_trade.get("offered", false)) or press == PokeButton.A
+			return press
+		Gen2LinkScreen.STEP.GEN1_ASK:
+			var box: Gen2TextBox = state["box"]
+			var paging: bool = box != null and box.has_pages_left() and not box.is_revealing()
+			return _link_paced(PokeButton.A) if paging else PokeButton.NONE
+		Gen2LinkScreen.STEP.CONFIRM:
+			return _link_paced(_confirm_button(int(state["confirm"])))
+	return PokeButton.NONE
+
+
+func _confirm_button(row: int) -> int:
+	if not _trade.has("asked"):
+		_trade["asked"] = true
+		_shot("trade_confirm_%d" % _trade_rounds)
+	var wanted: int = 1 if bool(_trade.get("cancel", false)) else 0
+	return PokeButton.A if row == wanted else (PokeButton.DOWN if row < wanted else PokeButton.UP)
+
+
+func _select_button(screen: Gen2WorldScreen, state: Dictionary) -> int:
+	if _trade.is_empty():
+		_trade = _trade_plan(screen)
+	if _trade.is_empty() or not _round_settled():
+		return PokeButton.NONE
+	if _trade.has("outcome"):
+		return PokeButton.A if bool(state["cancel"]) else PokeButton.DOWN
+	if bool(state["cancel"]):
+		return PokeButton.UP
+	if int(state["list"]) != Gen2LinkScreen.LIST_PLAYER:
+		return PokeButton.LEFT
+	var index: int = int(state["index"])
+	var slot: int = int(_trade["slot"])
+	return PokeButton.A if index == slot else (PokeButton.DOWN if index < slot else PokeButton.UP)
+
+
+func _round_settled() -> bool:
+	if not bool(_trade.get("offered", false)) or _trade.has("outcome"):
+		return true
+	var round: Dictionary = _session.client.me().get("trade", {})
+	if int(round.get("serial", 0)) <= int(_trade["serial"]):
+		return false
+	var outcome: String = String(round.get("outcome", ""))
+	var expected: String = PokeCoopTrades.CANCELED if _trade_rounds == 0 else PokeCoopTrades.TRADED
+	_trade_rounds += 1
+	if outcome != expected:
+		_fail("trade round %d was %s, not %s" % [_trade_rounds, outcome, expected])
+		return false
+	if outcome == PokeCoopTrades.CANCELED:
+		_canceled_round_moved_nobody()
+		return false
+	_trade["outcome"] = outcome
+	return true
+
+
+func _canceled_round_moved_nobody() -> void:
+	if _both_teams() != _trade["teams"]:
+		_fail("the canceled round moved %s to %s" % [_trade["teams"], _both_teams()])
+		return
+	print("coop autoplay: %s trade round 1 canceled by the MACHOKE's receiver, both teams kept" % _player_id)
+	_trade = {}
+
+
+func _both_teams() -> Array:
+	var rows: Callable = func(row: Dictionary) -> Array: return [String(row["uid"]), int(row["mon"]["species"])]
+	return [_rows(false).map(rows), _rows(true).map(rows)]
+
+
+func _trade_plan(screen: Gen2WorldScreen) -> Dictionary:
+	var mine: Array = _rows(false)
+	var theirs: Array = _rows(true)
+	var giving: int = _slot_of(mine, MACHOKE)
+	var slot: int = maxi(giving, 0)
+	var their_slot: int = 0 if giving >= 0 else _slot_of(theirs, MACHOKE)
+	var party: Array = screen.active_save().party
+	if their_slot < 0 or their_slot >= theirs.size() or slot >= mine.size() or slot >= party.size():
+		_fail("no MACHOKE to trade: %d with %d" % [mine.size(), theirs.size()])
+		return {}
+	if (party[slot] as Gen2SaveMon).species != int(mine[slot]["mon"]["species"]):
+		_fail("the window's slot %d is not the host's" % slot)
+		return {}
+	_shot("trade_lists_%d" % _trade_rounds)
+	return {
+		"slot": slot, "given": String(mine[slot]["uid"]), "given_species": int(mine[slot]["mon"]["species"]),
+		"taken": String(theirs[their_slot]["uid"]), "taken_species": int(theirs[their_slot]["mon"]["species"]),
+		"sizes": [mine.size(), theirs.size()], "teams": _both_teams(), "cancel": _trade_rounds == 0 and giving < 0,
+		"serial": int((_session.client.me().get("trade", {}) as Dictionary).get("serial", 0)),
+	}
+
+
+func _check_trade() -> bool:
+	var mine: Array = _rows(false)
+	var theirs: Array = _rows(true)
+	var given: String = _trade["given"]
+	var taken: String = _trade["taken"]
+	var uids: Array = (mine + theirs).map(func(row: Dictionary) -> String: return String(row["uid"]))
+	var problems: PackedStringArray = []
+	if _species_of(mine, taken) != TRADE_EVOLVED.get(_trade["taken_species"], _trade["taken_species"]):
+		problems.append("%s is not on this team as it should arrive" % taken)
+	if _species_of(theirs, given) != TRADE_EVOLVED.get(_trade["given_species"], _trade["given_species"]):
+		problems.append("%s is not on the partner's team as it should arrive" % given)
+	if _species_of(mine, given) != 0 or _species_of(theirs, taken) != 0:
+		problems.append("a traded Pokémon is still with its sender")
+	if [mine.size(), theirs.size()] != _trade["sizes"] or uids.size() != _unique(uids):
+		problems.append("the teams went from %s to %s: %s" % [_trade["sizes"], [mine.size(), theirs.size()], uids])
+	if not problems.is_empty():
+		_fail("; ".join(problems))
+		return false
+	print("coop autoplay: %s traded %s %d for %s %d" % [
+		_player_id, given, _trade["given_species"], taken, _trade["taken_species"]])
+	return true
+
+
+static func _unique(values: Array) -> int:
+	var seen: Dictionary = {}
+	for value: Variant in values:
+		seen[value] = true
+	return seen.size()
+
+
+func _link_paced(button: int) -> int:
+	if button == PokeButton.NONE or _frames - _link_pressed_at < TAP_EVERY:
+		return PokeButton.NONE
+	_link_pressed_at = _frames
+	return button
