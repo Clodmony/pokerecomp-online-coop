@@ -6,6 +6,7 @@ extends RefCounted
 const PARTY_CHECK_FRAMES: int = 30
 ## A scene's states hand over with a frame or two between them that no script holds.
 const REST_FRAMES: int = 3
+const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
 const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
 
@@ -26,8 +27,7 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## A SAVE and every transaction put in a fresh snapshot, only a SAVE through the gate sending a scene so far;
-## a battle handed over puts back a copy, frames and all.
+## A SAVE or any transaction puts in a fresh snapshot, a battle handed over a copy; only a gated SAVE sends a scene.
 var _saved_world: Object = null
 var _saved_frame: int = 0
 var save_seq: int = -1
@@ -111,6 +111,7 @@ static func unrest(screen: Gen2WorldScreen) -> StringName:
 
 
 func _push_world() -> void:
+	_keep_locks()
 	if not _dirty or _host_seen.is_empty():
 		return
 	_dirty = false
@@ -119,6 +120,26 @@ func _push_world() -> void:
 	_baseline = now
 	if not changes.is_empty():
 		_unacked[client.send({"type": "world", "patch": changes})] = changes
+
+
+## `.setFirstLockTrashCanIndex` rolls on every load of the city; with a partner in the city or gym, the agreed lock stays.
+func _keep_locks() -> void:
+	if world == null or world.map_id() != VERMILION_CITY or _baseline.is_empty():
+		return
+	var agreed: int = int((_baseline.get("gen1_bytes", {}) as Dictionary).get(Gen2WorldAPI.GEN1_FIRST_LOCK, 0))
+	var rolled: int = state.gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK)
+	if rolled != agreed and _partner_on([VERMILION_CITY, VERMILION_GYM]):
+		client.journal.add(PokeCoopLog.WORLD, "locks_kept", {"rolled": rolled, "kept": agreed}, client.player_id)
+		state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, agreed)
+
+
+func _partner_on(maps: Array) -> bool:
+	var players: Dictionary = client.state.get("players", {})
+	for player_id: String in players:
+		var view: Dictionary = players[player_id]
+		if player_id != client.player_id and bool(view.get("connected", false)) and maps.has(view.get("map")):
+			return true
+	return false
 
 
 static func _host_world(session: PokeCoopClient) -> Dictionary:

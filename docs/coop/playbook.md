@@ -70,8 +70,8 @@ real test. Windows has only run under Wine and there is no Android build.
   applies at its next map load; `world_pull` log lines carry the busy state;
   `design.md` says what is not shared.
 - **#85** Vermilion Gym's locks stay put while someone is in the city or gym.
-- **#24** only if the owner approves: the first player in drives a contested
-  rival scene, the partner waits and sees the result, SELECT > JOIN stays open.
+- **#24** (approved): the first player in drives a contested rival scene, the
+  partner waits and sees the result, SELECT > JOIN stays open.
 
 ### 3. Play on to the Hall of Fame (#88)
 
@@ -96,20 +96,20 @@ Rough estimate, a guess: two to four working sessions with two or three agents
 in parallel to reach the Hall of Fame in two windows, before the hand-played
 session.
 
-## Decisions waiting on the owner
+## The owner's decisions (2026-10-07, D72)
 
-1. Adopt the rest-point rule (#84), recorded as the next free D-number.
-2. The brief's wording for closing #22 and marking #25 won't-do: "the host is
-   authoritative for the campaign and for battles; each window simulates the
-   maps, NPCs and movement it shows, and shares the campaign at rest points".
-3. #24: is "the first player in drives a contested scene" the lock asked for in
-   D61, and for which scenes?
-4. Accept the costs: a partner sees a scene's result, not the scene; a scene cut
-   off by a disconnect replays from its start; a long scene reaches the partner
-   when it ends; windows stay trusted.
-5. Android: install the SDK, or allow the agent to install it and accept
-   Google's licence (#45).
-6. German: a dump of the owner's own cartridge (#50).
+1. The rest-point rule (#84) is adopted.
+2. The brief's world-simulation item reads: "the host is authoritative for the
+   campaign and for battles; each window simulates the maps, NPCs and movement
+   it shows, and shares the campaign at rest points". #22 closes, #25 is
+   won't-do.
+3. #24: the first player in drives a contested scene, for every rival scene
+   after the opening.
+4. The costs are accepted: a partner sees a scene's result, not the scene; a
+   scene cut off by a disconnect replays from its start; a long scene reaches
+   the partner when it ends; windows stay trusted.
+5. Android (#45) waits until after the Hall of Fame run and #44.
+6. German (#50) waits for the owner's own dump.
 
 ## How the work is done
 

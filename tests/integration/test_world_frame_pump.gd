@@ -321,6 +321,31 @@ func test_closetext_after_a_pause_takes_down_a_box_no_press_closed() -> void:
 	assert_false(_world_screen._text_box.visible)
 
 
+## Cerulean's thief: his TM28 receipt owes no press, then `CeruleanHideRocket`
+## fades out and back in under it. Generation 1 has no `closetext`; the row's
+## end is `CloseTextDisplay`, and left up the box stood over a map taking input.
+func test_a_gen1_rows_end_takes_down_a_no_press_box_its_fade_held_up() -> void:
+	_data.generation = RomRegistry.GEN1
+	_world_screen = await _open_world()
+	var world: Gen2WorldAPI = _world_screen._world
+	world._gen1_steps = Gen1ScriptNodes._gen1_script_steps(world, {"script": [
+		{"op": "text", "text": "BYE!", "press": false},
+		{"op": "fade", "fade": "fade_out_black"},
+		{"op": "fade", "fade": "fade_in_black"},
+	]})
+	_world_screen._show_script_results(Gen1MapScripts._gen1_result(world))
+	_settle_text_box(_world_screen)
+	assert_false(world.pending_script_wait().is_empty(), "the fade runs on with no press")
+	assert_true(_world_screen._text_box.visible, "under the box")
+	for _frame: int in 200:
+		if world.pending_script_wait().is_empty():
+			break
+		_world_screen.advance_frame()
+	assert_true(world.pending_script_wait().is_empty(), "both fades are spent")
+	assert_false(_world_screen._text_box.visible)
+	assert_true(_world_screen._world_idle_for_mod_request(), "the map takes input again")
+
+
 ## `special HealParty` is a save transaction with nothing drawn in front of it,
 ## so the cartridge spends no press on it and neither does the screen.
 func test_a_party_heal_request_is_settled_where_it_is_staged() -> void:
