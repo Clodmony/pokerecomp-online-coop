@@ -1836,6 +1836,27 @@ func test_an_object_a_partners_scene_hid_leaves_this_windows_map_at_once() -> vo
 	assert_null(blue.world.object_at(snorlax.cell))
 
 
+func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, Vector2i(0, Gen1Layout.ROUTE_12))
+
+	red.state.set_event_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT)
+	red.state.set_safari_balls(30)
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(Gen1Layout.IN_SAFARI_ZONE_EVENT),
+		"Blue, with no SAFARI BALL, is not in Red's game")
+	assert_true(blue.world.dispatch_sight_events().is_empty(), "so no game over sends Blue to the gate")
+	assert_false(_host.campaign.has_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT))
+	assert_true(_host.player(_red.player_id).world_part().get("event_flags", {}).has(Gen1Layout.IN_SAFARI_ZONE_EVENT))
+
+	red.state.set_event_flag(Gen1Layout.SAFARI_GAME_OVER_EVENT)
+	red.state.clear_event_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT)
+	_pump()
+	assert_false(blue.state.is_event_flag_active(Gen1Layout.SAFARI_GAME_OVER_EVENT), "nor does Red's game end Blue's")
+
+
 func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
