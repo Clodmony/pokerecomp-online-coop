@@ -579,6 +579,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 		link.world = world
 		_takeover.send_party = link.push_party
 		screen.save_gate = link.save_refusal
+		screen.save_written = link.note_save_written
 		cable = PokeCoopLinkTransport.over(client)
 		world.state.set_link_transport(cable)
 	var layer := CanvasLayer.new()

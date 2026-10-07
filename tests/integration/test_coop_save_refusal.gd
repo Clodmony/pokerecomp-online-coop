@@ -164,6 +164,7 @@ func _gen1_save(link: PokeCoopWorldLink) -> Gen2SavePrompt:
 		var snapshot := Gen2WorldSnapshot.new()
 		snapshot.frame_number = _frame
 		link.save.world = snapshot
+		link.note_save_written()
 		return {"ok": true}
 	var timing: Dictionary = Gen2SavePrompt.TIMINGS[Gen2SavePrompt.Kind.GEN1_MENU]
 	var prompt: Gen2SavePrompt = Gen2SavePrompt.open(Gen2SavePrompt.Kind.GEN1_MENU, link.save.player_name, write)
@@ -269,6 +270,7 @@ func test_start_save_in_a_window_during_a_battle_ends_in_save_failed() -> void:
 	var save: Gen2SaveData = _world_screen._injected_save
 	var link: PokeCoopWorldLink = PokeCoopWorldLink.over(_blue, Gen2WorldState.new(), save, _data)
 	_world_screen.save_gate = link.save_refusal
+	_world_screen.save_written = link.note_save_written
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	var before: Gen2WorldSnapshot = save.world
 

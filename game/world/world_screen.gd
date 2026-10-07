@@ -91,8 +91,9 @@ const WARP_MUSIC_FADE_FRAMES: int = 8
 @export_range(0, 6) var day: int = 0
 @export_range(0, 3) var time_of_day: int = Gen2WorldPalette.TIME_MORNING
 @export var encounter_seed: int = 0
-## Asked before START > SAVE writes: a refusal ends in the prompt's "Save failed" box, {} writes.
+## START > SAVE asks `save_gate` first (a refusal ends in "Save failed"); any SAVE then calls `save_written`.
 var save_gate: Callable = Callable()
+var save_written: Callable = Callable()
 
 var _data: GameData = null
 var _injected_data: GameData = null
@@ -3929,6 +3930,8 @@ func persist_world_snapshot() -> Dictionary:
 	## what the file carries.
 	Gen2MysteryGift.backup(_world.state.mystery_gift())
 	save.mystery_gift = _world.state.mystery_gift().duplicate(true)
+	if save_written.is_valid():
+		save_written.call()
 	if _injected_save != null:
 		return {"ok": true, "kind": &"world_snapshot_saved", "save": save}
 	return Gen2SaveStore.save(save, _data)
