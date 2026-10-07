@@ -728,12 +728,19 @@ func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
 	_settle()
 	assert_eq(red.save_seq, -1, "a battle putting back a copy of the last snapshot is no SAVE")
 
+	var bought := Gen2WorldSnapshot.new()
+	bought.frame_number = 1230
+	red.save.world = bought
+	_settle()
+	assert_eq(red.save_seq, -1, "a heal or a purchase writes a snapshot but is no SAVE")
+
 	var saved := Gen2WorldSnapshot.new()
 	saved.frame_number = 1234
 	red.save.world = saved
+	red.note_save_written()
 	_settle()
 
-	assert_ne(red.save_seq, -1, "a snapshot of the live world is the world's SAVE")
+	assert_ne(red.save_seq, -1, "the world's SAVE asks for a checkpoint")
 	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
 
 
@@ -1979,13 +1986,14 @@ func test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot
 	given.frame_number = 1234
 	red.save.world = given
 	_pump()
-	assert_ne(red.save_seq, -1, "a transaction's snapshot still asks for a checkpoint")
-	assert_false(_host.campaign.has_flag(0x30B), "but the scene stays in the window")
+	assert_eq(red.save_seq, -1, "a transaction's snapshot asks for no checkpoint")
+	assert_false(_host.campaign.has_flag(0x30B), "and the scene stays in the window")
 
 	assert_eq(red.save_refusal(), {})
 	var saved := Gen2WorldSnapshot.new()
 	saved.frame_number = 1240
 	red.save.world = saved
+	red.note_save_written()
 	_pump()
 	assert_true((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).has_flag(0x30B), "the SAVE answers the host anyway")
 
