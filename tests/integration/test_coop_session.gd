@@ -737,6 +737,20 @@ func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
 	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
 
 
+func test_a_ball_thrown_in_the_windows_own_battle_asks_for_no_checkpoint() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.busy = &"battle"
+	var thrown := Gen2WorldSnapshot.new()
+	thrown.frame_number = 1234
+	red.save.world = thrown
+	_settle()
+	red.busy = &""
+	_settle()
+
+	assert_eq(red.save_seq, -1, "a SAFARI BALL's transaction snapshots the world, which is no SAVE")
+	assert_eq(String((_blue.state.get("saved", {}) as Dictionary).get("by", "")), "", "nor does Blue hear of one")
+
+
 func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:
 	_host.shutdown()
 	_pump()

@@ -27,7 +27,7 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## A SAVE or any transaction puts in a fresh snapshot, a battle handed over a copy; only a gated SAVE sends a scene.
+## A SAVE or any transaction puts in a fresh snapshot, a battle handed over a copy; one in a battle (a ball) is no SAVE.
 var _saved_world: Object = null
 var _saved_frame: int = 0
 var save_seq: int = -1
@@ -260,7 +260,7 @@ func _world_saved() -> bool:
 		return false
 	_saved_world = save.world
 	var frame: int = save.world.frame_number if save.world != null else _saved_frame
-	var saved: bool = frame != _saved_frame
+	var saved: bool = frame != _saved_frame and busy != &"battle"
 	_saved_frame = frame
 	return saved
 
