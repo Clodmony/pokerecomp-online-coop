@@ -11,9 +11,9 @@ Statuses: **done** (acceptance criteria met and verified locally),
 
 | Branch | Base | State | GitHub |
 |---|---|---|---|
-| `coop/slice-1` | `main` | pushed up to `e5bef608`; `4d8cdaf4` (GitHub pause note) local only | draft PR #58 |
-| `coop/m1-state-sync` | `coop/slice-1` | local only: ownership, world and party sync, battle takeover, unique window trainers | none yet |
-| `coop/launcher` | `coop/m1-state-sync` | local only: launcher Co-op tab, new players, captures, evolution, whiteout, session lifecycle | none yet |
+| `coop/slice-1` | `main` | pushed | draft PR #58 |
+| `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
+| `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
 
 ## Issues
 
@@ -68,24 +68,24 @@ Statuses: **done** (acceptance criteria met and verified locally),
 
 ## Found while GitHub was paused
 
-| L | Title | Milestone | Notes |
-|---|---|---|---|
-| L1 | Claim trainers fought from a window as unique encounters | M6 | done on `coop/m1-state-sync`: a second window joins the running fight, a beaten trainer stays beaten |
-| L2 | Tell a window when its SAVE was refused | M8 | done: a notice over the world says why; since D56 the game's own box says "Save failed: battle in progress" before anything is written, the notice remaining for a battle that starts on the way |
-| L3 | Leave a session from the game and return to the launcher | M9 | done on `coop/launcher`: LEAVE SESSION, the end notice and the window closing all leave through one path |
-| L4 | Window saves failed the game's own checks (slot -1), refusing PC and other validated services | M7 | done on `coop/launcher`: slot 0 under a scratch save root |
-| L5 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |
-| L6 | Upstream: a Gen 1 link trade from a save slot puts the catch rate in the item byte, so a Pokémon whose catch rate is not an item (RATTATA, 255) fails the arriving save's check | upstream | seen in co-op before the co-op cable sent host rows; file upstream with a repro |
-| L8 | Upstream: the Gen 1 battle intro draws the player's back-picture head as Crystal's six-column OAM, scrambling it | upstream | fixed in the fork's `battle_intro.gd` (D42); file upstream with the fix |
-| L7 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
-| L9 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
-| L10 | Upstream: the rival's challenge in Oak's lab can be walked past: the player can move while the rival walks to his POKé BALL (`wJoyIgnore` not modelled), and walking down at once leaves the lab without the fight | upstream | fixed in the fork's `world_screen.gd` (D54): no player step while a Gen 1 script walks someone; checked in single player. File upstream with the fix |
-| L11 | Upstream: a direction pressed on the frame the player stops never turns them, and a press that does not turn leaves the facing alone, so after the Viridian Mart's parcel scene DOWN does not leave the shop | upstream | fixed in the fork's `world_api.gd` (D57): a Gen 1 press faces its direction as `wPlayerDirection` does; file upstream with the fix |
-| L12 | A new player plays the opening on a story of their own | M9 | done on `coop/launcher` (D50) |
-| L13 | A window's stale echo of its own world change rewound map scripts | M7 | fixed on `coop/launcher` (D51) |
-| L14 | Every item found or given along the story reaches every player; key items the story takes are taken from all | M7 | done on `coop/launcher` (D52) |
-| L15 | Partners are solid, so players do not stand on one cell | M3 | done on `coop/launcher` (D53) |
-| L16 | Three or more players: every partner's suggestion shown, Cable Club partner by room, a third team joins with what fits | M3 | done on `coop/launcher` (D55); tests only, not played with three |
-| L17 | A campaign of players who skipped the opening had Oak's lab before the intro: no Oak, so the parcel could not be delivered | M6 | fixed on `coop/launcher` (D58) |
-| L18 | Session logs for host and clients, and a debug stream that copies each player's lines to the others | tooling | done on `coop/launcher` (D59) |
-| L19 | Closing a hosting window ended the session with no grace: the joiner got no "ended" and kept redialling, and the host's last log lines missed it | M2 | fixed on `coop/launcher` (D60): the window waits for the goodbye, at most 2.5 s for a host and 0.6 s for a joiner |
+| L | Issue | Title | Milestone | Notes |
+|---|---|---|---|---|
+| L1 | #60 | Claim trainers fought from a window as unique encounters | M6 | done on `coop/m1-state-sync`: a second window joins the running fight, a beaten trainer stays beaten |
+| L2 | #61 | Tell a window when its SAVE was refused | M8 | done: a notice over the world says why; since D56 the game's own box says "Save failed: battle in progress" before anything is written, the notice remaining for a battle that starts on the way |
+| L3 | #62 | Leave a session from the game and return to the launcher | M9 | done on `coop/launcher`: LEAVE SESSION, the end notice and the window closing all leave through one path |
+| L4 | #63 | Window saves failed the game's own checks (slot -1), refusing PC and other validated services | M7 | done on `coop/launcher`: slot 0 under a scratch save root |
+| L5 | #64 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |
+| L6 | #65 | Upstream: a Gen 1 link trade from a save slot puts the catch rate in the item byte, so a Pokémon whose catch rate is not an item (RATTATA, 255) fails the arriving save's check | upstream | seen in co-op before the co-op cable sent host rows; file upstream with a repro |
+| L8 | #67 | Upstream: the Gen 1 battle intro draws the player's back-picture head as Crystal's six-column OAM, scrambling it | upstream | fixed in the fork's `battle_intro.gd` (D42); file upstream with the fix |
+| L7 | #66 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
+| L9 | #68 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
+| L10 | #69 | Upstream: the rival's challenge in Oak's lab can be walked past: the player can move while the rival walks to his POKé BALL (`wJoyIgnore` not modelled), and walking down at once leaves the lab without the fight | upstream | fixed in the fork's `world_screen.gd` (D54): no player step while a Gen 1 script walks someone; checked in single player. File upstream with the fix |
+| L11 | #70 | Upstream: a direction pressed on the frame the player stops never turns them, and a press that does not turn leaves the facing alone, so after the Viridian Mart's parcel scene DOWN does not leave the shop | upstream | fixed in the fork's `world_api.gd` (D57): a Gen 1 press faces its direction as `wPlayerDirection` does; file upstream with the fix |
+| L12 | #71 | A new player plays the opening on a story of their own | M9 | done on `coop/launcher` (D50) |
+| L13 | #72 | A window's stale echo of its own world change rewound map scripts | M7 | fixed on `coop/launcher` (D51) |
+| L14 | #73 | Every item found or given along the story reaches every player; key items the story takes are taken from all | M7 | done on `coop/launcher` (D52) |
+| L15 | #74 | Partners are solid, so players do not stand on one cell | M3 | done on `coop/launcher` (D53) |
+| L16 | #75 | Three or more players: every partner's suggestion shown, Cable Club partner by room, a third team joins with what fits | M3 | done on `coop/launcher` (D55); tests only, not played with three |
+| L17 | #76 | A campaign of players who skipped the opening had Oak's lab before the intro: no Oak, so the parcel could not be delivered | M6 | fixed on `coop/launcher` (D58) |
+| L18 | #77 | Session logs for host and clients, and a debug stream that copies each player's lines to the others | tooling | done on `coop/launcher` (D59) |
+| L19 | #78 | Closing a hosting window ended the session with no grace: the joiner got no "ended" and kept redialling, and the host's last log lines missed it | M2 | fixed on `coop/launcher` (D60): the window waits for the goodbye, at most 2.5 s for a host and 0.6 s for a joiner |
