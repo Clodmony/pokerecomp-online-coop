@@ -1,11 +1,10 @@
 class_name PokeCoopHost
 extends RefCounted
 
-## The authoritative side of a co-op session. Clients send intentions; this
-## validates them against the campaign, the players and the running battles, and
-## answers every connected client with the state they may see.
+## The authoritative side of a co-op session: validates clients' intentions against the campaign,
+## the players and the running battles, and answers every client with the state they may see.
 
-const PROTOCOL: int = 2
+const PROTOCOL: int = 3
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -29,8 +28,7 @@ var _refused_peers: Dictionary = {}
 var _peers: Dictionary = {}
 var _badge_flags: Array[int] = []
 var _last_seq: Dictionary = {}
-## Each player's final battle views not yet delivered: a participant who was
-## away when a battle ended is told on coming back.
+## Final battle views a participant who was away when a battle ended is told on coming back.
 var _finished: Dictionary = {}
 var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
@@ -40,6 +38,17 @@ var _written_at: int = 0
 var _saves: int = 0
 var _saved_by: String = ""
 var _saved_unix: float = 0.0
+var journal: PokeCoopLog = PokeCoopLog.new()
+var _log_peers: Dictionary = {}
+## The latest log batches, for a device that starts sharing later, and the last each device got.
+var _log_backlog: Array = []
+var _log_backlog_bytes: int = 0
+var _log_batches: int = 0
+var _log_delivered: Dictionary = {}
+var _streamed_at: int = 0
+var _started: bool = false
+var _logged_revision: int = -1
+var _logged_views: Dictionary = {}
 
 
 static func create(
@@ -71,11 +80,12 @@ func adopt_players(loaded: Array) -> void:
 		players[member.player_id] = member
 
 
-## A battle a client may ask for by id: `kind` (`wild` or `trainer`), `species`,
-## `level` and optional `moves`, or `trainer_class` and `trainer_index`; `unique`,
-## `victory_flags` and `badge` for story fights.
+## A battle a client may ask for by id: `kind` (`wild` or `trainer`), `species`, `level` and optional
+## `moves`, or `trainer_class` and `trainer_index`; `unique`, `victory_flags` and `badge` for story fights.
 func register_encounter(encounter_id: String, descriptor: Dictionary) -> void:
 	encounters[encounter_id] = descriptor.duplicate(true)
+	if _started:
+		journal.add(PokeCoopLog.HOST, "encounter", {"id": encounter_id, "descriptor": descriptor})
 
 
 func player(player_id: String) -> PokeCoopPlayer:
@@ -85,41 +95,131 @@ func player(player_id: String) -> PokeCoopPlayer:
 func poll() -> void:
 	if ended:
 		return
+	if not _started:
+		_log_start()
 	for event: Dictionary in transport.poll():
 		var peer: int = int(event["peer"])
 		var kind: StringName = StringName(event["kind"])
 		if kind == PokeCoopTransport.DISCONNECTED:
 			_on_disconnected(peer)
-		elif kind == PokeCoopTransport.MESSAGE and _closing_at < 0 and not _refused_peers.has(peer):
+		elif kind == PokeCoopTransport.MESSAGE and not _refused_peers.has(peer) and (_closing_at < 0 or _is_log(event["message"])):
 			_on_message(peer, event["message"])
+		else:
+			journal.add(PokeCoopLog.HOST, "ignored" if kind == PokeCoopTransport.MESSAGE else String(kind), {"peer": peer})
 	_drop_refused()
 	_end_abandoned()
 	_announce_stand_ins()
 	_autosave()
+	_note_campaign()
+	_share_log()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
 		transport.close()
 		ended = true
+		journal.add(PokeCoopLog.HOST, "closed", {"players": players.size()})
+	journal.poll()
 
 
-func _on_message(peer: int, message: Dictionary) -> void:
+## What a replay starts from: campaign and players as saved, encounters, and the generator of every seed.
+func _log_start() -> void:
+	_started = true
+	_logged_revision = campaign.revision
+	if journal.is_on():
+		journal.add(PokeCoopLog.HOST, "host_start", {
+			"protocol": PROTOCOL, "summary": campaign.summary(), "save": PokeCoopSave.to_dict(campaign, players.values()),
+			"encounters": encounters, "seed": str(seeds.seed), "rng_state": str(seeds.state),
+			"allow_new_players": allow_new_players, "save_path": save_path, "autosave_msec": autosave_msec,
+		})
+
+
+func _on_message(peer: int, message: Dictionary) -> StringName:
 	var kind: String = PokeCoopTransport.text(message.get("type"))
-	if kind == "hello":
-		_hello(peer, message)
-		return
+	if kind == "log":
+		_relay_log(peer, message.get("lines"))
+		return &""
+	var line: Dictionary = journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": message}, String(_peers.get(peer, "")))
+	var result: StringName = _hello(peer, message) if kind == "hello" else _answer(peer, kind, message)
+	if not line.is_empty():
+		line["data"]["result"] = String(result) if result != &"" else "ok"
+		line["player"] = String(_peers.get(peer, ""))
+	_note_campaign()
+	return result
+
+
+func _answer(peer: int, kind: String, message: Dictionary) -> StringName:
 	var sender: PokeCoopPlayer = player(String(_peers.get(peer, "")))
 	var seq: int = PokeCoopTransport.number(message.get("seq"), -1)
 	if sender == null:
 		transport.send(peer, _rejected(seq, &"hello_first"))
-		return
+		return &"hello_first"
 	if seq <= int(_last_seq.get(sender.player_id, 0)):
 		transport.send(peer, _rejected(seq, &"duplicate"))
-		return
+		return &"duplicate"
 	_last_seq[sender.player_id] = seq
 	var refusal: StringName = _dispatch(sender, kind, message)
 	_changed = _changed or refusal == &""
 	if refusal != &"":
 		transport.send(peer, _rejected(seq, refusal))
 	broadcast()
+	return refusal
+
+
+## A client's own log lines, kept when this device shares too and passed on to every other that shares.
+func _relay_log(peer: int, raw: Variant) -> void:
+	var sender: String = String(_peers.get(peer, ""))
+	if sender.is_empty() or not _streams_to(peer):
+		return
+	var taken: Array = journal.take_relayed(raw, sender, String(_log_peers[peer]["device"]), journal.share)
+	journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": {"type": "log", "lines": (raw as Array).size() if raw is Array else -1},
+		"result": "%d taken" % taken.size()}, sender)
+	_pass_log(taken, peer)
+
+
+static func _is_log(message: Dictionary) -> bool:
+	return PokeCoopTransport.text(message.get("type")) == "log"
+
+
+func _pass_log(lines: Array, from_peer: int) -> void:
+	if lines.is_empty():
+		return
+	_log_batches += 1
+	_log_backlog.append({"serial": _log_batches, "lines": lines, "bytes": var_to_bytes(lines).size()})
+	_log_backlog_bytes += int(_log_backlog[-1]["bytes"])
+	while _log_backlog_bytes > PokeCoopLog.BACKLOG_BYTES:
+		_log_backlog_bytes -= int(_log_backlog.pop_front()["bytes"])
+	for peer: int in _peers:
+		if peer != from_peer and _streams_to(peer):
+			transport.send(peer, {"type": "log", "lines": lines})
+			_log_delivered[_log_peers[peer]["device"]] = _log_batches
+
+
+func _streams_to(peer: int) -> bool:
+	var shared: Dictionary = _log_peers.get(peer, {})
+	return bool(shared.get("share", false)) and String(shared.get("device", "")) != journal.device
+
+
+## What a device sharing from now on missed of the others' lines, as far back as the backlog goes.
+func _send_backlog(peer: int) -> void:
+	if not _streams_to(peer):
+		return
+	var device: String = _log_peers[peer]["device"]
+	for batch: Dictionary in _log_backlog:
+		var lines: Array = (batch["lines"] as Array).filter(func(line: Dictionary) -> bool: return line.get("device") != device)
+		if int(batch["serial"]) > int(_log_delivered.get(device, 0)) and not lines.is_empty():
+			transport.send(peer, {"type": "log", "lines": lines})
+	_log_delivered[device] = _log_batches
+
+
+func _share_log(now: bool = false) -> void:
+	if not journal.share or (not now and Time.get_ticks_msec() - _streamed_at < journal.stream_msec):
+		return
+	_streamed_at = Time.get_ticks_msec()
+	_pass_log(journal.take_stream(), -1)
+
+
+func _note_campaign() -> void:
+	if campaign.revision != _logged_revision and _started:
+		_logged_revision = campaign.revision
+		journal.add(PokeCoopLog.HOST, "campaign", campaign.summary())
 
 
 func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> StringName:
@@ -145,7 +245,7 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 		"party":
 			return apply_party(sender, message)
 		"save":
-			var refused: StringName = save_checkpoint()
+			var refused: StringName = save_checkpoint("asked by " + sender.player_id)
 			if refused == &"":
 				_saves += 1
 				_saved_by = sender.player_id
@@ -155,13 +255,15 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 		"trade":
 			var swaps: int = trades.swaps
 			var answer: StringName = trades.handle(sender, message, players)
+			if trades.swaps != swaps:
+				journal.add(PokeCoopLog.HOST, "trade_swap", {"swaps": trades.swaps}, sender.player_id)
 			if trades.swaps != swaps and battles.is_empty():
-				_write_campaign()
+				_write_campaign("trade")
 			return answer
 	return &"unknown_message"
 
 
-func _hello(peer: int, message: Dictionary) -> void:
+func _hello(peer: int, message: Dictionary) -> StringName:
 	var refusal: StringName = _hello_refusal(message)
 	var joining: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("player_id")))
 	var known: Variant = message.get("known", {})
@@ -187,13 +289,15 @@ func _hello(peer: int, message: Dictionary) -> void:
 					data, joining, PokeCoopTransport.number(message.get("starter")), joined_before
 				)
 			PokeCoopPolicy.hand_over_gifts(campaign, joining)
+			journal.add(PokeCoopLog.HOST, "new_player", joining.to_dict(), joining.player_id)
 	if refusal == &"" and joining.connected:
 		refusal = &"already_connected"
 	if refusal != &"":
 		transport.send(peer, _rejected(-1, refusal))
 		_refused_peers[peer] = Time.get_ticks_msec() + SHUTDOWN_GRACE_MSEC
-		return
+		return refusal
 	_peers[peer] = joining.player_id
+	_log_peers[peer] = _log_peer(message.get("logs"))
 	_box_sent.erase(peer)
 	joining.connected = true
 	for session: PokeCoopBattleSession in battles.values():
@@ -202,7 +306,14 @@ func _hello(peer: int, message: Dictionary) -> void:
 		"type": "welcome", "protocol": PROTOCOL, "player_id": joining.player_id, "campaign": campaign.campaign_id,
 		"last_seq": int(_last_seq.get(joining.player_id, 0)),
 	})
+	_send_backlog(peer)
 	broadcast()
+	return &""
+
+
+static func _log_peer(raw: Variant) -> Dictionary:
+	var said: Dictionary = raw if raw is Dictionary else {}
+	return {"device": PokeCoopTransport.text(said.get("device")), "share": said.get("share") is bool and bool(said.get("share"))}
 
 
 ## A saved player not here, by name: a device that lost its id or dialled another address.
@@ -213,8 +324,7 @@ func _returning(player_name: String) -> PokeCoopPlayer:
 	return null
 
 
-## A new player's own single-player save, rebuilt from vetted parts: Pokémon that pass
-## the game's rules, the world-state keys a window could send, and where they stood.
+## A new player's own save, rebuilt from vetted parts: legal Pokémon, sendable world keys, where they stood.
 func _brought_save(raw: Variant) -> Gen2SaveData:
 	if not raw is Dictionary or PokeCoopTransport.text(raw.get("game_id")) != String(data.id):
 		return null
@@ -260,7 +370,7 @@ func _hello_refusal(message: Dictionary) -> StringName:
 
 func _autosave() -> void:
 	if _changed and battles.is_empty() and _closing_at < 0 \
-			and Time.get_ticks_msec() - _written_at >= autosave_msec and _write_campaign() == OK:
+			and Time.get_ticks_msec() - _written_at >= autosave_msec and _write_campaign("autosave") == OK:
 		_changed = false
 
 
@@ -268,6 +378,7 @@ func _autosave() -> void:
 func _end_abandoned() -> void:
 	for session: PokeCoopBattleSession in battles.values():
 		if session.everyone_away_for() >= PokeCoopPolicy.STAND_IN_MSEC:
+			journal.add(PokeCoopLog.HOST, "battle_abandoned", {"battle": session.id})
 			session.abandon()
 			_finish(session)
 			broadcast()
@@ -278,7 +389,9 @@ func _announce_stand_ins() -> void:
 	var changed: bool = false
 	for session: PokeCoopBattleSession in battles.values():
 		var now: String = session.controller()
-		changed = changed or String(_controllers.get(session.id, now)) != now
+		if String(_controllers.get(session.id, now)) != now:
+			changed = true
+			journal.add(PokeCoopLog.HOST, "controller", {"battle": session.id, "controller": now})
 		_controllers[session.id] = now
 	if changed and _closing_at < 0:
 		broadcast()
@@ -289,14 +402,17 @@ func _drop_refused() -> void:
 	for peer: int in _refused_peers.keys():
 		if Time.get_ticks_msec() >= int(_refused_peers[peer]):
 			_refused_peers.erase(peer)
+			journal.add(PokeCoopLog.HOST, "dropped", {"peer": peer})
 			transport.drop(peer)
 
 
 func _on_disconnected(peer: int) -> void:
 	_refused_peers.erase(peer)
 	var leaving: PokeCoopPlayer = player(String(_peers.get(peer, "")))
+	journal.add(PokeCoopLog.HOST, "disconnected", {"peer": peer}, String(_peers.get(peer, "")))
 	_peers.erase(peer)
 	_box_sent.erase(peer)
+	_log_peers.erase(peer)
 	if leaving == null:
 		return
 	leaving.connected = false
@@ -308,8 +424,7 @@ func _on_disconnected(peer: int) -> void:
 		broadcast()
 
 
-## A step on the current map, or a [param warp] the client's own world made, trusted
-## until the shared world simulation can check collision and warps.
+## A step on the current map, or a [param warp] the client's world made, trusted until the host simulates it.
 func step(
 	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
 ) -> StringName:
@@ -323,8 +438,7 @@ func step(
 	return &""
 
 
-## A window's world-state patch, the shared half to the campaign and the rest
-## to [param sender]. Trusted until the host simulates the world itself.
+## A window's world-state patch, trusted for now: the shared half to the campaign, the rest to [param sender].
 func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var halves: Dictionary = PokeCoopOwnership.route(changes, _badge_flags)
 	if not sender.opening.is_empty():
@@ -350,6 +464,7 @@ func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
 	sender.opening["rival"] = named
 	if campaign.rival_name.is_empty():
 		campaign.rival_name = named
+	journal.add(PokeCoopLog.HOST, "opening", {"stage": PokeCoopPolicy.OPENING_PLAYING, "rival": named}, sender.player_id)
 	return &""
 
 
@@ -372,10 +487,10 @@ func _settle_opening(member: PokeCoopPlayer) -> void:
 		missing["gen1_starters"] = {"value": story["gen1_starters"]}
 	campaign.apply_world_patch(missing, _badge_flags)
 	member.opening = {}
+	journal.add(PokeCoopLog.HOST, "opening", {"stage": "done", "map": member.map, "cell": member.cell}, member.player_id)
 
 
-## A window's party and PC after a heal, a gift, a deposit or a release.
-## Refused in a battle, whose results the host writes itself.
+## A window's party and PC after a heal, gift, deposit or release; refused in a battle, whose results the host writes.
 func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 	var rows: Variant = message.get("rows", [])
 	var stored: Variant = message.get("boxes", null)
@@ -411,6 +526,7 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 			campaign.release_encounter(encounter_id, battle_id)
 		return &"cannot_start"
 	battles[battle_id] = session
+	_log_battle_start(session)
 	return &""
 
 
@@ -459,11 +575,11 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 			campaign.release_encounter(encounter_id, battle_id)
 		return &"cannot_start"
 	battles[battle_id] = session
+	_log_battle_start(session)
 	return &""
 
 
-## One encounter for the whole campaign: a trainer by class and index, or one
-## of Red and Blue's one-off wild Pokémon where it stands; empty for the grass.
+## One encounter per campaign: a trainer by class and index, or a one-off wild Pokémon where it stands; empty for grass.
 static func _window_encounter(
 	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i
 ) -> String:
@@ -516,6 +632,7 @@ func battle_command(sender: PokeCoopPlayer, battle_id: String, command: Dictiona
 	var result: Dictionary = session.submit(sender, command)
 	if not bool(result.get("ok", false)):
 		return StringName(result.get("reason", &"refused"))
+	_log_view(session)
 	if session.phase() == PokeCoopBattleSession.OVER:
 		_finish(session)
 	return &""
@@ -533,8 +650,21 @@ func join_battle(joiner: PokeCoopPlayer, battle_id: String) -> StringName:
 	return &"unknown_battle" if session == null else session.request_join(data, joiner)
 
 
-## Writes each participant's Pokémon back by uid, pays and commits a win once,
-## and takes the battle off the host, so nothing about it can apply twice.
+func _log_battle_start(session: PokeCoopBattleSession) -> void:
+	if journal.is_on():
+		journal.add(PokeCoopLog.HOST, "battle_start", {
+			"battle": session.id, "seed": session.rng.seed, "encounter": session.encounter,
+			"initiator": session.initiator, "view": session.view(),
+		}, session.initiator)
+
+
+func _log_view(session: PokeCoopBattleSession) -> void:
+	if journal.is_on() and int(_logged_views.get(session.id, -1)) != session.revision:
+		_logged_views[session.id] = session.revision
+		journal.add(PokeCoopLog.HOST, "battle_view", session.view())
+
+
+## Writes Pokémon back by uid, pays and commits a win once, and drops the battle, so nothing applies twice.
 func _finish(session: PokeCoopBattleSession) -> void:
 	var outcome: StringName = session.outcome()
 	var by_owner: Dictionary = session.results()
@@ -550,7 +680,9 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		_file_catch(session.catch)
 	var prizes: Dictionary = _pay(session) if outcome == &"won" else {}
 	if unique and (outcome == &"won" or outcome == PokeCoopBattleSession.CAUGHT):
-		campaign.commit("victory:" + encounter_id, _victory_changes(session.encounter, encounter_id))
+		var changes: Dictionary = _victory_changes(session.encounter, encounter_id)
+		var applied: bool = campaign.commit("victory:" + encounter_id, changes)
+		journal.add(PokeCoopLog.HOST, "commit", {"id": "victory:" + encounter_id, "changes": changes, "applied": applied})
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
 	var final_view: Dictionary = session.view()
@@ -562,12 +694,25 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		participant.resume_exploration()
 		(_finished.get_or_add(player_id, []) as Array).append(final_view)
 	battles.erase(session.id)
+	_logged_views.erase(session.id)
+	journal.add(PokeCoopLog.HOST, "battle_end", {
+		"battle": session.id, "outcome": outcome, "prizes": prizes, "results": _result_rows(by_owner),
+		"caught_for": String(session.catch.get("recipient", "")), "view": final_view,
+	})
 	if battles.is_empty():
-		_write_campaign()
+		_write_campaign("battle_end")
 
 
-## The wild a ball held, filed once with its recipient as its trainer: the team
-## if there is room, else the box, and caught in their own Pokédex.
+static func _result_rows(by_owner: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for owner_id: String in by_owner:
+		out[owner_id] = (by_owner[owner_id] as Array).map(func(row: Dictionary) -> Dictionary:
+			var fought: Gen2BattleMon = row["mon"]
+			return {"uid": row["uid"], "species": fought.species, "level": fought.level, "hp": fought.hp, "exp": fought.exp})
+	return out
+
+
+## The wild a ball held, filed once with its recipient as trainer: the team if there is room, else the box.
 func _file_catch(caught: Dictionary) -> void:
 	var recipient: PokeCoopPlayer = player(String(caught.get("recipient", "")))
 	var wild: Gen2BattleMon = caught.get("mon", null)
@@ -610,32 +755,38 @@ func save_blocker() -> StringName:
 	return &"no_save_path" if save_path.is_empty() else &""
 
 
-func save_checkpoint() -> StringName:
+func save_checkpoint(why: String = "checkpoint") -> StringName:
 	var blocked: StringName = save_blocker()
 	if blocked != &"":
+		journal.add(PokeCoopLog.HOST, "save_refused", {"why": why, "reason": blocked})
 		return blocked
-	return &"" if _write_campaign() == OK else &"save_failed"
+	return &"" if _write_campaign(why) == OK else &"save_failed"
 
 
 ## The campaign between battles: a battle still running when the host closes is left out.
-func _write_campaign() -> Error:
+func _write_campaign(why: String) -> Error:
 	_written_at = Time.get_ticks_msec()
 	var written: Error = PokeCoopSave.write(save_path, campaign, players.values()) \
 		if not save_path.is_empty() else ERR_UNCONFIGURED
 	if written == OK:
 		_saved_unix = Time.get_unix_time_from_system()
+	journal.add(PokeCoopLog.HOST, "save" if written in [OK, ERR_UNCONFIGURED] else "save_error",
+		{"why": why, "path": save_path, "result": error_string(written)})
 	return written
 
 
-## Tells every client the session is over, then closes once they have all left
-## or [param grace_msec] has passed: a socket closed at once can lose the notice.
+## Tells every client the session is over, closing once all left or after [param grace_msec], so the notice arrives.
 func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE_MSEC) -> void:
 	if ended or _closing_at >= 0:
 		return
+	journal.add(PokeCoopLog.HOST, "shutdown", {"reason": reason, "grace_msec": grace_msec, "battles": battles.keys(), "peers": _peers.values()})
 	for session: PokeCoopBattleSession in battles.values():
 		session.abandon()
 		_finish(session)
-	_write_campaign()
+	if journal.is_on():
+		journal.add(PokeCoopLog.HOST, "host_end", {"save": PokeCoopSave.to_dict(campaign, players.values())})
+	_write_campaign("shutdown")
+	_share_log(true)
 	for peer: int in _peers:
 		transport.send(peer, {"type": "ended", "reason": reason})
 	_closing_at = Time.get_ticks_msec() + maxi(grace_msec, 0)
@@ -649,6 +800,7 @@ func broadcast() -> void:
 		everyone[player_id] = player(player_id).public_view()
 	var running: Array = []
 	for session: PokeCoopBattleSession in battles.values():
+		_log_view(session)
 		running.append({
 			"battle": session.id, "encounter": String(session.encounter.get("id", "")),
 			"participants": session.participants.duplicate(), "phase": session.phase(),

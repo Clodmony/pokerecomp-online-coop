@@ -1,9 +1,8 @@
 class_name PokeCoopWorldLink
 extends RefCounted
 
-## Keeps one window's world state and party in step with the host: world changes
-## travel as patches both ways, the party and PC go out while the player is free
-## and come back whole, and the world's own SAVE asks for a campaign checkpoint.
+## Keeps a window's world state, party and PC in step with the host: world patches both ways, holdings out
+## while the player is free and back whole, and the world's own SAVE asks for a campaign checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
 
@@ -53,8 +52,7 @@ func _on_state_changed() -> void:
 	_dirty = true
 
 
-## Once a frame, this window's changes go out before the host's come in. Nothing
-## goes out while the link is down; what was not sent goes out once it is back.
+## Once a frame, this window's changes go out before the host's come in, and wait while the link is down.
 func advance() -> void:
 	if client == null or client.me().is_empty() or not client.connected:
 		return
@@ -104,8 +102,11 @@ func _pull_world() -> void:
 	for seq: int in _unacked.keys():
 		if seq <= applied:
 			_unacked.erase(seq)
+	var echoes: Dictionary = {}
 	for pending: Dictionary in _unacked.values():
-		_drop_overlap(changes, pending)
+		_drop_overlap(changes, pending, echoes)
+	if not changes.is_empty() or not echoes.is_empty():
+		client.journal.add(PokeCoopLog.WORLD, "world_pull", {"changes": changes, "echoes": echoes, "unacked": _unacked.keys()}, client.player_id)
 	if not changes.is_empty():
 		var merged: Dictionary = state.to_dict()
 		PokeCoopOwnership.apply_patch(merged, changes)
@@ -114,23 +115,27 @@ func _pull_world() -> void:
 	_dirty = false
 
 
-static func _drop_overlap(changes: Dictionary, pending: Dictionary) -> void:
+static func _drop_overlap(changes: Dictionary, pending: Dictionary, echoes: Dictionary) -> void:
 	for key: String in pending:
 		if not changes.has(key):
 			continue
 		var mine: Dictionary = pending[key]
 		var theirs: Dictionary = changes[key]
 		if mine.has("value") or theirs.has("value"):
+			echoes[key] = theirs
 			changes.erase(key)
 			continue
 		for entry: Variant in (mine.get("set", {}) as Dictionary).keys() + (mine.get("erase", []) as Array):
-			(theirs.get("set", {}) as Dictionary).erase(entry)
+			if (theirs.get("set", {}) as Dictionary).erase(entry) or (theirs.get("erase", []) as Array).has(entry):
+				(echoes.get_or_add(key, []) as Array).append(entry)
 			(theirs.get("erase", []) as Array).erase(entry)
 
 
 ## The world's START > SAVE gate: the host's last state names why it would refuse a checkpoint.
 func save_refusal() -> Dictionary:
 	var blocked: String = String((client.state.get("saved", {}) as Dictionary).get("blocked", ""))
+	if not blocked.is_empty():
+		client.journal.add(PokeCoopLog.WORLD, "save_gate", {"reason": blocked}, client.player_id)
 	return {} if blocked.is_empty() else {"ok": false, "reason": blocked.replace("_", " ")}
 
 
@@ -242,5 +247,7 @@ func _pull_party() -> void:
 	if rev == _rev_seen:
 		return
 	_rev_seen = rev
+	client.journal.add(PokeCoopLog.WORLD, "party_pull", {"rev": rev, "party": (me.get("party", []) as Array).size(),
+		"box": (client.box.get("rows", []) as Array).size()}, client.player_id)
 	_fill(save, me, client.box.get("rows", []))
 	_holdings_sent = _holdings()
