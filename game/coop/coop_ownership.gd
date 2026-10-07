@@ -9,12 +9,13 @@ extends RefCounted
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among
-## the Gen 1 bytes, and every event flag and object but a player's own gifts.
+## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among the
+## Gen 1 bytes, every event flag and object but a player's own gifts, and every map script but those of one walk.
 const BY_FLAG: StringName = &"by_flag"
 const CAMPAIGN_BYTES: Array[String] = [
 	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
 ]
+const PLAYER_MAP_SCRIPTS: Dictionary = {"wCeruleanCityCurScript": 31, "wVermilionCityCurScript": 58}
 const KANTO_BADGES: int = 8
 
 const WORLD_STATE: Dictionary = {
@@ -36,7 +37,7 @@ const WORLD_STATE: Dictionary = {
 	"radio_knob": LOCAL, "radio_channel": LOCAL, "last_dex_mode": PLAYER,
 	"maptile_decorations": PLAYER, "kurt_apricorn_quantity": PLAYER,
 	"picked_fruit_trees": CAMPAIGN, "toggled_objects": BY_FLAG,
-	"gen1_map_scripts": CAMPAIGN, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
+	"gen1_map_scripts": BY_FLAG, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
 	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": BY_FLAG,
 	"npc_trades": PLAYER, "registered_item": PLAYER, "day_care_man": PLAYER,
 	"day_care_lady": PLAYER, "day_care_mons": PLAYER, "steps_to_egg": PLAYER,
@@ -202,6 +203,8 @@ static func _split_flags(key: String, change: Dictionary, badges: Array[int], ow
 	var shared: Callable = func(flag: Variant) -> bool:
 		if key == "gen1_bytes":
 			return CAMPAIGN_BYTES.has(flag)
+		if key == "gen1_map_scripts":
+			return not PLAYER_MAP_SCRIPTS.values().has(int(flag))
 		return badges.has(int(flag)) if key == "engine_flags" else not own.has(int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
