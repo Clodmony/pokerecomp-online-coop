@@ -1148,3 +1148,32 @@ while the window's own battle is up is no SAVE (D80 later asks for checkpoints
 only on a real SAVE, so this also keeps the party from being pushed mid-battle).
 A campaign saved with someone inside the Safari Zone before this keeps the two
 flags as the campaign's; none exists.
+
+## D82. Pokémon Tower's purified zone is each player's (2026-10-08)
+
+The autoplayed tower stretch (#88) found `EVENT_IN_PURIFIED_ZONE` shared: one
+player stepped into Pokémon Tower 5F's purified zone and set it, the partner's
+5F script (that player outside the zone) cleared it, and the first player's
+window pulled the clear, healed and printed "Entered purified, protected
+zone!" again about every 1.2 s, holding both players on 5F. The flag joins
+`PokeCoopPolicy.OWN_GIFTS`. The same runs found a partner's picked-up item
+ball staying solid on the map (6F's RARE CANDY, the only way south), which
+D79's `load_object_masks` already fixes. A 2F rival met by both players is one
+host battle, but each window plays the rival's lines and exit (#24); MAROWAK
+is not a unique host encounter, and no second fight was seen.
+
+## D83. The battle panel names a disabled move and one out of PP (2026-10-08)
+
+The autoplayed ERIKA stretch (#88) met a Route 10 POKéMANIAC's SLOWPOKE using
+DISABLE on the only damaging move left with PP. The panel kept offering it
+unmarked and the host refused it (`_move_allowed`) with only "Refused:
+invalid_move", so the autoplayed window sent it over a thousand times while
+both windows sat in the joined fight. The battle view now carries the out
+Pokémon's disabled slot, the FIGHT rows say (DISABLED) or (NO PP) as the
+cartridge's move menu tells, and the refusal reads "That move can't be used
+now." The same runs met the Game Corner poster's no-press box (D76 fixes it),
+the Game Corner, Celadon Gym and Rocket Hideout B4F map-script steps crossing
+windows and a partner's item ball and GIOVANNI staying drawn (D79 fixes them),
+and one cost left as D79 states: a partner's poster switch opens the stairs in
+a window already in the Game Corner only when it reads the poster or enters
+again.

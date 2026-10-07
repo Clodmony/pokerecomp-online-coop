@@ -18,7 +18,7 @@ const REFUSALS: Dictionary = {
 	&"item_has_no_effect": "It won't have any effect.", &"no_fit_pokemon": "None of your POKéMON can fight.",
 	&"save_failed": "The campaign could not be saved.",
 	&"attached": "Your own world started this battle: you stay in it.",
-	&"in_battle": "Your POKéMON are still in a battle.",
+	&"in_battle": "Your POKéMON are still in a battle.", &"invalid_move": "That move can't be used now.",
 }
 
 var client: PokeCoopClient = null
@@ -322,14 +322,23 @@ func _active(view: Dictionary) -> Dictionary:
 
 func _move_rows(view: Dictionary) -> Array:
 	var rows: Array = []
-	var moves: Array = _active(view).get("moves", [])
+	var active: Dictionary = _active(view)
+	var moves: Array = active.get("moves", [])
 	for slot: int in moves.size():
 		if int(moves[slot]) != 0:
+			var move: String = _move_name(int(moves[slot])) + _move_state(active, slot)
 			rows.append({
-				"text": "FIGHT  %s" % _move_name(int(moves[slot])), "label": _move_name(int(moves[slot])), "section": "FIGHT",
+				"text": "FIGHT  %s" % move, "label": move, "section": "FIGHT",
 				"command": {"type": "move", "slot": slot}, "suggest": "move", "value": slot,
 			})
 	return rows
+
+
+static func _move_state(mon: Dictionary, slot: int) -> String:
+	if int(mon.get("disabled", -1)) == slot:
+		return " (DISABLED)"
+	var pp: Array = mon.get("pp", [])
+	return " (NO PP)" if slot < pp.size() and int(pp[slot]) <= 0 else ""
 
 
 func _switch_rows(view: Dictionary, kind: String) -> Array:

@@ -5,3 +5,4 @@
 source "$(dirname "${BASH_SOURCE[0]}")/playthrough_koga.sh"
 P1_ARGS="${P1_ARGS/route=koga/route=sabrina}"
 P2_ARGS="${P2_ARGS/route=koga/route=sabrina}"
+DURATION=15600
