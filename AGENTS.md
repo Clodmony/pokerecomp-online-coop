@@ -156,7 +156,7 @@ before pushing.
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh` | the two-window runner and its scenarios |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69) |
-| `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78) |
+| `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
 | `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 

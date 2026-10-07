@@ -63,6 +63,7 @@ var _notice_until: int = 0
 var _noticed_save: int = -1
 var _partners_seen: Dictionary = {}
 var _partners_looked: bool = false
+var _scene_told: String = ""
 var _saves_seen: int = -1
 var _paused: bool = false
 var _dialled_at: int = 0
@@ -267,19 +268,21 @@ func _advance_links() -> void:
 	if link != null:
 		var shown: bool = screen != null and is_instance_valid(screen) and screen.world() != null
 		link.hold_holdings = shown and screen.get("_link_host") != null
-		link.busy = PokeCoopWorldLink.unrest(screen) if shown else &""
+		var waiting: bool = not link.scene_driver.is_empty() and panel != null and not panel.is_open()
+		link.busy = PokeCoopWorldLink.unrest(screen) if shown and not waiting else &""
 		link.advance()
 	if cable != null and not is_same(client.state, _cable_state):
 		_cable_state = client.state
 		cable.refresh()
 
 
-## The world stands still under the panel and settles its player once it closes.
+## The world stands still under the panel or for a partner's rival scene on its map, and settles its player after.
 func _tend_world() -> void:
 	if _takeover != null and not _takeover.waiting_on.is_empty():
 		panel.recall(_takeover.waiting_on)
-	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != panel.is_open():
-		hold_world(screen, screen.get("_audio_player"), panel.is_open())
+	var frozen: bool = panel.is_open() or (link != null and not link.scene_driver.is_empty())
+	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != frozen:
+		hold_world(screen, screen.get("_audio_player"), frozen)
 	var world: Gen2WorldAPI = screen.get("_world")
 	if world != null and not rival_name().is_empty() and world.rival_name != rival_name():
 		world.rival_name = rival_name()
@@ -287,11 +290,12 @@ func _tend_world() -> void:
 	_tell_refused_save()
 	_tell_partners()
 	_tell_saves()
-	if not panel.is_open() and _whiteout_due:
+	_tell_scene()
+	if not frozen and _whiteout_due:
 		_whiteout_due = false
 		journal.add(PokeCoopLog.WORLD, "whiteout", {}, client.player_id)
 		screen.white_out()
-	elif not panel.is_open() and not _evolving.is_empty():
+	elif not frozen and not _evolving.is_empty():
 		journal.add(PokeCoopLog.WORLD, "evolve", {"party_indices": _evolving}, client.player_id)
 		screen.evolve_after_battle(_evolving)
 		_evolving = []
@@ -463,6 +467,19 @@ static func _against(session: PokeCoopClient, battle_id: String, game: GameData)
 		return " against %s" % (game.trainer_name(trainer) if trainer > 0 \
 			else "wild %s" % String(game.species(int(running.get("enemy", 0))).get("name", "")))
 	return ""
+
+
+func _tell_scene() -> void:
+	var driver: String = link.scene_driver if link != null else ""
+	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(driver, {})
+	var line: String = "%s is facing the rival here. Wait, or join the battle with SELECT." % String(view.get("name", driver))
+	if driver != _scene_told and not driver.is_empty():
+		say(line)
+	elif not driver.is_empty() and _notice != null and Time.get_ticks_msec() >= _notice_until:
+		_notice.text = line
+		_notice.visible = true
+		_notice_until = Time.get_ticks_msec() + NOTICE_MSEC
+	_scene_told = driver
 
 
 func _tell_saves() -> void:
