@@ -364,9 +364,9 @@ const TOWER_MAPS: Dictionary = {
 const CAR_PANEL_FRONT := Vector2i(1, 2)
 const CAR_DOOR := Vector2i(2, 1)
 const HIDEOUT_B1F_DOOR_ROCKET := Vector2i(28, 18)
-## `PokemonTower2FRivalEncounterEventCoords`, one a player in id order, and the ghost's own cell.
 const TOWER_RIVAL_CELLS: Array = [Vector2i(14, 6), Vector2i(15, 5)]
 const ABOVE_RARE_CANDY := Vector2i(6, 7)
+const RARE_CANDY_GAP: Array = [ABOVE_RARE_CANDY, Vector2i(6, 8), Vector2i(6, 9)]
 const MAROWAK_CELL := Vector2i(10, 16)
 const MR_FUJI := Vector2i(10, 3)
 const BELOW_MR_FUJI_HOME := Vector2i(3, 2)
@@ -417,6 +417,7 @@ func _tower_legs() -> Array:
 		["tower_7f_mr_fuji", p._talk_to(MR_FUJI), _either(p._on_map(m.mr_fujis_house), p._flag(EVENT_RESCUED_MR_FUJI))],
 		["to_mr_fujis_house", p._route(m.mr_fujis_house), p._on_map(m.mr_fujis_house)],
 		["poke_flute", p._talk(BELOW_MR_FUJI_HOME, UP), _either(p._holds(POKE_FLUTE), p._flag(EVENT_GOT_POKE_FLUTE))],
+		["poke_flute_on_host", _standing, func(world: Gen2WorldAPI) -> bool: return p._holds(POKE_FLUTE).call(world) and _hosted(POKE_FLUTE) > 0],
 		_flute_once,
 	]
 
@@ -425,7 +426,6 @@ func _car_goes_to(map: Vector2i) -> Callable:
 	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
 
 
-## This player's place in id order: the first walks into a story fight, the rest join it from the menu.
 func _order() -> int:
 	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
 	ids.sort()
@@ -440,14 +440,19 @@ func _marowak_button(world: Gen2WorldAPI, walk: Callable) -> int:
 	if _joining:
 		_join_asked = _frames
 		return PokeButton.SELECT
-	return walk.call(world) if _order() == 0 and not joinable else PokeButton.NONE
+	if _order() == 0:
+		return walk.call(world) if not joinable else PokeButton.NONE
+	return _played._step_toward(world, func(at: Vector2i) -> bool: return not RARE_CANDY_GAP.has(at))
 
 
 func _flute_once() -> bool:
 	var held: int = _played._screen.world().state.item_quantity(POKE_FLUTE)
-	var hosted: int = int((_session.client.me().get("items", {}) as Dictionary).get(POKE_FLUTE, 0))
-	print("coop autoplay: %s holds %d POKé FLUTE, %d on the host" % [_player_id, held, hosted])
-	return held == 1 and hosted == 1
+	print("coop autoplay: %s holds %d POKé FLUTE, %d on the host" % [_player_id, held, _hosted(POKE_FLUTE)])
+	return held == 1 and _hosted(POKE_FLUTE) == 1
+
+
+func _hosted(item: int) -> int:
+	return int((_session.client.me().get("items", {}) as Dictionary).get(item, 0))
 
 
 func _either(first: Callable, second: Callable) -> Callable:
