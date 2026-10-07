@@ -1132,3 +1132,19 @@ The world screen now calls `save_written` (beside `save_gate`, one line in
 box change's or the Hall of Fame's. Only that asks the host for a checkpoint;
 a transaction still sends the party at the next rest point, and the host's
 own autosave keeps the rest.
+
+## D81. Each player's Safari Game is their own, and a ball is no SAVE (2026-10-07)
+
+The autoplayed KOGA stretch (#88) found two things. `EVENT_SAFARI_GAME_OVER` and
+`EVENT_IN_SAFARI_ZONE` were campaign flags, and `_gen1_safari_check` runs on
+every map while the second is set, so when one player paid, the partner's
+window (holding no SAFARI BALL) ran the game-over warp from Route 14 to the
+gate, and leaving then ended the game of the player still inside. Both flags
+now join `PokeCoopPolicy.OWN_GIFTS`, beside the game's balls and steps, which
+were already each player's. And a capture commits a world transaction, so each
+SAFARI BALL wrote a snapshot the link took for a SAVE ("P1 saved the
+campaign." per ball, refused during a partner's battle): a snapshot written
+while the window's own battle is up is no SAVE (D80 later asks for checkpoints
+only on a real SAVE, so this also keeps the party from being pushed mid-battle).
+A campaign saved with someone inside the Safari Zone before this keeps the two
+flags as the campaign's; none exists.

@@ -44,7 +44,7 @@ Red (or Blue) cartridge, the same one.
 | W07 | Use a Pokémon Center, a Mart and Bill's PC in each world | Each works on that player's own team, bag, money and PC | `test_a_heal_and_a_deposit...`, `test_a_window_opened_later_finds_its_pc_as_it_left_it` | | |
 | W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "SELECT to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | launcher_host_join | |
 | W09 | Both walk into the same trainer | One battle both fight; once beaten the trainer stays beaten | `test_one_trainer_opened_in_two_windows_is_one_battle_both_fight` | playthrough_brock | |
-| W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |
+| W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |, playthrough_koga
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
 | W12 | Both enter Vermilion Gym; one finds the first switch | Both windows search the same trash cans; each player's SURF score and slot machine stay their own | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own` | | |
 | W13 | One player takes the DOME (or HELIX) FOSSIL in Mt. Moon | Both players hold one; each revives their own | `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` | playthrough_misty | |
@@ -61,6 +61,9 @@ Red (or Blue) cartridge, the same one.
 | W24 | A partner moves the story of the map you stand on | It applies when you next enter that map, never under your feet | `test_a_partners_step_for_the_map_a_window_stands_on_lands_at_its_next_map_load` | | |
 | W25 | The partner takes Mt. Moon's fossil while you are elsewhere on that floor | The fossils vanish from your map at once and the way out is open | `test_an_object_a_partner_hides_leaves_the_map_a_window_stands_on_at_once` | playthrough_misty | |
 | W26 | Heal, buy or receive a gift in the middle of a scene; SAVE from START | The heal, purchase or gift asks no checkpoint and sends nothing of the scene; the SAVE checkpoints with the scene so far, and only a SAVE shows "Campaign saved." | `test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot_does_not` | | |
+| W27 | One player pays for a Safari Game while the partner is elsewhere or also inside | Nobody else is warped or ended; each player has their own 30 balls and 500 steps; leaving ends only the leaver's game | `test_a_safari_game_is_only_the_players_who_paid_for_it` | playthrough_koga | |
+| W28 | Catch a Pokémon in the Safari Zone | It is on the host's team or PC at once and in the next save; no checkpoint or "saved" line per ball | `test_a_ball_thrown_in_the_windows_own_battle_asks_for_no_checkpoint` | playthrough_koga | |
+| W29 | One player gets HM03 and the GOLD TEETH, then gives the teeth to the warden | Both hold HM03 and the teeth, then both hold HM04 and neither holds the teeth | the D52 tests | playthrough_koga | |
 
 ## Battles
 

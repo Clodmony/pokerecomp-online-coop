@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|tower|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|tower|koga|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -23,6 +23,7 @@ const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
 	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"],
 	"tower": [&"_misty_legs", &"_surge_legs", &"_tower_legs"],
+	"koga": [&"_misty_legs", &"_surge_legs", &"_koga_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -71,8 +72,6 @@ var _done: bool = false
 var _trade: Dictionary = {}
 var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
-var _joining: bool = false
-var _join_asked: int = -JOIN_EVERY
 
 
 func _read_option(arg: String) -> bool:
@@ -132,6 +131,9 @@ func _choose() -> int:
 	_hide_wait_box_left_over_the_link_room(screen)
 	if _frames % 60 == 0 and screen.active_save().party.any(_worn):
 		_heal(screen)
+	var battle: Gen2BattleScreen = screen.get("_battle_host")
+	if battle != null and battle.capture_safari_catch_rate() >= 0 and not bool(screen.call(&"_input_locked")):
+		return _safari_button(battle)
 	return _leg_button(screen)
 
 
@@ -147,8 +149,7 @@ func _intro_button(intro: Gen2IntroScreen) -> int:
 func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	var view: Dictionary = panel.battle_view()
 	if view.is_empty():
-		var join: int = panel._rows.find_custom(func(row: Dictionary) -> bool: return row.get("action") == "join") if _joining else -1
-		return _paced(PokeButton.B if join < 0 else (PokeButton.DOWN if panel._cursor != join else PokeButton.A))
+		return _menu_button(panel)
 	if panel.busy.is_valid() and bool(panel.busy.call()):
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
@@ -379,7 +380,6 @@ const RARE_CANDY: int = 0x28
 const POKE_FLUTE: int = 0x49
 const MAROWAK: int = 105
 const TOWER_LEVEL: int = 46
-const JOIN_EVERY: int = 120
 const EVENT_BEAT_HIDEOUT_B1F_DOOR_ROCKET: int = 0x675
 const EVENT_BEAT_POKEMON_TOWER_RIVAL: int = 0xEF
 const EVENT_BEAT_GHOST_MAROWAK: int = 0x10F
@@ -439,14 +439,12 @@ func _order() -> int:
 
 func _marowak_button(world: Gen2WorldAPI, walk: Callable) -> int:
 	var running: Array = _session.client.state.get("battles", [])
-	var joinable: bool = running.any(func(row: Dictionary) -> bool: return int(row["enemy"]) == MAROWAK \
-		and not (row["participants"] as Array).has(_session.client.player_id))
-	_joining = joinable and _frames - _join_asked >= JOIN_EVERY
-	if _joining:
-		_join_asked = _frames
-		return PokeButton.SELECT
+	var at: int = running.find_custom(func(row: Dictionary) -> bool: return int(row["enemy"]) == MAROWAK)
+	if at >= 0 and not (running[at]["participants"] as Array).has(_session.client.player_id):
+		_joining = String(running[at]["battle"])
+		return _paced(PokeButton.SELECT)
 	if _order() == 0:
-		return walk.call(world) if not joinable else PokeButton.NONE
+		return walk.call(world) if at < 0 else PokeButton.NONE
 	return _played._step_toward(world, func(at: Vector2i) -> bool: return not RARE_CANDY_GAP.has(at))
 
 
@@ -458,6 +456,222 @@ func _flute_once() -> bool:
 
 func _hosted(item: int) -> int:
 	return int((_session.client.me().get("items", {}) as Dictionary).get(item, 0))
+
+
+const KOGA_MAPS: Dictionary = {
+	&"lavender_town": Vector2i(0, 4), &"route_12": Vector2i(0, 23), &"route_12_gate": Vector2i(0, 87),
+	&"route_13": Vector2i(0, 24), &"route_14": Vector2i(0, 25), &"route_15": Vector2i(0, 26),
+	&"route_15_gate": Vector2i(0, 184), &"fuchsia_city": Vector2i(0, 7), &"fuchsia_gym": Vector2i(0, 157),
+	&"safari_gate": Vector2i(0, 156), &"safari_east": Vector2i(0, 217), &"safari_north": Vector2i(0, 218),
+	&"safari_west": Vector2i(0, 219), &"safari_center": Vector2i(0, 220), &"secret_house": Vector2i(0, 222),
+	&"wardens_house": Vector2i(0, 155),
+}
+const BESIDE_SNORLAX: Array[Vector2i] = [Vector2i(10, 61), Vector2i(11, 61)]
+const SNORLAX := Vector2i(10, 62)
+const SNORLAX_ENCOUNTER: String = "static:143:0:23"
+const ROUTE_12_GATE_SOUTH := Vector2i(4, 7)
+const ROUTE_13_WEST_EDGE := Vector2i(0, 8)
+const ROUTE_15_GATE_WEST := Vector2i(0, 4)
+const SAFARI_GATE_OFFER := Vector2i(3, 2)
+const BELOW_FISHING_GURU := Vector2i(3, 4)
+const BELOW_GOLD_TEETH := Vector2i(19, 8)
+const WARDEN := Vector2i(2, 3)
+const KOGA := Vector2i(4, 10)
+const SAFARI_WAY_OUT: Dictionary = {222: 219, 219: 218, 218: 217, 217: 220, 220: 156, 156: 7}
+const GOLD_TEETH: int = 0x40
+const HM03: int = Gen1Layout.HM_FIRST_ITEM + 2
+const HM04: int = Gen1Layout.HM_FIRST_ITEM + 3
+const EVENT_GOT_HM03: int = 2176
+const EVENT_GOT_HM04: int = 568
+const EVENT_GAVE_GOLD_TEETH: int = 569
+const SNORLAX_LEVEL: int = 45
+const KOGA_LEVEL: int = 50
+
+var _joining: String = ""
+var _fluted: bool = false
+var _safari_team: int = -1
+var _safari_caught: bool = false
+
+
+func _koga_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = KOGA_MAPS
+	var beaten: Callable = p._flag(int(Gen1Layout.SNORLAX_FLUTES[0]["beat"]))
+	var hm03: Callable = _either(p._holds(HM03), p._flag(EVENT_GOT_HM03))
+	var teeth: Callable = _either(p._holds(GOLD_TEETH), p._flag(EVENT_GAVE_GOLD_TEETH))
+	var hm04: Callable = _either(p._holds(HM04), p._flag(EVENT_GOT_HM04))
+	var both: Callable = func(world: Gen2WorldAPI) -> bool: return bool(hm03.call(world)) and bool(teeth.call(world))
+	var spot: Callable = func(world: Gen2WorldAPI) -> bool: return world.player_cell == _snorlax_spot()
+	var inside: Callable = func(world: Gen2WorldAPI) -> bool: return world.gen1_safari_active() and world.map_id() == m.safari_center
+	return [
+		["mr_fujis_house_out", p._warp_to(m.lavender_town), p._on_map(m.lavender_town)],
+		_grind.bind(SNORLAX_LEVEL, 0),
+		["lavender_to_route_12", p._cross(Vector2i.DOWN, m.route_12), p._on_map(m.route_12)],
+		["route_12_gate", p._warp_to(m.route_12_gate), p._on_map(m.route_12_gate)],
+		["route_12_gate_south", p._walk(ROUTE_12_GATE_SOUTH), p._on_map(m.route_12)],
+		["beside_snorlax", func(world: Gen2WorldAPI) -> int: return p._walk(_snorlax_spot()).call(world), _either(spot, beaten)],
+		["meet_at_snorlax", _standing, _either(_partner_near(m.route_12, SNORLAX, 2), beaten)],
+		["snorlax", _wake_or_join_snorlax, _snorlax_gone],
+		["route_12_to_route_13", p._cross(Vector2i.DOWN, m.route_13), p._on_map(m.route_13)],
+		["route_13_to_route_14", _cross_at(ROUTE_13_WEST_EDGE, Vector2i.LEFT), p._on_map(m.route_14)],
+		["route_14_to_route_15", p._cross(Vector2i.LEFT, m.route_15), p._on_map(m.route_15)],
+		["route_15_gate", p._warp_to(m.route_15_gate), p._on_map(m.route_15_gate)],
+		["route_15_gate_west", p._walk(ROUTE_15_GATE_WEST), p._on_map(m.route_15)],
+		["route_15_to_fuchsia", p._cross(Vector2i.LEFT, m.fuchsia_city), p._on_map(m.fuchsia_city)],
+		["safari_gate", p._warp_to(m.safari_gate), p._on_map(m.safari_gate)],
+		["safari_fee", p._walk(SAFARI_GATE_OFFER), inside],
+		_note_team,
+		["safari_catch", _walk_grass, _caught_on_host],
+		["safari_center_to_east", p._warp_to(m.safari_east), _either(p._on_map(m.safari_east), both)],
+		["safari_east_to_north", p._warp_to(m.safari_north), _either(p._on_map(m.safari_north), both)],
+		["safari_north_to_west", p._warp_to(m.safari_west), _either(p._on_map(m.safari_west), both)],
+		["secret_house", p._warp_to(m.secret_house), _either(p._on_map(m.secret_house), hm03)],
+		["hm03", p._talk(BELOW_FISHING_GURU, UP), hm03],
+		["secret_house_out", p._warp_to(m.safari_west), _either(p._on_map(m.safari_west), both)],
+		["gold_teeth", p._talk(BELOW_GOLD_TEETH, UP), teeth],
+		["safari_out", _leave_safari, p._on_map(m.fuchsia_city)],
+		["wardens_house", p._warp_to(m.wardens_house), _either(p._on_map(m.wardens_house), hm04)],
+		["warden", p._talk_to(WARDEN), hm04],
+		["wardens_house_out", p._warp_to(m.fuchsia_city), p._on_map(m.fuchsia_city)],
+		_grind.bind(KOGA_LEVEL, 0),
+		["fuchsia_gym", p._warp_to(m.fuchsia_gym), p._on_map(m.fuchsia_gym)],
+		_meet_partner("meet_in_fuchsia_gym", _badge(Gen1Layout.SOULBADGE)),
+		["koga", p._talk_to(KOGA), _badge(Gen1Layout.SOULBADGE)],
+		_koga_done,
+	]
+
+
+func _cross_at(cell: Vector2i, direction: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		if world.player_cell == cell:
+			return _played._direction_button(direction)
+		return _played._step_toward(world, _played._is(cell))
+
+
+func _snorlax_spot() -> Vector2i:
+	return BESIDE_SNORLAX[0 if _wakes_snorlax() else 1]
+
+
+func _wakes_snorlax() -> bool:
+	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
+	ids.sort()
+	return ids.is_empty() or ids[0] == _session.client.player_id
+
+
+func _partner_near(map: Vector2i, cell: Vector2i, reach: int) -> Callable:
+	return func(_world: Gen2WorldAPI) -> bool:
+		var players: Dictionary = _session.client.state.get("players", {})
+		for player_id: String in players:
+			var view: Dictionary = players[player_id]
+			var at: Vector2i = view.get("cell", Vector2i(-99, -99))
+			if player_id != _session.client.player_id and view.get("map") == map and bool(view.get("connected", false)) \
+					and absi(at.x - cell.x) + absi(at.y - cell.y) <= reach:
+				return true
+		return false
+
+
+func _wake_or_join_snorlax(world: Gen2WorldAPI) -> int:
+	if not _wakes_snorlax():
+		return _join_button(SNORLAX_ENCOUNTER)
+	var button: int = _played._talk(BESIDE_SNORLAX[0], Gen2WorldSprite.FACING_DOWN).call(world)
+	if button != PokeButton.A:
+		return button
+	if not _fluted:
+		_fluted = true
+		var request: Dictionary = {"ok": true, "effect": Gen2WorldPack.FIELD_EFFECT_POKE_FLUTE, "item": Gen1Layout.ITEM_POKE_FLUTE}
+		request.merge(world.poke_flute_request(), true)
+		print("coop autoplay: %s played the POKé FLUTE: %s" % [_player_id, request])
+		_played._screen.call(&"_on_field_item_used", request)
+	return PokeButton.NONE
+
+
+func _join_button(encounter: String) -> int:
+	for running: Dictionary in _session.client.state.get("battles", []):
+		if String(running.get("encounter", "")) == encounter and not (running["participants"] as Array).has(_session.client.player_id):
+			_joining = String(running["battle"])
+			return _paced(PokeButton.SELECT)
+	return PokeButton.NONE
+
+
+func _menu_button(panel: PokeCoopBattlePanel) -> int:
+	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
+		return String(entry.get("action", "")) == "join" and String(entry.get("id", "")) == _joining)
+	if _joining.is_empty() or row < 0:
+		return _paced(PokeButton.B)
+	var press: int = _paced(PokeButton.A if panel._cursor == row else PokeButton.DOWN)
+	if press == PokeButton.A:
+		print("coop autoplay: %s joins %s from the session menu" % [_player_id, _joining])
+		_joining = ""
+	return press
+
+
+func _snorlax_gone(world: Gen2WorldAPI) -> bool:
+	var defeated: Array = (_session.client.state.get("campaign", {}) as Dictionary).get("defeated", [])
+	var drawn: bool = world.active_objects().any(func(object: Gen2WorldObject) -> bool: return object.initial_cell == SNORLAX)
+	var gone: bool = world.event_flag_active(int(Gen1Layout.SNORLAX_FLUTES[0]["beat"])) and not drawn \
+		and defeated.has(SNORLAX_ENCOUNTER)
+	if gone:
+		print("coop autoplay: %s SNORLAX is gone here and %s on the host" % [_player_id, SNORLAX_ENCOUNTER])
+	return gone
+
+
+func _note_team() -> bool:
+	_safari_team = _host_team_size()
+	return true
+
+
+func _host_team_size() -> int:
+	return (_session.client.me().get("party", []) as Array).size() + (_session.client.box.get("rows", []) as Array).size()
+
+
+func _caught_on_host(_world: Gen2WorldAPI) -> bool:
+	if _safari_team < 0 or _host_team_size() <= _safari_team:
+		return false
+	_safari_caught = true
+	var rows: Array = (_session.client.me().get("party", []) as Array) + (_session.client.box.get("rows", []) as Array)
+	print("coop autoplay: %s caught in the Safari Zone, on the host: %s" % [
+		_player_id, rows.map(func(row: Dictionary) -> String: return "%s %d" % [row["uid"], int(row["mon"]["species"])])])
+	return true
+
+
+func _walk_grass(world: Gen2WorldAPI) -> int:
+	var here: Vector2i = world.player_cell
+	return _played._step_toward(world, func(at: Vector2i) -> bool: return at != here and world.in_grass(at))
+
+
+func _safari_button(battle: Gen2BattleScreen) -> int:
+	var prompt: Gen2NicknamePromptScreen = battle.get("_capture_nickname_host")
+	if prompt != null:
+		return _played._paced(PokeButton.B if prompt.question_ready() else PokeButton.A)
+	var snapshot: Dictionary = battle.battle_snapshot()
+	if not _safari_caught or StringName(snapshot.get("menu_stage", &"")) != &"main":
+		return _played._battle_button()
+	var position: int = int(snapshot.get("menu_position", Gen2BattleMenu.FIGHT))
+	if position == Gen2BattleMenu.RUN:
+		return _played._paced(PokeButton.A)
+	return _played._paced(PokeButton.RIGHT if position == Gen2BattleMenu.PACK else PokeButton.DOWN)
+
+
+func _leave_safari(world: Gen2WorldAPI) -> int:
+	return _played._warp_to(Vector2i(0, int(SAFARI_WAY_OUT.get(world.map_id().y, KOGA_MAPS.fuchsia_city.y)))).call(world)
+
+
+func _koga_done() -> bool:
+	var world: Gen2WorldAPI = _played._screen.world()
+	var me: Dictionary = _session.client.me()
+	var held: Dictionary = me.get("items", {})
+	var missing: PackedStringArray = []
+	for item: int in [HM03, HM04]:
+		if world.state.item_quantity(item) <= 0 or int(held.get(item, 0)) <= 0:
+			missing.append("item %d" % item)
+	if not _snorlax_gone(world):
+		missing.append("SNORLAX")
+	if not world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(Gen1Layout.SOULBADGE)):
+		missing.append("SOULBADGE")
+	print("coop autoplay: %s after KOGA: badges %d, team on host %s, missing %s" % [
+		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
+			func(row: Dictionary) -> int: return int(row["mon"]["species"])), missing])
+	return missing.is_empty()
 
 
 func _either(first: Callable, second: Callable) -> Callable:
@@ -508,7 +722,7 @@ func _apply(button: int) -> void:
 		_tap = PokeButton.NONE
 	if PokeButton.is_direction(button) and _tap == PokeButton.NONE and _session.opening_screen == null \
 			and not _session.panel.is_open():
-		if _direction != button:
+		if _direction != button or not PokeButton.held(button):
 			if _direction != PokeButton.NONE:
 				input.release(_direction)
 			input.press(button)
@@ -535,6 +749,8 @@ func _watch_progress() -> void:
 	var world: Gen2WorldAPI = _played._screen.world() if _played._screen != null and is_instance_valid(_played._screen) else null
 	var now: String = "%s %s %d %s" % [world.map_id(), world.player_cell, _leg, world.script_busy()] if world != null else ""
 	now += str(_session.panel.battle_view().get("revision", "")) if _session.panel != null else ""
+	if _leg < _legs.size() and _legs[_leg] is Array and _legs[_leg][1] == _standing:
+		now += str(_session.client.state.get("players", {}))
 	if now != _signature:
 		_signature = now
 		_still_since = Time.get_ticks_msec()
