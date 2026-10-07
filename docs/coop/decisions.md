@@ -1148,3 +1148,16 @@ while the window's own battle is up is no SAVE (D80 later asks for checkpoints
 only on a real SAVE, so this also keeps the party from being pushed mid-battle).
 A campaign saved with someone inside the Safari Zone before this keeps the two
 flags as the campaign's; none exists.
+
+## D82. Pokémon Tower's purified zone is each player's (2026-10-08)
+
+The autoplayed tower stretch (#88) found `EVENT_IN_PURIFIED_ZONE` shared: one
+player stepped into Pokémon Tower 5F's purified zone and set it, the partner's
+5F script (that player outside the zone) cleared it, and the first player's
+window pulled the clear, healed and printed "Entered purified, protected
+zone!" again about every 1.2 s, holding both players on 5F. The flag joins
+`PokeCoopPolicy.OWN_GIFTS`. The same runs found a partner's picked-up item
+ball staying solid on the map (6F's RARE CANDY, the only way south), which
+D79's `load_object_masks` already fixes. A 2F rival met by both players is one
+host battle, but each window plays the rival's lines and exit (#24); MAROWAK
+is not a unique host encounter, and no second fight was seen.
