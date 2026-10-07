@@ -1079,3 +1079,45 @@ story's thin party (one or two Pokémon, which the autopilot's grinding makes
 up), only the trainers the story fought, and no host `defeated` encounters or
 gift commits (event flags still stop re-fights). A stretch is proven from a
 seed; the Hall of Fame run is proven from a new campaign.
+
+## D79. How rest points are built (2026-10-07)
+
+D72 adopted the rule; this is how a window keeps it (#84).
+
+- **A rest point** is a frame where the cartridge could save.
+  `PokeCoopWorldLink.unrest(screen)` names what holds the window instead: the
+  session panel, a script, a map load, a forced walk or scripted NPC, a battle
+  (the world's own or one fought on the host), a whole-screen overlay, or a
+  locked screen (a fade, a trainer's approach). A scene's map-script states
+  hand over with one frame between them that nothing holds, so a rest point
+  counts after three such frames in a row (`REST_FRAMES`). D67's 15 s cap is
+  gone: the 15 s cap and the narrow `script_busy` signal had let a long scene's
+  middle steps out, and a world frozen under the panel pushed Oak's lab at
+  its after-battle step.
+- **Away from a rest point the window sends and takes nothing**, world or
+  party. Two exceptions answer the host: a battle the world asks for sends the
+  party first (the host fights with it), and the world's SAVE through the
+  START menu sends the scene so far. A heal, purchase or gift writes a fresh
+  snapshot and still asks for a checkpoint, but sends nothing of the scene.
+  LEAVE, closing the window and a lost link send nothing: the host keeps the
+  last resting state, and the scene replays. When a scene ends, its world patch
+  and the party leave in the same frame.
+- **A partner's step for the map a window stands on** waits until that window
+  has loaded another map (`_owe_step`), then the host's latest value lands
+  unless the window's own unconfirmed patch touched the byte. A pulled object
+  hide or show lands at once (`load_object_masks`), as `HideObject` does: the
+  first two-window run had Mt. Moon's fossils barring a partner's only way out.
+- **Map-script bytes that rest on a value one player's walk sets are that
+  player's**: the eight gyms (so a partner never replays a leader's lines or
+  gift; TM34 had been handed out twice), Mt. Moon B2F, Museum 1F, the Safari
+  Zone gate, the Champion's room and Seafoam B3F and B4F, beside D74's two
+  cities. The offsets follow pokered's `ram/wram.asm`. Every other byte stays
+  the campaign's: story steps whose resting value is permanent, Bill's house
+  (so a partner sees Bill come out), and transient spinner and forced-walk
+  states, which `movement` holds.
+- **Logs:** `world_pull` lines carry `held` (frames the scene held the pull),
+  `held_by` and `owed`.
+- **Costs:** every change leaves three frames late; a partner standing on a map
+  sees its story step only after leaving it; a partner's news waits while a
+  window is in a scene, the panel or a menu. Per-walk event flags such as
+  `EVENT_IN_SAFARI_ZONE` are still the campaign's.

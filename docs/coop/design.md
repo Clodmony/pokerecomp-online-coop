@@ -26,20 +26,37 @@ never identity.
 - Players explore independently, on the same map or on different maps.
 - Connected players on the same map see each other. A player who left their
   map to join a battle elsewhere, or who is disconnected, is not shown there.
-- The host keeps every position. Until the shared world simulation (#22) each
-  window walks its own world: the host accepts a step of up to two cells (a
-  ledge hop) on the same map and trusts a warp the client's world reports.
-  Collision is the client's own until then.
+- The host keeps every position and the campaign; each window simulates the
+  maps, NPCs and movement it shows (D72): the host accepts a step of up to two
+  cells (a ledge hop) on the same map and trusts a warp the client's world
+  reports. Collision is the window's own.
 - Each window's world state follows the ownership table in
   `PokeCoopOwnership`: story flags, badges, map scenes, toggled objects and the
   other shared keys are the campaign's and appear in every window; the bag,
   wallet, step counters, Pokédex and the rest are the player's own.
   Vermilion Gym's trash-can locks are the campaign's, so both windows search
   the same cans; every other Gen 1 script byte (the SURF high score, the lucky
-  slot machine) stays with its player (D63). A change made in either window
-  reaches the other as a patch, entry by entry, so two flags set at once both
-  survive. What a script changes goes out as one patch when it ends, so an
-  item given before its flag is shared like the rest (D67).
+  slot machine) stays with its player (D63), and a window entering Vermilion
+  City keeps the first lock while a partner is in the city or gym (D77). A
+  change made in either window reaches the other as a patch, entry by entry,
+  so two flags set at once both survive.
+- **The campaign is shared at rest points** (D72, D79): what the cartridge
+  would save, never what it is doing right now. A rest point is a moment the
+  cartridge could save: no script, map load, forced walk, battle, overlay or
+  fade holds the player. A scene (the stretch between two rest points) leaves
+  the window as one patch when it ends, party included; the partner's changes
+  wait until then too. A battle the scene opens sends the party first, and the
+  world's SAVE sends the scene so far; LEAVE, a closed window or a lost link
+  send nothing, so the scene replays from its start.
+- **Not shared:** NPC wandering and every object position a script moves
+  (the SUPER NERD's step, boulders) until the map loads again; a scene's
+  animation, text boxes, menus, music and sounds in the partner's window (only
+  its result arrives: flags, items, objects shown or hidden, resting
+  map-script steps); a partner's step for the map a window stands on, until
+  that window loads another map (an object hidden or shown lands at once);
+  the map-script bytes of one player's walk and the eight gyms (D74, D79);
+  wild encounters, trainer sight and map-load rolls; party and PC changes in
+  the middle of a scene.
 - The party a window shows follows the host: battle results replace it, and a
   heal, a gift, a deposit or a withdrawal made in the window goes to the host.
   A Pokémon missing from the window's party is kept in the host's box.
