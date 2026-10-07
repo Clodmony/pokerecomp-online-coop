@@ -84,6 +84,9 @@ func _choose() -> int:
 		_legs = _route_legs()
 		_leg_started = Time.get_ticks_msec()
 	_played._editor.save = screen.active_save()
+	if _frames % 60 == 0 and screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool:
+			return not mon.is_egg and (mon.status != 0 or mon.hp * 2 < _played._editor.max_hp_for(mon))):
+		_heal(screen)
 	return _leg_button(screen)
 
 
@@ -150,6 +153,7 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 		print("coop autoplay: %s leg %-24s %.0f s, map %s cell %s" % [
 			_player_id, row[0], _seconds_since(_leg_started), screen.world().map_id(), screen.world().player_cell])
 		_shot("%02d_%s" % [_leg, row[0]])
+		_heal(screen)
 		_leg += 1
 		_leg_started = Time.get_ticks_msec()
 		return PokeButton.NONE
@@ -242,6 +246,14 @@ func _standing(_world: Gen2WorldAPI) -> int:
 
 func _badge(bit: int) -> Callable:
 	return func(world: Gen2WorldAPI) -> bool: return world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(bit))
+
+
+func _heal(screen: Gen2WorldScreen) -> void:
+	for mon: Gen2SaveMon in screen.active_save().party:
+		if not mon.is_egg:
+			mon.hp = _played._editor.max_hp_for(mon)
+			mon.status = 0
+	screen.call(&"_refresh_party_summary")
 
 
 func _grind(level: int, caught: int) -> bool:
