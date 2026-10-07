@@ -577,6 +577,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	var world: Gen2WorldAPI = screen.get("_world")
 	if world != null:
 		link = PokeCoopWorldLink.over(client, world.state, save, data)
+		link.world = world
 		screen.save_gate = link.save_refusal
 		cable = PokeCoopLinkTransport.over(client)
 		world.state.set_link_transport(cable)

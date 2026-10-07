@@ -1,13 +1,16 @@
 class_name PokeCoopWorldLink
 extends RefCounted
 
-## Keeps a window's world state, party and PC in step with the host: world patches both ways, holdings out
-## while the player is free and back whole, and the world's own SAVE asks for a campaign checkpoint.
+## Opens a window's world as a Continue does and keeps its state, party and PC in step with the host: world
+## patches both ways, holdings out while the player is free and back whole, and its SAVE asks for a checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
 const HOLD_MSEC: int = 15000
+const VERMILION_GYM := Vector2i(0, 92)
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
 
 var client: PokeCoopClient = null
+var world: Gen2WorldAPI = null
 var state: Gen2WorldState = null
 var save: Gen2SaveData = null
 var badge_flags: Array[int] = []
@@ -94,9 +97,9 @@ func _push_world() -> void:
 		_unacked[client.send({"type": "world", "patch": changes})] = changes
 
 
-func _host_world() -> Dictionary:
-	var shared: Dictionary = (client.state.get("campaign", {}) as Dictionary).get("world", {})
-	var own: Dictionary = client.me().get("world", {})
+static func _host_world(session: PokeCoopClient) -> Dictionary:
+	var shared: Dictionary = (session.state.get("campaign", {}) as Dictionary).get("world", {})
+	var own: Dictionary = session.me().get("world", {})
 	var out: Dictionary = shared.duplicate(true)
 	for key: String in own:
 		if out.get(key) is Dictionary and own[key] is Dictionary:
@@ -107,7 +110,7 @@ func _host_world() -> Dictionary:
 
 
 func _pull_world() -> void:
-	var host: Dictionary = _host_world()
+	var host: Dictionary = _host_world(client)
 	if host == _host_seen:
 		return
 	var changes: Dictionary = PokeCoopOwnership.patch(_host_seen, host)
@@ -125,8 +128,16 @@ func _pull_world() -> void:
 		var merged: Dictionary = state.to_dict()
 		PokeCoopOwnership.apply_patch(merged, changes)
 		state.restore_from_dict(merged)
+		_owe_map_loads((changes.get("event_flags", {}) as Dictionary).get("set", {}))
 	_baseline = state.to_dict()
 	_dirty = false
+
+
+func _owe_map_loads(flags_set: Dictionary) -> void:
+	for flag: int in MAP_LOADS_OWED_BY_FLAG:
+		var owed: Array = MAP_LOADS_OWED_BY_FLAG[flag]
+		if world != null and bool(flags_set.get(flag, false)) and world.map_id() == owed[0]:
+			world.set("_gen1_map_load_pending", int(world.get("_gen1_map_load_pending")) | (1 << int(owed[1])))
 
 
 static func _drop_overlap(changes: Dictionary, pending: Dictionary, echoes: Dictionary) -> void:
@@ -174,6 +185,22 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.slot = 0
 	out.run_rules = Gen2Rules.new()
 	_fill(out, me, session.box.get("rows", []))
+	var world: Gen2WorldSnapshot = continued_world(session)
+	if data.world_map(world.map_id.x, world.map_id.y) != null:
+		out.world = world
+	return out
+
+
+static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
+	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(session.player_id, {})
+	var places: Dictionary = session.me().get("places", {})
+	var out := Gen2WorldSnapshot.new()
+	out.map_id = view.get("map", PokeCoopPolicy.START_MAP)
+	out.player_cell = view.get("cell", Vector2i.ZERO)
+	out.player_facing = int(view.get("facing", Gen2WorldSprite.FACING_DOWN))
+	out.world_state = Gen2WorldState.from_dict(_host_world(session))
+	out.gen1_last_map = int(places.get("gen1_last_map", out.gen1_last_map))
+	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
 	return out
 
 
