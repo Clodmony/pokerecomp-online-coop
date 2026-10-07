@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|erika|tower|koga|sabrina|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|erika|tower|koga|sabrina|elite|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -26,6 +26,7 @@ const ROUTES: Dictionary = {
 	"tower": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs"],
 	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
 	"sabrina": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs"],
+	"elite": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs", &"_elite_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -152,6 +153,8 @@ func _choose() -> int:
 			_tap_at = _frames
 		return PokeButton.NONE
 	var screen: Gen2WorldScreen = _session.screen
+	if not _hall.is_empty() and (screen == null or not is_instance_valid(screen)):
+		return _after_hall_of_fame()
 	if screen == null or not is_instance_valid(screen) or screen.world() == null or _session.panel == null:
 		return PokeButton.NONE
 	if _session.panel.is_open():
@@ -163,6 +166,7 @@ func _choose() -> int:
 		_legs = _route_legs()
 		_leg_started = Time.get_ticks_msec()
 	_played._editor.save = screen.active_save()
+	_watch_hall_of_fame(screen)
 	if screen.get("_link_host") != null:
 		return _link_button(screen)
 	_hide_wait_box_left_over_the_link_room(screen)
@@ -1050,6 +1054,86 @@ func _sabrina_done() -> bool:
 			func(trainer_class: int) -> bool: return id.begins_with("trainer:%d:" % trainer_class))),
 		missing])
 	return missing.is_empty()
+
+
+const ELITE_MAPS: Dictionary = {
+	&"lobby": Vector2i(0, 174), &"lorelei": Vector2i(0, 245), &"bruno": Vector2i(0, 246), &"agatha": Vector2i(0, 247),
+	&"lance": Vector2i(0, 113), &"champion": Vector2i(0, 120), &"hall_of_fame": Vector2i(0, 118),
+}
+const INDIGO_PLATEAU: int = 9
+const BELOW_LOBBY_NURSE := Vector2i(7, 7)
+const ELITE_MEMBER := Vector2i(5, 2)
+const LANCE := Vector2i(6, 1)
+const ELITE_ROOMS: Array = [["lorelei", &"bruno", 2273], ["bruno", &"agatha", 2281], ["agatha", &"lance", 2289]]
+const EVENT_BEAT_LANCE: int = 2302
+const CHAMPION_CLASS: int = 43
+const ELITE_LEVEL: int = 62
+
+var _hall: Dictionary = {}
+
+
+func _elite_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = ELITE_MAPS
+	var legs: Array = [
+		["lobby_nurse", p._talk(BELOW_LOBBY_NURSE, UP), func(world: Gen2WorldAPI) -> bool:
+			return world.gen1_last_blackout_map() == INDIGO_PLATEAU],
+		_grind.bind(ELITE_LEVEL, 0),
+		["lobby_stairs", p._warp_to(m.lorelei), p._on_map(m.lorelei)],
+	]
+	for room: int in ELITE_ROOMS.size():
+		var row: Array = ELITE_ROOMS[room]
+		var beaten: Callable = p._flag(int(row[2]))
+		legs += [
+			_meet_partner("meet_in_%ss_room" % row[0], beaten),
+			[String(row[0]), _join_or(_leads(room, p._talk_to(ELITE_MEMBER))), beaten],
+			["%ss_room_out" % row[0], p._warp_to(m[row[1]]), p._on_map(m[row[1]])],
+		]
+	return legs + [
+		_meet_partner("meet_in_lances_room", p._flag(EVENT_BEAT_LANCE)),
+		["lance", _join_or(_leads(ELITE_ROOMS.size(), p._talk_to(LANCE))), p._flag(EVENT_BEAT_LANCE)],
+		["lances_room_out", p._warp_to(m.champion), p._on_map(m.champion)],
+		["champion", _join_or(_standing), _champion_beaten],
+		["hall_of_fame", p._warp_to(m.hall_of_fame), func(_world: Gen2WorldAPI) -> bool: return _hall.has(&"_credits_host")],
+	]
+
+
+func _leads(room: int, goal: Callable) -> Callable:
+	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
+	return goal if _order() == room % maxi(ids.size(), 1) else _standing
+
+
+func _champion_beaten(_world: Gen2WorldAPI) -> bool:
+	var defeated: Array = (_session.client.state.get("campaign", {}) as Dictionary).get("defeated", [])
+	return defeated.any(func(id: String) -> bool: return id.begins_with("trainer:%d:" % CHAMPION_CLASS))
+
+
+func _watch_hall_of_fame(screen: Gen2WorldScreen) -> void:
+	for host: StringName in [&"_hall_of_fame_host", &"_credits_host"]:
+		if screen.get(host) == null:
+			continue
+		_still_since = Time.get_ticks_msec()
+		if not _hall.has(host):
+			_hall[host] = _frames
+			var save: Gen2SaveData = screen.active_save()
+			print("coop autoplay: %s %s on map %s, ENGINE_HALL_OF_FAME %s, save's hall_of_fame %d, host world %s" % [
+				_player_id, host, screen.world().map_id(), screen.world().state.hall_of_fame(), save.hall_of_fame.size(),
+				(_session.client.me().get("world", {}) as Dictionary).get("engine_flags", {}).has(Gen2WorldState.ENGINE_HALL_OF_FAME)])
+			_shot(String(host).trim_prefix("_").trim_suffix("_host"))
+
+
+func _after_hall_of_fame() -> int:
+	if _frames % 300 == 0:
+		var scene: Node = current_scene
+		print("coop autoplay: %s after the Hall of Fame: scene %s, host map %s, host world HoF %s" % [_player_id,
+			scene.name if scene != null else "none", ((_session.client.state.get("players", {}) as Dictionary).get(
+				_player_id, {}) as Dictionary).get("map"), (_session.client.me().get("world", {}) as Dictionary).get(
+				"engine_flags", {}).has(Gen2WorldState.ENGINE_HALL_OF_FAME)])
+		_shot("after_hall_%05d" % _frames)
+		_still_since = Time.get_ticks_msec()
+	if _frames - int(_hall.get(&"_credits_host", _frames)) > 60 * 120:
+		_finish_route()
+	return PokeButton.NONE
 
 
 func _either(first: Callable, second: Callable) -> Callable:
