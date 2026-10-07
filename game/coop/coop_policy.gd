@@ -51,6 +51,14 @@ const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
 const STAND_IN_MSEC: int = 30000
 ## How long a battle nobody is left in waits to end as fled: as long as a window redials (D61).
 const ABANDON_MSEC: int = 120000
+## The rival scenes the first player in drives (D72, #24), by map, with the `w<Map>CurScript` states each runs in.
+const RIVAL_SCENES: Dictionary = {
+	Vector2i(0, 0x21): [1, 2, 3, 4, 5, 6],  # ROUTE_22, both fights
+	Vector2i(0, 0x03): [1, 2, 3],  # CERULEAN_CITY
+	Vector2i(0, 0x60): [1, 2, 3],  # SS_ANNE_2F
+	Vector2i(0, 0x8F): [1, 2],  # POKEMON_TOWER_2F
+	Vector2i(0, 0xD4): [3, 4, 5],  # SILPH_CO_7F
+}
 
 
 ## Prize money with Pay Day's: every participant is paid all of it (D61).
