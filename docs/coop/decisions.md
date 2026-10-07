@@ -792,3 +792,42 @@ battle should feel as close to a solo run as it can.
   Android build (#45), then German Red/Blue (#50). The owner has a Windows PC, a
   second Linux machine, an Android phone and a Mac with an Apple account for
   device checks.
+
+## D62. How the settled rules are built (2026-10-07)
+
+- **Leaving** is a second kind of absence: `PokeCoopBattleSession` keeps who
+  left beside who dropped. A participant who left is absent until they rejoin,
+  whatever their link does; one who dropped is absent until they reconnect.
+  While the owner deciding has left, the first present participant decides at
+  once; while they have dropped, the battle waits until a present participant
+  sends `stand_in` once `stand_in_due` (30 s). Only a participant whose own
+  world did not open the fight may leave: the initiator's world, and a second
+  window that walked into the same trainer, wait on the battle's outcome, so
+  leaving would show them a frozen map. Protocol 4 adds `leave_battle` and
+  `stand_in`.
+- **Pokémon in a battle fight nothing else.** A player who left keeps the
+  battle's id on the host: they may walk, but start and join nothing, and a
+  fight their world opens waits in the takeover until that battle ends, the
+  panel showing the old battle with REJOIN. Their window gets no panel when
+  the battle they left ends, only a line saying how it went; their evolutions
+  and a whiteout still follow.
+- **Exp. All per team** needed one upstream change: `Gen2Battle.exp_all_groups`,
+  the party indices each EXP.ALL pass splits over (the whole party when
+  empty). A session sets one group per owner and turns EXP.ALL on when any
+  participant's bag holds one. The participants' pass is unchanged, so two
+  Pokémon that fought share as two of one player's would.
+- **Gift Pokémon per player**: event flags and toggled objects are owned entry
+  by entry, as engine flags already were. `PokeCoopPolicy.OWN_GIFTS` names
+  EVENT_GOT_HITMONLEE, EVENT_GOT_HITMONCHAN, EVENT_BOUGHT_MAGIKARP and the
+  EEVEE and two Dojo balls (pokered's numbers, checked against the flags the
+  policy already used); EVENT_DEFEATED_FIGHTING_DOJO stays the campaign's.
+  LAPRAS's `BIT_GOT_LAPRAS` is in `wStatusFlags4`, an engine-flag run, so it was
+  already each player's.
+- **The gift race (#24) is settled on the host, not with a lock.** A lock would
+  need every NPC script in a window to wait for a host round trip inside
+  upstream's world code. Instead, a window's change that sets story flags or
+  objects the campaign already has (it lost the race) has its item gains taken
+  back, the first window's share standing in; a change that also spent money is
+  left alone, since a purchase may be in it. Gift Pokémon no longer race at all.
+  Cost: the second window may show the doubled item for a frame before the
+  host's count arrives, and a race that also moves new story is not caught.

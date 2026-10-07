@@ -103,7 +103,7 @@ Further findings that shape the design:
    campaign section and one section per player, written atomically through a
    temporary file. Refuses unknown kinds and newer versions.
 
-## Protocol (version 1)
+## Protocol
 
 Transport: `PokeCoopTransport` delivers Dictionaries. The base class links
 endpoints in memory (tests, same-process clients); `PokeCoopEnetTransport` uses
@@ -129,18 +129,20 @@ Peer 1 is the host.
 | `hello` (protocol 3) | adds `logs` (`device`, `share`) for the debug stream (D59) |
 | `opening` | `seq`, `rival`: Oak's speech is over and the name given to the rival |
 | `log` | `lines` (no `seq`): a sharing device's own session-log lines; the host passes them on (D59) |
+| `leave_battle` | `seq`, `battle`: back to the player's world while their Pokémon fight on, or a queued join called off (protocol 4, D62) |
+| `stand_in` | `seq`, `battle`: decide for the Pokémon of an owner who dropped, once the view says `stand_in_due` (protocol 4, D62) |
 
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
-| `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
+| `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
 
-The protocol is version 3 (`PokeCoopHost.PROTOCOL`); a peer of another version is
+The protocol is version 4 (`PokeCoopHost.PROTOCOL`); a peer of another version is
 refused with `protocol_mismatch`.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
@@ -159,7 +161,7 @@ Kept small so upstream merges stay cheap (#14):
 | File | Change |
 |---|---|
 | `game/battle/party.gd` | `MAX_ALLIED_SIZE` and `add_members()`; `create()` unchanged |
-| `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded` |
+| `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded`; `exp_all_groups`, the party indices each EXP.ALL pass splits over (D62) |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker; on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2) |

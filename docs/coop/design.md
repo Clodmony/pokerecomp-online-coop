@@ -67,6 +67,14 @@ never identity.
   (replacing it after a faint, a move it wants to learn, Mimic) goes to the
   owner of that Pokémon; the replacement may be any standing allied Pokémon.
 - While the co-op panel is open the player's own world stands still.
+- **Leaving a battle** (D61, D62): a participant whose own world did not start
+  the fight may LEAVE BATTLE. They are back where they were and explore; their
+  Pokémon stay in the roster, fight on under whoever is present, and the
+  results, experience and prize are still theirs. Until that battle ends they
+  start or join no other: a fight their world opens waits, showing the old
+  battle with REJOIN. REJOIN (also in the SELECT menu) takes them back in at
+  once. A queued join can be called off the same way. The player whose world
+  started the fight, or walked into the same trainer, stays in it.
 - The other participant can move an advisory cursor and send a suggestion
   (move, switch, item, run, send out). A suggestion is shown to the battle's
   participants, never executes, never consumes a turn and is cleared when the
@@ -85,7 +93,9 @@ never identity.
   party healed, half their own money, back to the last spawn.
 - Experience goes only to Pokémon that took part, as the cartridge decides, and
   is written to the owner's own record by uid. A partner's own Pokémon is not a
-  traded Pokémon; one with a foreign original trainer still is.
+  traded Pokémon; one with a foreign original trainer still is. One EXP.ALL in
+  any participant's bag counts for every team: each team gets the cartridge's
+  split over its own party, as it would fighting alone (D61).
 - SET battle style is used in shared sessions for now, so the "will you switch"
   offer never interrupts a turn (#28).
 
@@ -97,6 +107,12 @@ never identity.
 - Red and Blue's one-off wild Pokémon (SNORLAX, the three birds, MEWTWO) are
   unique encounters too, by species and map; beating or catching one ends it
   for everybody.
+- Gift Pokémon are each player's own (D61): EEVEE, LAPRAS, the Dojo's HITMONLEE
+  or HITMONCHAN, the MAGIKARP for sale and a revived fossil can each be had once
+  per player. Their flags and Poké Balls are the player's, not the campaign's.
+- A gift two windows hand out at the same moment is kept once: the second
+  window's change repeats story the campaign already has, so the items it
+  gained with it are taken back, the first window's share standing in (#24).
 - Major progression (flags, badges, defeated encounters) is applied through a
   commit with a stable id (`victory:<encounter id>`), so it happens exactly once
   even if messages repeat.
@@ -108,7 +124,11 @@ never identity.
 - Players reconnect by their player id. While the **required controller** of a
   battle is disconnected, that battle is paused; everything else, including the
   other player's exploration and battles, continues. A disconnected participant
-  who is not the current controller does not pause the battle.
+  who is not the current controller does not pause the battle. After thirty
+  seconds the others are asked to TAKE OVER or KEEP WAITING; nobody decides for
+  another player's Pokémon without choosing to, and the owner takes them back on
+  returning (D61). A battle nobody is left in waits as long as a window
+  redials, about two minutes, then ends as fled.
 - Host shutdown sends every client an `ended` message, stops accepting
   commands, and closes once every client has left or after a short grace
   period. Host migration is out of scope.
@@ -129,15 +149,15 @@ them live in `PokeCoopPolicy`.
 
 | Question | Rule | Issue |
 |---|---|---|
-| Prize money | Every participant receives the full prize, Pay Day included (owner, D61; not yet built) | #36 |
+| Prize money | Every participant receives the full prize, Pay Day included (owner, D61) | #36 |
 | Losing a battle | Each participant's own world whites them out and halves their own money (owner, D61) | #36 |
-| Gift Pokémon | One per player: EEVEE, LAPRAS and the Dojo's choice are each player's own, as the fossils are (owner, D61; not yet built) | #33 |
+| Gift Pokémon | One per player: EEVEE, LAPRAS, the Dojo's choice and the MAGIKARP sale are each player's own, as the fossils are (owner, D61) | #33 |
 | Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |
-| Withdrawal and drop-outs | One rule: a participant who leaves or loses the link is absent; their Pokémon stay in the roster and their results stay theirs; the battle ends when nobody is left, kept about two minutes for redialling (owner, D61; not yet built) | #31 |
+| Withdrawal and drop-outs | One rule: a participant who leaves or loses the link is absent; their Pokémon stay in the roster and their results stay theirs; the battle ends when nobody is left, kept about two minutes for redialling. The player whose world started the fight cannot leave it (owner, D61; D62) | #31 |
 | Late onboarding | A new player plays the opening (Oak's speech, their bedroom, Oak at the grass, the lab, the rival) on a story of their own, hidden from the others, and meets them and takes the campaign's story once they have a starter and have left the lab; or skips it with a starter of their choice at level 5, 3000 money, in Pallet Town; or brings their trainer from one of their single-player saves. The first player to name the rival names him for the campaign, and the first to finish the opening sets the rival's starter. A new campaign's shared story begins after Oak's intro, or from the story of the save its first player brings (owner, D61) | #34, #40, D50 |
 | Story items | Every item a player finds or is given along the story (an item ball, a person's present, a reward) reaches every player in the same number; the key items and HMs on the shared list (town map, bicycle, keys, S.S. ticket, coin case, itemfinder, Silph Scope, Poké Flute, Exp. All, rods, HM01 to HM05) and gift TMs reach a late joiner too; into the PC's items when the bag is full. A key item the story takes is taken from every player, fossils excepted. Bought, traded for, used and hidden items stay with whoever got them | L5, D52 |
 | Trades | Through the Cable Club's Trade Center with the partner the host names; the host swaps the two Pokémon and applies trade evolutions | #38 |
 | Colosseum | Not a co-op battle: the takeover leaves link battles alone, so the window runs the cartridge's own link battle against a copy of the partner's team (not yet tried in a co-op run) | #38 |
-| Controller lost | Pause; after 30 seconds the other participants are asked whether to wait or take over for the absent player's Pokémon, which stay theirs, until they reconnect and take it back (owner, D61; asking not yet built) | #30 |
-| Exp. All in a shared battle | Any participant's counts for every team; each team gets the solo split over its own party (owner, D61; not yet built) | #37 |
+| Controller lost | Pause; after 30 seconds the other participants are asked whether to wait or take over for the absent player's Pokémon, which stay theirs, until they reconnect and take it back (owner, D61) | #30 |
+| Exp. All in a shared battle | Any participant's counts for every team; each team gets the solo split over its own party (owner, D61) | #37 |
 | Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI. Co-op targets Red and Blue only (D61) | #27 |
