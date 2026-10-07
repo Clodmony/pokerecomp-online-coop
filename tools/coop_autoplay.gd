@@ -1127,6 +1127,7 @@ const BLAINE := Vector2i(3, 3)
 const SECRET_KEY: int = 0x2B
 const DOME_FOSSIL: int = 0x29
 const KABUTO: int = 140
+const TM38: int = 238
 const VOLCANO_BADGE: int = 6
 const EVENT_MANSION_SWITCH_ON: int = 632
 const EVENT_GAVE_FOSSIL_TO_LAB: int = 736
@@ -1204,6 +1205,8 @@ func _blaine_legs() -> Array:
 	return legs + [
 		_meet_partner("meet_in_cinnabar_gym", _badge(VOLCANO_BADGE)),
 		["blaine", _join_or(p._talk_to(BLAINE)), _badge(VOLCANO_BADGE)],
+		["tm38_on_host", _standing, func(world: Gen2WorldAPI) -> bool: return p._holds(TM38).call(world) and _hosted(TM38) > 0],
+		["cinnabar_gym_exit", p._warp_to(m.cinnabar_island), p._on_map(m.cinnabar_island)],
 		_blaine_done,
 	]
 
@@ -1362,9 +1365,11 @@ func _blaine_done() -> bool:
 		missing.append("KABUTO on the host")
 	if not _badge(VOLCANO_BADGE).call(world):
 		missing.append("VOLCANOBADGE")
-	print("coop autoplay: %s after BLAINE: badges %d, team on host %s, missing %s" % [
+	if world.state.item_quantity(TM38) != 1 or _hosted(TM38) != 1:
+		missing.append("one TM38")
+	print("coop autoplay: %s after BLAINE: badges %d, team on host %s, TM38 %d (host %d), missing %s" % [
 		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
-			func(row: Dictionary) -> int: return int(row["mon"]["species"])), missing])
+			func(row: Dictionary) -> int: return int(row["mon"]["species"])), world.state.item_quantity(TM38), _hosted(TM38), missing])
 	return missing.is_empty()
 
 
