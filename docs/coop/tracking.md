@@ -95,3 +95,4 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L14 | Every item found or given along the story reaches every player; key items the story takes are taken from all | M7 | done on `coop/launcher` (D52) |
 | L15 | Partners are solid, so players do not stand on one cell | M3 | done on `coop/launcher` (D53) |
 | L16 | Three or more players: every partner's suggestion shown, Cable Club partner by room, a third team joins with what fits | M3 | done on `coop/launcher` (D55); tests only, not played with three |
+| L17 | A campaign of players who skipped the opening had Oak's lab before the intro: no Oak, so the parcel could not be delivered | M6 | fixed on `coop/launcher` (D58) |

@@ -218,3 +218,24 @@ func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() 
 	assert_true((back.opening["world"]["event_flags"] as Dictionary).has(0x20), "the flag keeps its number")
 	assert_eq([back.opening["stage"], back.money, (loaded["campaign"] as PokeCoopCampaign).rival_name],
 		[PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.NEW_PLAYER_MONEY, "GARY"])
+
+
+func test_a_campaign_begun_after_the_intro_has_the_intros_world_and_an_older_one_is_settled() -> void:
+	var fresh := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	PokeCoopPolicy.start_campaign(fresh)
+	assert_true(fresh.has_flag(0x27), "Oak has appeared in Pallet Town")
+	assert_eq([int(fresh.world["gen1_map_scripts"][0]), int(fresh.world["gen1_map_scripts"][1])], [18, 5])
+	assert_true(bool(fresh.world["toggled_objects"][0x2B]), "the rival has left the lab")
+
+	var older := PokeCoopCampaign.create("c2", _data.id, _data.sha1)
+	older.commit("intro:starters_given", {"flags": [0x00, 0x20, 0x21, 0x22, 0x23], "badges": 3})
+	older.world["gen1_map_scripts"] = {0: 20}
+	PokeCoopHost.create(_data, older, PokeCoopTransport.new())
+	assert_true(older.has_flag(0x27), "a campaign from an earlier build is settled when hosted")
+	assert_eq([int(older.world["gen1_map_scripts"][0]), int(older.world["gen1_map_scripts"][1])], [20, 5],
+		"a script step the campaign already moved on is kept")
+	assert_eq(older.badges, 3)
+
+	var blank := PokeCoopCampaign.create("c3", _data.id, _data.sha1)
+	PokeCoopHost.create(_data, blank, PokeCoopTransport.new())
+	assert_false(blank.has_flag(0x27), "a campaign that has not begun is left alone")

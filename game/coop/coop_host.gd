@@ -53,6 +53,7 @@ static func create(
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out.trades = PokeCoopTrades.create(game_data)
+	PokeCoopPolicy.settle_intro(run)
 	return out
 
 
