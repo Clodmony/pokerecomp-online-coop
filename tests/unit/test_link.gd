@@ -285,6 +285,26 @@ func test_a_link_arrival_resets_happiness_and_an_egg_registers_nothing() -> void
 	assert_false(world.state.has_caught_species(BattleFixture.GEODUDE))
 
 
+## `.doTrade` plays the movie on `wTradedEnemyMonSpecies` and only then calls
+## `TryEvolvingMon`: the movie names what was sent, the party keeps what it became.
+func test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved() -> void:
+	(_data.species(SPECIES_TWO) as Dictionary)["evolutions"] = [{
+		"method": Gen2Layout.EVOLVE_TRADE, "parameter": Gen2Evolution.TRADE_NO_ITEM,
+		"condition": 0, "target": BattleFixture.GEODUDE,
+	}]
+	var save: Gen2SaveData = _save()
+	save.party = [_mon(SPECIES_ONE), _mon(SPECIES_ONE)]
+	var result: Dictionary = Gen2WorldPartyHost.commit_link_trade(
+		_world(), save, 0, _mon(SPECIES_TWO).to_dict(), {"name": "BLUE"}, false
+	)
+	assert_true(bool(result.get("ok", false)), String(result.get("reason", "")))
+	var arriving: Dictionary = result["animation"]["ot"]
+	assert_eq(int(arriving["species"]), SPECIES_TWO)
+	assert_eq(String(arriving["species_name"]), String(_data.species(SPECIES_TWO)["name"]))
+	assert_eq((save.party[1] as Gen2SaveMon).species, BattleFixture.GEODUDE)
+	assert_false((result["evolution_plan"] as Dictionary).is_empty(), "the evolution plays after the movie")
+
+
 func test_a_link_trade_refuses_a_slot_that_is_not_in_the_party() -> void:
 	var world: Gen2WorldAPI = _world()
 	var save: Gen2SaveData = _save()
