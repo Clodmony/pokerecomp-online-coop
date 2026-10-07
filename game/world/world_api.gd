@@ -4338,6 +4338,7 @@ var rival_name: String = Gen2WorldScriptRunner.UNNAMED
 ## box; `DisplayPokemonCenterDialogue_` is five of them around a choice.
 var _gen1_steps: Array = []
 var _gen1_money_window: bool = false
+var _gen1_box_held: bool = false
 
 
 ## The raw permission byte at a walk cell: the imported grid, unless a
@@ -8066,6 +8067,7 @@ func _apply_map(
 	_gen1_entry_steps = []
 	_gen1_map_load_pending = 0
 	_gen1_money_window = false
+	_gen1_box_held = false
 	_gen1_destination_warp = -1
 	_gen1_warps_dropped = 0
 	## `WarpFound2`'s `CheckIfInOutsideMap`: leaving a town or a route records it,
