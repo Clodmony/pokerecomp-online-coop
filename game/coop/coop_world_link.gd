@@ -268,7 +268,7 @@ func _world_saved() -> bool:
 		return false
 	_saved_world = save.world
 	var frame: int = save.world.frame_number if save.world != null else _saved_frame
-	var saved: bool = frame != _saved_frame
+	var saved: bool = frame != _saved_frame and busy != &"battle"
 	_saved_frame = frame
 	return saved
 
