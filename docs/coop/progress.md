@@ -197,6 +197,20 @@ a two-window check of each feature (D65).
 | Two windows, `cable_club_trade` (autoplay) | After BROCK both go to Pewter's Pokémon Center, P1 is given a level 20 MACHOKE by the save editor (the host files it as `p1:3`), both talk to the Cable Club receptionist, save, pick TRADE CENTER, meet and sit at the table. Round 1: P1 offers MACHOKE, P2 MANKEY, P2 picks CANCEL; neither team changes on the host. Round 2: both TRADE; the host swaps once and saves. P2's movie shows "No.067 MACHOKE OT/P1" and "Take good care of MACHOKE.", then "MACHOKE evolved into MACHAMP!" (D64). Saved: P1 [p1:2 MANKEY, p1:1 CHARMANDER, p2:2 MANKEY], P2 [p2:1 SQUIRTLE, p1:3 MACHAMP]; five Pokémon before and after, each uid held once. Four runs in a row passed (about six minutes each) and two more on the merged branch, the second with D71 (the Trade Center shows no leftover wait box); the scenario's `check` reads the saved file |
 | Tests: D63, D64, D66, D67 | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own`; `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`; the journal and format 2 tests in `test_coop_state` and `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`; `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` and `test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends` |
 
+## To the Hall of Fame (branch `coop/playthrough`, second session, 2026-10-07)
+
+The owner settled the open questions (D72); the work follows `tasks.md`.
+
+| Check | Result |
+|---|---|
+| Merge of `coop/autoplay-surge` (#87, D73 to D75) | co-op suites 179/179; whole suite 4993/4994, the one failure `tasks.md` naming a folder only this machine has (docs fixed); 4995/4995 after the #86 merge; release gates pass |
+| Two windows, `playthrough_misty` on the merge | both players to MISTY's badge in 600 and 624 s, 51 battles, 0 errors; the last capture shows both in Cerulean Gym |
+| Two windows, `cable_club_trade` on the merge | passes in 367 and 385 s: MACHOKE arrives in P2's party and evolves into MACHAMP, five Pokémon before and after, each uid once |
+| Seeded runs | `SEED=<dir>` and the autopilot's `from=<leg>`: two windows opened on a campaign saved after LT. SURGE, both on their saved cells in Vermilion Gym, and finished `from=lt_surge` at once |
+| #86 (D76), upstream: a no-press box held up by its row's own fade | `CloseTextDisplay` now takes it down at the row's end (`_gen1_close_text_display`); test `test_a_gen1_rows_end_takes_down_a_no_press_box_its_fade_held_up`; on the Red import the thief's leg passes and the player walks on, and upstream's `played` check passes from the intro to the Cerulean Gym exit (30 battles). Cosmetic, not fixed: the receipt's `text_waitbutton` shows an arrow and an empty last page where the cartridge keeps "Bye!" through the fade |
+| #85 (D77), Vermilion Gym's first lock kept while a partner is near | two GUT tests; two windows, `vermilion_locks` from an edited after-Surge seed: BLUE walks from the Pokémon Center into the city twice while RED searches, BLUE's window rolls 6 (10 in another run) and keeps 4, RED finds the first switch in can 4 and opens the first lock; three passing runs. Control run with the change off: BLUE's entry sends lock 10 and RED finds only trash in can 4 |
+| Campaign seeds (D78) | `tools/coop_seed.gd` writes a two-player campaign at any of upstream's 30 Gen 1 story legs in 5 to 7 s, byte for byte the same each time; ten seeds, one per later stretch start, each opened in two windows (`story_seed`): both players where the story left them, side by side, the party right, 0 script errors; the autopilot finished `from=lt_surge` at once on the Vermilion seed. Against the real run's campaign after LT. SURGE the story seed has the same badges and 62 of its 66 story flags (three trainers the story's path skipped, and `EVENT_WALKED_OUT_OF_DOCK`), and no host `defeated` encounters or gift commits |
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -267,7 +281,8 @@ has **played** it by hand yet.
 ## Incomplete
 
 - The host does not check collision and trusts reported warps, world patches
-  and the enemies a window's world prepared (#22, #25).
+  and the enemies a window's world prepared: accepted by the owner (D72), the
+  windows stay trusted.
 - A battle that starts between the host's last state and a window's SAVE is
   still refused after the game's "saved" line, with the notice (D56).
 - A shared battle is drawn on the cartridge's battle field (pictures, status
@@ -292,8 +307,8 @@ has **played** it by hand yet.
   real host crash, a power loss and a phone are untried.
 - Private Windows and Linux builds are exported, but the Windows build has only
   run under Wine; there is no Android or iOS build (#44, #45, #46).
-- Shared NPCs, scripts and cutscenes are not locked while one player uses them
-  (#24). A gift two windows hand out at once is kept once (D62), but a race
+- Contested rival scenes are not yet driven by the first player in (#24,
+  approved in D72). A gift two windows hand out at once is kept once (D62), but a race
   that also moves new story, or one that gives coins, is not caught.
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
   `palette` key for Generation 1 trainers (#59); see also L6.
@@ -308,7 +323,7 @@ has **played** it by hand yet.
 ## Next concrete step
 
 See [tasks.md](tasks.md) (the next tasks in order) and
-[playbook.md](playbook.md) (the plan to a fully playable run). In short: fix the
-Cerulean thief's stuck box (#86), merge `coop/autoplay-surge` (#87), share the
-campaign at rest points (#84, #85, owner decision pending), then play on to the
-Hall of Fame (#88) before the owner's hand-played session (#44).
+[playbook.md](playbook.md) (the plan to a fully playable run). In short: share
+the campaign at rest points (#84, #85, adopted in D72), let the first player in
+drive a rival scene (#24), then play on to the Hall of Fame (#88) before the
+owner's hand-played session (#44).

@@ -9647,6 +9647,27 @@ func _gen1_home_path(data: GameData) -> Array:
 
 
 func _gen1_story_path(data: GameData) -> Dictionary:
+	var story: Dictionary = _gen1_story_start(data)
+	if not story.has("world"):
+		return story
+	var world: Gen2WorldAPI = story["world"]
+	var save: Gen2SaveData = story["save"]
+	var path: Array = []
+	for leg: Callable in _gen1_story_legs():
+		var walked: Dictionary = leg.call(world, save, story["random"], data, path)
+		if not bool(walked.get("ok", false)):
+			return walked
+	return {
+		"ok": true,
+		"path": path,
+		"party": _party_species(save),
+		"items": _named_items(data, world.state.items()),
+		"event_flags": world.state.event_flags(),
+		"badge_count": world.state.badge_count(),
+	}
+
+
+func _gen1_story_start(data: GameData) -> Dictionary:
 	var spawn: Gen2WorldSnapshot = Gen2WorldSpawn.new_game_snapshot(data)
 	var world: Gen2WorldAPI = Gen2WorldAPI.open_snapshot(data, spawn) if spawn != null else null
 	if world == null:
@@ -9662,8 +9683,11 @@ func _gen1_story_path(data: GameData) -> Dictionary:
 	if save == null:
 		return {"ok": false, "reason": "could not create source-shaped new game"}
 	save.world = world.snapshot()
-	var path: Array = []
-	var legs: Array[Callable] = [
+	return {"ok": true, "world": world, "save": save, "random": random}
+
+
+func _gen1_story_legs() -> Array[Callable]:
+	return [
 		_gen1_bedroom_leg, _gen1_oak_leg, _gen1_lab_leg, _gen1_parcel_leg,
 		_gen1_pokedex_leg, _gen1_viridian_forest_leg, _gen1_pewter_gym_leg,
 		_gen1_mt_moon_leg, _gen1_cerulean_rival_leg, _gen1_bills_house_leg,
@@ -9674,18 +9698,6 @@ func _gen1_story_path(data: GameData) -> Dictionary:
 		_gen1_saffron_gym_leg, _gen1_cinnabar_leg, _gen1_mansion_leg, _gen1_cinnabar_gym_leg,
 		_gen1_viridian_gym_leg, _gen1_route_23_leg, _gen1_victory_road_leg, _gen1_elite_four_leg,
 	]
-	for leg: Callable in legs:
-		var walked: Dictionary = leg.call(world, save, random, data, path)
-		if not bool(walked.get("ok", false)):
-			return walked
-	return {
-		"ok": true,
-		"path": path,
-		"party": _party_species(save),
-		"items": _named_items(data, world.state.items()),
-		"event_flags": world.state.event_flags(),
-		"badge_count": world.state.badge_count(),
-	}
 
 
 ## `RunMapScript` runs on every frame `JoypadOverworld` reads, so a leg settles
@@ -9870,8 +9882,7 @@ func _gen1_talk(
 	return settled
 
 
-## A trainer who walked up may stand where the walk meant to, so the side is
-## picked again after every interruption.
+## A trainer who walked up may take the planned cell, so each interruption picks the side again.
 func _gen1_talk_to(
 	world: Gen2WorldAPI, target: Vector2i, save: Gen2SaveData, random: RandomNumberGenerator,
 	data: GameData
@@ -10465,8 +10476,7 @@ func _gen1_surf(
 	return settled
 
 
-## Vermilion back up the Underground Path, Route 9 behind its tree, Rock
-## Tunnel's two ladders and out to Lavender Town.
+## Vermilion by the Underground Path, Route 9's tree and Rock Tunnel's ladders to Lavender Town.
 func _gen1_rock_tunnel_leg(
 	world: Gen2WorldAPI, save: Gen2SaveData, random: RandomNumberGenerator, data: GameData,
 	path: Array
@@ -11292,8 +11302,7 @@ func _gen1_cinnabar_gym_leg(
 	return _gen1_warp_legs(path, world, save, random, data, [[GEN1_CINNABAR_ISLAND, "cinnabar_gym_exit"]])
 
 
-## Route 21 north to Pallet, Route 1 to Viridian and its gym: Giovanni again,
-## the EARTHBADGE and TM27.
+## Route 21 to Pallet, Route 1 to Viridian's gym: Giovanni again, the EARTHBADGE and TM27.
 func _gen1_viridian_gym_leg(
 	world: Gen2WorldAPI, save: Gen2SaveData, random: RandomNumberGenerator, data: GameData,
 	path: Array

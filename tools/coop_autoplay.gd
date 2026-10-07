@@ -161,8 +161,7 @@ func _choose() -> int:
 	if screen.get("_link_host") != null:
 		return _link_button(screen)
 	_hide_wait_box_left_over_the_link_room(screen)
-	if _frames % 60 == 0 and screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool:
-			return not mon.is_egg and (mon.status != 0 or mon.hp * 2 < _played._editor.max_hp_for(mon))):
+	if _frames % 60 == 0 and screen.active_save().party.any(_worn):
 		_heal(screen)
 	return _leg_button(screen)
 
@@ -553,11 +552,21 @@ func _badge(bit: int) -> Callable:
 	return func(world: Gen2WorldAPI) -> bool: return world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(bit))
 
 
+func _worn(mon: Gen2SaveMon) -> bool:
+	if mon.is_egg:
+		return false
+	var spent: bool = range(Gen2SaveMon.MAX_MOVES).any(func(slot: int) -> bool:
+		return int(mon.pp[slot]) * 2 < mon.max_pp(_session.data, slot))
+	return mon.status != 0 or mon.hp * 2 < _played._editor.max_hp_for(mon) or spent
+
+
 func _heal(screen: Gen2WorldScreen) -> void:
 	for mon: Gen2SaveMon in screen.active_save().party:
 		if not mon.is_egg:
 			mon.hp = _played._editor.max_hp_for(mon)
 			mon.status = 0
+			for slot: int in Gen2SaveMon.MAX_MOVES:
+				mon.pp[slot] = mon.max_pp(_session.data, slot)
 	screen.call(&"_refresh_party_summary")
 
 
