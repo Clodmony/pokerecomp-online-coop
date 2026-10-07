@@ -15,7 +15,8 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
 | `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
 | `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
-| `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed run to MISTY, #39, #66, #82, D67, D68 | draft PR #83 (stacked on #81) |
+| `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to MISTY and a Cable Club trade, the launcher check, #39, #66, #82, D67 to D71 | draft PR #83 (stacked on #81) |
+| `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | pushed, not reviewed: the road to LT. SURGE and three co-op fixes (see progress.md, Next concrete step) | none yet |
 
 ## Issues
 
