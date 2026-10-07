@@ -18,7 +18,9 @@ D65):
 | Mt. Moon, the fossil, MISTY | works; the DOME FOSSIL reaches both (D67) |
 | Cable Club trade with a trade evolution | works (`cable_club_trade`) |
 | Nugget Bridge, Bill, S.S. Anne, CUT, LT. SURGE | works: `playthrough_surge` from a new campaign, about 21 minutes (#87, #86 fixed) |
-| Celadon to the Hall of Fame | not tried in co-op (#88) |
+| Celadon, Rocket Hideout, Pokémon Tower | in progress (#88) |
+| SNORLAX, Safari Zone, KOGA | works from a story seed (`koga`, D81) |
+| Silph Co. to the Hall of Fame | not tried in co-op (#88) |
 
 The automated runs heal between fights and grind with the save editor, so they
 prove the co-op flow, not balance or feel; a hand-played session (#44) is the
