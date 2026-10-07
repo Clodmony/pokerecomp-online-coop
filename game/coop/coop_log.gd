@@ -96,7 +96,9 @@ func _rotate() -> void:
 	for index: int in names.size():
 		var file: String = ProjectSettings.globalize_path("%s/%s" % [directory, names[index]])
 		var opened: FileAccess = FileAccess.open(file, FileAccess.READ)
-		kept += opened.get_length() if opened != null else 0
+		if opened != null:
+			kept += opened.get_length()
+			opened.close()
 		if index >= KEEP_FILES - 1 or kept > KEEP_BYTES:
 			DirAccess.remove_absolute(file)
 
@@ -130,7 +132,7 @@ func add(source: StringName, kind: String, data: Variant = {}, player: String = 
 	return entry
 
 
-## A digest of each `state` changed beyond the players' steps, whole after a welcome and then every [constant FULL_STATE_MSEC].
+## A digest of each `state` that changed beyond steps, whole after a welcome and every [constant FULL_STATE_MSEC].
 func log_state(message: Dictionary, player: String) -> void:
 	if not _on:
 		return
