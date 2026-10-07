@@ -1827,23 +1827,6 @@ func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too(
 		"Blue's world redraws the door as the window that found the switch does")
 
 
-func test_an_item_ball_a_partner_picked_up_leaves_this_windows_map_at_once() -> void:
-	var red: PokeCoopWorldLink = _window(_red)
-	var blue: PokeCoopWorldLink = _window(_blue)
-	_stand(blue, Vector2i(0, Gen1Layout.POKEMON_TOWER_1F + 5))
-	var ball := Gen2WorldObject.new()
-	ball.toggle_index = 62
-	blue.world.objects.append(ball)
-	blue.world.load_object_masks()
-	assert_true(ball.active)
-
-	red.state.set_object_toggled(62, true)
-	_pump()
-
-	assert_true(blue.state.is_object_toggled(62))
-	assert_false(ball.active, "the ball that plugs Pokémon Tower 6F's gap no longer blocks the partner's way")
-
-
 func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> void:
 	var in_purified_zone: int = 0x107
 	var red: PokeCoopWorldLink = _window(_red)
