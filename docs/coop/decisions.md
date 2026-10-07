@@ -1043,3 +1043,23 @@ end sends `text_closed` for it as it already did for a balance window. The same
 tail closes Pallet Town's "Hey! Wait!", the Game Corner poster and the Pokémon
 Mansion switches. Left as it is: the receipt's `text_waitbutton` draws an arrow
 and an empty last page where the cartridge keeps "Bye!" through the fade.
+
+## D77. A window entering Vermilion City keeps the first lock while a partner is near (2026-10-07)
+
+D63 left a cost: `VermilionCity_Script`'s `.setFirstLockTrashCanIndex` rolls
+the first lock on every load of the city, so a partner walking in moved the
+first switch while someone was still searching the gym (#85). As agreed with
+the owner, the locks stay while anyone is in Vermilion City or its gym, a
+window entering takes them instead of rolling, and with nobody there the next
+entry rolls as on the cartridge. No can is searched in the city, so a first
+lock that differs from the one the window last synced is the city's roll;
+while the host's player list shows another connected player in the city or
+gym, `PokeCoopWorldLink._keep_locks` puts the synced value back before the
+window's patch goes out and logs `locks_kept`. A wrong second can is a search
+in the gym, so its reset still reaches everyone. Rejected: the host refusing a
+first-lock change, since the window would keep its own roll without a new
+correction message, and the host would have to tell a roll from a reset by a
+`move` that can arrive after the patch. Costs: a player stepping out of the gym
+while the partner is inside keeps the lock rather than re-rolling; two players
+arriving at the same moment may both roll, and the later roll wins before
+anyone searches; a dropped partner does not count as present.

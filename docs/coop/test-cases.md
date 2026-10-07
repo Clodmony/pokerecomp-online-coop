@@ -52,6 +52,7 @@ Red (or Blue) cartridge, the same one.
 | W16 | Both in Vermilion City; one stands on the dock's ticket check while the other walks the city (the same in Cerulean City) | Each window's city script follows its own player: the check shows once, the partner's walk does not reset it | `test_a_map_script_that_follows_one_players_walk_stays_in_their_window` | playthrough_surge | |
 | W17 | Both in Vermilion Gym; one finds the second switch | The door to LT. SURGE opens in both windows at once | `test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too` | playthrough_surge | |
 | W18 | Teach CUT, then use it from START > POKéMON on the tree outside Vermilion Gym | The tree is cut in that window and grows back at the next map load, as on the cartridge | | playthrough_surge | |
+| W19 | One player searches Vermilion Gym's trash cans while the partner walks into Vermilion City (or out of the gym) | The switches stay in their cans: the searcher finds the first switch where it was; a wrong second can hides it anew for both; with nobody in the city or gym, the next arrival hides it afresh | `test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches`, `test_vermilion_city_rolls_a_new_first_lock_while_nobody_else_is_in_the_city_or_gym` | vermilion_locks | |
 
 ## Battles
 
