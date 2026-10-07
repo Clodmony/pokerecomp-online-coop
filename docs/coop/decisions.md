@@ -754,3 +754,41 @@ its own: the close request starts the same shutdown as leaving (the host sends
 `ended` and its last lines, a joiner its last log batch), and the app quits once
 that is out, at most 2.5 s later on a host and 0.6 s on a joiner. Quitting is
 the app's own again as soon as the session is closed.
+
+## D61. The owner settles the open co-op rules (2026-10-07)
+
+The owner answered every open policy and scope question. Guiding rule: a shared
+battle should feel as close to a solo run as it can.
+
+- **Leaving and dropping are one rule** (#31, #30). LEAVE BATTLE and a lost link
+  both make a participant absent: they go back to their world (return point),
+  their Pokémon stay in the roster, results and experience stay theirs, and they
+  may rejoin. A battle ends for everyone only when nobody is left in it.
+- **A battle everyone has left waits as long as a window redials** (about two
+  minutes), not 30 s, so a phone's pause does not lose a gym fight.
+- **A stand-in is asked, not imposed.** After 30 s without the controller the
+  other participants are offered WAIT or TAKE OVER.
+- **Prize money** (#36): every participant receives the full prize, Pay Day
+  included. Blackout stays as on the cartridge: each loser pays half their own
+  money.
+- **Gift Pokémon** (#33): one per player. EEVEE, LAPRAS and the Dojo's choice
+  are each player's own, as the fossils already are.
+- **Exp. All** (#37): one carried by any participant counts for every team, and
+  each team gets the solo split over its own party: the fighters' block halved,
+  the other half shared over that player's own team, never over the joint
+  roster.
+- **Late joiners** (#34): unchanged, a level 5 starter and 3000 money in
+  Pallet Town, or a played opening, or a brought save.
+- **World simulation** (#22, #24, #25): the host locks a scripted NPC or gift
+  while one window uses it; windows stay trusted and the host-side world stays
+  parked.
+- **Scope**: Red and Blue only. The Generation 2 parts of #27 and #28 move to
+  the later milestone.
+- **Repository**: #58, #79 and #80 stay drafts until the hand-played session;
+  upstream (0.1.74) is merged after they land (#14); the upstream bugs stay
+  fork-only issues for now; the repository stays private with no publishing
+  plan (#57).
+- **Next after these rules**: the scripted playthrough to BROCK (#48), the
+  Android build (#45), then German Red/Blue (#50). The owner has a Windows PC, a
+  second Linux machine, an Android phone and a Mac with an Apple account for
+  device checks.
