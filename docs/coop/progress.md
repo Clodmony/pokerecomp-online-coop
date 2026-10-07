@@ -307,12 +307,26 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-In order (D61):
+Handoff, 2026-10-07 (the session stopped at the owner's usage limit):
 
-1. A hand-played session on the owner's devices with fresh Windows and Linux
-   builds (#44), including a battle left and rejoined and a dropped player.
-2. The scripted two-window playthrough from the opening to BROCK's badge (#48).
-3. The Android export and device checks (#45, #20, #43), then German Red/Blue
-   (#50).
-4. Once #58, #79, #80 and this branch are merged, the upstream merge to
-   0.1.74 (#14).
+1. Review and merge `coop/autoplay-surge` (pushed, not reviewed, its agent was
+   still running) into `coop/playthrough`: the autopilot's road from MISTY to
+   LT. SURGE (`route=surge`, `playthrough_surge.sh`) and three co-op fixes it
+   found, each with a test: a window opens its world as a Continue does (the
+   campaign's story at once, its own last outside map, so a door in a building
+   reopened after a re-host no longer leads to Pallet Town and the Cerulean
+   thief is not fought twice); `wCeruleanCityCurScript` and
+   `wVermilionCityCurScript` are each player's (a partner reset the dock
+   sailor's check forever); Vermilion Gym's door opens in a partner's window
+   when the second switch is found. Expect conflicts in `tools/coop_autoplay.gd`
+   (the trade route and the heal merged since it branched at `72a724fb`). Rerun
+   `playthrough_surge`, `playthrough_misty`, `cable_club_trade` and the
+   co-op suites after merging, write its D-entries (D72 on), test cases and
+   progress rows, and update PR #83's description.
+2. A hand-played session on the owner's devices (#44) when the owner is ready;
+   `test-cases.md` is the checklist.
+3. Android (#45, #20, #43): needs the owner to install a JDK and the Android
+   SDK and accept Google's licence, or to allow it.
+4. German Red/Blue (#50): needs the owner's own German dump imported locally.
+5. Once #58, #79, #80, #81 and #83 are merged, the upstream merge to 0.1.74
+   (#14).
