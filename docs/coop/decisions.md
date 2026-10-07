@@ -95,7 +95,7 @@ decoded without objects. LAN and direct IP need no relay or paid service.
 `PokeCoopSave` writes JSON with a campaign section and a section per player,
 through a temporary file and a rename. Saving is refused while any battle runs,
 so no session state is ever persisted; a host that closes first ends its
-running battles as fled (D37). Recovery between checkpoints is #39.
+running battles as fled (D37). Story changes between checkpoints are journaled (D66).
 
 ## D13. Comment ceiling raised for the co-op subsystem (2026-10-05)
 
@@ -449,9 +449,8 @@ the old file alone and reports the error. Before each rename, the file being
 replaced is copied beside it as `<campaign>.bak`, but only if it still reads as
 a campaign, so a damaged file never displaces the last good checkpoint. A
 campaign that cannot be read is still left as it is (D37); the launcher now
-names the backup. A damaged file is read without an engine error. There is
-still no journal between checkpoints and no migration between format versions
-(#39).
+names the backup. A damaged file is read without an engine error. The journal
+and format migration followed in D66.
 
 ## D41. A trainer win closes as the cartridge's does (2026-10-06)
 
@@ -874,3 +873,47 @@ finding, warps, talking, the save editor's grind) on its world, plays the
 opening, and fights from the co-op panel, so the run to BROCK (#48) needs no
 hand-written key list. The upstream check is loaded at run time, since a
 preload compiles it before the autoloads exist.
+
+## D66. A journal keeps story changes between checkpoints; format 2 settles the intro once (2026-10-07)
+
+The campaign file is written only between battles (D12, D28), so a crash lost
+every story change since the last checkpoint, and with one player fighting
+while the other explores that could be minutes (#39). The host now appends a
+line to `<campaign>.json.journal` at the end of every poll in which the
+campaign's revision moved past the last checkpoint or line, and every
+successful checkpoint removes the journal. Reading a campaign takes the
+checkpoint, then the newest whole journal line of the same campaign whose
+revision is above the checkpoint's: a torn last line is skipped, each line
+opens with its newline so the next one still reads, and lines a crash left
+behind a newer checkpoint are older by revision and change nothing. A line is
+the state, not the change: the campaign and every player, each PC left out
+while its `box_rev` is the one the last checkpoint wrote. Replaying campaign
+changes alone was rejected: the patch that sets a story flag hands over its
+item (OAK'S PARCEL, an HM, a gym TM to the partner) and a battle's commit
+brings its prize or catch, so a flag recovered without its item would strand
+the story. A late-game line measured 37 KB and 1.5 ms on a desktop, against
+169 KB and 12 ms for a checkpoint.
+
+The format had been version 1 from the start. `PokeCoopHost.create` settled
+every hosted campaign with the intro's world (D58), and since a script step
+back at 0 and an object shown again are erased from their tables, each hosting
+put them back. Format 2 marks a settled campaign: `PokeCoopSave.from_dict`
+settles a format 1 file once, and later steps follow as `if version < N`. An
+older build refuses a format 2 file and leaves it untouched. Limits: no fsync
+(a process crash is covered, a power loss may not be); a journal without a
+checkpoint is not read; restoring `.bak` by hand should remove the journal.
+
+## D67. A window sends what a script changed in one patch (2026-10-07)
+
+The autoplayed run to MISTY (D65) found the DOME FOSSIL reaching only the
+player who took it, though story items reach every player (D52). The fossil's
+script gives the item, waits on "got DOME FOSSIL!", and only then sets the
+flag, so the window's item and flag went out in two patches, and the host
+shares only what a patch that moves the story brings. Any gift with a text box
+between the item and the flag had the same gap. While the window's world runs
+a script (`script_busy`) its link now neither sends nor takes world patches,
+and sends everything the script changed in one patch when it ends; the
+partner's story changes wait until then too, so a running script is never
+changed under it. A script still running after 15 s (a long cutscene, a
+trainer battle) stops holding, as before. Cost: the partner sees a story change
+up to a script's length later.
