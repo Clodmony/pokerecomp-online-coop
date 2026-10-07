@@ -19,9 +19,6 @@ keep the snapshot below current.
     panel. Check each worktree, finish or restart the stretch from its story
     seed (`tools/coop_seed.gd`), merge one by one.
   - `coop/rival-scenes` (#24): agent stopped before any commit; start again.
-  - Not rerun after the rest-points merge: `playthrough_surge` (the run was
-    stopped early); `playthrough_misty`, `cable_club_trade` and `rest_points`
-    passed on the agent's branch.
 - **Next free decision number:** D81 (D72 to D80 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
