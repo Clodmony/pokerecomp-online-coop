@@ -1177,3 +1177,32 @@ windows and a partner's item ball and GIOVANNI staying drawn (D79 fixes them),
 and one cost left as D79 states: a partner's poster switch opens the stairs in
 a window already in the Game Corner only when it reads the poster or enters
 again.
+
+## D84. The first window into a rival scene drives it (2026-10-08)
+
+D72's lock (#24) covers the rival scenes after the opening: Route 22 (both
+fights), Cerulean City, S.S. Anne 2F, Pokémon Tower 2F and Silph Co. 7F
+(`PokeCoopPolicy.RIVAL_SCENES`, by map, with the `w<Map>CurScript` states each
+scene runs in; the byte is what the cartridge dispatches on, so no table of
+trigger cells is kept). A window whose own byte enters one of those states
+claims the scene on the host (`scene`, protocol 5) and gives it back at its
+first rest point after the byte has left them, the world patch with the result
+going out first in the same frame. The host keeps one driver per map, shows it
+in that player's public view, refuses a second claim (`scene_taken`) and lets
+go when the driver drops, leaves or steps onto another map. A partner on that
+map waits from its next rest point with no step under way: its world stands
+still under "<name> is facing the rival here. Wait, or join the battle with
+SELECT.", SELECT > JOIN fights the rival together, and the frozen world counts
+as resting, so the result is pulled during the wait. The wait ends at the
+partner's next rest point, where the scene's script step for its map lands at
+once (S.S. Anne 2F's rival is guarded by no flag, only by its byte resting at
+NOOP, and a partner let go replayed his lines). Two windows that start the
+scene before either hears of the other both play it: the claim the host reads
+first drives, and the loser's battle joins the driver's as one unique
+encounter; the rival scenes give no items, so both copies leave the same
+result, and a rollback was rejected. A dropped driver lets the partner go at
+once and meets the rival again from the start (D72). Costs: Pokémon Tower 2F
+and Silph Co. 7F open with a text box before their byte moves, so a partner
+waits one box late and may start its own copy in that gap (the race rule
+covers it); anyone anywhere in Cerulean City waits out the Nugget Bridge
+scene; a window whose link drops while it waits stays frozen until it is back.
