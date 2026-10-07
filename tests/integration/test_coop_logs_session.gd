@@ -350,6 +350,32 @@ func test_a_window_logs_its_own_battle_and_the_hosts_echo_it_left_out() -> void:
 	assert_eq(_of(red_lines, "takeover_end")[0]["data"]["outcome"], "won")
 
 
+func test_a_world_pull_says_how_long_a_scene_held_it_and_which_step_waits_for_a_map_load() -> void:
+	_both()
+	var windows: Array = [_red, _blue].map(func(client: PokeCoopClient) -> PokeCoopWorldLink:
+		var state := Gen2WorldState.new()
+		state.gen1 = true
+		return PokeCoopWorldLink.over(client, state, PokeCoopWorldLink.local_save(client, _data), _data))
+	_links.append_array(windows)
+	_pump()
+	var gym := Gen2WorldMap.new()
+	gym.scripts = {"entry": [{"op": "map_script_table", "byte": 0x26}]}
+	windows[0].world = Gen2WorldAPI.new(_data, gym, null, Vector2i.ZERO, windows[0].state)
+	windows[0].busy = &"script"
+	(windows[1].state as Gen2WorldState).set_event_flag(0x305)
+	(windows[1].state as Gen2WorldState).set_gen1_map_script(0x26, 2)
+	for _frame: int in 90:
+		_pump(1)
+	windows[0].busy = &""
+	_pump()
+
+	var pulls: Array = _of(_lines(_red.journal), "world_pull").filter(func(line: Dictionary) -> bool: return line["data"]["changes"].has("event_flags"))
+	var pull: Dictionary = pulls[-1]["data"]
+	assert_eq(pull["held_by"], "script")
+	assert_gte(int(pull["held"]), 90, "the frames the scene held it back")
+	assert_eq(int(pull["owed"]), 0x26, "the step for the map Red stands on waits")
+
+
 func test_the_merged_timeline_of_three_devices_summarises_the_session() -> void:
 	_both()
 	_beat_the_leader()
