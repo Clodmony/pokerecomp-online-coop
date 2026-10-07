@@ -9,6 +9,7 @@ const SAVE_PATH: String = "user://coop_session_test.json"
 const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
 const BEAT_LEADER: int = 0x77
+const ROUTE_12_SNORLAX_TOGGLE: int = 29
 
 var _directory: String = ""
 var _data: GameData = null
@@ -1816,6 +1817,23 @@ func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too(
 	assert_true(blue.state.is_event_flag_active(Gen1Layout.LOCK_2ND_EVENT))
 	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & door_load, door_load,
 		"Blue's world redraws the door as the window that found the switch does")
+
+
+func test_an_object_a_partners_scene_hid_leaves_this_windows_map_at_once() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, Vector2i(0, Gen1Layout.ROUTE_12))
+	var snorlax := Gen2WorldObject.new()
+	snorlax.toggle_index = ROUTE_12_SNORLAX_TOGGLE
+	snorlax.active = true
+	blue.world.objects.append(snorlax)
+
+	red.state.set_object_toggled(ROUTE_12_SNORLAX_TOGGLE, true)
+	_pump()
+
+	assert_true(blue.state.is_object_toggled(ROUTE_12_SNORLAX_TOGGLE))
+	assert_false(snorlax.active, "Blue no longer sees, or bumps into, the SNORLAX Red's fight hid")
+	assert_null(blue.world.object_at(snorlax.cell))
 
 
 func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:
