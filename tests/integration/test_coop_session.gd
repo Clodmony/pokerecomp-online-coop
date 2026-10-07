@@ -744,6 +744,20 @@ func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
 	assert_false(PokeCoopSave.read(SAVE_PATH).is_empty())
 
 
+func test_a_ball_thrown_in_the_windows_own_battle_asks_for_no_checkpoint() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.busy = &"battle"
+	var thrown := Gen2WorldSnapshot.new()
+	thrown.frame_number = 1234
+	red.save.world = thrown
+	_settle()
+	red.busy = &""
+	_settle()
+
+	assert_eq(red.save_seq, -1, "a SAFARI BALL's transaction snapshots the world, which is no SAVE")
+	assert_eq(String((_blue.state.get("saved", {}) as Dictionary).get("by", "")), "", "nor does Blue hear of one")
+
+
 func test_shutting_the_host_down_ends_the_session_for_every_client() -> void:
 	_host.shutdown()
 	_pump()
@@ -1839,6 +1853,27 @@ func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> v
 		"Blue's window, outside the zone, neither takes Red's flag nor clears it under Red, who would be healed again")
 	assert_true(red.state.is_event_flag_active(in_purified_zone))
 	assert_false(_host.campaign.has_flag(in_purified_zone))
+
+
+func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, Vector2i(0, Gen1Layout.ROUTE_12))
+
+	red.state.set_event_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT)
+	red.state.set_safari_balls(30)
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(Gen1Layout.IN_SAFARI_ZONE_EVENT),
+		"Blue, with no SAFARI BALL, is not in Red's game")
+	assert_true(blue.world.dispatch_sight_events().is_empty(), "so no game over sends Blue to the gate")
+	assert_false(_host.campaign.has_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT))
+	assert_true(_host.player(_red.player_id).world_part().get("event_flags", {}).has(Gen1Layout.IN_SAFARI_ZONE_EVENT))
+
+	red.state.set_event_flag(Gen1Layout.SAFARI_GAME_OVER_EVENT)
+	red.state.clear_event_flag(Gen1Layout.IN_SAFARI_ZONE_EVENT)
+	_pump()
+	assert_false(blue.state.is_event_flag_active(Gen1Layout.SAFARI_GAME_OVER_EVENT), "nor does Red's game end Blue's")
 
 
 func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:

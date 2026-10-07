@@ -42,8 +42,11 @@ const GIFT_TMS: Dictionary = {
 const GIFT_COMMIT_PREFIX: String = "gift:"
 ## OLD_AMBER, DOME_FOSSIL and HELIX_FOSSIL: each player revives their own (D52).
 const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
-## Each player's own: gifts (D61) EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; EVENT_IN_PURIFIED_ZONE.
-const OWN_GIFTS: Dictionary = {"event_flags": [0x356, 0x357, 0x3FF, 0x107], "toggled_objects": [0x45, 0x4A, 0x4B]}
+## Each player's own (D61): gifts EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; Safari Game; EVENT_IN_PURIFIED_ZONE.
+const OWN_GIFTS: Dictionary = {
+	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107],
+	"toggled_objects": [0x45, 0x4A, 0x4B],
+}
 ## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the
 ## three birds and MEWTWO. Each is one encounter for the whole campaign.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
