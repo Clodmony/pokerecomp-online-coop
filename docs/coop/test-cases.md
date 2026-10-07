@@ -29,6 +29,7 @@ Red (or Blue) cartridge, the same one.
 | S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
 | S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
 | S15 | Host a campaign again while a player stands inside a building | That window opens inside it on the campaign's story and leaves by the building's own door; a coord script already done (the Cerulean thief) does not run again | `test_a_window_opened_again_inside_a_building_leaves_by_its_own_door`, `test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place` | | |
+| S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
 
 ## Exploration and story
 
@@ -53,6 +54,13 @@ Red (or Blue) cartridge, the same one.
 | W17 | Both in Vermilion Gym; one finds the second switch | The door to LT. SURGE opens in both windows at once | `test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too` | playthrough_surge | |
 | W18 | Teach CUT, then use it from START > POKéMON on the tree outside Vermilion Gym | The tree is cut in that window and grows back at the next map load, as on the cartridge | | playthrough_surge | |
 | W19 | One player searches Vermilion Gym's trash cans while the partner walks into Vermilion City (or out of the gym) | The switches stay in their cans: the searcher finds the first switch where it was; a wrong second can hides it anew for both; with nobody in the city or gym, the next arrival hides it afresh | `test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches`, `test_vermilion_city_rolls_a_new_first_lock_while_nobody_else_is_in_the_city_or_gym` | vermilion_locks | |
+| W20 | One player beats a gym leader while the other stands in the gym | Each player holds one copy of the leader's TM; the bystander's window never plays the leader's lines | `test_brock_beaten_in_one_window_hands_each_player_one_tm34` | rest_points | |
+| W21 | A scene with a trainer battle in it (the lab rival, BROCK) while the partner plays on | The partner's world changes only when the scene ends; the battle can still be joined live | `test_a_long_scene_with_a_battle_in_it_reaches_the_partner_only_when_it_ends`, `test_a_window_is_at_a_rest_point_only_where_the_cartridge_could_save` | rest_points, playthrough_misty | |
+| W22 | LEAVE (or pull the network) in the middle of a scene that gives something, then come back | The scene plays again from its start and nothing is held twice | `test_a_scene_cut_off_by_leaving_leaves_the_host_on_the_last_resting_state`, `test_a_scenes_gift_pokemon_waits_for_its_end_unless_a_fight_in_it_needs_the_party` | | |
+| W23 | Both players in Vermilion City; one shows the S.S. TICKET | Each passes the sailor once and nobody is sent back | `test_both_players_in_vermilion_city_each_pass_the_ticket_check_once` | playthrough_surge | |
+| W24 | A partner moves the story of the map you stand on | It applies when you next enter that map, never under your feet | `test_a_partners_step_for_the_map_a_window_stands_on_lands_at_its_next_map_load` | | |
+| W25 | The partner takes Mt. Moon's fossil while you are elsewhere on that floor | The fossils vanish from your map at once and the way out is open | `test_an_object_a_partner_hides_leaves_the_map_a_window_stands_on_at_once` | playthrough_misty | |
+| W26 | Heal, buy or receive a gift in the middle of a scene; SAVE from START | A checkpoint is asked for; the gift sends nothing of the scene, the SAVE sends the scene so far | `test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot_does_not` | | |
 
 ## Battles
 
