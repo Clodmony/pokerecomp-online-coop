@@ -213,8 +213,7 @@ func _process(_delta: float) -> void:
 ## Ends a co-op run first so a hosting device saves and tells its players.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and coop != null:
-		coop.close()
-		coop = null
+		coop.quit_after_goodbye()
 	elif what == NOTIFICATION_APPLICATION_PAUSED and coop != null:
 		coop.suspend()
 	elif what == NOTIFICATION_APPLICATION_RESUMED and coop != null:

@@ -12,6 +12,8 @@ const RECONNECT_MSEC: int = 2000
 const JOIN_TIMEOUT_MSEC: int = 15000
 const RECONNECT_ATTEMPTS: int = 60
 const RESUME_REDIAL_MSEC: int = 3000
+const QUIT_HOST_MSEC: int = 2500
+const QUIT_JOIN_MSEC: int = 600
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 const INTRO_SCENE: String = "res://game/world/intro_screen.tscn"
 ## A scratch root for the window's own saves; the campaign is the host's.
@@ -58,6 +60,8 @@ var _partners_seen: Dictionary = {}
 var _saves_seen: int = -1
 var _paused: bool = false
 var _dialled_at: int = 0
+var _quit_at: int = -1
+var quit_app: Callable = Callable()
 var _paused_at: int = 0
 
 
@@ -185,6 +189,7 @@ static func _connect(
 		"save": brought.to_dict() if brought != null else {},
 	}
 	out._dialled_at = Time.get_ticks_msec()
+	(Engine.get_main_loop() as SceneTree).set_auto_accept_quit(false)
 	return out if out._dial(out._identity_saved) else null
 
 
@@ -206,7 +211,6 @@ func _dial(player_id: String) -> bool:
 	return true
 
 
-## Ready once the host has said who this player is, and not again after leaving.
 func is_ready() -> bool:
 	return not _closed and not client.me().is_empty()
 
@@ -350,14 +354,39 @@ func leave() -> void:
 
 
 func _finish_closing() -> void:
-	if host != null and not host.ended:
+	var waiting: bool = _quit_at >= 0 and Time.get_ticks_msec() < _quit_at
+	if host != null and not host.ended and (waiting or _quit_at < 0):
 		host.poll()
+		return
+	if host == null and waiting:
+		client.poll()
 		return
 	_release_seams()
 	journal.close()
+	(Engine.get_main_loop() as SceneTree).set_auto_accept_quit(true)
 	var runtime: Gen2GameRuntime = Gen2GameRuntime.instance()
 	if runtime != null and runtime.coop == self:
 		runtime.coop = null
+	if _quit_at >= 0:
+		_quit_at = -1
+		client.transport.close()
+		if quit_app.is_valid():
+			quit_app.call()
+		else:
+			(Engine.get_main_loop() as SceneTree).quit()
+
+
+## The window is closing: the others hear why and get the last log lines first (L19).
+func quit_after_goodbye() -> void:
+	journal.add(PokeCoopLog.WORLD, "quit", {}, client.player_id)
+	_quit_at = Time.get_ticks_msec() + (QUIT_HOST_MSEC if host != null else QUIT_JOIN_MSEC)
+	if _closed:
+		return
+	_closed = true
+	if host != null and not host.ended:
+		host.shutdown()
+	else:
+		client.share_log(true)
 
 
 ## A SAVE the host refused after all (a battle began on the way) says so over the "saved" line.
@@ -598,6 +627,7 @@ func resume() -> void:
 ## Ends the run: the host, when this device is it, tells everyone first.
 func close() -> void:
 	journal.add(PokeCoopLog.WORLD, "close_session", {}, client.player_id)
+	(Engine.get_main_loop() as SceneTree).set_auto_accept_quit(true)
 	_closed = true
 	if host != null:
 		host.shutdown("host_shutdown", 0)

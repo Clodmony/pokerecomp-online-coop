@@ -744,3 +744,13 @@ other sharing device, its own included, with a 256 KB backlog for late joiners.
 Receivers mark lines `relay` and never send them on. Protocol 3. This is a
 second record beside upstream's engine log, kept because a co-op bug needs both
 devices' timelines side by side.
+
+## D60. A closing window says goodbye before the app quits (2026-10-07)
+
+Closing a hosting window closed the session at once with no grace, so the
+joiner never heard "ended", kept redialling for two minutes, and missed the
+host's last log lines (L19). While a session runs the window no longer quits on
+its own: the close request starts the same shutdown as leaving (the host sends
+`ended` and its last lines, a joiner its last log batch), and the app quits once
+that is out, at most 2.5 s later on a host and 0.6 s on a joiner. Quitting is
+the app's own again as soon as the session is closed.
