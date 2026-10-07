@@ -79,8 +79,9 @@ func _process(_delta: float) -> bool:
 		return false
 	if _screen == null and _session.is_ready():
 		_screen = _session.open_start()
-		root.add_child(_screen)
-		current_scene = _screen
+		if not _screen.is_inside_tree():
+			root.add_child(_screen)
+			current_scene = _screen
 		print("coop play: %s opened %s" % [_player_id, _screen.name])
 	if _screen != null:
 		_frames += 1

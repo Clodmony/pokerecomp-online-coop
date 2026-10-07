@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "autoplay: <player> done" or "FAILED".
+##     [route=brock] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "autoplay: <player> finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -142,7 +142,7 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 		return PokeButton.NONE
 	var row: Array = _legs[_leg]
 	if _played._idle() and bool((row[2] as Callable).call(screen.world())):
-		print("coop autoplay: %s %-24s done after %.0f s, map %s cell %s" % [
+		print("coop autoplay: %s leg %-24s %.0f s, map %s cell %s" % [
 			_player_id, row[0], _seconds_since(_leg_started), screen.world().map_id(), screen.world().player_cell])
 		_shot("%02d_%s" % [_leg, row[0]])
 		_leg += 1
@@ -230,7 +230,7 @@ func _paced(button: int) -> int:
 
 func _watch_progress() -> void:
 	var now: String = _played._where() if _played._screen != null and is_instance_valid(_played._screen) else ""
-	now += String(_session.panel.battle_view().get("revision", "")) if _session.panel != null else ""
+	now += str(_session.panel.battle_view().get("revision", "")) if _session.panel != null else ""
 	if now != _signature:
 		_signature = now
 		_still_since = Time.get_ticks_msec()
@@ -240,7 +240,7 @@ func _watch_progress() -> void:
 
 func _finish_route() -> void:
 	_done = true
-	print("coop autoplay: %s done, %s reached in %.0f s" % [_player_id, _route, Time.get_ticks_msec() / 1000.0])
+	print("coop autoplay: %s finished, %s reached in %.0f s" % [_player_id, _route, Time.get_ticks_msec() / 1000.0])
 	_shot("done")
 
 

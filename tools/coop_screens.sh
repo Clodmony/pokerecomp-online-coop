@@ -12,7 +12,7 @@
 #   close <p1|p2> <second>          closes that window, in seconds after it was launched
 # and may set GAME (red), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
-# early once both windows print "autoplay: ... done" or "FAILED").
+# early once both windows print "autoplay: ... finished" or "FAILED").
 # The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
 # process logged a script error.
@@ -78,7 +78,7 @@ launch() {
 launch p1 "$P1_ARGS" "$P1_TOOL"
 sleep "$P2_DELAY"
 launch p2 "$P2_ARGS" "$P2_TOOL"
-ended() { grep -qE "autoplay: .*(done|FAILED)" "$out/$1.log" || [[ "$2" != coop_autoplay ]]; }
+ended() { grep -qE "autoplay: [a-z0-9]+ (finished|FAILED)" "$out/$1.log" || [[ "$2" != coop_autoplay ]]; }
 for (( waited = 0; waited < DURATION; waited += 2 )); do
 	sleep 2
 	if [[ "$P1_TOOL$P2_TOOL" == *coop_autoplay* ]] && ended p1 "$P1_TOOL" && ended p2 "$P2_TOOL"; then break; fi
