@@ -16,7 +16,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
 | `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
 | `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to MISTY and a Cable Club trade, the launcher check, #39, #66, #82, D67 to D71 | draft PR #83 (stacked on #81) |
-| `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | pushed at `79eb3529`, not reviewed: the road to LT. SURGE, three co-op fixes, and an upstream blocker found (see progress.md, Next concrete step) | none yet |
+| `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
 
 ## Issues
 
@@ -31,10 +31,10 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 19 | Session handshake: protocol version, cartridge identity, no content transfer | done: the hello carries the protocol and the cartridge id and SHA-1, and a mismatch is refused with a reason the Co-op tab explains; nothing from the cartridge is sent | `coop/slice-1`, `coop/launcher` | close when the branch merges |
 | 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player for about two minutes with a notice; a hosting app sent to the background saves the campaign; a joiner back from a pause redials at once (D46); no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
 | 21 | Protocol hardening: limits, schema validation and fuzzing | done: seeded fuzz test over every message type, boundary readers and shape checks, 2 MiB packet cap (D35) | `coop/launcher` | close when the branch merges |
-| 22 | Per-player actors in the world simulation | open: each window runs its own world and the host trusts it; a host-side world needs the owner's go-ahead | | keep open; parked by the owner (D61) |
+| 22 | Per-player actors in the world simulation | done as the owner reads it (D72): the host keeps the campaign and battles, each window simulates its maps, NPCs and movement and shares at rest points | | closed 2026-10-07 |
 | 23 | Remote players on the same map with interpolation | done | `coop/slice-1` (`PokeCoopRemoteActor`), screenshots in `progress.md` | close when the branch merges |
-| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | partial: a gift two windows hand out at once is kept once, settled on the host rather than with a lock (D62); gift Pokémon no longer race; cutscenes still run in each window | `coop/owner-rules` | comment, keep open for a lock if one is still wanted |
-| 25 | Host-side wild encounters and trainer sight per player | partial: the window's world rolls them, the host fights them | `coop/m1-state-sync` (`15028474`) | comment, keep open for host-side generation with #22 |
+| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | open, approved (D72): the first player in drives every rival scene after the opening; gifts settled on the host (D62) | | keep open until built |
+| 25 | Host-side wild encounters and trainer sight per player | won't do (D72): windows roll them, the host fights them | `coop/m1-state-sync` (`15028474`) | closed as not planned 2026-10-07 |
 | 26 | Drive the battle screen from authoritative session events | partial: the battle field (pictures, panels, draining HP bars, turn text, move animations) is drawn from the host's view (D32), with move and hit sounds, blinks, screen shakes, palette effects, thrown balls, faints, recalls and send-outs (D39), battle music, cries and the victory fanfare (audible since D38); a trainer win closes with the defeat line, the trainer sliding back in, their line and the prize share (D41), and battles open with the sliding intro (D42); what is left is the field being a separate screen from `Gen2BattleScreen` | `coop/launcher` | comment, keep open |
 | 27 | Share the battle screen's enemy AI with host sessions | open for Generation 2 (a random usable move); Generation 1 sessions use the cartridge's trainer AI | | keep open; Generation 2 is out of scope for now (D61) |
 | 28 | Route switch offers, Baton Pass and Mimic to the right owner | partial: Mimic's choice goes to the Pokémon's owner in the panel; Red and Blue have no switch offer or Baton Pass; Generation 2 not checked | `coop/launcher` | keep open; Generation 2 is out of scope for now (D61) |
@@ -54,12 +54,12 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 42 | Host and join screens and the in-game session menu | done (launcher tab; the in-game menu is the SELECT panel) | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
 | 43 | Touch and pad input for co-op menus | partial: the on-screen pad's presses reach the panel by the same path as keys; panel rows take a tap or a click (cursor, then choose); a tall window puts the panel under the battle; not tried on a device | `coop/launcher` | comment, keep open |
 | 44 | Private Windows and Linux builds | partial: the stock 4.8-dev4 export templates are installed locally; `Windows Desktop` and `Linux` export from the existing presets (release, one file each, no cartridge data); a Windows engine under Wine joined a Linux host; not yet run on a real Windows PC | `coop/launcher` | comment, keep open until the first session on Windows |
-| 45 | Android client: lifecycle and reconnect | open: pause and resume handling exists (D46), no Android build or device run | | keep open |
+| 45 | Android client: lifecycle and reconnect | open, deferred by the owner until after #88 and #44 (D72): pause and resume handling exists (D46), no Android build | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
 | 47 | Two-process ENet integration check in CI | done: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes, and the CI step passed on #80 | `coop/launcher` (`d5e65c2f`), #80 | closes when #80 merges |
 | 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `tools/coop_autoplay.gd` plays two windows from Oak's speech to BROCK's badge (`playthrough_brock`, about five minutes, three clean runs); MISTY and beyond in progress | `coop/playthrough` | close when the branch merges |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
-| 50 | German Red/Blue support | open (later milestone) | | keep open |
+| 50 | German Red/Blue support | open, waits for the owner's own dump (D72) | | keep open |
 | 51 | Internet relay option | open (later milestone); WireGuard or a forwarded port work today | | keep open |
 | 52 | Dedicated server mode | open (later milestone); `tools/coop_session.gd host` runs a headless host already | | keep open |
 | 53 | Local split-screen | open (later milestone) | | keep open |
@@ -69,11 +69,11 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
 | 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
-| 84 | World sharing: share the campaign at rest points, never mid-scene | open: D67 holds for 15 s; plan in playbook.md, owner decision pending | | |
-| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | open | | |
-| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | open: found by the Surge route, reproduced in single player | | |
-| 87 | Review and merge coop/autoplay-surge | open: branch pushed at `79eb3529` | `coop/autoplay-surge` | |
-| 88 | Autoplayed two-window run to the Hall of Fame | open: done to MISTY and a trade, LT. SURGE pending #87 | | |
+| 84 | World sharing: share the campaign at rest points, never mid-scene | in progress: adopted (D72), steps 1 and 2 on `coop/rest-points` | | |
+| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | in progress on `coop/vermilion-locks` | | |
+| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | in progress on `coop/tm28-box` | | |
+| 87 | Review and merge coop/autoplay-surge | done: merged (`91e8c1c6`), D73 to D75 | `coop/playthrough` | close with the scenario runs |
+| 88 | Autoplayed two-window run to the Hall of Fame | in progress: done to LT. SURGE; Celadon and ERIKA on `coop/autoplay-erika`; campaign seeds for parallel stretches on `coop/campaign-seed` | | |
 
 ## Found while GitHub was paused
 

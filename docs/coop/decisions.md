@@ -965,3 +965,81 @@ load the room again, so no box survives. The two steps now send the world
 screen's existing `text_closed` event first (two lines in
 `gen1_map_scripts.gd`). Every co-op trade shows the room clean, and so does a
 single-player link session.
+
+## D72. The owner settles world sharing and the open scope questions (2026-10-07)
+
+The owner answered the six questions the playbook left open.
+
+- **Share the campaign at rest points (#84).** The rule is "share what the
+  cartridge would save, never what it is doing right now". A rest point is a
+  moment the cartridge could save: no script holds the player and no map load
+  is pending; a scene is the stretch between two. A window holds its world
+  patches until its next rest point however long that takes, replacing D67's
+  15 s cap; a partial patch goes out only when the window must answer the host
+  anyway (its world's SAVE). Battles are not touched: they run on the host and
+  are joined live.
+- **Accepted costs:** a partner sees a scene's result, not the scene; a scene
+  cut off by a disconnect replays from its start; a long scene reaches the
+  partner only when it ends; windows stay trusted (the host does not
+  re-simulate them).
+- **The brief's world-simulation item is read as:** "the host is authoritative
+  for the campaign and for battles; each window simulates the maps, NPCs and
+  movement it shows, and shares the campaign at rest points". #22 closes on
+  it, and #25 (host-side encounters and trainer sight) is won't-do: windows
+  roll encounters, the host fights them.
+- **Contested scenes (#24):** "the first player in drives a contested scene" is
+  the lock asked for in D61. It applies to every rival scene after the
+  opening: Route 22 (both), Cerulean City, S.S. Anne, Pokémon Tower and Silph
+  Co. A second window on that map starts no copy of the scene, is held until
+  it ends and sees its result; SELECT > JOIN stays open.
+- **Android (#45)** is deferred until after the Hall of Fame run and the
+  hand-played session. **German (#50)** waits for the owner's own dump.
+
+## D73. A window opens its world as a Continue does (2026-10-07)
+
+A window built its world on a blank state and pulled the host's story a frame
+later, so a map's entry and coord scripts ran on no story: a player reopened on
+the Cerulean thief's coord cell fought him again and was handed TM28 twice. The
+window also forgot `wLastMap` and `wLastBlackoutMap`, so a campaign hosted again
+with a player inside a building sent its LAST_MAP doors to Pallet Town. The
+window's save now carries a world snapshot as a Continue would: the player's
+map, cell and facing, the host's world with the player's keys over it, and the
+two outside maps, which each step reports and the host keeps with the player.
+A player brought from a single-player save brings them from its snapshot.
+
+## D74. The map scripts of one player's walk are that player's (2026-10-07)
+
+`gen1_map_scripts` was the campaign's, so a state one window reached ran in
+every window on that map: at Vermilion's dock a partner's window reset
+`wVermilionCityCurScript` and the ticket check looped forever, and in Cerulean
+a partner's window ran the thief's after-battle script. The bytes are now
+owned one by one, like `gen1_bytes` (D63): `wCeruleanCityCurScript` and
+`wVermilionCityCurScript` are each player's, every other byte stays the
+campaign's until #84 classifies the rest.
+
+## D75. A pulled story flag can owe the window a map load (2026-10-07)
+
+`GymTrashScript` sets `BIT_CUR_MAP_LOADED_2` with `EVENT_2ND_LOCK_OPENED`, so
+the door to LT. SURGE redraws in the window that found the switch. A partner
+already in the gym took the flag with a pull and no map load, and kept a shut
+door. The link now knows its world and owes it the map load a pulled flag
+needs, a table with one row so far (`MAP_LOADS_OWED_BY_FLAG`). The merge also
+drops the Surge branch's poison cure from the autopilot: the heal merged
+beside it already clears every status.
+
+## D76. A Generation 1 row's end closes a box that owed no press (2026-10-07)
+
+After the Cerulean Rocket thief, the "recovered TM28!" box stayed drawn over a
+map that took input again, and the autopilot (and upstream's `played` check)
+waited on it forever (#86, also in single player). On the cartridge
+`DisplayTextID` ends every row in `CloseTextDisplay`, which takes the window
+down whether or not `wDoNotWaitForButtonPressAfterDisplayingText` skipped the
+last press; the thief's row prints the receipt with no press and then fades out
+and back in (`CeruleanHideRocket`) before it ends. The world screen keeps a
+no-press box up while a wait is pending behind it, which is right during the
+fades, but nothing closed it at the row's end. The world now notes a box
+served with no press (`_gen1_box_held`, cleared on a map load), and the row's
+end sends `text_closed` for it as it already did for a balance window. The same
+tail closes Pallet Town's "Hey! Wait!", the Game Corner poster and the Pokémon
+Mansion switches. Left as it is: the receipt's `text_waitbutton` draws an arrow
+and an empty last page where the cartridge keeps "Bye!" through the fade.
