@@ -1,11 +1,11 @@
 class_name PokeCoopWorldLink
 extends RefCounted
 
-## Opens a window's world as a Continue does and keeps its state, party and PC in step with the host: world
-## patches both ways, holdings out while the player is free and back whole, and its SAVE asks for a checkpoint.
+## A window's world opened as a Continue does, its state, party and PC in step with the host at rest points (D72).
 
 const PARTY_CHECK_FRAMES: int = 30
-const HOLD_MSEC: int = 15000
+## A scene's states hand over with a frame or two between them that no script holds.
+const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
 const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
@@ -27,15 +27,18 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## The world's SAVE puts in a fresh snapshot; a battle handed over puts back a copy, frames and all.
+## A SAVE or any transaction puts in a fresh snapshot, a battle handed over a copy; only a gated SAVE sends a scene.
 var _saved_world: Object = null
 var _saved_frame: int = 0
-## The sequence number of the last checkpoint the world's SAVE asked for.
 var save_seq: int = -1
-## While the Cable Club trades on the window's party, and while a script runs, so what it gives goes out with its flag.
 var hold_holdings: bool = false
-var hold_world: bool = false
-var _held_since: int = -1
+## Why the window is away from a rest point (D72), empty at one: a scene leaves whole when it ends, or with a SAVE.
+var busy: StringName = &""
+var _save_allowed: bool = false
+var _rest_streak: int = 0
+var _held_frames: int = 0
+var _held_by: StringName = &""
+var _owed_step: Dictionary = {}
 ## Patches the host has not applied yet, by sequence number (D51).
 var _unacked: Dictionary = {}
 
@@ -63,33 +66,53 @@ func _on_state_changed() -> void:
 func advance() -> void:
 	if client == null or client.me().is_empty() or not client.connected:
 		return
-	if not _holding_world():
-		if not _host_seen.is_empty():
-			_push_world()
+	var asked: bool = _save_allowed
+	_save_allowed = false
+	_rest_streak = _rest_streak + 1 if busy.is_empty() else 0
+	var resting: bool = _rest_streak >= REST_FRAMES
+	var scene_ended: bool = resting and _held_frames > 0
+	if resting:
+		_push_world()
+		_land_owed_step()
 		_pull_world()
+		_held_frames = 0
+	else:
+		_held_frames += 1
+		_held_by = busy if not busy.is_empty() else _held_by
 	_frames += 1
 	if hold_holdings:
 		return
-	if _frames % PARTY_CHECK_FRAMES == 0 and _is_free():
-		_push_party()
+	if resting and _is_free() and (scene_ended or _frames % PARTY_CHECK_FRAMES == 0):
+		push_party()
 	_pull_party()
 	if _world_saved():
-		_push_party()
+		if asked:
+			_push_world()
+		push_party()
 		save_seq = client.request_save()
 
 
-func _holding_world() -> bool:
-	if not hold_world:
-		_held_since = -1
-		return false
-	if _held_since < 0:
-		_held_since = Time.get_ticks_msec()
-	return Time.get_ticks_msec() - _held_since < HOLD_MSEC
+## Why [param screen]'s world is not where the cartridge could save: a script, map load, forced walk, battle or overlay.
+static func unrest(screen: Gen2WorldScreen) -> StringName:
+	var world: Gen2WorldAPI = screen.world()
+	if screen.process_mode == Node.PROCESS_MODE_DISABLED:
+		return &"panel"
+	if world.script_busy():
+		return &"script"
+	if world.gen1_map_load_pending():
+		return &"map_load"
+	if world.gen1_player_movement_running() or world.gen1_object_movement_running() or world.gen1_movement_script_running():
+		return &"movement"
+	if screen.get("_battle_host") != null or screen.get("_takeover_host") != null:
+		return &"battle"
+	if Gen2WorldScreen.OVERLAY_HOSTS.any(func(host: StringName) -> bool: return screen.get(host) != null):
+		return &"overlay"
+	return &"locked" if bool(screen.call(&"_input_locked")) else &""
 
 
 func _push_world() -> void:
 	_keep_locks()
-	if not _dirty:
+	if not _dirty or _host_seen.is_empty():
 		return
 	_dirty = false
 	var now: Dictionary = state.to_dict()
@@ -144,15 +167,60 @@ func _pull_world() -> void:
 	var echoes: Dictionary = {}
 	for pending: Dictionary in _unacked.values():
 		_drop_overlap(changes, pending, echoes)
-	if not changes.is_empty() or not echoes.is_empty():
-		client.journal.add(PokeCoopLog.WORLD, "world_pull", {"changes": changes, "echoes": echoes, "unacked": _unacked.keys()}, client.player_id)
+	var owed: int = _owe_step(changes)
+	if not changes.is_empty() or not echoes.is_empty() or owed >= 0:
+		client.journal.add(PokeCoopLog.WORLD, "world_pull", {"changes": changes, "echoes": echoes, "unacked": _unacked.keys(),
+			"held": _held_frames, "held_by": _held_by, "owed": owed}, client.player_id)
 	if not changes.is_empty():
 		var merged: Dictionary = state.to_dict()
 		PokeCoopOwnership.apply_patch(merged, changes)
 		state.restore_from_dict(merged)
 		_owe_map_loads((changes.get("event_flags", {}) as Dictionary).get("set", {}))
+		if world != null and changes.has("toggled_objects"):
+			world.load_object_masks()
 	_baseline = state.to_dict()
 	_dirty = false
+
+
+## A step for the map the window stands on waits for its next map load, never landing under the player: the byte, or -1.
+func _owe_step(changes: Dictionary) -> int:
+	var change: Dictionary = changes.get("gen1_map_scripts", {})
+	var byte: int = Gen1MapScripts._gen1_map_script_byte(world) if world != null and world.current_map != null else -1
+	var entries: Dictionary = change.get("set", change.get("value", {}))
+	var mine: int = state.gen1_map_script(byte)
+	var lands: bool = entries.has(byte) or change.has("value") or (change.get("erase", []) as Array).has(byte)
+	if byte < 0 or not lands or int(entries.get(byte, 0)) == mine:
+		return -1
+	_owed_step = {"map": world.map_id(), "byte": byte}
+	if change.has("value"):
+		var kept: Dictionary = entries.duplicate()
+		kept.erase(byte)
+		if mine != 0:
+			kept[byte] = mine
+		change["value"] = kept
+	else:
+		(change["set"] as Dictionary).erase(byte)
+		(change["erase"] as Array).erase(byte)
+	if (change.get("set", {}) as Dictionary).is_empty() and (change.get("erase", []) as Array).is_empty() and not change.has("value"):
+		changes.erase("gen1_map_scripts")
+	return byte
+
+
+func _land_owed_step() -> void:
+	if _owed_step.is_empty() or world == null or world.map_id() == _owed_step["map"]:
+		return
+	var byte: int = _owed_step["byte"]
+	_owed_step = {}
+	if _unacked.values().any(func(sent: Dictionary) -> bool: return PokeCoopWorldLink._touches(sent, byte)):
+		return
+	state.set_gen1_map_script(byte, int((_host_seen.get("gen1_map_scripts", {}) as Dictionary).get(byte, 0)))
+	_baseline = state.to_dict()
+	_dirty = false
+
+
+static func _touches(sent: Dictionary, byte: int) -> bool:
+	var change: Dictionary = sent.get("gen1_map_scripts", {})
+	return (change.get("set", change.get("value", {})) as Dictionary).has(byte) or (change.get("erase", []) as Array).has(byte)
 
 
 func _owe_map_loads(flags_set: Dictionary) -> void:
@@ -183,6 +251,7 @@ func save_refusal() -> Dictionary:
 	var blocked: String = String((client.state.get("saved", {}) as Dictionary).get("blocked", ""))
 	if not blocked.is_empty():
 		client.journal.add(PokeCoopLog.WORLD, "save_gate", {"reason": blocked}, client.player_id)
+	_save_allowed = blocked.is_empty()
 	return {} if blocked.is_empty() else {"ok": false, "reason": blocked.replace("_", " ")}
 
 
@@ -266,7 +335,7 @@ func _holdings() -> Dictionary:
 	}
 
 
-func _push_party() -> void:
+func push_party() -> void:
 	var now: Dictionary = _holdings()
 	if now == _holdings_sent:
 		return

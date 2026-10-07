@@ -9,13 +9,19 @@ extends RefCounted
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among the
-## Gen 1 bytes, every event flag and object but a player's own gifts, and every map script but those of one walk.
+## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among the Gen 1
+## bytes, every event flag and object but a player's own gifts, and every map script but one walk's and the gyms'.
 const BY_FLAG: StringName = &"by_flag"
 const CAMPAIGN_BYTES: Array[String] = [
 	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
 ]
-const PLAYER_MAP_SCRIPTS: Dictionary = {"wCeruleanCityCurScript": 31, "wVermilionCityCurScript": 58}
+const PLAYER_MAP_SCRIPTS: Dictionary = {
+	"wViridianGymCurScript": 11, "wPewterGymCurScript": 12, "wCeruleanGymCurScript": 13, "wVermilionGymCurScript": 14,
+	"wCeladonGymCurScript": 15, "wMtMoonB2FCurScript": 23, "wCeruleanCityCurScript": 31, "wMuseum1FCurScript": 41,
+	"wSafariZoneGateCurScript": 47, "wVermilionCityCurScript": 58, "wChampionsRoomCurScript": 92,
+	"wFuchsiaGymCurScript": 107, "wSaffronGymCurScript": 108, "wCinnabarGymCurScript": 110,
+	"wSeafoamIslandsB3FCurScript": 118, "wSeafoamIslandsB4FCurScript": 120,
+}
 const KANTO_BADGES: int = 8
 
 const WORLD_STATE: Dictionary = {
