@@ -185,7 +185,7 @@ a two-window check of each feature (D65).
 
 | Check | Result |
 |---|---|
-| Local x86_64, whole suite on the merged branch | 4983/4983, exit 0 |
+| Local x86_64, whole suite on the merged branch | 4983/4983, exit 0; 4989/4989 after the launcher check merged |
 | Two windows, `leave_rejoin_takeover` | as on `coop/owner-rules`, now run by `tools/coop_screens.sh` in a private user folder; the owner's campaign file unchanged (checked by hash) |
 | Two windows, `playthrough_brock` (autoplay, 4x speed) | three clean runs, about five minutes each: both players play Oak's speech and the lab, the rival fight, OAK'S PARCEL (fetched by one, delivered by the other, taken from both), Route 1, Viridian Forest and its BUG CATCHER, the Pewter Gym; the second window walked into BROCK mid-fight and joined (one battle, participants P2 and P1, each paid ₽1386), the BOULDERBADGE and TM34 reached both players; 0 errors in every process |
 | Two windows, `playthrough_misty` | first run: both through Mt. Moon (SUPER NERD, the fossil), Cerulean and MISTY's CASCADEBADGE, 45 battles, 0 errors; it showed the fossil reaching only the player who took it (fixed, D67). Two runs then whited out from poison on the walk (cartridge behaviour; the autopilot now heals and cures when hurt). Fourth run, with D67: both players hold the DOME FOSSIL, both badges, TM11 and TM34, 47 battles, 0 errors |
