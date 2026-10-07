@@ -11,15 +11,16 @@ keep the snapshot below current.
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Next free decision number:** D78 (D72 to D77 are recorded).
+- **Next free decision number:** D79 (D72 to D78 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
 - **Cartridge:** the owner's Red import is `rom_cache/red_ea9bcae6` in the user
   folder; the scenario runner links it read-only into a private one.
-- **Seeds:** `SEED=<dir>` starts a scenario from a past run's campaign and the
-  autopilot's `from=<leg>` skips the legs before it. Seeds live in the
-  session's temporary folder and are lost on reboot.
+- **Seeds:** `SEED=<dir>` starts a scenario from a campaign and the autopilot's
+  `from=<leg>` skips the legs before it; `tools/coop_seed.gd -- red <leg> <dir>`
+  writes one at any leg of upstream's story walk in seconds (D78). Seeds are
+  never committed.
 - **Not in git (lost on reboot):** run captures, logs, seeds and the agents'
   scratch scripts; the agents' git worktrees can be removed once their
   branches are merged.
