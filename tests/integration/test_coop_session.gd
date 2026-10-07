@@ -1673,6 +1673,28 @@ func test_each_player_is_given_their_own_eevee_and_dojo_pokemon() -> void:
 		[true, true], "and Red's are saved with Red")
 
 
+func test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var surf_low: String = Gen1ScriptNodes.GEN1_SURF_HI_SCORE[0]
+	red.state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, 6)
+	red.state.set_gen1_byte(surf_low, 0x34)
+	_pump()
+
+	assert_eq(blue.state.gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK), 6, "both windows hide the first switch in one can")
+	assert_eq(blue.state.gen1_byte(surf_low), 0, "Red's high score is not Blue's")
+	assert_eq(_host.save_checkpoint(), &"")
+	var reloaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	_host = PokeCoopHost.create(_data, reloaded["campaign"], PokeCoopTransport.new())
+	_host.adopt_players(reloaded["players"])
+	_clients = []
+	_links = []
+	var again: PokeCoopWorldLink = _window(_connect(1, _red.player_id))
+
+	assert_eq([again.state.gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK), again.state.gen1_byte(surf_low)], [6, 0x34],
+		"a window reopened on the saved campaign finds both")
+
+
 func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
 	var red: PokeCoopPlayer = _host.player(_red.player_id)
 	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
