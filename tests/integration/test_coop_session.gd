@@ -1835,6 +1835,20 @@ func test_an_item_ball_a_partner_picked_up_leaves_this_windows_map_at_once() -> 
 	assert_false(ball.active, "the ball that plugs Pokémon Tower 6F's gap no longer blocks the partner's way")
 
 
+func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> void:
+	var in_purified_zone: int = 0x107
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(in_purified_zone)
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(in_purified_zone),
+		"Blue's window, outside the zone, neither takes Red's flag nor clears it under Red, who would be healed again")
+	assert_true(red.state.is_event_flag_active(in_purified_zone))
+	assert_false(_host.campaign.has_flag(in_purified_zone))
+
+
 func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
