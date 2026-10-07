@@ -188,6 +188,7 @@ func test_the_red_save_menu_says_the_save_failed_during_a_partners_battle() -> v
 	var prompt: Gen2SavePrompt = _gen1_save(blue)
 	assert_eq(prompt.step, Gen2SavePrompt.Step.FAILED, "never SAVED")
 	assert_eq(prompt.lines, FAILED_LINES)
+	assert_eq(prompt.cursor, -1, "the YES/NO is gone once the answer is in")
 	prompt.text_printed()
 	prompt.confirm(true)
 	assert_true(prompt.refused(), "the failed save ends the way a NO does")
