@@ -25,6 +25,8 @@ const CHARMANDER: int = 4
 const SQUIRTLE: int = 7
 const PIDGEY: int = 16
 const RATTATA: int = 19
+const POKE_BALL: int = 4
+const POTION: int = 20
 
 var _directory: String = ""
 var _data: GameData = null
@@ -182,10 +184,13 @@ func _cartridge_players() -> void:
 	red.place(PALLET, PALLET_RED, Gen2WorldSprite.FACING_DOWN)
 	red.add_mon(_saved(CHARMANDER, 12, _data.moves_at_level(CHARMANDER, 12), 100))
 	red.add_mon(_saved(PIDGEY, 9, _data.moves_at_level(PIDGEY, 9), 100))
+	red.give_item(POKE_BALL, 5)
+	red.give_item(POTION, 2)
 	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
 	blue.place(PALLET, PALLET_BLUE, Gen2WorldSprite.FACING_DOWN)
 	blue.add_mon(_saved(SQUIRTLE, 12, _data.moves_at_level(SQUIRTLE, 12), 200))
 	blue.add_mon(_saved(RATTATA, 9, _data.moves_at_level(RATTATA, 9), 200))
+	blue.give_item(POKE_BALL, 5)
 
 
 func _cartridge_encounters() -> void:
