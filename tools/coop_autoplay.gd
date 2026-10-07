@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|erika|tower|koga|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|erika|tower|koga|blaine|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -25,6 +25,7 @@ const ROUTES: Dictionary = {
 	"erika": [&"_misty_legs", &"_surge_legs", &"_erika_legs"],
 	"tower": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs"],
 	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
+	"blaine": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_blaine_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -241,9 +242,9 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 		_leg += 1
 		_leg_started = Time.get_ticks_msec()
 		return PokeButton.NONE
-	if _seconds_since(_leg_started) > LEG_SECONDS:
+	if _seconds_since(_leg_started) > LEG_SECONDS and row[1] != _standing:
 		return _fail("%s took longer than %d s: %s" % [row[0], LEG_SECONDS, _played._where()])
-	var car: int = _elevator_button(screen)
+	var car: int = _elevator_button(screen) if _answer < 0 else _quiz_button(screen)
 	return car if car >= 0 else _played._button_for(row[1])
 
 
@@ -841,6 +842,321 @@ func _koga_done() -> bool:
 	if not world.state.is_engine_flag_active(Gen2WorldState.gen1_badge_flag(Gen1Layout.SOULBADGE)):
 		missing.append("SOULBADGE")
 	print("coop autoplay: %s after KOGA: badges %d, team on host %s, missing %s" % [
+		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
+			func(row: Dictionary) -> int: return int(row["mon"]["species"])), missing])
+	return missing.is_empty()
+
+
+const BLAINE_MAPS: Dictionary = {
+	&"saffron_gym": Vector2i(0, 178), &"saffron_city": Vector2i(0, 10), &"route_8": Vector2i(0, 19),
+	&"route_8_gate": Vector2i(0, 79), &"route_19": Vector2i(0, 30), &"route_20": Vector2i(0, 31),
+	&"seafoam_1f": Vector2i(0, 192), &"seafoam_b1f": Vector2i(0, 159), &"seafoam_b2f": Vector2i(0, 160),
+	&"seafoam_b3f": Vector2i(0, 161), &"seafoam_b4f": Vector2i(0, 162), &"cinnabar_island": Vector2i(0, 8),
+	&"mansion_1f": Vector2i(0, 165), &"mansion_2f": Vector2i(0, 214), &"mansion_3f": Vector2i(0, 215),
+	&"mansion_b1f": Vector2i(0, 216), &"cinnabar_lab": Vector2i(0, 167), &"fossil_room": Vector2i(0, 170),
+	&"cinnabar_gym": Vector2i(0, 166),
+}
+const SAFFRON_GYM_PADS_OUT: Array[Vector2i] = [Vector2i(11, 11), Vector2i(5, 5), Vector2i(5, 11), Vector2i(5, 15), Vector2i(19, 17)]
+const ROUTE_8_GATE_WEST := Vector2i(1, 10)
+const ROUTE_8_GATE_EAST := Vector2i(5, 3)
+const ROUTE_19_SHORE := Vector2i(8, 9)
+const ROUTE_20_NORTH_FIELD := Vector2i(61, 3)
+const ROUTE_20_SEAFOAM_WEST := Vector2i(48, 5)
+const ROUTE_20_EAST_BEACH := Vector2i(58, 11)
+## upstream's GEN1_SEAFOAM_PUZZLE as rows [kind, label, cell, direction or map, pushes or still surfing]; the partner walks the calm way.
+const SEAFOAM_PUZZLE: Array = [
+	["strength", "seafoam_1f_strength"],
+	["push", "seafoam_1f_boulder_1_up", Vector2i(18, 11), Vector2i.UP, 4],
+	["push", "seafoam_1f_boulder_1_into_hole", Vector2i(19, 6), Vector2i.LEFT, 1],
+	["push", "seafoam_1f_boulder_2_left", Vector2i(27, 7), Vector2i.LEFT, 2],
+	["push", "seafoam_1f_boulder_2_into_hole", Vector2i(24, 8), Vector2i.UP, 1],
+	["warp", "seafoam_1f_east_ladder", Vector2i(25, 3), 159],
+	["push", "seafoam_b1f_boulder_2_into_hole", Vector2i(21, 6), Vector2i.RIGHT, 1],
+	["warp", "seafoam_b1f_east_ladder_up", Vector2i(25, 3), 192],
+	["warp", "seafoam_1f_to_b1f", Vector2i(7, 5), 159],
+	["push", "seafoam_b1f_boulder_1_into_hole", Vector2i(16, 6), Vector2i.RIGHT, 1],
+	["warp", "seafoam_b1f_northwest_ladder", Vector2i(4, 2), 160],
+	["push", "seafoam_b2f_boulder_1_into_hole", Vector2i(17, 6), Vector2i.RIGHT, 1],
+	["warp", "seafoam_b2f_northwest_ladder_up", Vector2i(5, 3), 159],
+	["warp", "seafoam_b1f_to_b2f", Vector2i(13, 7), 160],
+	["warp", "seafoam_b2f_to_b3f", Vector2i(5, 13), 161],
+	["surf", "seafoam_b3f_current", Vector2i(15, 7), 162, false],
+	["walk", "seafoam_b4f_pool_stairs", Vector2i(23, 5)],
+	["warp", "seafoam_b4f_pocket_ladder", Vector2i(25, 4), 161],
+	["warp", "seafoam_b3f_pocket_ladder", Vector2i(25, 3), 160],
+	["push", "seafoam_b2f_boulder_2_into_hole", Vector2i(24, 6), Vector2i.LEFT, 1],
+	["warp", "seafoam_b2f_pocket_ladder_down", Vector2i(25, 3), 161],
+	["warp", "seafoam_b3f_pocket_down", Vector2i(25, 4), 162],
+	["surf", "seafoam_b4f_surf_back", Vector2i(23, 5), 162, true],
+	["warp", "seafoam_b4f_to_b3f", Vector2i(20, 17), 161],
+]
+const SEAFOAM_CALM_WAY: Array = [
+	["warp", "seafoam_1f_west_ladder", Vector2i(7, 5), 159],
+	["warp", "seafoam_b1f_west_ladder", Vector2i(13, 7), 160],
+	["warp", "seafoam_b2f_west_ladder", Vector2i(5, 13), 161],
+	["surf", "seafoam_b3f_calm_water", Vector2i(15, 7), 161, true],
+]
+const SEAFOAM_WAY_OUT: Array = [
+	["walk", "seafoam_b3f_east_bank", Vector2i(23, 9)],
+	["warp", "seafoam_b3f_to_b2f", Vector2i(25, 14), 160],
+	["warp", "seafoam_b2f_to_b1f", Vector2i(25, 11), 159],
+	["warp", "seafoam_b1f_to_1f", Vector2i(23, 15), 192],
+	["warp", "seafoam_east_door", Vector2i(26, 17), 31],
+]
+const EVENT_SEAFOAM3_BOULDERS: Array[int] = [2504, 2505]
+const CINNABAR_SHORE := Vector2i(19, 13)
+const MANSION_SWITCHES: Dictionary = {
+	&"3f": Vector2i(10, 6), &"b1f_south": Vector2i(18, 26), &"b1f_north": Vector2i(20, 4),
+}
+const MANSION_3F_HOLE := Vector2i(16, 14)
+const MANSION_SECRET_KEY := Vector2i(5, 13)
+const MANSION_EAST_DOOR := Vector2i(26, 27)
+const FOSSIL_DOCTOR := Vector2i(5, 2)
+const CINNABAR_QUIZ: Array = [
+	[Vector2i(15, 8), 0, Vector2i(9, 3)], [Vector2i(10, 2), 1, Vector2i(6, 3)], [Vector2i(9, 8), 1, Vector2i(6, 6)],
+	[Vector2i(9, 14), 1, Vector2i(3, 8)], [Vector2i(1, 14), 0, Vector2i(2, 6)], [Vector2i(1, 8), 1, Vector2i(2, 3)],
+]
+const OPEN_GATE_BLOCK: int = 0x0E
+const BLAINE := Vector2i(3, 3)
+const SECRET_KEY: int = 0x2B
+const DOME_FOSSIL: int = 0x29
+const KABUTO: int = 140
+const VOLCANO_BADGE: int = 6
+const EVENT_MANSION_SWITCH_ON: int = 632
+const EVENT_GAVE_FOSSIL_TO_LAB: int = 736
+const BLAINE_LEVEL: int = 55
+
+var _answer: int = -1
+var _field_move_at: int = -1000
+
+
+func _blaine_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = BLAINE_MAPS
+	var k: Dictionary = KOGA_MAPS
+	var key: Callable = p._holds(SECRET_KEY)
+	var legs: Array = []
+	for pad: int in SAFFRON_GYM_PADS_OUT.size():
+		legs.append(["saffron_gym_pad_out_%d" % (pad + 1), p._walk(SAFFRON_GYM_PADS_OUT[pad]),
+			p._at(_pad_landing(m.saffron_gym, SAFFRON_GYM_PADS_OUT[pad]))])
+		if pad == 0:
+			legs += [_grind.bind(BLAINE_LEVEL, 0), _teach_surf_and_strength]
+	legs += [
+		["saffron_gym_exit", p._warp_to(m.saffron_city), p._on_map(m.saffron_city)],
+		["saffron_to_route_8", p._cross(Vector2i.RIGHT, m.route_8), p._on_map(m.route_8)],
+		["route_8_gate", p._walk(ROUTE_8_GATE_WEST), p._on_map(m.route_8_gate)],
+		["route_8_gate_east", p._walk(ROUTE_8_GATE_EAST), p._on_map(m.route_8)],
+		["route_8_to_lavender_again", p._cross(Vector2i.RIGHT, k.lavender_town), p._on_map(k.lavender_town)],
+		["lavender_to_route_12_again", p._cross(Vector2i.DOWN, k.route_12), p._on_map(k.route_12)],
+		["route_12_gate_again", p._warp_to(k.route_12_gate), p._on_map(k.route_12_gate)],
+		["route_12_gate_south_again", p._walk(ROUTE_12_GATE_SOUTH), p._on_map(k.route_12)],
+		["route_12_to_route_13_again", p._cross(Vector2i.DOWN, k.route_13), p._on_map(k.route_13)],
+		["route_13_to_route_14_again", _cross_at(ROUTE_13_WEST_EDGE, Vector2i.LEFT), p._on_map(k.route_14)],
+		["route_14_to_route_15_again", p._cross(Vector2i.LEFT, k.route_15), p._on_map(k.route_15)],
+		["route_15_gate_again", p._warp_to(k.route_15_gate), p._on_map(k.route_15_gate)],
+		["route_15_gate_west_again", p._walk(ROUTE_15_GATE_WEST), p._on_map(k.route_15)],
+		["route_15_to_fuchsia_again", p._cross(Vector2i.LEFT, k.fuchsia_city), p._on_map(k.fuchsia_city)],
+		["fuchsia_to_route_19", p._cross(Vector2i.DOWN, m.route_19), p._on_map(m.route_19)],
+		["route_19_surf", _surf_from(ROUTE_19_SHORE, Gen2WorldSprite.FACING_DOWN), _surfing],
+		["route_19_to_route_20", p._cross(Vector2i.LEFT, m.route_20), p._on_map(m.route_20)],
+		["route_20_north_field", p._walk(ROUTE_20_NORTH_FIELD), p._at(ROUTE_20_NORTH_FIELD)],
+		["seafoam_west_door", p._walk(ROUTE_20_SEAFOAM_WEST), p._on_map(m.seafoam_1f)],
+	]
+	legs += _seafoam_legs()
+	legs += [
+		["route_20_surf_again", _surf_from(ROUTE_20_EAST_BEACH, Gen2WorldSprite.FACING_DOWN), _surfing],
+		["route_20_to_cinnabar", p._cross(Vector2i.LEFT, m.cinnabar_island), p._on_map(m.cinnabar_island)],
+		["cinnabar_shore", p._walk(CINNABAR_SHORE), p._at(CINNABAR_SHORE)],
+		["cinnabar_lab", p._warp_to(m.cinnabar_lab), p._on_map(m.cinnabar_lab)],
+		["fossil_room", p._warp_to(m.fossil_room), p._on_map(m.fossil_room)],
+		["give_fossil", _talk_to_walker(FOSSIL_DOCTOR), _gave_fossil],
+		["fossil_room_out", p._warp_to(m.cinnabar_lab), p._on_map(m.cinnabar_lab)],
+		["cinnabar_lab_out", p._warp_to(m.cinnabar_island), p._on_map(m.cinnabar_island)],
+		["mansion_entry", p._warp_to(m.mansion_1f), p._on_map(m.mansion_1f)],
+		["mansion_1f_to_2f", p._warp_to(m.mansion_2f), p._on_map(m.mansion_2f)],
+		["mansion_2f_to_3f", p._walk(Vector2i(6, 1)), p._on_map(m.mansion_3f)],
+		_mansion_switch("mansion_3f_switch_on", MANSION_SWITCHES[&"3f"], true),
+		["mansion_3f_hole", p._walk(MANSION_3F_HOLE), p._on_map(m.mansion_1f)],
+		["mansion_1f_to_b1f", p._warp_to(m.mansion_b1f), p._on_map(m.mansion_b1f)],
+		_mansion_switch("mansion_b1f_south_switch_off", MANSION_SWITCHES[&"b1f_south"], false),
+		_mansion_switch("mansion_b1f_north_switch_on", MANSION_SWITCHES[&"b1f_north"], true),
+		["mansion_b1f_secret_key", p._talk_to(MANSION_SECRET_KEY), key],
+		_mansion_switch("mansion_b1f_north_switch_off", MANSION_SWITCHES[&"b1f_north"], false),
+		_mansion_switch("mansion_b1f_south_switch_on", MANSION_SWITCHES[&"b1f_south"], true),
+		["mansion_b1f_to_1f", p._warp_to(m.mansion_1f), p._on_map(m.mansion_1f)],
+		["mansion_exit", p._walk(MANSION_EAST_DOOR), p._on_map(m.cinnabar_island)],
+		["cinnabar_lab_again", p._warp_to(m.cinnabar_lab), p._on_map(m.cinnabar_lab)],
+		["fossil_room_again", p._warp_to(m.fossil_room), p._on_map(m.fossil_room)],
+		["revived_fossil", _talk_to_walker(FOSSIL_DOCTOR), _revived],
+		["fossil_room_out_again", p._warp_to(m.cinnabar_lab), p._on_map(m.cinnabar_lab)],
+		["cinnabar_lab_out_again", p._warp_to(m.cinnabar_island), p._on_map(m.cinnabar_island)],
+		["cinnabar_gym", p._warp_to(m.cinnabar_gym), p._on_map(m.cinnabar_gym)],
+	]
+	for machine: int in CINNABAR_QUIZ.size():
+		var row: Array = CINNABAR_QUIZ[machine]
+		legs.append(["cinnabar_gym_quiz_%d" % (machine + 1), _quiz(row[0], int(row[1])), _gate_open(row[2])])
+	return legs + [
+		_meet_partner("meet_in_cinnabar_gym", _badge(VOLCANO_BADGE)),
+		["blaine", _join_or(p._talk_to(BLAINE)), _badge(VOLCANO_BADGE)],
+		_blaine_done,
+	]
+
+
+func _pad_landing(map: Vector2i, pad: Vector2i) -> Vector2i:
+	var warps: Array = _session.data.world_map(map.x, map.y).events.get("warps", [])
+	var at: int = warps.find_custom(func(warp: Dictionary) -> bool: return Vector2i(int(warp["x"]), int(warp["y"])) == pad)
+	var landing: Dictionary = warps[int(warps[at]["destination"])]
+	return Vector2i(int(landing["x"]), int(landing["y"]))
+
+
+func _teach_surf_and_strength() -> bool:
+	var save: Gen2SaveData = _played._screen.active_save()
+	var taught: Array = []
+	for row: Array in [[HM03, Gen2WorldFieldMove.MOVE_SURF, Gen2SaveMon.MAX_MOVES - 1], [HM04, Gen2WorldFieldMove.MOVE_STRENGTH, 0]]:
+		if _played._screen.world().state.item_quantity(int(row[0])) <= 0:
+			return false
+		for mon: Gen2SaveMon in save.party:
+			if Gen2WorldTMHM.can_learn(_session.data, mon.species, int(row[1])):
+				_played._editor.set_move(mon, int(row[2]), int(row[1]))
+				taught.append(mon.species)
+				break
+	_played._screen.call(&"_refresh_party_summary")
+	print("coop autoplay: %s taught SURF and STRENGTH to %s" % [_player_id, taught])
+	return taught.size() == 2
+
+
+func _field_move(move: int) -> void:
+	if _frames - _field_move_at < 120:
+		return
+	_field_move_at = _frames
+	_played._screen.call(&"_run_party_action", {"kind": &"field_move", "move": move,
+		"slot": _played._screen.world().party_slot_with_move(move)})
+
+
+func _surf_from(cell: Vector2i, facing: int) -> Callable:
+	var face: Callable = _played._talk(cell, facing)
+	return func(world: Gen2WorldAPI) -> int:
+		if world.movement_mode == Gen2WorldAPI.MOVEMENT_SURF:
+			return _played._warp_press(world, world.player_cell)
+		var button: int = face.call(world)
+		if button != PokeButton.A:
+			return button
+		_field_move(Gen2WorldFieldMove.MOVE_SURF)
+		return PokeButton.NONE
+
+
+func _surfing(world: Gen2WorldAPI) -> bool:
+	return world.movement_mode == Gen2WorldAPI.MOVEMENT_SURF
+
+
+func _surfing_on(map: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return world.map_id() == map and _surfing(world)
+
+
+func _seafoam_legs() -> Array:
+	var p: Variant = _played
+	var calm: Callable = func(world: Gen2WorldAPI) -> bool: return EVENT_SEAFOAM3_BOULDERS.all(world.event_flag_active)
+	var rows: Array = SEAFOAM_PUZZLE
+	var legs: Array = []
+	if _order() != 0:
+		rows = SEAFOAM_CALM_WAY
+		legs.append(["seafoam_wait_for_partner", _standing, calm])
+	for row: Array in rows + SEAFOAM_WAY_OUT:
+		match String(row[0]):
+			"strength":
+				legs.append([row[1], _use_strength, func(world: Gen2WorldAPI) -> bool: return world.strength_active()])
+			"push":
+				legs.append([row[1], _push(row[2], row[3], int(row[4])), _pushed(row[2], row[3], int(row[4]))])
+			"warp":
+				legs.append([row[1], p._walk(row[2]), p._on_map(Vector2i(0, int(row[3])))])
+			"walk":
+				legs.append([row[1], p._walk(row[2]), p._at(row[2])])
+			"surf":
+				var map := Vector2i(0, int(row[3]))
+				legs.append([row[1], _surf_from(row[2], Gen2WorldSprite.FACING_DOWN), _surfing_on(map) if bool(row[4]) else p._on_map(map)])
+	return legs
+
+
+func _use_strength(_world: Gen2WorldAPI) -> int:
+	_field_move(Gen2WorldFieldMove.MOVE_STRENGTH)
+	return PokeButton.NONE
+
+
+func _push(approach: Vector2i, direction: Vector2i, count: int) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		var boulder: Vector2i = _boulder_on(world, approach, direction, count)
+		if boulder.x < 0:
+			return PokeButton.NONE
+		if not world.strength_active():
+			_field_move(Gen2WorldFieldMove.MOVE_STRENGTH)
+			return PokeButton.NONE
+		if world.player_cell == boulder - direction:
+			return _played._direction_button(direction)
+		return _played._step_toward(world, _played._is(boulder - direction))
+
+
+func _pushed(approach: Vector2i, direction: Vector2i, count: int) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return _boulder_on(world, approach, direction, count).x < 0
+
+
+func _boulder_on(world: Gen2WorldAPI, approach: Vector2i, direction: Vector2i, count: int) -> Vector2i:
+	for step: int in range(1, count + 1):
+		var object: Gen2WorldObject = world.object_at(approach + direction * step)
+		if object != null:
+			return object.cell
+	return Vector2i(-1, -1)
+
+
+func _mansion_switch(label: String, cell: Vector2i, on: bool) -> Array:
+	return [label, _played._talk(cell, UP), func(world: Gen2WorldAPI) -> bool: return world.event_flag_active(EVENT_MANSION_SWITCH_ON) == on]
+
+
+func _talk_to_walker(initial: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int: return _played._talk_button(world, _played._live_cell(world, initial))
+
+
+func _gave_fossil(world: Gen2WorldAPI) -> bool:
+	return world.state.item_quantity(DOME_FOSSIL) <= 0 and world.event_flag_active(EVENT_GAVE_FOSSIL_TO_LAB)
+
+
+func _revived(world: Gen2WorldAPI) -> bool:
+	return not world.event_flag_active(EVENT_GAVE_FOSSIL_TO_LAB) \
+		and _played._screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool: return mon.species == KABUTO)
+
+
+func _quiz(cell: Vector2i, answer: int) -> Callable:
+	var face: Callable = _played._talk(cell, UP)
+	return func(world: Gen2WorldAPI) -> int:
+		_answer = answer
+		return face.call(world)
+
+
+func _quiz_button(screen: Gen2WorldScreen) -> int:
+	var host: Gen2WorldServiceScreen = screen.get("_service_host")
+	if _answer < 0 or host == null or bool(host.call(&"_box_printing")):
+		return -1
+	return _paced(PokeButton.A if host.selected_index() == _answer else PokeButton.DOWN)
+
+
+func _gate_open(gate: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		var open: bool = world.block_at(gate.x, gate.y) == OPEN_GATE_BLOCK
+		if open:
+			_answer = -1
+		return open
+
+
+func _blaine_done() -> bool:
+	var world: Gen2WorldAPI = _played._screen.world()
+	var me: Dictionary = _session.client.me()
+	var missing: PackedStringArray = []
+	if world.state.item_quantity(SECRET_KEY) <= 0 or int((me.get("items", {}) as Dictionary).get(SECRET_KEY, 0)) <= 0:
+		missing.append("SECRET KEY")
+	if not (me.get("party", []) as Array).any(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == KABUTO):
+		missing.append("KABUTO on the host")
+	if not _badge(VOLCANO_BADGE).call(world):
+		missing.append("VOLCANOBADGE")
+	print("coop autoplay: %s after BLAINE: badges %d, team on host %s, missing %s" % [
 		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
 			func(row: Dictionary) -> int: return int(row["mon"]["species"])), missing])
 	return missing.is_empty()
