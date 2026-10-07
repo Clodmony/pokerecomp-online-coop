@@ -1,9 +1,8 @@
 class_name PokeCoopTransport
 extends RefCounted
 
-## Dictionaries between a co-op host and its clients. This base links endpoints
-## in memory, which is what the tests use; [PokeCoopEnetTransport] carries the
-## same packets over a LAN. Peer 1 is always the host.
+## Dictionaries between a co-op host and its clients. This base links endpoints in memory, which is what the tests
+## use; [PokeCoopEnetTransport] carries the same packets over a LAN. Peer 1 is always the host.
 
 const CONNECTED: StringName = &"connected"
 const DISCONNECTED: StringName = &"disconnected"
