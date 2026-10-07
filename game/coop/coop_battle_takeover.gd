@@ -9,6 +9,7 @@ var data: GameData = null
 ## The battles the world opened itself, whose evolutions it runs itself.
 var claimed: Dictionary = {}
 var waiting_on: String = ""
+var send_party: Callable = Callable()
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -84,6 +85,8 @@ class Bridge extends Node:
 		if not busy.is_empty():
 			return
 		_known = client.battles.keys()
+		if _owner.send_party.is_valid():
+			_owner.send_party.call()
 		_seq = client.send(_asking)
 
 	func advance_frame() -> void:

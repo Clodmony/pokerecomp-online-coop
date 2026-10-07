@@ -17,7 +17,7 @@ D65):
 | Opening, OAK'S PARCEL, Viridian Forest, BROCK | works: several clean runs, a joined BROCK fight |
 | Mt. Moon, the fossil, MISTY | works; the DOME FOSSIL reaches both (D67) |
 | Cable Club trade with a trade evolution | works (`cable_club_trade`) |
-| Nugget Bridge, Bill, S.S. Anne, CUT, LT. SURGE | reached by both on `coop/autoplay-surge` (#87), with a local workaround for an upstream stuck text box (#86) |
+| Nugget Bridge, Bill, S.S. Anne, CUT, LT. SURGE | works: `playthrough_surge` from a new campaign, about 21 minutes (#87, #86 fixed) |
 | Celadon to the Hall of Fame | not tried in co-op (#88) |
 
 The automated runs heal between fights and grind with the save editor, so they
