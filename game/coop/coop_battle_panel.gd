@@ -19,6 +19,7 @@ const REFUSALS: Dictionary = {
 	&"save_failed": "The campaign could not be saved.",
 	&"attached": "Your own world started this battle: you stay in it.",
 	&"in_battle": "Your POKéMON are still in a battle.",
+	&"scene_taken": "A partner met the rival first: the battle is one for both.",
 }
 
 var client: PokeCoopClient = null

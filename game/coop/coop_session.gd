@@ -471,10 +471,13 @@ static func _against(session: PokeCoopClient, battle_id: String, game: GameData)
 
 func _tell_scene() -> void:
 	var driver: String = link.scene_driver if link != null else ""
+	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(driver, {})
+	var line: String = "%s is facing the rival here. Wait, or join the battle with SELECT." % String(view.get("name", driver))
 	if driver != _scene_told and not driver.is_empty():
-		var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(driver, {})
-		say("%s is facing the rival here. Wait, or join the battle with SELECT." % String(view.get("name", driver)))
-	elif not driver.is_empty() and _notice != null:
+		say(line)
+	elif not driver.is_empty() and _notice != null and Time.get_ticks_msec() >= _notice_until:
+		_notice.text = line
+		_notice.visible = true
 		_notice_until = Time.get_ticks_msec() + NOTICE_MSEC
 	_scene_told = driver
 
