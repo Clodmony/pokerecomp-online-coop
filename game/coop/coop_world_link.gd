@@ -328,9 +328,17 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.run_rules = Gen2Rules.new()
 	_fill(out, me, session.box.get("rows", []))
 	var world: Gen2WorldSnapshot = continued_world(session)
-	if data.world_map(world.map_id.x, world.map_id.y) != null:
+	var map: Gen2WorldMap = data.world_map(world.map_id.x, world.map_id.y)
+	if map != null:
+		if data.generation == RomRegistry.GEN1 and afloat(data.world_tileset(map.tileset), map, world.player_cell):
+			world.movement_mode = Gen2WorldAPI.MOVEMENT_SURF
+			world.player_sprite_number = Gen2WorldSprite.SPRITE_SURF
 		out.world = world
 	return out
+
+
+static func afloat(tileset: Gen2WorldTileset, map: Gen2WorldMap, cell: Vector2i) -> bool:
+	return Gen2WorldCollision.gen1_permission(tileset, map.collision_at(cell.x, cell.y)) == Gen2WorldCollision.WATER_TILE
 
 
 static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
