@@ -1,10 +1,9 @@
 extends SceneTree
 
-## One co-op player's window on the real world screen, against a host started
+## One co-op player's window on the real world screen, the Co-op tab's session, against a host started
 ## with `tools/coop_session.gd -- host [port] <game>` and a locally imported cartridge:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## The same session the launcher's Co-op tab opens. SELECT opens the session menu.
-## `keys=R,R,SELECT,A` presses buttons once the world is up, `-` waiting a slot;
+## SELECT opens the session menu. `keys=R,R,SELECT,A` presses buttons once the world is up, `-` waiting a slot;
 ## `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays the opening.
 
 const KEYS_START_FRAMES: int = 90
@@ -43,7 +42,7 @@ func _initialize() -> void:
 	)
 	_session = PokeCoopSession.joining(
 		data, positional[0], port, _player_id.to_upper(), PokeCoopPolicy.PLAY_OPENING if _opening else 0,
-		"" if _opening else _player_id
+		"" if _opening else _player_id, null, PokeCoopLog.create(PokeCoopLog.sharing())
 	)
 	if _session == null:
 		push_error("coop play: no imported cache for that game, or no connection")
@@ -75,6 +74,7 @@ func _process(_delta: float) -> bool:
 		return false
 	if not _session.ended_reason().is_empty():
 		print("coop play: session ended (%s)" % _session.ended_reason())
+		_session.close()
 		quit(0)
 		return false
 	if _screen == null and _session.is_ready():
