@@ -43,25 +43,27 @@ const GIFT_TMS: Dictionary = {
 const GIFT_COMMIT_PREFIX: String = "gift:"
 ## OLD_AMBER, DOME_FOSSIL and HELIX_FOSSIL: each player revives their own (D52).
 const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
+## Each player's own gift Pokémon (D61): EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, the EEVEE and Dojo balls.
+const OWN_GIFTS: Dictionary = {"event_flags": [0x356, 0x357, 0x3FF], "toggled_objects": [0x45, 0x4A, 0x4B]}
 ## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the
 ## three birds and MEWTWO. Each is one encounter for the whole campaign.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
-## How long a battle waits for a controller who dropped before another
-## participant decides for their Pokémon, which stay theirs.
+## How long a dropped controller is waited for before the others are asked to stand in (D61).
 const STAND_IN_MSEC: int = 30000
+## How long a battle nobody is left in waits to end as fled: as long as a window redials (D61).
+const ABANDON_MSEC: int = 120000
 
 
-## Prize money: an even split among participants, the remainder to the initiator.
-static func prize_split(total: int, participants: Array, initiator: String) -> Dictionary:
+## Prize money with Pay Day's: every participant is paid all of it (D61).
+static func prize_shares(total: int, participants: Array) -> Dictionary:
 	var out: Dictionary = {}
-	if total <= 0 or participants.is_empty():
-		return out
-	var share: int = total / participants.size()
-	for player_id: Variant in participants:
-		out[String(player_id)] = share
-	var holder: String = initiator if out.has(initiator) else String(participants[0])
-	out[holder] = int(out[holder]) + total - share * participants.size()
+	for player_id: Variant in participants if total > 0 else []:
+		out[String(player_id)] = total
 	return out
+
+
+static func own_entries(data: GameData) -> Dictionary:
+	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
 
 
 static func new_player_money() -> int:
@@ -115,7 +117,7 @@ static func set_up_opening_player(data: GameData, player: PokeCoopPlayer) -> voi
 	var fresh: Gen2WorldState = snapshot.world_state if snapshot != null \
 		else Gen2WorldState.new({}, {}, {}, {0: NEW_PLAYER_MONEY})
 	var halves: Dictionary = PokeCoopOwnership.route(
-		PokeCoopOwnership.patch({}, fresh.to_dict()), PokeCoopOwnership.badge_flags(data)
+		PokeCoopOwnership.patch({}, fresh.to_dict()), PokeCoopOwnership.badge_flags(data), own_entries(data)
 	)
 	var story: Dictionary = {"event_flags": {}, "engine_flags": {}}
 	PokeCoopOwnership.apply_patch(story, halves[PokeCoopOwnership.CAMPAIGN])
@@ -181,6 +183,14 @@ static func share_found_items(
 				other.take_item(item, mini(-change, other.item_count(item)))
 
 
+## A gift a second window handed out before it heard of the first (#24): the share is all it keeps.
+static func keep_once(receiver: PokeCoopPlayer, held_before: Dictionary) -> void:
+	for item: Variant in receiver.items.keys():
+		var extra: int = receiver.item_count(int(item)) - int(held_before.get(item, 0))
+		if extra > 0:
+			receiver.take_item(int(item), extra)
+
+
 ## Everything the campaign's players were given before [param player] joined.
 static func hand_over_gifts(campaign: PokeCoopCampaign, player: PokeCoopPlayer) -> void:
 	for commit_id: String in campaign.commit_ids(GIFT_COMMIT_PREFIX):
@@ -207,14 +217,14 @@ static func _stow(player: PokeCoopPlayer, item: int, count: int) -> void:
 ## and own world keys, and with [param story] that campaign's flags, badges and
 ## world too. Only a campaign's first player brings the story.
 static func import_save(
-	save: Gen2SaveData, player: PokeCoopPlayer, story: PokeCoopCampaign, badge_flags: Array[int]
+	save: Gen2SaveData, player: PokeCoopPlayer, story: PokeCoopCampaign, badge_flags: Array[int], own: Dictionary = {}
 ) -> void:
 	if save.player_id > 0:
 		player.trainer_id = save.player_id & 0xFFFF
 	var snapshot: Gen2WorldSnapshot = save.world
 	if snapshot != null:
 		var halves: Dictionary = PokeCoopOwnership.route(
-			PokeCoopOwnership.patch({}, snapshot.world_state.to_dict()), badge_flags
+			PokeCoopOwnership.patch({}, snapshot.world_state.to_dict()), badge_flags, own
 		)
 		if story != null:
 			story.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], badge_flags)

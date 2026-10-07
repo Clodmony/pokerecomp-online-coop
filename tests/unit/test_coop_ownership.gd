@@ -84,3 +84,22 @@ func test_a_world_read_back_from_json_has_its_in_memory_key_types() -> void:
 
 	assert_eq(reread, synced)
 	assert_eq((reread["items"] as Dictionary).keys(), [0x14], "an item number, not the string \"20\"")
+
+
+func test_each_players_own_gift_flags_and_objects_stay_with_them() -> void:
+	var own: Dictionary = PokeCoopPolicy.OWN_GIFTS
+	var changes: Dictionary = {
+		"event_flags": {"set": {0x356: true, 0x350: true}, "erase": []},
+		"toggled_objects": {"set": {0x45: true, 0x30: true}, "erase": []},
+	}
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, PokeCoopOwnership.badge_flags(null), own)
+
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {
+		"event_flags": {"set": {0x356: true}, "erase": []}, "toggled_objects": {"set": {0x45: true}, "erase": []},
+	})
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {
+		"event_flags": {"set": {0x350: true}, "erase": []}, "toggled_objects": {"set": {0x30: true}, "erase": []},
+	})
+	assert_eq((PokeCoopOwnership.route(changes, []) [PokeCoopOwnership.CAMPAIGN] as Dictionary).size(), 2,
+		"a game with no such gifts shares them all")
