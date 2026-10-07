@@ -3,11 +3,11 @@ extends SceneTree
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- check host|p1|p2 [port] [logs]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
 ## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh), over
 ## localhost; each exits 0 only if every step passed. `host red` plays an imported cartridge, campaign in
-## `user://coop_campaigns/<game>/<game>.json`. Session logs go to `user://coop_logs` (`demo`, `check`: with `logs`).
+## `user://coop_campaigns/<game>/<game>.json`, `bare` with nobody in it yet. Session logs: `user://coop_logs` (`demo`, `check`: with `logs`).
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -70,7 +70,7 @@ func _initialize() -> void:
 		"check":
 			_start_check(args[1] if args.size() > 1 else "", _port(args, 2))
 		"host":
-			_start_host(_port(args, 1), game)
+			_start_host(_port(args, 1), game, args.has("bare"))
 		"client":
 			_start_client(args)
 		_:
@@ -148,7 +148,7 @@ func _journal(role: String, name: String, port: int) -> PokeCoopLog:
 	return out
 
 
-func _start_host(port: int, game: String) -> void:
+func _start_host(port: int, game: String, bare: bool = false) -> void:
 	if game.is_empty():
 		if not _new_host(port):
 			_finish(1)
@@ -165,8 +165,10 @@ func _start_host(port: int, game: String) -> void:
 	_host = PokeCoopHost.create(_data, campaign, link)
 	_host.save_path = path
 	_host.journal = _journal("host", "HOST", port)
+	_host.allow_new_players = bare
 	if loaded.is_empty():
-		_cartridge_players()
+		if not bare:
+			_cartridge_players()
 		PokeCoopPolicy.start_campaign(campaign)
 	else:
 		_host.adopt_players(loaded["players"])
