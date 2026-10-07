@@ -64,6 +64,9 @@ Red (or Blue) cartridge, the same one.
 | W27 | One player pays for a Safari Game while the partner is elsewhere or also inside | Nobody else is warped or ended; each player has their own 30 balls and 500 steps; leaving ends only the leaver's game | `test_a_safari_game_is_only_the_players_who_paid_for_it` | playthrough_koga | |
 | W28 | Catch a Pokémon in the Safari Zone | It is on the host's team or PC at once and in the next save; no checkpoint or "saved" line per ball | `test_a_ball_thrown_in_the_windows_own_battle_asks_for_no_checkpoint` | playthrough_koga | |
 | W29 | One player gets HM03 and the GOLD TEETH, then gives the teeth to the warden | Both hold HM03 and the teeth, then both hold HM04 and neither holds the teeth | the D52 tests | playthrough_koga | |
+| W30 | One player takes Pokémon Tower 6F's RARE CANDY | The ball leaves the partner's map at once; both hold one RARE CANDY | `test_an_object_a_partner_hides_leaves_the_map_a_window_stands_on_at_once` | playthrough_tower | |
+| W31 | One player stands in Tower 5F's purified zone while the other is elsewhere on 5F | One heal and one line for that player only; nothing loops | `test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own` | playthrough_tower | |
+| W32 | Both rescue or reach Mr. Fuji; one talks to him at home | Each holds exactly one POKé FLUTE, in the window and on the host | the D52 tests | playthrough_tower | |
 
 ## Battles
 
@@ -84,6 +87,8 @@ Red (or Blue) cartridge, the same one.
 | B13 | Level up into a new move or an evolution | The owner is asked; evolution plays in the owner's world | `test_a_level_up_shows_on_the_panel...` | | |
 | B14 | Lose a shared battle | Each player whites out in their own world and pays half their own money | `test_the_world_whites_out_its_own_player...` | lose_and_white_out | |
 | B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line, the prize | `test_a_trainer_win_closes_with_the_defeat...` | playthrough_brock | |
+| B16 | One player walks into Pokémon Tower's MAROWAK with the SILPH SCOPE; the other uses SELECT > JOIN | One host battle with both; afterwards gone for both, its cell starts nothing | | playthrough_tower | |
+| B17 | A wild battle in the tower without the SILPH SCOPE | The window's own GHOST battle; no host battle, no join offered; RUN escapes | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
 
 ## Trades
 

@@ -23,7 +23,7 @@ const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
 	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"],
 	"tower": [&"_misty_legs", &"_surge_legs", &"_tower_legs"],
-	"koga": [&"_misty_legs", &"_surge_legs", &"_koga_legs"],
+	"koga": [&"_misty_legs", &"_surge_legs", &"_tower_legs", &"_koga_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
