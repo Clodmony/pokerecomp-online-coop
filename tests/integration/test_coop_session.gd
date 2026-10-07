@@ -1870,6 +1870,28 @@ func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> v
 	assert_false(_host.campaign.has_flag(in_purified_zone))
 
 
+func test_a_player_back_on_the_water_surfs_as_a_continue_puts_them() -> void:
+	var sea := Gen2WorldMap.new()
+	sea.collision_width = 8
+	sea.collision_height = 8
+	sea.collision.resize(64)
+	sea.collision[5 * 8 + 5] = Gen1Layout.WATER_TILE
+	var tileset := Gen2WorldTileset.new()
+	tileset.water = true
+	_data.world_map(PALLET.x, PALLET.y)
+	_data.world_tileset(0)
+	_data._world_map_index[PALLET] = _data._world_maps.size()
+	_data._world_maps.append(sea)
+	_data._world_tilesets[0] = tileset
+
+	var red: Gen2WorldSnapshot = PokeCoopWorldLink.local_save(_red, _data).world
+	var blue: Gen2WorldSnapshot = PokeCoopWorldLink.local_save(_blue, _data).world
+
+	assert_eq([red.movement_mode, red.player_sprite_number], [Gen2WorldAPI.MOVEMENT_SURF, Gen2WorldSprite.SPRITE_SURF],
+		"Red left on the water and reopens surfing, not walking on it unable to move")
+	assert_eq(blue.movement_mode, Gen2WorldAPI.MOVEMENT_WALK, "Blue, on the land beside, walks")
+
+
 func test_the_mansion_switch_and_the_fossil_lab_are_each_players_own() -> void:
 	var switch_on: int = 0x278
 	var gave_fossil: int = 0x2E0
