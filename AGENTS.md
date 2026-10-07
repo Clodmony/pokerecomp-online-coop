@@ -81,6 +81,9 @@ GODOT=godot tools/coop_two_process.sh 24690
 # Two windows on the imported cartridge, driven by a scenario, captures outside the
 # repository and a private user folder (the owner's campaigns are never touched).
 GODOT=godot tools/coop_screens.sh leave_rejoin_takeover /tmp/coop_screens/leave
+# Two windows that play themselves from Oak's speech to BROCK's (or MISTY's) badge,
+# about five (ten) minutes; exits non-zero if either window fails.
+GODOT=godot tools/coop_screens.sh playthrough_brock /tmp/coop_screens/brock
 
 # Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
 # (replay needs the cartridge imported); demo and check write logs only with `logs`.
@@ -145,6 +148,8 @@ before pushing.
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh` | the two-window runner and its scenarios |
+| `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
+| `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69) |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
 | `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 

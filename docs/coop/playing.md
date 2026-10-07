@@ -23,6 +23,8 @@ the cartridge is sent between devices.
 4. The other player types one of those addresses under **Join a campaign** and
    presses **Join**.
 
+The tab remembers the name and address you last used.
+
 Each campaign is its own file on the host's device, so a run with one friend
 never overwrites a run with another: start **A new campaign** for each group.
 The files are in the game's user folder under `coop_campaigns/<game>/`, each
@@ -138,8 +140,9 @@ partner's real party; trade-evolving Pokémon evolve on arrival.
 
 ## Leaving
 
-LEAVE SESSION in the SELECT menu returns you to the launcher. When the host
-leaves, everyone is told why and returned to the launcher. A dropped
+LEAVE SESSION in the SELECT menu returns you to the launcher's Co-op tab,
+which says "You left the session.". When the host leaves, everyone is told why
+and returned to the Co-op tab, which says so again. A dropped
 connection is retried for about two minutes ("Lost the host: reconnecting...",
 then "Back in the session."), so a host that restarts or a phone that comes
 back from the background picks up where it was.

@@ -193,6 +193,7 @@ a two-window check of each feature (D65).
 | Two windows, `switch_and_suggest` | BLUE joins and moves the cursor: RED's panel shows "SQUIRTLE L12 BLUE ◀ BLUE"; RED switches to BLUE's SQUIRTLE and the turn is BLUE's ("What will SQUIRTLE do?"); BLUE switches back and it is RED's again |
 | Two windows, `lose_and_white_out` | RED alone loses to a wild ONIX L60: RED's window halves RED's money (3000 to 1500), heals the party and wakes in Pallet Town; BLUE untouched. A level 60 GEODUDE was tried first and blew itself up, which the cartridge counts as a win |
 | Two windows, `save_from_start_menu` | RED saves from START: "Campaign saved." in RED's window and "RED saved the campaign." in BLUE's; with BLUE in a battle RED's next SAVE ends in the game's box with "Save failed: battle in progress" (the YES/NO choice stays drawn behind that line, a cosmetic leftover) |
+| Two windows, launcher (D69) | `launcher_host_join`: RED hosts WITH BLUE from the Co-op tab with CHARMANDER, BLUE joins by address and plays the opening (rival named from the offered list), RED hears "BLUE joined the session." and the session menu says "With BLUE (in the opening)". `launcher_leave_rehost`: BLUE leaves, RED leaves, RED hosts SECOND, RED leaves while BLUE is in and BLUE lands on the Co-op tab with "The host closed the session.", RED picks FIRST from the list and BLUE rejoins as the same player; each campaign file holds RED and BLUE once (the scenario's `check()`). Both rerun on the merged branch, captures looked at. Five fixes from these runs (D69), each with a test |
 | Tests: D63, D64, D66, D67 | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own`; `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`; the journal and format 2 tests in `test_coop_state` and `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`; `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` and `test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends` |
 
 ## Slice 1 acceptance criteria
@@ -255,7 +256,8 @@ has **played** it by hand yet.
   a journal between checkpoints and format 2 (D66), and a script's changes sent
   as one patch (D67).
 - A two-window scenario runner and a window that plays itself to BROCK's or
-  MISTY's badge (D65).
+  MISTY's badge (D65); the launcher's Co-op tab checked in two windows, with
+  five fixes (D69).
 - The owner's rules (D61, D62): LEAVE BATTLE and REJOIN, a dropped controller's
   partner asked before standing in, a battle nobody is in kept two minutes,
   the full prize for every participant, EXP.ALL per team, gift Pokémon per
