@@ -242,8 +242,12 @@ has **played** it by hand yet.
   the host leaves and when a hosting app is paused, the checkpoint before is
   kept as `.bak`, and a failed write leaves the old file alone (D40); there is
   no journal between checkpoints or migration between formats yet (#39).
-- No private desktop or mobile builds yet: this machine has no Godot export
-  templates for 4.8-dev4 (#44, #45).
+- Private Windows and Linux builds are exported, but the Windows build has only
+  run under Wine; there is no Android or iOS build (#44, #45, #46).
+- The rules the owner settled in D61 are not built yet: leaving a battle and
+  dropping out as one rule with a two-minute wait, asking before a stand-in,
+  the full prize for every participant, gift Pokémon per player and Exp. All
+  per team.
 - Shared NPCs, scripts and cutscenes are not locked while one player uses them;
   two windows talking to the same gift giver at the same moment could both be
   given it (#24).
@@ -256,10 +260,15 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand on two devices with the private Windows and Linux
-builds (the opening, then the first routes) and note what feels wrong in
-`tracking.md`; the builds also open the device checks for suspend (#20) and
-touch (#43). The largest open design item is the host-side world simulation
-(#22, #25): today each window walks its own world and the host trusts it, which
-also leaves the simultaneous-gift race of #24; it needs the owner's go-ahead
-before it starts, since it reworks the part every verified flow stands on.
+In order (D61):
+
+1. Build the rules the owner settled: leaving and dropping out as one rule
+   (#31, #30), the full prize (#36), gift Pokémon per player (#33), Exp. All
+   per team (#37), and the host's lock on a scripted NPC or gift (#24); and
+   check that a window whose battle ended while it was away gets the outcome.
+2. A hand-played session on the owner's devices with fresh Windows and Linux
+   builds (#44), with suspend and touch checks once an Android build exists
+   (#20, #43).
+3. The scripted two-window playthrough from the opening to BROCK's badge (#48).
+4. The Android export and device checks (#45), then German Red/Blue (#50).
+5. Once #58, #79 and #80 are merged, the upstream merge to 0.1.74 (#14).

@@ -122,18 +122,22 @@ never identity.
 - The save is one versioned file with a campaign section and one section per
   player; it is never a merged single-player save.
 
-## Provisional policies
+## Policies
 
-| Question | Provisional rule | Issue |
+Rules marked "owner, D61" are settled; the rest are still provisional. All of
+them live in `PokeCoopPolicy`.
+
+| Question | Rule | Issue |
 |---|---|---|
-| Prize money | Split evenly among participants, remainder to the initiator; Pay Day money is added to the prize | #36 |
-| Losing a battle | Each participant's own world whites them out and halves their own money | #36 |
+| Prize money | Every participant receives the full prize, Pay Day included (owner, D61; not yet built) | #36 |
+| Losing a battle | Each participant's own world whites them out and halves their own money (owner, D61) | #36 |
+| Gift Pokémon | One per player: EEVEE, LAPRAS and the Dojo's choice are each player's own, as the fossils are (owner, D61; not yet built) | #33 |
 | Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |
-| Withdrawal | None: a battle ends for all participants together | #31 |
-| Late onboarding | A new player plays the opening (Oak's speech, their bedroom, Oak at the grass, the lab, the rival) on a story of their own, hidden from the others, and meets them and takes the campaign's story once they have a starter and have left the lab; or skips it with a starter of their choice at level 5, 3000 money, in Pallet Town; or brings their trainer from one of their single-player saves. The first player to name the rival names him for the campaign, and the first to finish the opening sets the rival's starter. A new campaign's shared story begins after Oak's intro, or from the story of the save its first player brings | #34, #40, D50 |
+| Withdrawal and drop-outs | One rule: a participant who leaves or loses the link is absent; their Pokémon stay in the roster and their results stay theirs; the battle ends when nobody is left, kept about two minutes for redialling (owner, D61; not yet built) | #31 |
+| Late onboarding | A new player plays the opening (Oak's speech, their bedroom, Oak at the grass, the lab, the rival) on a story of their own, hidden from the others, and meets them and takes the campaign's story once they have a starter and have left the lab; or skips it with a starter of their choice at level 5, 3000 money, in Pallet Town; or brings their trainer from one of their single-player saves. The first player to name the rival names him for the campaign, and the first to finish the opening sets the rival's starter. A new campaign's shared story begins after Oak's intro, or from the story of the save its first player brings (owner, D61) | #34, #40, D50 |
 | Story items | Every item a player finds or is given along the story (an item ball, a person's present, a reward) reaches every player in the same number; the key items and HMs on the shared list (town map, bicycle, keys, S.S. ticket, coin case, itemfinder, Silph Scope, Poké Flute, Exp. All, rods, HM01 to HM05) and gift TMs reach a late joiner too; into the PC's items when the bag is full. A key item the story takes is taken from every player, fossils excepted. Bought, traded for, used and hidden items stay with whoever got them | L5, D52 |
 | Trades | Through the Cable Club's Trade Center with the partner the host names; the host swaps the two Pokémon and applies trade evolutions | #38 |
 | Colosseum | Not a co-op battle: the takeover leaves link battles alone, so the window runs the cartridge's own link battle against a copy of the partner's team (not yet tried in a co-op run) | #38 |
-| Controller lost | Pause; after 30 seconds another participant decides for the absent player's Pokémon, which stay theirs, until they reconnect and take it back | #30 |
-| Exp. All in a shared battle | Off | #37 |
-| Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI | #27 |
+| Controller lost | Pause; after 30 seconds the other participants are asked whether to wait or take over for the absent player's Pokémon, which stay theirs, until they reconnect and take it back (owner, D61; asking not yet built) | #30 |
+| Exp. All in a shared battle | Any participant's counts for every team; each team gets the solo split over its own party (owner, D61; not yet built) | #37 |
+| Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI. Co-op targets Red and Blue only (D61) | #27 |
