@@ -361,11 +361,11 @@ const KOGA_MAPS: Dictionary = {
 	&"safari_west": Vector2i(0, 219), &"safari_center": Vector2i(0, 220), &"secret_house": Vector2i(0, 222),
 	&"wardens_house": Vector2i(0, 155),
 }
-## The waker stands above SNORLAX, the partner beside; the Safari Zone is left one map nearer the gate at a time.
 const BESIDE_SNORLAX: Array[Vector2i] = [Vector2i(10, 61), Vector2i(11, 61)]
 const SNORLAX := Vector2i(10, 62)
 const SNORLAX_ENCOUNTER: String = "static:143:0:23"
 const ROUTE_12_GATE_SOUTH := Vector2i(4, 7)
+const ROUTE_13_WEST_EDGE := Vector2i(0, 8)
 const ROUTE_15_GATE_WEST := Vector2i(0, 4)
 const SAFARI_GATE_OFFER := Vector2i(3, 2)
 const BELOW_FISHING_GURU := Vector2i(3, 4)
@@ -399,8 +399,8 @@ func _koga_legs() -> Array:
 	var spot: Callable = func(world: Gen2WorldAPI) -> bool: return world.player_cell == _snorlax_spot()
 	var inside: Callable = func(world: Gen2WorldAPI) -> bool: return world.gen1_safari_active() and world.map_id() == m.safari_center
 	return [
-		_grind.bind(SNORLAX_LEVEL, 0),
 		["mr_fujis_house_out", p._warp_to(m.lavender_town), p._on_map(m.lavender_town)],
+		_grind.bind(SNORLAX_LEVEL, 0),
 		["lavender_to_route_12", p._cross(Vector2i.DOWN, m.route_12), p._on_map(m.route_12)],
 		["route_12_gate", p._warp_to(m.route_12_gate), p._on_map(m.route_12_gate)],
 		["route_12_gate_south", p._walk(ROUTE_12_GATE_SOUTH), p._on_map(m.route_12)],
@@ -408,7 +408,7 @@ func _koga_legs() -> Array:
 		["meet_at_snorlax", _standing, _either(_partner_near(m.route_12, SNORLAX, 2), beaten)],
 		["snorlax", _wake_or_join_snorlax, _snorlax_gone],
 		["route_12_to_route_13", p._cross(Vector2i.DOWN, m.route_13), p._on_map(m.route_13)],
-		["route_13_to_route_14", p._cross(Vector2i.LEFT, m.route_14), p._on_map(m.route_14)],
+		["route_13_to_route_14", _cross_at(ROUTE_13_WEST_EDGE, Vector2i.LEFT), p._on_map(m.route_14)],
 		["route_14_to_route_15", p._cross(Vector2i.LEFT, m.route_15), p._on_map(m.route_15)],
 		["route_15_gate", p._warp_to(m.route_15_gate), p._on_map(m.route_15_gate)],
 		["route_15_gate_west", p._walk(ROUTE_15_GATE_WEST), p._on_map(m.route_15)],
@@ -436,7 +436,13 @@ func _koga_legs() -> Array:
 	]
 
 
-## The first player by id plays the flute; the other joins the fight from SELECT's menu.
+func _cross_at(cell: Vector2i, direction: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		if world.player_cell == cell:
+			return _played._direction_button(direction)
+		return _played._step_toward(world, _played._is(cell))
+
+
 func _snorlax_spot() -> Vector2i:
 	return BESIDE_SNORLAX[0 if _wakes_snorlax() else 1]
 
@@ -459,7 +465,6 @@ func _partner_near(map: Vector2i, cell: Vector2i, reach: int) -> Callable:
 		return false
 
 
-## `ItemUsePokeFlute` from the bag, as the start menu sends it, once; the partner waits for the fight to join.
 func _wake_or_join_snorlax(world: Gen2WorldAPI) -> int:
 	if not _wakes_snorlax():
 		return _join_button(SNORLAX_ENCOUNTER)
@@ -483,17 +488,16 @@ func _join_button(encounter: String) -> int:
 	return PokeButton.NONE
 
 
-## SELECT's session menu: the JOIN row of the battle wanted, else closed.
 func _menu_button(panel: PokeCoopBattlePanel) -> int:
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
 		return String(entry.get("action", "")) == "join" and String(entry.get("id", "")) == _joining)
 	if _joining.is_empty() or row < 0:
 		return _paced(PokeButton.B)
-	if panel._cursor == row:
+	var press: int = _paced(PokeButton.A if panel._cursor == row else PokeButton.DOWN)
+	if press == PokeButton.A:
 		print("coop autoplay: %s joins %s from the session menu" % [_player_id, _joining])
 		_joining = ""
-		return _paced(PokeButton.A)
-	return _paced(PokeButton.DOWN)
+	return press
 
 
 func _snorlax_gone(world: Gen2WorldAPI) -> bool:
@@ -525,13 +529,11 @@ func _caught_on_host(_world: Gen2WorldAPI) -> bool:
 	return true
 
 
-## Back and forth between two grass cells until something shows up.
 func _walk_grass(world: Gen2WorldAPI) -> int:
 	var here: Vector2i = world.player_cell
 	return _played._step_toward(world, func(at: Vector2i) -> bool: return at != here and world.in_grass(at))
 
 
-## A ball a turn until the first catch reaches the host, then RUN; B declines the nickname.
 func _safari_button(battle: Gen2BattleScreen) -> int:
 	var prompt: Gen2NicknamePromptScreen = battle.get("_capture_nickname_host")
 	if prompt != null:
@@ -615,7 +617,7 @@ func _apply(button: int) -> void:
 		_tap = PokeButton.NONE
 	if PokeButton.is_direction(button) and _tap == PokeButton.NONE and _session.opening_screen == null \
 			and not _session.panel.is_open():
-		if _direction != button:
+		if _direction != button or not PokeButton.held(button):
 			if _direction != PokeButton.NONE:
 				input.release(_direction)
 			input.press(button)
@@ -642,6 +644,8 @@ func _watch_progress() -> void:
 	var world: Gen2WorldAPI = _played._screen.world() if _played._screen != null and is_instance_valid(_played._screen) else null
 	var now: String = "%s %s %d %s" % [world.map_id(), world.player_cell, _leg, world.script_busy()] if world != null else ""
 	now += str(_session.panel.battle_view().get("revision", "")) if _session.panel != null else ""
+	if _leg < _legs.size() and _legs[_leg] is Array and _legs[_leg][1] == _standing:
+		now += str(_session.client.state.get("players", {}))
 	if now != _signature:
 		_signature = now
 		_still_since = Time.get_ticks_msec()
