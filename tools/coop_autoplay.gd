@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+##     [route=brock|misty|trade|surge|tower] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -22,6 +22,7 @@ const FILM_FRAMES: int = 30
 const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
 	"surge": [&"_misty_legs", &"_surge_legs"],
+	"tower": [&"_misty_legs", &"_surge_legs", &"_tower_legs"],
 }
 const SURGE_MAPS: Dictionary = {
 	&"route_24": Vector2i(0, 35), &"route_25": Vector2i(0, 36), &"bills_house": Vector2i(0, 88),
@@ -69,6 +70,8 @@ var _done: bool = false
 var _trade: Dictionary = {}
 var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
+var _joining: bool = false
+var _join_asked: int = -JOIN_EVERY
 
 
 func _read_option(arg: String) -> bool:
@@ -144,7 +147,8 @@ func _intro_button(intro: Gen2IntroScreen) -> int:
 func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	var view: Dictionary = panel.battle_view()
 	if view.is_empty():
-		return _paced(PokeButton.B)
+		var join: int = panel._rows.find_custom(func(row: Dictionary) -> bool: return row.get("action") == "join") if _joining else -1
+		return _paced(PokeButton.B if join < 0 else (PokeButton.DOWN if panel._cursor != join else PokeButton.A))
 	if panel.busy.is_valid() and bool(panel.busy.call()):
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
@@ -348,6 +352,103 @@ func _search_cans(world: Gen2WorldAPI) -> int:
 	var can: int = world.state.gen1_byte(lock)
 	var column_and_row := Vector2i(can / TRASH_CANS_PER_COLUMN, can % TRASH_CANS_PER_COLUMN)
 	return _played._talk_button(world, FIRST_TRASH_CAN + column_and_row * TRASH_CAN_SPACING)
+
+
+const TOWER_MAPS: Dictionary = {
+	&"hideout_b1f": Vector2i(0, 199), &"hideout_elevator": Vector2i(0, 203), &"game_corner": Vector2i(0, 135),
+	&"celadon_city": Vector2i(0, 6), &"route_7": Vector2i(0, 18), &"underground_route_7": Vector2i(0, 77),
+	&"underground_west_east": Vector2i(0, 121), &"underground_route_8": Vector2i(0, 80), &"route_8": Vector2i(0, 19),
+	&"lavender_town": Vector2i(0, 4), &"tower_1f": Vector2i(0, 142), &"tower_2f": Vector2i(0, 143),
+	&"tower_3f": Vector2i(0, 144), &"tower_4f": Vector2i(0, 145), &"tower_5f": Vector2i(0, 146),
+	&"tower_6f": Vector2i(0, 147), &"tower_7f": Vector2i(0, 148), &"mr_fujis_house": Vector2i(0, 149),
+}
+const CAR_PANEL_FRONT := Vector2i(1, 2)
+const CAR_DOOR := Vector2i(2, 1)
+const HIDEOUT_B1F_DOOR_ROCKET := Vector2i(28, 18)
+## `PokemonTower2FRivalEncounterEventCoords`, one a player in id order, and the ghost's own cell.
+const TOWER_RIVAL_CELLS: Array = [Vector2i(14, 6), Vector2i(15, 5)]
+const ABOVE_RARE_CANDY := Vector2i(6, 7)
+const MAROWAK_CELL := Vector2i(10, 16)
+const MR_FUJI := Vector2i(10, 3)
+const BELOW_MR_FUJI_HOME := Vector2i(3, 2)
+const RARE_CANDY: int = 0x28
+const POKE_FLUTE: int = 0x49
+const MAROWAK: int = 105
+const TOWER_LEVEL: int = 46
+const JOIN_EVERY: int = 120
+const EVENT_BEAT_HIDEOUT_B1F_DOOR_ROCKET: int = 0x675
+const EVENT_BEAT_POKEMON_TOWER_RIVAL: int = 0xEF
+const EVENT_BEAT_GHOST_MAROWAK: int = 0x10F
+const EVENT_GOT_POKE_FLUTE: int = 0x128
+const EVENT_RESCUED_MR_FUJI: int = 0x4CF
+
+
+func _tower_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = TOWER_MAPS
+	var rival: Callable = p._flag(EVENT_BEAT_POKEMON_TOWER_RIVAL)
+	var marowak: Callable = p._flag(EVENT_BEAT_GHOST_MAROWAK)
+	return [
+		["hideout_b4f_elevator", p._warp_to(m.hideout_elevator), p._on_map(m.hideout_elevator)],
+		_grind.bind(TOWER_LEVEL, 0),
+		["hideout_elevator_panel", p._talk(CAR_PANEL_FRONT, UP), _car_goes_to(m.hideout_b1f)],
+		["hideout_elevator_to_b1f", p._walk(CAR_DOOR), p._on_map(m.hideout_b1f)],
+		["hideout_b1f_door_rocket", p._talk_to(HIDEOUT_B1F_DOOR_ROCKET), p._flag(EVENT_BEAT_HIDEOUT_B1F_DOOR_ROCKET)],
+		["hideout_b1f_to_game_corner", p._warp_to(m.game_corner), p._on_map(m.game_corner)],
+		["game_corner_exit", p._warp_to(m.celadon_city), p._on_map(m.celadon_city)],
+		["celadon_to_route_7", p._cross(Vector2i.RIGHT, m.route_7), p._on_map(m.route_7)],
+		["route_7_to_underground", p._warp_to(m.underground_route_7), p._on_map(m.underground_route_7)],
+		["underground_west_entrance", p._warp_to(m.underground_west_east), p._on_map(m.underground_west_east)],
+		["underground_east_exit", p._warp_to(m.underground_route_8), p._on_map(m.underground_route_8)],
+		["underground_to_route_8", p._warp_to(m.route_8), p._on_map(m.route_8)],
+		["route_8_to_lavender", p._cross(Vector2i.RIGHT, m.lavender_town), p._on_map(m.lavender_town)],
+		["lavender_to_tower", p._warp_to(m.tower_1f), p._on_map(m.tower_1f)],
+		["tower_1f_to_2f", p._warp_to(m.tower_2f), p._on_map(m.tower_2f)],
+		_meet_partner("meet_on_tower_2f", rival),
+		["tower_2f_rival", func(world: Gen2WorldAPI) -> int: return p._walk(TOWER_RIVAL_CELLS[_order()]).call(world), rival],
+		["tower_2f_to_3f", p._warp_to(m.tower_3f), p._on_map(m.tower_3f)],
+		["tower_3f_to_4f", p._warp_to(m.tower_4f), p._on_map(m.tower_4f)],
+		["tower_4f_to_5f", p._warp_to(m.tower_5f), p._on_map(m.tower_5f)],
+		["tower_5f_to_6f", p._warp_to(m.tower_6f), p._on_map(m.tower_6f)],
+		["tower_6f_rare_candy", p._talk(ABOVE_RARE_CANDY, Gen2WorldSprite.FACING_DOWN), p._holds(RARE_CANDY)],
+		_meet_partner("meet_on_tower_6f", marowak),
+		["tower_6f_marowak", _marowak_button.bind(p._walk(MAROWAK_CELL)), marowak],
+		["tower_6f_marowak_gone", p._walk(MAROWAK_CELL), p._at(MAROWAK_CELL)],
+		["tower_6f_to_7f", p._warp_to(m.tower_7f), p._on_map(m.tower_7f)],
+		["tower_7f_mr_fuji", p._talk_to(MR_FUJI), _either(p._on_map(m.mr_fujis_house), p._flag(EVENT_RESCUED_MR_FUJI))],
+		["to_mr_fujis_house", p._route(m.mr_fujis_house), p._on_map(m.mr_fujis_house)],
+		["poke_flute", p._talk(BELOW_MR_FUJI_HOME, UP), _either(p._holds(POKE_FLUTE), p._flag(EVENT_GOT_POKE_FLUTE))],
+		_flute_once,
+	]
+
+
+func _car_goes_to(map: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
+
+
+## This player's place in id order: the first walks into a story fight, the rest join it from the menu.
+func _order() -> int:
+	var ids: Array = (_session.client.state.get("players", {}) as Dictionary).keys()
+	ids.sort()
+	return maxi(ids.find(_session.client.player_id), 0)
+
+
+func _marowak_button(world: Gen2WorldAPI, walk: Callable) -> int:
+	var running: Array = _session.client.state.get("battles", [])
+	var joinable: bool = running.any(func(row: Dictionary) -> bool: return int(row["enemy"]) == MAROWAK \
+		and not (row["participants"] as Array).has(_session.client.player_id))
+	_joining = joinable and _frames - _join_asked >= JOIN_EVERY
+	if _joining:
+		_join_asked = _frames
+		return PokeButton.SELECT
+	return walk.call(world) if _order() == 0 and not joinable else PokeButton.NONE
+
+
+func _flute_once() -> bool:
+	var held: int = _played._screen.world().state.item_quantity(POKE_FLUTE)
+	var hosted: int = int((_session.client.me().get("items", {}) as Dictionary).get(POKE_FLUTE, 0))
+	print("coop autoplay: %s holds %d POKé FLUTE, %d on the host" % [_player_id, held, hosted])
+	return held == 1 and hosted == 1
 
 
 func _either(first: Callable, second: Callable) -> Callable:
