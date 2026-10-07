@@ -1841,6 +1841,20 @@ func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too(
 		"Blue's world redraws the door as the window that found the switch does")
 
 
+func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> void:
+	var in_purified_zone: int = 0x107
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+
+	red.state.set_event_flag(in_purified_zone)
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(in_purified_zone),
+		"Blue's window, outside the zone, neither takes Red's flag nor clears it under Red, who would be healed again")
+	assert_true(red.state.is_event_flag_active(in_purified_zone))
+	assert_false(_host.campaign.has_flag(in_purified_zone))
+
+
 func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
