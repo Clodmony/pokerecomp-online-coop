@@ -5,8 +5,11 @@ extends RefCounted
 ## patches both ways, holdings out while the player is free and back whole, and its SAVE asks for a checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
+const VERMILION_GYM := Vector2i(0, 92)
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
 
 var client: PokeCoopClient = null
+var world: Gen2WorldAPI = null
 var state: Gen2WorldState = null
 var save: Gen2SaveData = null
 var badge_flags: Array[int] = []
@@ -112,8 +115,16 @@ func _pull_world() -> void:
 		var merged: Dictionary = state.to_dict()
 		PokeCoopOwnership.apply_patch(merged, changes)
 		state.restore_from_dict(merged)
+		_owe_map_loads((changes.get("event_flags", {}) as Dictionary).get("set", {}))
 	_baseline = state.to_dict()
 	_dirty = false
+
+
+func _owe_map_loads(flags_set: Dictionary) -> void:
+	for flag: int in MAP_LOADS_OWED_BY_FLAG:
+		var owed: Array = MAP_LOADS_OWED_BY_FLAG[flag]
+		if world != null and bool(flags_set.get(flag, false)) and world.map_id() == owed[0]:
+			world.set("_gen1_map_load_pending", int(world.get("_gen1_map_load_pending")) | (1 << int(owed[1])))
 
 
 static func _drop_overlap(changes: Dictionary, pending: Dictionary, echoes: Dictionary) -> void:
