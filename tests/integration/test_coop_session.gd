@@ -1595,6 +1595,40 @@ func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:
 	assert_true(bool((drawn[0] as Dictionary).get("solid", false)))
 
 
+const CERULEAN_CITY: int = 3
+
+
+func test_a_window_opened_again_inside_a_building_leaves_by_its_own_door() -> void:
+	var world := Gen2WorldAPI.new(_data, Gen2WorldMap.new(), null)
+	world._gen1_last_map = CERULEAN_CITY
+	world._gen1_last_blackout_map = CERULEAN_CITY
+	var actor: PokeCoopRemoteActor = PokeCoopRemoteActor.over(_red)
+	actor.set_world(world)
+	actor.advance_frame()
+	_pump()
+	_send(func() -> void: _red.request_save())
+	var saved: Array = (PokeCoopSave.read(SAVE_PATH)["players"] as Array).filter(
+		func(player: PokeCoopPlayer) -> bool: return player.player_id == _red.player_id)
+
+	var reopened: Gen2WorldSnapshot = PokeCoopWorldLink.continued_world(_red)
+
+	assert_eq((saved[0] as PokeCoopPlayer).places, {"gen1_last_map": CERULEAN_CITY, "gen1_last_blackout_map": CERULEAN_CITY})
+	assert_eq(reopened.gen1_last_map, CERULEAN_CITY, "a LAST_MAP door leads back out to the town it is in")
+	assert_eq(reopened.gen1_last_blackout_map, CERULEAN_CITY, "a whiteout still ends at the last Pokémon Center")
+
+
+func test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place() -> void:
+	_host.campaign.commit("story:early", {"flags": [BEAT_LEADER]})
+	_host.broadcast()
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 6), Gen2WorldSprite.FACING_LEFT))
+
+	var opened: Gen2WorldSnapshot = PokeCoopWorldLink.continued_world(_red)
+
+	assert_true(opened.world_state.is_event_flag_active(BEAT_LEADER), "a map's load scripts read the campaign")
+	assert_eq(opened.world_state.money(), _host.player(_red.player_id).money, "and the player's own wallet")
+	assert_eq([opened.map_id, opened.player_cell, opened.player_facing], [PALLET, Vector2i(5, 6), Gen2WorldSprite.FACING_LEFT])
+
+
 func test_a_joiner_who_leaves_walks_on_while_their_pokemon_fight_and_keep_what_they_earn() -> void:
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	var battle_id: String = _battle_of(_red)
@@ -1733,6 +1767,45 @@ func test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own() 
 
 	assert_eq([again.state.gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK), again.state.gen1_byte(surf_low)], [6, 0x34],
 		"a window reopened on the saved campaign finds both")
+
+
+func test_a_map_script_that_follows_one_players_walk_stays_in_their_window() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var dock_check: int = PokeCoopOwnership.PLAYER_MAP_SCRIPTS["wVermilionCityCurScript"]
+	var oaks_lab: int = 0
+	red.state.set_gen1_map_script(dock_check, 4)
+	red.state.set_gen1_map_script(oaks_lab, 18)
+	_pump()
+
+	assert_eq(blue.state.gen1_map_script(dock_check), 0, "Blue, elsewhere in the city, does not send Red back to the sailor")
+	assert_eq(blue.state.gen1_map_script(oaks_lab), 18, "the lab's story step is the campaign's")
+	assert_eq(red.state.gen1_map_script(dock_check), 4, "Red walks on past the ticket check")
+	assert_eq(_host.save_checkpoint(), &"")
+	var reloaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	_host = PokeCoopHost.create(_data, reloaded["campaign"], PokeCoopTransport.new())
+	_host.adopt_players(reloaded["players"])
+	_clients = []
+	_links = []
+	var again: PokeCoopWorldLink = _window(_connect(1, _red.player_id))
+
+	assert_eq([again.state.gen1_map_script(dock_check), again.state.gen1_map_script(oaks_lab)], [4, 18])
+
+
+func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var gym := Gen2WorldMap.new()
+	gym.number = PokeCoopWorldLink.VERMILION_GYM.y
+	blue.world = Gen2WorldAPI.new(_data, gym, null, Vector2i.ZERO, blue.state)
+	var door_load: int = 1 << Gen1Layout.MAP_LOADED_2_BIT
+
+	red.state.set_event_flag(Gen1Layout.LOCK_2ND_EVENT)
+	_pump()
+
+	assert_true(blue.state.is_event_flag_active(Gen1Layout.LOCK_2ND_EVENT))
+	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & door_load, door_load,
+		"Blue's world redraws the door as the window that found the switch does")
 
 
 func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:

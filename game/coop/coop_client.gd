@@ -135,8 +135,11 @@ func _receive(message: Dictionary) -> void:
 				transport.close()
 
 
-func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false) -> int:
-	return send({"type": "move", "map": map, "cell": cell, "facing": facing, "warp": warp})
+func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false, places: Dictionary = {}) -> int:
+	var message: Dictionary = {"type": "move", "map": map, "cell": cell, "facing": facing, "warp": warp}
+	if not places.is_empty():
+		message["places"] = places
+	return send(message)
 
 
 func start_battle(encounter_id: String) -> int:

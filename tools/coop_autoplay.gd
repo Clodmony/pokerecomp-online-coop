@@ -19,7 +19,36 @@ const CABLE_CLUB_RECEPTIONIST := Vector2i(11, 2)
 const MACHOKE: int = 67
 const TRADE_EVOLVED: Dictionary = {MACHOKE: 68}
 const FILM_FRAMES: int = 30
-const ROUTES: Dictionary = {"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"]}
+const ROUTES: Dictionary = {
+	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
+	"surge": [&"_misty_legs", &"_surge_legs"],
+}
+const SURGE_MAPS: Dictionary = {
+	&"route_24": Vector2i(0, 35), &"route_25": Vector2i(0, 36), &"bills_house": Vector2i(0, 88),
+	&"trashed_house": Vector2i(0, 62), &"route_5": Vector2i(0, 16), &"underground_route_5": Vector2i(0, 71),
+	&"underground_path": Vector2i(0, 119), &"underground_route_6": Vector2i(0, 74), &"route_6": Vector2i(0, 17),
+	&"vermilion_city": Vector2i(0, 5), &"vermilion_dock": Vector2i(0, 94), &"ss_anne_1f": Vector2i(0, 95),
+	&"ss_anne_2f": Vector2i(0, 96), &"captains_room": Vector2i(0, 101), &"vermilion_gym": Vector2i(0, 92),
+}
+const BILL_POKEMON := Vector2i(6, 5)
+const BILLS_PC_FRONT := Vector2i(1, 5)
+const BILL := Vector2i(4, 4)
+const TRASHED_HOUSE_HOLE := Vector2i(3, 0)
+const CAPTAIN := Vector2i(4, 2)
+const GYM_TREE := Vector2i(15, 18)
+const GYM_TREE_FRONT := Vector2i(15, 17)
+const LT_SURGE := Vector2i(5, 1)
+const FIRST_TRASH_CAN := Vector2i(1, 7)
+const TRASH_CANS_PER_COLUMN: int = 3
+const TRASH_CAN_SPACING: int = 2
+const THUNDER_BADGE: int = 2
+const EVENT_BILL_SAID_USE_CELL_SEPARATOR: int = 0x55E
+const EVENT_USED_CELL_SEPARATOR_ON_BILL: int = 0x55B
+const EVENT_GOT_SS_TICKET: int = 0x55C
+const EVENT_GOT_HM01: int = 0x5E0
+const S_S_TICKET: int = 0x3F
+const SURGE_LEVEL: int = 30
+const SANDSHREW_DEX: int = 27
 
 var _played: Variant = null
 var _kit: GDScript = null
@@ -241,6 +270,77 @@ func _misty_legs() -> Array:
 		_meet_partner("meet_in_cerulean_gym", _badge(CASCADE_BADGE)),
 		["misty", p._talk_to(_kit.MISTY), _badge(CASCADE_BADGE)],
 	]
+
+
+func _surge_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = SURGE_MAPS
+	var ticket: Callable = _either(p._holds(S_S_TICKET), p._flag(EVENT_GOT_SS_TICKET))
+	var hm01: Callable = _either(p._holds(Gen1Layout.HM_FIRST_ITEM), p._flag(EVENT_GOT_HM01))
+	return [
+		["misty_gym_out", p._warp_to(_kit.CERULEAN_CITY), p._on_map(_kit.CERULEAN_CITY)],
+		["cerulean_rival", p._cross(Vector2i.UP, m.route_24), p._on_map(m.route_24)],
+		["nugget_bridge", p._cross(Vector2i.RIGHT, m.route_25), p._on_map(m.route_25)],
+		["route_25_to_bill", p._warp_to(m.bills_house), _either(p._on_map(m.bills_house), ticket)],
+		["bill", p._talk_to(BILL_POKEMON), _either(p._flag(EVENT_BILL_SAID_USE_CELL_SEPARATOR), ticket)],
+		["cell_separator", p._talk(BILLS_PC_FRONT, UP), _either(p._flag(EVENT_USED_CELL_SEPARATOR_ON_BILL), ticket)],
+		["ss_ticket", p._talk_to(BILL), ticket],
+		["back_to_cerulean", p._route(_kit.CERULEAN_CITY), p._on_map(_kit.CERULEAN_CITY)],
+		["trashed_house", p._warp_to(m.trashed_house), p._on_map(m.trashed_house)],
+		["trashed_house_hole", p._walk(TRASHED_HOUSE_HOLE), p._on_map(_kit.CERULEAN_CITY)],
+		["rocket_thief", p._cross(Vector2i.DOWN, m.route_5), p._on_map(m.route_5)],
+		["route_5_to_underground", p._warp_to(m.underground_route_5), p._on_map(m.underground_route_5)],
+		["underground_stairs", p._warp_to(m.underground_path), p._on_map(m.underground_path)],
+		["underground_path", p._warp_to(m.underground_route_6), p._on_map(m.underground_route_6)],
+		["underground_out", p._warp_to(m.route_6), p._on_map(m.route_6)],
+		["route_6_to_vermilion", p._cross(Vector2i.DOWN, m.vermilion_city), p._on_map(m.vermilion_city)],
+		_grind.bind(SURGE_LEVEL, SANDSHREW_DEX),
+		["vermilion_dock", p._warp_to(m.vermilion_dock), _either(p._on_map(m.vermilion_dock), hm01)],
+		["ss_anne", p._warp_to(m.ss_anne_1f), _either(p._on_map(m.ss_anne_1f), hm01)],
+		["ss_anne_2f", p._warp_to(m.ss_anne_2f), _either(p._on_map(m.ss_anne_2f), hm01)],
+		["ss_anne_rival", p._warp_to(m.captains_room), _either(p._on_map(m.captains_room), hm01)],
+		["captain", p._talk_to(CAPTAIN), hm01],
+		["ss_anne_out", p._route(m.vermilion_city), p._on_map(m.vermilion_city)],
+		_teach_cut,
+		["gym_tree", _cut_tree.bind(p._talk(GYM_TREE_FRONT, Gen2WorldSprite.FACING_DOWN)), _tree_cut],
+		["vermilion_gym", p._warp_to(m.vermilion_gym), p._on_map(m.vermilion_gym)],
+		["trash_cans", _search_cans, _either(p._flag(Gen1Layout.LOCK_2ND_EVENT), _badge(THUNDER_BADGE))],
+		_meet_partner("meet_in_vermilion_gym", _badge(THUNDER_BADGE)),
+		["lt_surge", p._talk_to(LT_SURGE), _badge(THUNDER_BADGE)],
+	]
+
+
+func _teach_cut() -> bool:
+	var save: Gen2SaveData = _played._screen.active_save()
+	if _played._screen.world().state.item_quantity(Gen1Layout.HM_FIRST_ITEM) <= 0:
+		return false
+	for mon: Gen2SaveMon in save.party:
+		if Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_CUT):
+			_played._editor.set_move(mon, Gen2SaveMon.MAX_MOVES - 1, Gen2WorldFieldMove.MOVE_CUT)
+			_played._screen.call(&"_refresh_party_summary")
+			return true
+	return false
+
+
+func _cut_tree(world: Gen2WorldAPI, face: Callable) -> int:
+	var button: int = face.call(world)
+	if button != PokeButton.A:
+		return button
+	_played._screen.call(&"_run_party_action", {"kind": &"field_move", "move": Gen2WorldFieldMove.MOVE_CUT,
+		"slot": world.party_slot_with_move(Gen2WorldFieldMove.MOVE_CUT)})
+	return PokeButton.NONE
+
+
+func _tree_cut(world: Gen2WorldAPI) -> bool:
+	return Gen1Layout.cut_tile(world.current_map.tileset, int(world.call(&"_gen1_tile_drawn_at", GYM_TREE))) < 0
+
+
+func _search_cans(world: Gen2WorldAPI) -> int:
+	var lock: String = Gen2WorldAPI.GEN1_SECOND_LOCK if world.event_flag_active(Gen1Layout.LOCK_1ST_EVENT) \
+		else Gen2WorldAPI.GEN1_FIRST_LOCK
+	var can: int = world.state.gen1_byte(lock)
+	var column_and_row := Vector2i(can / TRASH_CANS_PER_COLUMN, can % TRASH_CANS_PER_COLUMN)
+	return _played._talk_button(world, FIRST_TRASH_CAN + column_and_row * TRASH_CAN_SPACING)
 
 
 func _either(first: Callable, second: Callable) -> Callable:
