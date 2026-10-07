@@ -173,7 +173,7 @@ func test_the_host_log_holds_its_start_its_seeds_and_every_message_with_what_cam
 	assert_true((_of(lines, "campaign")[-1]["data"]["flags"] as Array).has(float(BEAT_LEADER)))
 	var saves: Array = _of(lines, "save").map(func(line: Dictionary) -> String: return line["data"]["why"])
 	assert_eq(saves, ["battle_end", "asked by p2", "shutdown"])
-	assert_eq(_kinds(lines).slice(-3), ["shutdown", "save", "closed"])
+	assert_eq(_kinds(lines).slice(-4), ["shutdown", "host_end", "save", "closed"])
 
 
 func test_a_client_log_holds_what_it_sent_and_a_digest_of_what_it_saw() -> void:
@@ -362,12 +362,40 @@ func test_the_merged_timeline_of_three_devices_summarises_the_session() -> void:
 		everything += _from(_lines(journal), journal).filter(func(line: Dictionary) -> bool: return not line.has("relay")).size()
 	assert_eq(timeline.size(), everything, "every device's own lines once")
 	var found: Dictionary = LogTool.summary(timeline)
-	assert_eq((found["sessions"] as Array).size(), 3)
+	assert_eq((found["sessions"] as Dictionary).size(), 3)
+	assert_eq((found["sessions"] as Dictionary).values().map(func(row: Dictionary) -> String: return row["campaign_id"]),
+		["c1", "c1", "c1"], "a joiner's campaign comes with its welcome")
 	assert_eq(found["players"], {"p1": "RED", "p2": "BLUE"})
 	var battles: Array = (found["battles"] as Dictionary).values()
 	assert_eq(battles.map(func(row: Dictionary) -> Array: return [row["encounter"], row["outcome"]]), [["trainer:leader", "won"]])
 	assert_eq((found["saves"] as Array).size(), 3)
 	assert_string_contains(LogTool.summary_text(found), "trainer:leader by p1: won")
+
+
+func test_a_host_log_replays_to_the_campaign_it_logged_and_a_changed_message_does_not() -> void:
+	_both()
+	_host.register_encounter("wild:weak", {"species": Fixture.BULBASAUR, "level": 2, "moves": [Fixture.GROWL]})
+	_red.step(PALLET, Vector2i(5, 9), 0)
+	_blue.step(PALLET, Vector2i(6, 6), 0)
+	_pump()
+	_blue.send({"type": "world", "patch": {"event_flags": {"set": {0x30: true}, "erase": []}}})
+	_beat_the_leader()
+	_blue.start_battle("wild:weak")
+	_pump()
+	_fight_out(String(_blue.current_battle().get("battle", "")))
+	_red.request_save()
+	_pump()
+	_host.shutdown("host_shutdown", 0)
+	var lines: Array = _lines(_host.journal)
+
+	var replayed: Dictionary = LogTool.replay(lines, _data)
+	assert_eq([replayed["mismatches"], replayed["end"]], [[], "match"], JSON.stringify(replayed))
+	assert_gt(int(replayed["messages"]), 10)
+	var step: Dictionary = lines.filter(func(line: Dictionary) -> bool:
+		return line["kind"] == "in" and line["data"]["message"]["type"] == "move" and line["player"] == "p2")[0]
+	step["data"]["message"]["cell"] = [6.0, 4.0]
+	var changed: Dictionary = LogTool.replay(lines, _data)
+	assert_eq([changed["end"], changed["differences"]], ["differs", ["players.p2.cell"]], "another step ends elsewhere")
 
 
 ## Over localhost sockets, as the Co-op tab runs it: the hosting device's host and
