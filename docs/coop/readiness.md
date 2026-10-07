@@ -16,6 +16,9 @@ What to run and check before handing a private co-op build to the players
 
 ## By hand, two devices on one network, each with its own imported cartridge
 
+The full list, with what already covers each case, is in
+[test-cases.md](test-cases.md); the short round below is the minimum.
+
 - [ ] Host from the Co-op tab with a new campaign; join from the other device
       by the listed address. Both worlds open in Pallet Town with the chosen
       starters.

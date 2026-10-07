@@ -17,6 +17,7 @@ Read before working:
 - [docs/coop/decisions.md](docs/coop/decisions.md): decisions and trade-offs.
 - [docs/coop/playing.md](docs/coop/playing.md): how players host, join, battle and trade.
 - [docs/coop/readiness.md](docs/coop/readiness.md): what to check before a private build.
+- [docs/coop/test-cases.md](docs/coop/test-cases.md): the hand-test cases and what covers each.
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): upstream's rules, which still apply
   (file budget, comment budget, test rules, style, no cartridge data).
 
@@ -76,6 +77,10 @@ godot --headless --path . -s res://tools/coop_session.gd -- demo
 
 # The same slice as three processes (host, p1, p2); exits non-zero if any fails or hangs.
 GODOT=godot tools/coop_two_process.sh 24690
+
+# Two windows on the imported cartridge, driven by a scenario, captures outside the
+# repository and a private user folder (the owner's campaigns are never touched).
+GODOT=godot tools/coop_screens.sh leave_rejoin_takeover /tmp/coop_screens/leave
 
 # Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
 # (replay needs the cartridge imported); demo and check write logs only with `logs`.
@@ -139,6 +144,7 @@ before pushing.
 | `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game]` and `client` runners |
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
+| `tools/coop_screens.sh`, `tools/coop_screens/*.sh` | the two-window runner and its scenarios |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
 | `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 
@@ -152,3 +158,6 @@ before pushing.
 - Keep upstream files' changes small and listed in `architecture.md` so upstream
   merges stay cheap.
 - Update `docs/coop/progress.md` in the same pull request as the work.
+- Every feature adds its hand-test cases to `docs/coop/test-cases.md`, and a
+  scenario under `tools/coop_screens/` when it shows on screen. Run the
+  scenario, look at every capture, and record the run in `progress.md`.
