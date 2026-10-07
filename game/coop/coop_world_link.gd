@@ -1,8 +1,8 @@
 class_name PokeCoopWorldLink
 extends RefCounted
 
-## Keeps a window's world state, party and PC in step with the host: world patches both ways, holdings out
-## while the player is free and back whole, and the world's own SAVE asks for a campaign checkpoint.
+## Opens a window's world as a Continue does and keeps its state, party and PC in step with the host: world
+## patches both ways, holdings out while the player is free and back whole, and its SAVE asks for a checkpoint.
 
 const PARTY_CHECK_FRAMES: int = 30
 
@@ -81,9 +81,9 @@ func _push_world() -> void:
 		_unacked[client.send({"type": "world", "patch": changes})] = changes
 
 
-func _host_world() -> Dictionary:
-	var shared: Dictionary = (client.state.get("campaign", {}) as Dictionary).get("world", {})
-	var own: Dictionary = client.me().get("world", {})
+static func _host_world(session: PokeCoopClient) -> Dictionary:
+	var shared: Dictionary = (session.state.get("campaign", {}) as Dictionary).get("world", {})
+	var own: Dictionary = session.me().get("world", {})
 	var out: Dictionary = shared.duplicate(true)
 	for key: String in own:
 		if out.get(key) is Dictionary and own[key] is Dictionary:
@@ -94,7 +94,7 @@ func _host_world() -> Dictionary:
 
 
 func _pull_world() -> void:
-	var host: Dictionary = _host_world()
+	var host: Dictionary = _host_world(client)
 	if host == _host_seen:
 		return
 	var changes: Dictionary = PokeCoopOwnership.patch(_host_seen, host)
@@ -161,6 +161,22 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.slot = 0
 	out.run_rules = Gen2Rules.new()
 	_fill(out, me, session.box.get("rows", []))
+	var world: Gen2WorldSnapshot = continued_world(session)
+	if data.world_map(world.map_id.x, world.map_id.y) != null:
+		out.world = world
+	return out
+
+
+static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
+	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(session.player_id, {})
+	var places: Dictionary = session.me().get("places", {})
+	var out := Gen2WorldSnapshot.new()
+	out.map_id = view.get("map", PokeCoopPolicy.START_MAP)
+	out.player_cell = view.get("cell", Vector2i.ZERO)
+	out.player_facing = int(view.get("facing", Gen2WorldSprite.FACING_DOWN))
+	out.world_state = Gen2WorldState.from_dict(_host_world(session))
+	out.gen1_last_map = int(places.get("gen1_last_map", out.gen1_last_map))
+	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
 	return out
 
 

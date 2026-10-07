@@ -1,14 +1,15 @@
 class_name PokeCoopPlayer
 extends RefCounted
 
-## One player of a co-op run: their own team, box, bag, money and position. Every
-## Pokémon carries a uid that outlives its slot, which a battle, a reward and a save name it by.
+## One player of a co-op run: their own team, box, bag, money, position and the outside maps their doors lead
+## back to. Every Pokémon carries a uid that outlives its slot, which a battle, a reward and a save name it by.
 
 const MAX_TEAM: int = Gen2Party.MAX_SIZE
 const MAX_MONEY: int = 999999
 const MAX_ITEM_COUNT: int = 99
 const BOXES: int = 12
 const BOX_CAPACITY: int = Gen2SaveBox.CAPACITY
+const PLACES: Array[String] = ["gen1_last_map", "gen1_last_blackout_map"]
 
 var player_id: String = ""
 var name: String = ""
@@ -26,6 +27,7 @@ var map: Vector2i = Vector2i(-1, -1)
 var cell: Vector2i = Vector2i.ZERO
 var facing: int = 0
 var return_point: Dictionary = {}
+var places: Dictionary = {}
 var battle_id: String = ""
 var connected: bool = false
 var next_mon_serial: int = 1
@@ -301,6 +303,13 @@ func place(at_map: Vector2i, at_cell: Vector2i, toward: int) -> void:
 	facing = toward
 
 
+func keep_places(raw: Variant) -> void:
+	for key: String in PLACES:
+		var value: int = PokeCoopTransport.number((raw as Dictionary).get(key) if raw is Dictionary else null, -1)
+		if value >= 0 and value < Gen1Layout.WARP_TO_LAST_MAP:
+			places[key] = value
+
+
 func suspend_exploration() -> void:
 	return_point = {"map": map, "cell": cell, "facing": facing}
 
@@ -331,7 +340,7 @@ func private_view() -> Dictionary:
 	return {
 		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team),
 		"box": box.size(), "items": items.duplicate(), "money": money, "world": world_part(),
-		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box,
+		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box, "places": places.duplicate(),
 		"opening": {"stage": opening.get("stage", ""), "rival": opening.get("rival", "")} if not opening.is_empty() else {},
 	}
 
@@ -348,7 +357,7 @@ func to_dict() -> Dictionary:
 		"items": item_rows, "money": money,
 		"map": [map.x, map.y], "cell": [cell.x, cell.y], "facing": facing,
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
-		"current_box": current_box, "opening": opening.duplicate(true),
+		"current_box": current_box, "opening": opening.duplicate(true), "places": places.duplicate(),
 	}
 
 
@@ -395,6 +404,7 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	out.map = _cell_from(source.get("map", []), Vector2i(-1, -1))
 	out.cell = _cell_from(source.get("cell", []), Vector2i.ZERO)
 	out.facing = int(source.get("facing", 0))
+	out.keep_places(source.get("places", {}))
 	out.next_mon_serial = maxi(int(source.get("next_mon_serial", 1)), 1)
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:

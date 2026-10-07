@@ -230,6 +230,7 @@ static func import_save(
 		player.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
 		if snapshot.map_id.x >= 0:
 			player.place(snapshot.map_id, snapshot.player_cell, snapshot.player_facing)
+		player.keep_places({"gen1_last_map": snapshot.gen1_last_map, "gen1_last_blackout_map": snapshot.gen1_last_blackout_map})
 	for mon: Gen2SaveMon in save.party:
 		player.add_mon(mon)
 	for at: int in mini(save.boxes.size(), PokeCoopPlayer.BOXES):
