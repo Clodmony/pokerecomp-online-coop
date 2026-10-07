@@ -160,7 +160,8 @@ func _tend_scene(resting: bool) -> void:
 		client.send({"type": "scene", "map": _scene, "on": false})
 		_scene = NO_SCENE
 	var driver: String = _partner_on([map], "scene") if _scene == NO_SCENE and map != NO_SCENE else ""
-	driver = driver if not scene_driver.is_empty() or resting else ""
+	if not driver.is_empty() and scene_driver.is_empty() and (not resting or world.player_step_in_progress()):
+		driver = ""
 	if driver != scene_driver:
 		client.journal.add(PokeCoopLog.WORLD, "scene_wait", {"map": map, "driver": driver, "after": scene_driver}, client.player_id)
 		scene_driver = driver
