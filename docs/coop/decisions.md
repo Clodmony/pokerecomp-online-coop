@@ -945,3 +945,12 @@ with no reason (now the Co-op tab, with "You left the session." or why the host
 ended it); and the tab forgot the name and address (now `user://coop_tab.json`).
 Left as they are: the campaign list clips long labels (upstream's sheet
 layout), and the toast covers a row until it fades.
+
+## D70. A failed save leaves no YES/NO behind (2026-10-07)
+
+A window's SAVE that the host would refuse ends in the prompt's own "Save
+failed" step (D56), which co-op makes common: any battle a partner fights
+refuses it. That step kept the YES/NO drawn with YES picked under the failure
+line. Upstream's prompt marks a box with no question by a negative cursor, and
+its failure step asks nothing (any press ends it as a NO does), so it now sets
+the cursor to -1. One line in `save_prompt.gd`.

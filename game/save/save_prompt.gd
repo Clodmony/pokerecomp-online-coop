@@ -285,7 +285,7 @@ func _enter(next: Step) -> void:
 			lines.assign([
 				"Save failed:", String(result.get("reason", "unknown")),
 			])
-			cursor = 0
+			cursor = -1
 		_:
 			lines.clear()
 			cursor = -1
