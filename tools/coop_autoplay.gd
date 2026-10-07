@@ -239,7 +239,7 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 		return PokeButton.NONE
 	if _seconds_since(_leg_started) > LEG_SECONDS:
 		return _fail("%s took longer than %d s: %s" % [row[0], LEG_SECONDS, _played._where()])
-	var car: int = _car_button(screen)
+	var car: int = _elevator_button(screen)
 	return car if car >= 0 else _played._button_for(row[1])
 
 
@@ -390,7 +390,7 @@ func _erika_legs() -> Array:
 	var p: Variant = _played
 	var m: Dictionary = ERIKA_MAPS
 	var s: Dictionary = SURGE_MAPS
-	var key: Callable = _either(p._holds(LIFT_KEY), p._holds(SILPH_SCOPE))
+	var lift_key: Callable = _either(p._holds(LIFT_KEY), p._holds(SILPH_SCOPE))
 	var legs: Array = [
 		["surge_gym_out", p._warp_to(s.vermilion_city), p._on_map(s.vermilion_city)],
 		_grind.bind(ROCK_TUNNEL_LEVEL, 0),
@@ -435,8 +435,8 @@ func _erika_legs() -> Array:
 		["hideout_b1f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
 		["hideout_b2f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
 		["hideout_b3f_to_b4f", _glide_to(m.hideout_b4f), p._on_map(m.hideout_b4f)],
-		["lift_key_rocket", p._talk_to(HIDEOUT_ROCKET_3), _either(p._flag(EVENT_ROCKET_DROPPED_LIFT_KEY), key)],
-		["lift_key", p._talk(LIFT_KEY_BALL + Vector2i.DOWN, UP), key],
+		["lift_key_rocket", p._talk_to(HIDEOUT_ROCKET_3), _either(p._flag(EVENT_ROCKET_DROPPED_LIFT_KEY), lift_key)],
+		["lift_key", p._talk(LIFT_KEY_BALL + Vector2i.DOWN, UP), lift_key],
 		["hideout_b4f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
 		["hideout_b3f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
 		["hideout_b2f_elevator", _glide_to(m.hideout_elevator), p._on_map(m.hideout_elevator)],
@@ -459,7 +459,7 @@ func _car_bound_for(map: Vector2i) -> Callable:
 	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
 
 
-func _car_button(screen: Gen2WorldScreen) -> int:
+func _elevator_button(screen: Gen2WorldScreen) -> int:
 	var host: Gen2WorldServiceScreen = screen.get("_service_host")
 	if host == null or int(host.get("_mode")) != Gen2WorldServiceScreen.MODE.ELEVATOR or bool(host.call(&"_box_printing")):
 		return -1
