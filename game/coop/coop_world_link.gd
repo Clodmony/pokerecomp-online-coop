@@ -27,7 +27,7 @@ var _box_uids: Array = []
 var _box_objects: Array = []
 var _box_rows: Array = []
 var _frames: int = 0
-## A SAVE or any transaction puts in a fresh snapshot, a battle handed over a copy; only a gated SAVE sends a scene.
+## A SAVE or a transaction writes a fresh snapshot, a battle a copy; a SAVE checkpoints, a gated one with its scene.
 var _saved_world: Object = null
 var _saved_frame: int = 0
 var save_seq: int = -1
@@ -35,6 +35,7 @@ var hold_holdings: bool = false
 ## Why the window is away from a rest point (D72), empty at one: a scene leaves whole when it ends, or with a SAVE.
 var busy: StringName = &""
 var _save_allowed: bool = false
+var _save_written: bool = false
 var _rest_streak: int = 0
 var _held_frames: int = 0
 var _held_by: StringName = &""
@@ -85,11 +86,14 @@ func advance() -> void:
 	if resting and _is_free() and (scene_ended or _frames % PARTY_CHECK_FRAMES == 0):
 		push_party()
 	_pull_party()
-	if _world_saved():
+	var written: bool = _save_written
+	_save_written = false
+	if _world_saved() or written:
 		if asked:
 			_push_world()
 		push_party()
-		save_seq = client.request_save()
+		if written:
+			save_seq = client.request_save()
 
 
 ## Why [param screen]'s world is not where the cartridge could save: a script, map load, forced walk, battle or overlay.
@@ -253,6 +257,10 @@ func save_refusal() -> Dictionary:
 		client.journal.add(PokeCoopLog.WORLD, "save_gate", {"reason": blocked}, client.player_id)
 	_save_allowed = blocked.is_empty()
 	return {} if blocked.is_empty() else {"ok": false, "reason": blocked.replace("_", " ")}
+
+
+func note_save_written() -> void:
+	_save_written = true
 
 
 func _world_saved() -> bool:
