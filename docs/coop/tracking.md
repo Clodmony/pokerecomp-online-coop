@@ -14,7 +14,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | `coop/slice-1` | `main` | pushed | draft PR #58 |
 | `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
 | `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
-| `coop/owner-rules` | `coop/launcher` | the owner's rules (D61) built (D62) | draft PR (stacked on #80) |
+| `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
 
 ## Issues
 
@@ -66,6 +66,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 56 | Investigate iOS App Store feasibility | open | | keep open |
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
+| 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | open: found while building #81 | | keep open |
 
 ## Found while GitHub was paused
 

@@ -269,7 +269,7 @@ has **played** it by hand yet.
   that also moves new story, or one that gives coins, is not caught.
 - The host drops every `gen1_bytes` change a window sends (its entries are
   named, not numbered), so the Vermilion Gym's trash-can locks, the slot
-  machines' lucky index and the SURF score are not kept between sessions.
+  machines' lucky index and the SURF score are not kept between sessions (#82).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
   `palette` key for Generation 1 trainers (#59); see also L6 and L7.
 
