@@ -75,6 +75,12 @@ Red (or Blue) cartridge, the same one.
 | W38 | The partner walks onto the map during the scene | Held from its first stop, never mid-step, under the same line | `test_a_window_arriving_during_a_rival_scene_waits_from_its_first_rest_point` | rival_scene | |
 | W39 | The player in the rival scene closes the window, loses the link, or whites out | The partner is let go at once; after a close or lost link the rival still waits and that player meets him again from the start | `test_a_window_dropped_in_its_rival_scene_lets_the_partner_go_and_meets_the_rival_again`, `test_a_scene_is_claimed_only_on_a_rival_map_and_given_back_when_its_driver_leaves_the_map` | rival_scene_killed | |
 | W40 | Both step onto the rival's trigger at the same moment | Both see the scene; one battle both fight; the rival is beaten once for the campaign | `test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_one_battle` | | |
+| W41 | Both players buy a drink and walk into a Saffron gate | Each guard takes the walker's own drink; each player needs one | | playthrough_sabrina | |
+| W42 | One player picks up Silph Co.'s CARD KEY | Both hold it; the partner opens doors and skips the 5F detour | the D52 tests | playthrough_sabrina | |
+| W43 | Both players talk to Silph Co. 7F's LAPRAS worker | Each gets their own LAPRAS, with their own uid on the host | | playthrough_sabrina | |
+| W44 | One player gets the MASTER BALL from Silph Co.'s president | Each holds exactly one, in the window and on the host | the D52 tests | playthrough_sabrina | |
+| W45 | One player steps onto GIOVANNI's cell on Silph Co. 11F | The partner joins with SELECT > JOIN; both are participants | | playthrough_sabrina | |
+| W46 | A partner on the same Silph Co. floor when a card-key door opens | The door stays drawn shut in the partner's window until the partner opens it with the shared CARD KEY (left as it is) | | playthrough_sabrina | |
 
 ## Battles
 
