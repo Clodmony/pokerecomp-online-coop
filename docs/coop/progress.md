@@ -177,6 +177,20 @@ The rules the owner settled in D61, built as D62.
 | Screens (scripted), Red, 60 fps | a fresh campaign: RED fights a wild PIDGEY from the session menu, BLUE joins ("BLUE joined the battle!") and sees LEAVE BATTLE; BLUE leaves and is back in Pallet Town with RED marked "!" where the battle is; BLUE's SELECT menu offers "Rejoin the battle against wild PIDGEY" and rejoins; RED's window is closed, and 30 s later BLUE is asked "RED is still away. Take over their POKéMON, or keep waiting?"; TAKE OVER gives "RED is away: you choose for their POKéMON." and "What will CHARMANDER do?". The local campaign file was set aside for the run and put back unchanged |
 | Not run on screens | EXP.ALL, the full prize, gift Pokémon and the race, and a world fight waiting after leaving: tests only |
 
+## Playable round (branch `coop/playthrough`, 2026-10-07)
+
+The owner parked the hand-played session and asked for everything as close to
+playable as possible, a hand-test list kept per feature (`test-cases.md`), and
+a two-window check of each feature (D65).
+
+| Check | Result |
+|---|---|
+| Local x86_64, whole suite on the merged branch | 4983/4983, exit 0 |
+| Two windows, `leave_rejoin_takeover` | as on `coop/owner-rules`, now run by `tools/coop_screens.sh` in a private user folder; the owner's campaign file unchanged (checked by hash) |
+| Two windows, `playthrough_brock` (autoplay, 4x speed) | three clean runs, about five minutes each: both players play Oak's speech and the lab, the rival fight, OAK'S PARCEL (fetched by one, delivered by the other, taken from both), Route 1, Viridian Forest and its BUG CATCHER, the Pewter Gym; the second window walked into BROCK mid-fight and joined (one battle, participants P2 and P1, each paid ₽1386), the BOULDERBADGE and TM34 reached both players; 0 errors in every process |
+| Two windows, `playthrough_misty` | first run: both through Mt. Moon (SUPER NERD, the fossil), Cerulean and MISTY's CASCADEBADGE, 45 battles, 0 errors; it showed the fossil reaching only the player who took it (fixed, D67). Two runs then whited out from poison on the walk (cartridge behaviour; the autopilot now heals and cures when hurt). Fourth run, with D67: both players hold the DOME FOSSIL, both badges, TM11 and TM34, 47 battles, 0 errors |
+| Tests: D63, D64, D66, D67 | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own`; `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`; the journal and format 2 tests in `test_coop_state` and `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`; `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` and `test_a_window_in_a_script_takes_the_partners_story_once_the_script_ends` |
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -233,6 +247,11 @@ has **played** it by hand yet.
   hosting app is paused (D28); a stand-in for a controller who stays away
   (D33).
 - Protocol hardening backed by a seeded fuzz test (D35).
+- Gen 1 script bytes owned byte by byte (D63), the trade movie as sent (D64),
+  a journal between checkpoints and format 2 (D66), and a script's changes sent
+  as one patch (D67).
+- A two-window scenario runner and a window that plays itself to BROCK's or
+  MISTY's badge (D65).
 - The owner's rules (D61, D62): LEAVE BATTLE and REJOIN, a dropped controller's
   partner asked before standing in, a battle nobody is in kept two minutes,
   the full prize for every participant, EXP.ALL per team, gift Pokémon per
@@ -260,18 +279,21 @@ has **played** it by hand yet.
   tried on a device (#20, #45).
 - The campaign is saved after battles, every thirty seconds of changes, when
   the host leaves and when a hosting app is paused, the checkpoint before is
-  kept as `.bak`, and a failed write leaves the old file alone (D40); there is
-  no journal between checkpoints or migration between formats yet (#39).
+  kept as `.bak`, and a failed write leaves the old file alone (D40); between
+  checkpoints each story change is journaled with the players' state and read
+  back after a crash, and format 1 files are upgraded once on read (D66); a
+  real host crash, a power loss and a phone are untried.
 - Private Windows and Linux builds are exported, but the Windows build has only
   run under Wine; there is no Android or iOS build (#44, #45, #46).
 - Shared NPCs, scripts and cutscenes are not locked while one player uses them
   (#24). A gift two windows hand out at once is kept once (D62), but a race
   that also moves new story, or one that gives coins, is not caught.
-- The host drops every `gen1_bytes` change a window sends (its entries are
-  named, not numbered), so the Vermilion Gym's trash-can locks, the slot
-  machines' lucky index and the SURF score are not kept between sessions (#82).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
-  `palette` key for Generation 1 trainers (#59); see also L6 and L7.
+  `palette` key for Generation 1 trainers (#59); see also L6.
+- The autoplayed runs heal and cure their party between steps and grind with
+  the save editor, as upstream's own check does, so they prove the co-op flow,
+  not the difficulty; they stop at MISTY, and a whiteout ends a run rather than
+  being retried.
 
 ## Blocked
 

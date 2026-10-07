@@ -26,6 +26,7 @@ Red (or Blue) cartridge, the same one.
 | S10 | Send a phone app to the background and back | A host saves first; a joiner redials at once | `test_a_hosting_device_sent_to_the_background_keeps_the_campaign` | | |
 | S11 | LEAVE SESSION on the joiner, then on the host | The joiner returns to the launcher; the host ending tells everyone why | `test_a_host_that_leaves_saves_the_campaign_and_tells_the_others` | | |
 | S12 | Close the hosting window with the window's close button | The joiner hears "ended" at once instead of redialling | `test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits` | | |
+| S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
 
 ## Exploration and story
 
@@ -43,6 +44,7 @@ Red (or Blue) cartridge, the same one.
 | W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
 | W12 | Both enter Vermilion Gym; one finds the first switch | Both windows search the same trash cans; each player's SURF score and slot machine stay their own | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own` | | |
+| W13 | One player takes the DOME (or HELIX) FOSSIL in Mt. Moon | Both players hold one; each revives their own | `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` | playthrough_misty | |
 
 ## Battles
 
