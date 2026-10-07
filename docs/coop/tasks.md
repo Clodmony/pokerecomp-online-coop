@@ -4,18 +4,14 @@ The resume point for the next session. Read [playbook.md](playbook.md) for the
 why; this is the what, in order. Tick a box in the same commit as the work, and
 keep the snapshot below current.
 
-## Snapshot (2026-10-07, second session, halted at the usage limit)
+## Snapshot (2026-10-07, second session, resumed)
 
 - **Branches and pull requests** (all drafts, stacked, merge in this order):
   #58 `coop/slice-1`, #79 `coop/m1-state-sync`, #80 `coop/launcher`, #81
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Halted mid-round** (all pushed, none merged unless said):
-  - `coop/real-saves` (`f9a42ccc`): a checkpoint only on a real SAVE, not on
-    every heal or purchase; co-op session, save refusal and state suites
-    118/118, whole suite not run. Review, run the whole suite, merge, write
-    its D-entry.
+- **Agents resumed after the halt** (pushed, not merged):
   - `coop/autoplay-erika` (3 commits, #88 Celadon and ERIKA), `coop/autoplay-tower`
     (4, Pokémon Tower), `coop/autoplay-koga` (3, SNORLAX to KOGA): stretch
     agents stopped mid-work, each with uncommitted changes left in its git
@@ -26,7 +22,7 @@ keep the snapshot below current.
   - Not rerun after the rest-points merge: `playthrough_surge` (the run was
     stopped early); `playthrough_misty`, `cable_club_trade` and `rest_points`
     passed on the agent's branch.
-- **Next free decision number:** D80 (D72 to D79 are recorded).
+- **Next free decision number:** D81 (D72 to D80 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.

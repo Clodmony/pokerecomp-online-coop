@@ -60,7 +60,7 @@ Red (or Blue) cartridge, the same one.
 | W23 | Both players in Vermilion City; one shows the S.S. TICKET | Each passes the sailor once and nobody is sent back | `test_both_players_in_vermilion_city_each_pass_the_ticket_check_once` | playthrough_surge | |
 | W24 | A partner moves the story of the map you stand on | It applies when you next enter that map, never under your feet | `test_a_partners_step_for_the_map_a_window_stands_on_lands_at_its_next_map_load` | | |
 | W25 | The partner takes Mt. Moon's fossil while you are elsewhere on that floor | The fossils vanish from your map at once and the way out is open | `test_an_object_a_partner_hides_leaves_the_map_a_window_stands_on_at_once` | playthrough_misty | |
-| W26 | Heal, buy or receive a gift in the middle of a scene; SAVE from START | A checkpoint is asked for; the gift sends nothing of the scene, the SAVE sends the scene so far | `test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot_does_not` | | |
+| W26 | Heal, buy or receive a gift in the middle of a scene; SAVE from START | The heal, purchase or gift asks no checkpoint and sends nothing of the scene; the SAVE checkpoints with the scene so far, and only a SAVE shows "Campaign saved." | `test_the_worlds_save_in_a_scene_sends_the_scene_so_far_and_a_gifts_snapshot_does_not` | | |
 
 ## Battles
 
