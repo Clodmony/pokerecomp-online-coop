@@ -431,6 +431,9 @@ static func commit_link_trade(
 	candidate.party.remove_at(offered_slot)
 	candidate.party.append(received)
 	var arrived: int = received.species
+	var animation: Dictionary = trade_animation_context(
+		world.data, given, received, save.player_name, String(peer.get("name", "")), link_mode
+	)
 	var evolution: Dictionary = {}
 	var plan: Dictionary = {}
 	if not received.is_egg:
@@ -462,11 +465,7 @@ static func commit_link_trade(
 		"partner": String(peer.get("name", "")),
 		"evolution": evolution.duplicate(true),
 		"evolution_plan": plan,
-		"animation": trade_animation_context(
-			world.data, given, received, save.player_name,
-			String(peer.get("name", "")),
-			link_mode
-		),
+		"animation": animation,
 	}
 
 
