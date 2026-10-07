@@ -1,8 +1,7 @@
 class_name PokeCoopSession
 extends RefCounted
 
-## One co-op run on this device, driven each frame by [Gen2GameRuntime]: the client, the host when it hosts, and the
-## world screen with the actor and takeover (which follow the live session), the sync link and the panel.
+## One co-op run on this device, driven each frame by [Gen2GameRuntime]: client, host when hosting, world and panel.
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
@@ -27,6 +26,8 @@ const CAMPAIGNS_DIR: String = "user://coop_campaigns"
 static var identity_path: String = "user://coop_identity.json"
 ## Why the last [method hosting] gave nothing back, for the launcher to say.
 static var last_failure: String = ""
+## Why this device last left a session ("left" when its player chose to), for the Co-op tab to say once.
+static var ended_note: String = ""
 
 static var _actor: PokeCoopRemoteActor = null
 static var _takeover: PokeCoopBattleTakeover = null
@@ -61,6 +62,7 @@ var _notice: Label = null
 var _notice_until: int = 0
 var _noticed_save: int = -1
 var _partners_seen: Dictionary = {}
+var _partners_looked: bool = false
 var _saves_seen: int = -1
 var _paused: bool = false
 var _dialled_at: int = 0
@@ -108,8 +110,7 @@ static func move_legacy(game: GameData) -> void:
 			DirAccess.rename_absolute(ProjectSettings.globalize_path(old + suffix), ProjectSettings.globalize_path(target + suffix))
 
 
-## This device hosts on [param port] as [param player_name], loading or starting the campaign; [param brought]
-## is a new player's save in place of a starter, [param session_log] an unopened log the session writes.
+## Hosts on [param port], loading or starting the campaign; [param brought] is a save in place of a starter.
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null,
 	campaign_id: String = "", title: String = "", session_log: PokeCoopLog = null
@@ -349,6 +350,7 @@ func _follow_session_end() -> void:
 ## Back to the launcher; a hosting device first tells every client the run ended.
 func leave() -> void:
 	journal.add(PokeCoopLog.WORLD, "leave", {}, client.player_id)
+	ended_note = client.ended_reason if not client.ended_reason.is_empty() else "left"
 	_leaving_at = 0
 	_closed = true
 	if host != null and not host.ended:
@@ -413,11 +415,12 @@ func _tell_refused_save() -> void:
 ## A partner arriving, leaving, or starting a battle this player is free to join.
 func _tell_partners() -> void:
 	var now: Dictionary = partner_states(client)
-	if not _partners_seen.is_empty():
+	if _partners_looked:
 		var line: String = partner_news(_partners_seen, now, client, data)
 		if not line.is_empty():
 			say(line)
 	_partners_seen = now
+	_partners_looked = true
 
 
 static func partner_states(session: PokeCoopClient) -> Dictionary:
