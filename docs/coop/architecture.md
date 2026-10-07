@@ -171,6 +171,8 @@ Kept small so upstream merges stay cheap (#14):
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64) |
 | `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text, gym marker and Gen 1 ghost kind (D68); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2) |
 | `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11) |
+| `game/world/gen1_map_scripts.gd` | the link rooms' special warp and return close the wait box first (D71) |
+| `tests/unit/test_world_api.gd` | `test_gen1_a_link_room_entered_or_reloaded_closes_the_wait_box` (D71) |
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/oak_speech_screen.gd` | `preset_names`: a name settled before the speech is said rather than asked |
 | `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save |

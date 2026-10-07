@@ -11377,3 +11377,12 @@ func test_gen1_an_escort_hides_its_original_object_after_a_map_change() -> void:
 	assert_true(world.state.is_object_toggled(7))
 	assert_false(world.state.is_object_toggled(9))
 	assert_false(world.gen1_movement_script_running())
+
+
+## `SpecialEnterMap` and `ReturnToCableClubRoom` load the room again, so no wait box from before stays up.
+func test_gen1_a_link_room_entered_or_reloaded_closes_the_wait_box() -> void:
+	var world: Gen2WorldAPI = _gen1_world(0, Vector2i(1, 2))
+	for step: StringName in [&"special_warp", &"cable_club_return"]:
+		var events: Array = []
+		Gen1MapScripts._gen1_linked(world, {"type": step, "name": "trade_center"}, events, [])
+		assert_eq(StringName((events[0] as Dictionary).get("type", &"")), &"text_closed", String(step))
