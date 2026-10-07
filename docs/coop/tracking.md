@@ -1,20 +1,11 @@
 # Local issue tracking
 
-GitHub is paused (see `AGENTS.md`), so issue status is kept here until it can be
-synced. Each row names the GitHub issue, what is true locally, and what to do
-on GitHub once use resumes. New work found while GitHub is paused gets an `L`
-number and is filed on GitHub later.
+Issue status for the co-op work. GitHub was paused from 2026-10-06 to
+2026-10-07; work found then got an `L` number, and each was filed as an issue
+when GitHub use resumed (the table of found items gives its number).
 
 Statuses: **done** (acceptance criteria met and verified locally),
 **partial**, **in progress**, **open**.
-
-## When GitHub resumes
-
-1. Restore the push URL: `git remote set-url --push origin git@github.com:Clodmony/pokerecomp-coop.git`.
-2. Push `coop/slice-1` (one local commit ahead of PR #58) and each local branch
-   below; open a draft PR per branch.
-3. File every `L` item as an issue and replace its `L` number in the docs.
-4. Close or comment on the issues as the "On GitHub" column says.
 
 ## Branches
 
@@ -62,7 +53,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 44 | Private Windows and Linux builds | partial: the stock 4.8-dev4 export templates are installed locally; `Windows Desktop` and `Linux` export from the existing presets (release, one file each, no cartridge data); a Windows engine under Wine joined a Linux host; not yet run on a real Windows PC | `coop/launcher` | comment, keep open until the first session on Windows |
 | 45 | Android client: lifecycle and reconnect | open: pause and resume handling exists (D46), no Android build or device run | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
-| 47 | Two-process ENet integration check in CI | partial: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes; `ci.yml` runs it after the demo, not yet run while GitHub is paused | `coop/launcher` (`d5e65c2f`) | close once the new CI step passes on a pull request |
+| 47 | Two-process ENet integration check in CI | partial: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes; `ci.yml` runs it after the demo, first run on a pull request after GitHub resumed | `coop/launcher` (`d5e65c2f`) | close once the new CI step passes on a pull request |
 | 48 | Scripted co-op playthrough to the first gym (local cartridge only) | partial: scripted two-window runs cover the opening, Route 1, a joined wild battle, BROCK from the session menu, the Cable Club trade and OAK's PARCEL; no single run from the start to BROCK's gym | local scratch drivers | keep open |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
 | 50 | German Red/Blue support | open (later milestone) | | keep open |
@@ -75,7 +66,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
 
-## Found while GitHub is paused
+## Found while GitHub was paused
 
 | L | Title | Milestone | Notes |
 |---|---|---|---|

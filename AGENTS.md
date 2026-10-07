@@ -22,10 +22,10 @@ Read before working:
 
 ## Hard rules
 
-- **GitHub is paused.** Until the owner says otherwise: no `git push`, no `gh`,
-  no issues, pull requests, comments, CI runs or settings changes. Commit on
-  local branches and verify with a local Godot 4.8-dev4. The `origin` push URL
-  is disabled locally to enforce this.
+- **GitHub, private repository only.** GitHub use resumed on 2026-10-07 after a
+  pause: push feature branches to `origin`, open draft pull requests, and keep
+  the issues current. Verify locally with Godot 4.8-dev4 before pushing; CI
+  runs the same steps on pull requests.
 - The repository stays **private**. Never publish releases, Pages sites,
   packages, store builds or artifacts. The release and export-template
   workflows are guarded to run only in `Decryptu/pokerecomp` and are disabled
@@ -106,8 +106,8 @@ godot --headless --path . --quit-after 30
 ```
 
 The fork's CI (`ci.yml`) runs the import, the whole suite, the boot smoke test
-and the co-op ENet demo on every pull request. While GitHub is paused, run the
-same steps locally instead.
+and the co-op ENet demo on every pull request. Run the same steps locally
+before pushing.
 
 ## Where co-op code lives
 
@@ -140,7 +140,7 @@ same steps locally instead.
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
-| `docs/coop/tracking.md` | issue status kept locally while GitHub is paused |
+| `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 
 ## Conventions specific to the fork
 
