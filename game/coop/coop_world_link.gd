@@ -8,7 +8,12 @@ const PARTY_CHECK_FRAMES: int = 30
 const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
-const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
+## A partner's flag redraws what a map load draws from it: Vermilion Gym's door, the exits past LORELEI, BRUNO, AGATHA.
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {
+	Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT],
+	0x8E1: [Vector2i(0, 245), Gen1Layout.MAP_LOADED_1_BIT], 0x8E9: [Vector2i(0, 246), Gen1Layout.MAP_LOADED_1_BIT],
+	0x8F1: [Vector2i(0, 247), Gen1Layout.MAP_LOADED_1_BIT],
+}
 const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
