@@ -9,12 +9,14 @@ const PORT: int = 24791
 const IDENTITY: String = "user://coop_device_test_identity.json"
 const OTHER_DEVICE: String = "user://coop_device_test_other_identity.json"
 const LEGACY: String = "user://coop_testgame_campaign.json"
+const TAB: String = "user://coop_device_test_tab.json"
 const WAIT_MSEC: int = 3000
 
 var _directory: String = ""
 var _data: GameData = null
 var _identity_before: String = ""
 var _sessions: Array = []
+var _window_size: Vector2i = Vector2i.ZERO
 
 
 func before_each() -> void:
@@ -22,6 +24,7 @@ func before_each() -> void:
 	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
 	_identity_before = PokeCoopSession.identity_path
 	PokeCoopSession.identity_path = IDENTITY
+	PokeCoopPage.remembered_path = TAB
 	PokeCoopSession.move_legacy(_data)
 	_sessions = []
 
@@ -30,8 +33,13 @@ func after_each() -> void:
 	for session: PokeCoopSession in _sessions:
 		session.close()
 	PokeCoopSession.identity_path = _identity_before
+	PokeCoopPage.remembered_path = PokeCoopPage.REMEMBERED
+	PokeCoopSession.ended_note = ""
+	if _window_size != Vector2i.ZERO:
+		get_tree().root.size = _window_size
+		_window_size = Vector2i.ZERO
 	var folder: String = PokeCoopSession.campaign_path(_data).get_base_dir()
-	var paths: Array = [IDENTITY, OTHER_DEVICE, LEGACY]
+	var paths: Array = [IDENTITY, OTHER_DEVICE, LEGACY, TAB]
 	for name: String in DirAccess.get_files_at(folder):
 		paths.append("%s/%s" % [folder, name])
 	for path: String in paths:
@@ -356,3 +364,77 @@ func test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits() -> vo
 	assert_eq(joining.ended_reason(), "host_shutdown", "and the joiner heard why")
 	joining.close()
 	assert_true((Engine.get_main_loop() as SceneTree).is_auto_accept_quit(), "a closed session lets the window close again")
+
+
+func _launcher_on_coop_tab(pick_tab: bool = true) -> Control:
+	Gen2InputRuntime.instance().apply_options(Gen2Options.new())
+	_window_size = get_tree().root.size
+	get_tree().root.size = Vector2i(1152, 648)
+	var launcher: Control = add_child_autofree(load(PokeCoopSession.LAUNCHER_SCENE).instantiate())
+	await get_tree().process_frame
+	Gen2InputRuntime.instance()._input(InputEventJoypadButton.new())
+	if pick_tab:
+		launcher.select_page(&"coop")
+	await wait_frames(4)
+	return launcher
+
+
+func test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with() -> void:
+	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	var no_cartridge: Array[StringName] = []
+	page.set("_games", no_cartridge)
+	(page.get("_name") as LineEdit).text = "blue "
+
+	page.join_campaign("10.0.0.1")
+
+	var again: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	assert_eq([(again.get("_name") as LineEdit).text, (again.get("_address") as LineEdit).text], ["BLUE", "10.0.0.1"],
+		"not RED and an empty address on every visit")
+
+
+func test_a_host_alone_in_a_new_campaign_hears_the_first_partner_arrive() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	var notice: Label = autofree(Label.new())
+	hosting.set("_notice", notice)
+	hosting._tell_partners()
+
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	assert_true(_until(func() -> bool:
+		return PokeCoopSession.partner_states(hosting.client).values().any(func(view: Dictionary) -> bool:
+			return bool(view["connected"])), WAIT_MSEC))
+	hosting._tell_partners()
+
+	assert_eq(notice.text, "BLUE joined the session.", "nobody was there before, which is not nobody seen yet")
+
+
+func test_a_device_the_host_sent_away_is_back_on_the_co_op_tab_and_told_why() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	hosting.leave()
+	assert_true(_until(func() -> bool: return joining.ended_reason() == "host_shutdown", WAIT_MSEC))
+
+	joining.leave()
+	var launcher: Control = await _launcher_on_coop_tab(false)
+
+	var shell: Gen2LauncherShell = launcher.get("_shell")
+	assert_eq(shell.current_page(), &"coop", "not the cartridge shelf")
+	assert_eq((shell.toast().get("_heading") as Label).text, "The host closed the session.", "said where it is seen")
+	Gen2OptionsStore.use_test_path()
+
+
+func test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on() -> void:
+	var launcher: Control = await _launcher_on_coop_tab()
+
+	var focused: Control = launcher.get_viewport().gui_get_focus_owner()
+	assert_true(focused is Gen2LauncherButton and (focused as Gen2LauncherButton).text == "Host", "a pad lands on Host")
+	var scroll: Node = focused
+	while scroll != null and not scroll is ScrollContainer:
+		scroll = scroll.get_parent()
+	assert_true((scroll as ScrollContainer).get_global_rect().encloses(focused.get_global_rect()),
+		"Host is scrolled into view once the page has its height")
+	Gen2OptionsStore.use_test_path()

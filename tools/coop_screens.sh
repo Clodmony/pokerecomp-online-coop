@@ -13,6 +13,9 @@
 # and may set GAME (red), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
 # early once both windows print "autoplay: ... finished" or "FAILED").
+# HOST_TOOL=none starts no tool host, for windows that host from the launcher
+# (coop_launcher_play, whose seconds count from launch); a scenario may define
+# check(), run last, that fails the scenario by returning non-zero.
 # The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
 # process logged a script error.
@@ -27,7 +30,7 @@ godot="${GODOT:?set GODOT to the Godot 4.8-dev4 binary}"
 real_user="${REAL_USER_DIR:-$HOME/.local/share/godot/app_userdata/pokerecomp}"
 case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&2; exit 2 ;; esac
 
-GAME=red DURATION=60 P2_DELAY=4 HOST_ARGS="" P1_ARGS="" P2_ARGS="" P1_TOOL=coop_play P2_TOOL=coop_play
+GAME=red DURATION=60 P2_DELAY=4 HOST_ARGS="" P1_ARGS="" P2_ARGS="" P1_TOOL=coop_play P2_TOOL=coop_play HOST_TOOL=coop_session
 declare -A keys=([p1]="" [p2]="") shots=([p1]="" [p2]="") closes=()
 start_frames=90 slot_frames=18 fps=60
 
@@ -60,9 +63,13 @@ finish() { kill "${pids[@]}" 2>/dev/null || true; }
 trap finish EXIT
 
 cd "$root"
-XDG_DATA_HOME="$xdg" "$godot" --headless --path . -s res://tools/coop_session.gd -- host "$port" "$GAME" $HOST_ARGS > "$out/host.log" 2>&1 &
-pids+=($!)
-for _ in $(seq 60); do grep -q "host on port" "$out/host.log" && break; sleep 0.5; done
+if [[ "$HOST_TOOL" == none ]]; then
+	echo "coop_screens: no tool host" > "$out/host.log"
+else
+	XDG_DATA_HOME="$xdg" "$godot" --headless --path . -s "res://tools/$HOST_TOOL.gd" -- host "$port" "$GAME" $HOST_ARGS > "$out/host.log" 2>&1 &
+	pids+=($!)
+	for _ in $(seq 60); do grep -q "host on port" "$out/host.log" && break; sleep 0.5; done
+fi
 
 launch() {
 	local who="$1" extra="$2" tool="$3"
@@ -96,6 +103,10 @@ if grep -h "SCRIPT ERROR" "$out"/host.log "$out"/p1.log "$out"/p2.log; then
 fi
 if grep -q "autoplay: .*FAILED" "$out"/p1.log "$out"/p2.log; then
 	echo "coop_screens: $name: an autoplayed window failed" >&2
+	exit 1
+fi
+if declare -F check > /dev/null && ! check; then
+	echo "coop_screens: $name: the scenario's check failed" >&2
 	exit 1
 fi
 echo "coop_screens: $name done, captures in $out"

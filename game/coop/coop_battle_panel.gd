@@ -1,8 +1,7 @@
 class_name PokeCoopBattlePanel
 extends PanelContainer
 
-## The co-op overlay: the session menu on SELECT and, in a shared battle, the allies by
-## owner, who decides and each partner's suggestion. It sends intentions, decides nothing.
+## The session menu on SELECT and, in a shared battle, the allies, who decides and the suggestions; it decides nothing.
 
 signal leave_requested
 
@@ -265,10 +264,11 @@ func _menu_text() -> String:
 	var others: PackedStringArray = []
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:
-		if player_id != client.player_id and bool((everyone[player_id] as Dictionary).get("connected", true)):
-			var busy_with: String = String((everyone[player_id] as Dictionary).get("battle", ""))
-			var place: String = _place((everyone[player_id] as Dictionary).get("map"))
-			others.append(_name_bb(player_id) + (" (in a battle)" if not busy_with.is_empty() \
+		var view: Dictionary = everyone[player_id]
+		if player_id != client.player_id and bool(view.get("connected", true)):
+			var place: String = _place(view.get("map"))
+			others.append(_name_bb(player_id) + (" (in a battle)" if not String(view.get("battle", "")).is_empty() \
+				else " (in the opening)" if view.get("opening") == true \
 				else (" (%s)" % _escaped(place) if not place.is_empty() else "")))
 	lines.append("[color=%s]With %s[/color]" % [MUTED, ", ".join(others) if not others.is_empty() else "nobody yet"])
 	lines.append("[color=%s]%s It also saves itself after battles and every thirty seconds of changes.[/color]" % [

@@ -1485,6 +1485,19 @@ func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab
 	assert_false(_host.campaign.has_flag(0x100))
 
 
+func test_the_session_menu_says_a_partner_is_in_the_opening_rather_than_where_they_stand() -> void:
+	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
+	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
+
+	var menu: String = panel._menu_text()
+	assert_string_contains(menu, "GREEN[/color] (in the opening)", "nobody sees GREEN where the host places them")
+	assert_eq(menu.count("(in the opening)"), 1, "BLUE is out exploring")
+	_host.player(green_client.player_id).opening = {}
+	_host.broadcast()
+	_pump()
+	assert_false(panel._menu_text().contains("(in the opening)"))
+
+
 func test_the_rival_fight_of_an_opening_is_the_players_own() -> void:
 	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
 	_host.player(green_client.player_id).add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH], 300))

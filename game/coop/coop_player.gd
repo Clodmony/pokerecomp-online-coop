@@ -31,8 +31,7 @@ var connected: bool = false
 var next_mon_serial: int = 1
 ## While the player plays the opening: its stage, the story it runs on and the rival's name.
 var opening: Dictionary = {}
-## The player's keys of the world state other than the bag and the wallet,
-## which [member items] and [member money] hold. See [PokeCoopOwnership].
+## The player's world state keys other than the bag and wallet ([member items], [member money]). See [PokeCoopOwnership].
 var world: Dictionary = {}
 
 
@@ -207,8 +206,7 @@ static func _fits(value: Variant, shape: Variant) -> bool:
 	return typeof(value) == typeof(shape) or (shape is int and value is float) or (shape is float and value is int)
 
 
-## Who a Pokémon is, whatever happens to it: levels, moves and an evolution
-## leave these alone. How a window's party row is matched to a uid.
+## Who a Pokémon is, whatever its levels, moves and evolutions: how a window's party row is matched to a uid.
 static func fingerprint(mon: Gen2SaveMon) -> Array:
 	return [
 		mon.ot_id, mon.dvs, mon.original_trainer, mon.caught_level, mon.caught_location,
@@ -315,7 +313,7 @@ func resume_exploration() -> void:
 func public_view() -> Dictionary:
 	return {
 		"player_id": player_id, "name": name, "map": map, "cell": cell, "facing": facing,
-		"battle": battle_id, "connected": connected,
+		"battle": battle_id, "connected": connected, "opening": is_hidden(),
 	}
 
 
