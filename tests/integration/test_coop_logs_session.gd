@@ -261,7 +261,10 @@ func test_a_clients_last_lines_reach_the_host_while_it_closes() -> void:
 	var at_host: Array = _from(_lines(_host.journal), _red.journal).filter(func(line: Dictionary) -> bool:
 		return line["kind"] == "ended")
 	assert_eq(at_host.map(func(line: Dictionary) -> float: return line["n"]), [last["n"]])
-	assert_true(_host.ended)
+	assert_false(_host.ended, "the clients hold the link a moment for their last lines")
+	OS.delay_msec(PokeCoopClient.LAST_LOG_MSEC + 20)
+	_pump()
+	assert_true(_host.ended, "then leave, and the host closes")
 
 
 func test_a_device_that_does_not_share_sends_and_receives_no_lines() -> void:
