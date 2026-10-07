@@ -18,7 +18,7 @@ D65):
 | Mt. Moon, the fossil, MISTY | works; the DOME FOSSIL reaches both (D67) |
 | Cable Club trade with a trade evolution | works (`cable_club_trade`) |
 | Nugget Bridge, Bill, S.S. Anne, CUT, LT. SURGE | works: `playthrough_surge` from a new campaign, about 21 minutes (#87, #86 fixed) |
-| Celadon, Rocket Hideout | in progress (#88) |
+| Rock Tunnel, Celadon, ERIKA, Rocket Hideout | works: `playthrough_erika` from a new campaign, about 34 minutes (D83) |
 | Pokémon Tower, MAROWAK, Mr. Fuji | works from a story seed (`tower`, D82) |
 | SNORLAX, Safari Zone, KOGA | works from a story seed (`koga`, D81) |
 | Silph Co. to the Hall of Fame | not tried in co-op (#88) |

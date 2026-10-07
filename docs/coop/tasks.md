@@ -12,16 +12,15 @@ keep the snapshot below current.
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
 - **Agents resumed after the halt** (pushed, not merged):
-  - `coop/autoplay-erika` (#88 Celadon and ERIKA): agent resumed. `tower` (D82)
-    and `koga` (D81) are merged and chained after `surge`; when `erika` merges,
-    insert `_erika_legs` before `_tower_legs` in ROUTES and source
-    `playthrough_erika.sh` from `playthrough_tower.sh`.
-  - `coop/autoplay-sabrina` (#88 Saffron, Silph Co., SABRINA): agent started from
-    the KOGA run's campaign. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
+  - `erika` (D83), `tower` (D82) and `koga` (D81) are merged and chained after
+    `surge`; `playthrough_koga` runs them all from a new campaign. After every
+    merge of `tools/coop_autoplay.gd`, run one seeded window: GUT never loads it.
+  - `coop/autoplay-sabrina` (#88 Saffron, Silph Co., SABRINA) and
+    `coop/autoplay-blaine` (Cinnabar, BLAINE): agents started from seeds. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
     panel. Check each worktree, finish or restart the stretch from its story
     seed (`tools/coop_seed.gd`), merge one by one.
   - `coop/rival-scenes` (#24): agent stopped before any commit; start again.
-- **Next free decision number:** D83 (D72 to D82 are recorded).
+- **Next free decision number:** D84 (D72 to D83 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
