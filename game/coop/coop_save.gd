@@ -5,7 +5,7 @@ extends RefCounted
 ## section, versioned. Only written between battles, so it holds no session.
 
 const KIND: String = "pokerecomp-coop-campaign"
-const FORMAT_VERSION: int = 1
+const FORMAT_VERSION: int = 2
 const BACKUP_SUFFIX: String = ".bak"
 
 
@@ -33,6 +33,8 @@ static func from_dict(raw: Variant) -> Dictionary:
 	var campaign: PokeCoopCampaign = PokeCoopCampaign.from_dict(source.get("campaign", {}))
 	if campaign == null:
 		return {}
+	if version < 2:
+		PokeCoopPolicy.settle_intro(campaign)
 	var players: Array = []
 	var seen: Dictionary = {}
 	for row: Variant in source.get("players", []) as Array:

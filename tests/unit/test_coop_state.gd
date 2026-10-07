@@ -220,7 +220,7 @@ func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() 
 		[PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.NEW_PLAYER_MONEY, "GARY"])
 
 
-func test_a_campaign_begun_after_the_intro_has_the_intros_world_and_an_older_one_is_settled() -> void:
+func test_a_campaign_begun_after_the_intro_has_the_intros_world_and_a_first_format_one_is_settled_once() -> void:
 	var fresh := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
 	PokeCoopPolicy.start_campaign(fresh)
 	assert_true(fresh.has_flag(0x27), "Oak has appeared in Pallet Town")
@@ -230,12 +230,28 @@ func test_a_campaign_begun_after_the_intro_has_the_intros_world_and_an_older_one
 	var older := PokeCoopCampaign.create("c2", _data.id, _data.sha1)
 	older.commit("intro:starters_given", {"flags": [0x00, 0x20, 0x21, 0x22, 0x23], "badges": 3})
 	older.world["gen1_map_scripts"] = {0: 20}
-	PokeCoopHost.create(_data, older, PokeCoopTransport.new())
-	assert_true(older.has_flag(0x27), "a campaign from an earlier build is settled when hosted")
-	assert_eq([int(older.world["gen1_map_scripts"][0]), int(older.world["gen1_map_scripts"][1])], [20, 5],
+	var settled: PokeCoopCampaign = _read_first_format(older)
+	assert_true(settled.has_flag(0x27), "a campaign file from an earlier build is settled when read")
+	assert_eq([int(settled.world["gen1_map_scripts"][0]), int(settled.world["gen1_map_scripts"][1])], [20, 5],
 		"a script step the campaign already moved on is kept")
-	assert_eq(older.badges, 3)
+	assert_eq(settled.badges, 3)
+
+	(settled.world["gen1_map_scripts"] as Dictionary).erase(28)
+	assert_eq(PokeCoopSave.write(SAVE_PATH, settled, []), OK)
+	var hosted: PokeCoopCampaign = PokeCoopSave.read(SAVE_PATH)["campaign"]
+	PokeCoopHost.create(_data, hosted, PokeCoopTransport.new())
+	assert_false((hosted.world["gen1_map_scripts"] as Dictionary).has(28),
+		"settled once: a script step that went back to its start in play is not put back when hosted again")
 
 	var blank := PokeCoopCampaign.create("c3", _data.id, _data.sha1)
-	PokeCoopHost.create(_data, blank, PokeCoopTransport.new())
-	assert_false(blank.has_flag(0x27), "a campaign that has not begun is left alone")
+	assert_false(_read_first_format(blank).has_flag(0x27), "a campaign that has not begun is left alone")
+
+
+## [param campaign] as a build before format 2 wrote it, read back.
+func _read_first_format(campaign: PokeCoopCampaign) -> PokeCoopCampaign:
+	var raw: Dictionary = PokeCoopSave.to_dict(campaign, [])
+	raw["format_version"] = 1
+	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(raw, "\t"))
+	file.close()
+	return PokeCoopSave.read(SAVE_PATH)["campaign"]
