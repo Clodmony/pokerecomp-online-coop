@@ -20,7 +20,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
@@ -255,3 +255,45 @@ func _read_first_format(campaign: PokeCoopCampaign) -> PokeCoopCampaign:
 	file.store_string(JSON.stringify(raw, "\t"))
 	file.close()
 	return PokeCoopSave.read(SAVE_PATH)["campaign"]
+
+
+func test_story_journaled_after_the_last_checkpoint_survives_a_crash_until_the_next_checkpoint() -> void:
+	var journal: String = SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX
+	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	red.store_mon(_saved(Fixture.PIKACHU, 3))
+	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [red]), OK)
+	var unchanged_pc: Dictionary = {red.player_id: red.box_rev}
+
+	campaign.commit("victory:trainer:brock", {"flags": [STORY_FLAG], "badges": 1, "defeated": ["trainer:brock"]})
+	red.give_item(Fixture.POTION, 2)
+	assert_eq(PokeCoopSave.append(SAVE_PATH, campaign, [red], unchanged_pc), OK)
+	var torn: FileAccess = FileAccess.open(journal, FileAccess.READ_WRITE)
+	torn.seek_end()
+	torn.store_string("\n{\"kind\": \"pokerecomp-coop-campaign\", \"campa")
+	torn.close()
+
+	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	var back: PokeCoopCampaign = loaded["campaign"]
+	assert_true(back.has_flag(STORY_FLAG) and back.has_badge(0), "a commit no checkpoint holds is kept, a torn line after it ignored")
+	assert_eq(back.encounter_state("trainer:brock"), PokeCoopCampaign.ENCOUNTER_DONE)
+	var back_red: PokeCoopPlayer = loaded["players"][0]
+	assert_eq(back_red.item_count(Fixture.POTION), 2, "with the bag as it stood")
+	assert_eq(back_red.box.size(), 1, "and the PC the line left to the checkpoint")
+
+	campaign.commit("victory:trainer:misty", {"badges": 2, "defeated": ["trainer:misty"]})
+	red.store_mon(_saved(Fixture.BULBASAUR, 5))
+	assert_eq(PokeCoopSave.append(SAVE_PATH, campaign, [red], unchanged_pc), OK)
+	var later: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	assert_true((later["campaign"] as PokeCoopCampaign).has_badge(1), "a line written after a torn one reads")
+	assert_eq((later["players"][0] as PokeCoopPlayer).box.size(), 2, "with the PC it changed since the checkpoint")
+
+	var stale: String = FileAccess.get_file_as_string(journal)
+	red.give_item(Fixture.POTION, 1)
+	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [red]), OK)
+	assert_false(FileAccess.file_exists(journal), "the next checkpoint empties the journal")
+	var left: FileAccess = FileAccess.open(journal, FileAccess.WRITE)
+	left.store_string(stale)
+	left.close()
+	assert_eq((PokeCoopSave.read(SAVE_PATH)["players"][0] as PokeCoopPlayer).item_count(Fixture.POTION), 3,
+		"lines a crash left behind the checkpoint that holds them change nothing")

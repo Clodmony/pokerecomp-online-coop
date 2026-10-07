@@ -1,9 +1,8 @@
 class_name PokeCoopPlayer
 extends RefCounted
 
-## One player of a co-op run: their own team, box, bag, money and position. Every
-## Pokémon carries a uid that outlives its slot, which is what a battle, a reward
-## and a save name it by.
+## One player of a co-op run: their own team, box, bag, money and position. Every Pokémon carries a uid that
+## outlives its slot, which is what a battle, a reward and a save name it by.
 
 const MAX_TEAM: int = Gen2Party.MAX_SIZE
 const MAX_MONEY: int = 999999
