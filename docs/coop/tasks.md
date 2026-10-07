@@ -12,14 +12,15 @@ keep the snapshot below current.
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
 - **Agents resumed after the halt** (pushed, not merged):
-  - `coop/autoplay-erika` (3 commits, #88 Celadon and ERIKA), `coop/autoplay-tower`
-    (4, Pokémon Tower): stretch agents resumed after the halt. `koga` (SNORLAX
-    to KOGA) is merged (D81); its scenario sources `playthrough_surge.sh` until
-    `tower` is merged, then must source `playthrough_tower.sh`. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
+  - `erika` (D83), `tower` (D82) and `koga` (D81) are merged and chained after
+    `surge`; `playthrough_koga` runs them all from a new campaign. After every
+    merge of `tools/coop_autoplay.gd`, run one seeded window: GUT never loads it.
+  - `coop/autoplay-sabrina` (#88 Saffron, Silph Co., SABRINA) and
+    `coop/autoplay-blaine` (Cinnabar, BLAINE): agents started from seeds. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
     panel. Check each worktree, finish or restart the stretch from its story
     seed (`tools/coop_seed.gd`), merge one by one.
   - `coop/rival-scenes` (#24): agent stopped before any commit; start again.
-- **Next free decision number:** D82 (D72 to D81 are recorded).
+- **Next free decision number:** D84 (D72 to D83 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
