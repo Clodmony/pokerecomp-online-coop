@@ -147,7 +147,7 @@ func _partner_on(maps: Array, key: String = "map") -> String:
 	return ""
 
 
-## A rival scene here is claimed as it starts and given back once its result is out; a partner's holds this window from a rest point (#24).
+## A rival scene this world plays is claimed as it starts and given back once its result is out (#24).
 func _tend_scene(resting: bool) -> void:
 	var map: Vector2i = world.map_id() if world != null else NO_SCENE
 	var states: Array = PokeCoopPolicy.RIVAL_SCENES.get(map, [])
@@ -159,12 +159,22 @@ func _tend_scene(resting: bool) -> void:
 	elif _scene != NO_SCENE and resting and not playing:
 		client.send({"type": "scene", "map": _scene, "on": false})
 		_scene = NO_SCENE
+	_wait_on_scene(map, resting)
+
+
+## A partner's rival scene is waited out from rest point to rest point, then its result lands with its script step (#24).
+func _wait_on_scene(map: Vector2i, resting: bool) -> void:
 	var driver: String = _partner_on([map], "scene") if _scene == NO_SCENE and map != NO_SCENE else ""
-	if not driver.is_empty() and scene_driver.is_empty() and (not resting or world.player_step_in_progress()):
+	if not resting:
+		driver = scene_driver
+	elif scene_driver.is_empty() and world != null and world.player_step_in_progress():
 		driver = ""
-	if driver != scene_driver:
-		client.journal.add(PokeCoopLog.WORLD, "scene_wait", {"map": map, "driver": driver, "after": scene_driver}, client.player_id)
-		scene_driver = driver
+	if driver == scene_driver:
+		return
+	client.journal.add(PokeCoopLog.WORLD, "scene_wait", {"map": map, "driver": driver, "after": scene_driver}, client.player_id)
+	scene_driver = driver
+	if driver.is_empty():
+		_land_owed_step(true)
 
 
 static func _host_world(session: PokeCoopClient) -> Dictionary:
@@ -231,8 +241,8 @@ func _owe_step(changes: Dictionary) -> int:
 	return byte
 
 
-func _land_owed_step() -> void:
-	if _owed_step.is_empty() or world == null or world.map_id() == _owed_step["map"]:
+func _land_owed_step(waited: bool = false) -> void:
+	if _owed_step.is_empty() or world == null or (world.map_id() == _owed_step["map"] and not waited):
 		return
 	var byte: int = _owed_step["byte"]
 	_owed_step = {}

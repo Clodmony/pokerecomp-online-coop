@@ -2229,6 +2229,36 @@ func test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_on
 	assert_true(_host.campaign.has_flag(BEAT_RIVAL_1) and not _host.campaign.has_flag(RIVAL_WANTS_BATTLE))
 
 
+const SS_ANNE_2F := Vector2i(0, 0x60)
+## wSSAnne2FCurScript: no flag guards its rival, only SCRIPT_SSANNE2F_NOOP once he has gone.
+const SS_ANNE_2F_SCRIPT: int = 117
+const SS_ANNE_2F_NOOP: int = 4
+
+
+func test_a_partner_waiting_on_ss_anne_2f_takes_the_scenes_last_step_and_never_meets_that_rival() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	for link: PokeCoopWorldLink in [red, blue]:
+		_stand(link, SS_ANNE_2F, SS_ANNE_2F_SCRIPT)
+	_pump()
+	red.busy = &"script"
+	red.state.set_gen1_map_script(SS_ANNE_2F_SCRIPT, 1)
+	_pump()
+	assert_eq(blue.scene_driver, _red.player_id)
+
+	blue.busy = &"panel"
+	red.state.set_gen1_map_script(SS_ANNE_2F_SCRIPT, SS_ANNE_2F_NOOP)
+	red.busy = &""
+	_pump()
+	assert_true(_host.scenes.is_empty())
+	assert_eq(blue.scene_driver, _red.player_id, "the wait ends only at Blue's next rest point")
+	assert_eq(blue.state.gen1_map_script(SS_ANNE_2F_SCRIPT), 0)
+	blue.busy = &""
+	_pump()
+	assert_eq(blue.scene_driver, "")
+	assert_eq(blue.state.gen1_map_script(SS_ANNE_2F_SCRIPT), SS_ANNE_2F_NOOP, "the scene's last step lands where Blue stands")
+
+
 func test_a_scene_is_claimed_only_on_a_rival_map_and_given_back_when_its_driver_leaves_the_map() -> void:
 	_send(func() -> void: _red.send({"type": "scene", "map": ROUTE_1, "on": true}))
 	assert_eq(_red.last_rejection(), &"not_a_scene")

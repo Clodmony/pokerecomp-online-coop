@@ -1,8 +1,7 @@
 class_name PokeCoopPolicy
 extends RefCounted
 
-## Rules for what the original games never had to decide, kept apart from the simulation so
-## each can change without touching it; `docs/coop/design.md` says which the owner settled.
+## Rules the original games never had to decide, kept apart from the simulation; `docs/coop/design.md` says which the owner settled.
 
 const NEW_PLAYER_MONEY: int = 3000
 ## Red and Blue's three starters, and the level Oak's lab hands one out at.
