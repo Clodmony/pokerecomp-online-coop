@@ -1841,6 +1841,21 @@ func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too(
 		"Blue's world redraws the door as the window that found the switch does")
 
 
+func test_a_partners_quiz_answer_opens_cinnabar_gyms_gate_in_this_window_too() -> void:
+	var gate_3_unlocked: int = PokeCoopWorldLink.EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 2
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, PokeCoopWorldLink.CINNABAR_GYM)
+	var gate_load: int = 1 << Gen1Layout.MAP_LOADED_1_BIT
+
+	red.state.set_event_flag(gate_3_unlocked)
+	_pump()
+
+	assert_true(blue.state.is_event_flag_active(gate_3_unlocked))
+	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & gate_load, gate_load,
+		"Blue's world redraws its gates as the window that answered does, not only when Blue next enters")
+
+
 func test_standing_in_pokemon_tower_5fs_purified_zone_is_each_players_own() -> void:
 	var in_purified_zone: int = 0x107
 	var red: PokeCoopWorldLink = _window(_red)
