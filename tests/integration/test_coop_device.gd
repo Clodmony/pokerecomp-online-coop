@@ -340,3 +340,19 @@ func test_the_campaign_file_of_earlier_builds_moves_into_the_folder_and_still_lo
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
 	_sessions.append(hosting)
 	assert_true(hosting.host.campaign.has_flag(0x77), "the moved campaign is the one hosted")
+
+
+func test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	var quit: Array = []
+	hosting.quit_app = func() -> void: quit.append(true)
+
+	hosting.quit_after_goodbye()
+
+	assert_true(_until(func() -> bool: return not quit.is_empty(), 5000), "the app quits once the goodbye is out")
+	assert_eq(joining.ended_reason(), "host_shutdown", "and the joiner heard why")
+	joining.close()
+	assert_true((Engine.get_main_loop() as SceneTree).is_auto_accept_quit(), "a closed session lets the window close again")
