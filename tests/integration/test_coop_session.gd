@@ -1752,6 +1752,22 @@ func test_a_map_script_that_follows_one_players_walk_stays_in_their_window() -> 
 	assert_eq([again.state.gen1_map_script(dock_check), again.state.gen1_map_script(oaks_lab)], [4, 18])
 
 
+func test_a_partners_second_switch_opens_vermilion_gyms_door_in_this_window_too() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var gym := Gen2WorldMap.new()
+	gym.number = PokeCoopWorldLink.VERMILION_GYM.y
+	blue.world = Gen2WorldAPI.new(_data, gym, null, Vector2i.ZERO, blue.state)
+	var door_load: int = 1 << Gen1Layout.MAP_LOADED_2_BIT
+
+	red.state.set_event_flag(Gen1Layout.LOCK_2ND_EVENT)
+	_pump()
+
+	assert_true(blue.state.is_event_flag_active(Gen1Layout.LOCK_2ND_EVENT))
+	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & door_load, door_load,
+		"Blue's world redraws the door as the window that found the switch does")
+
+
 func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
 	var red: PokeCoopPlayer = _host.player(_red.player_id)
 	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
