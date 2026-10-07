@@ -1,10 +1,9 @@
 class_name PokeCoopHost
 extends RefCounted
 
-## The authoritative side of a co-op session: validates clients' intentions against the campaign,
-## the players and the running battles, and answers every client with the state they may see.
+## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 4
+const PROTOCOL: int = 5
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -18,6 +17,7 @@ var campaign: PokeCoopCampaign = null
 var players: Dictionary = {}
 var battles: Dictionary = {}
 var encounters: Dictionary = {}
+var scenes: Dictionary = {}
 var transport: PokeCoopTransport = null
 var save_path: String = ""
 var allow_new_players: bool = false
@@ -258,6 +258,8 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return refused
 		"opening":
 			return finish_speech(sender, PokeCoopTransport.text(message.get("rival")))
+		"scene":
+			return claim_scene(sender, _vector(message.get("map")), message.get("on") is bool and bool(message.get("on")))
 		"trade":
 			var swaps: int = trades.swaps
 			var answer: StringName = trades.handle(sender, message, players)
@@ -423,6 +425,7 @@ func _on_disconnected(peer: int) -> void:
 	if leaving == null:
 		return
 	leaving.connected = false
+	_release_scenes(leaving.player_id)
 	trades.leave(leaving.player_id, players)
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
@@ -440,6 +443,7 @@ func step(
 	var distance: int = absi(to_cell.x - mover.cell.x) + absi(to_cell.y - mover.cell.y)
 	if not warp and to_map == mover.map and distance > MAX_STEP_CELLS:
 		return &"not_adjacent"
+	_release_scenes(mover.player_id, to_map)
 	mover.place(to_map, to_cell, toward)
 	mover.keep_places(places)
 	_settle_opening(mover)
@@ -475,6 +479,26 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 static func _sets_entries(changes: Dictionary) -> bool:
 	return ["event_flags", "toggled_objects"].any(func(key: String) -> bool:
 		return not ((changes.get(key, {}) as Dictionary).get("set", {}) as Dictionary).is_empty())
+
+
+## The first window into a rival scene drives it and a later one plays its own copy, the battle being one (#24).
+func claim_scene(sender: PokeCoopPlayer, map: Vector2i, on: bool) -> StringName:
+	var driver: String = String(scenes.get(map, ""))
+	if not PokeCoopPolicy.RIVAL_SCENES.has(map):
+		return &"not_a_scene"
+	if on and not driver.is_empty() and driver != sender.player_id:
+		return &"scene_taken"
+	if on:
+		scenes[map] = sender.player_id
+	elif driver == sender.player_id:
+		scenes.erase(map)
+	return &""
+
+
+func _release_scenes(player_id: String, kept: Vector2i = Vector2i(-1, -1)) -> void:
+	for map: Vector2i in scenes.keys():
+		if scenes[map] == player_id and map != kept:
+			scenes.erase(map)
 
 
 func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
@@ -551,8 +575,7 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 	return &""
 
 
-## A battle the player's own world opened, its enemies trusted. A second window walking
-## into a trainer joins; a beaten one stays beaten; the world's script sets the flags.
+## A battle the player's own world opened, its enemies trusted: a second window joins, a beaten trainer stays beaten.
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not initiator.is_free():
 		return &"already_in_battle"
@@ -841,6 +864,8 @@ func broadcast() -> void:
 	var everyone: Dictionary = {}
 	for player_id: String in players:
 		everyone[player_id] = player(player_id).public_view()
+	for map: Vector2i in scenes:
+		(everyone[scenes[map]] as Dictionary)["scene"] = map
 	var running: Array = []
 	for session: PokeCoopBattleSession in battles.values():
 		_log_view(session)

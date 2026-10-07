@@ -9,6 +9,7 @@ const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
 const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
+const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
 var world: Gen2WorldAPI = null
@@ -39,6 +40,9 @@ var _rest_streak: int = 0
 var _held_frames: int = 0
 var _held_by: StringName = &""
 var _owed_step: Dictionary = {}
+var _scene: Vector2i = NO_SCENE
+var _scene_welcome: int = -1
+var scene_driver: String = ""
 ## Patches the host has not applied yet, by sequence number (D51).
 var _unacked: Dictionary = {}
 
@@ -80,6 +84,7 @@ func advance() -> void:
 		_held_frames += 1
 		_held_by = busy if not busy.is_empty() else _held_by
 	_frames += 1
+	_tend_scene(resting)
 	if hold_holdings:
 		return
 	if resting and _is_free() and (scene_ended or _frames % PARTY_CHECK_FRAMES == 0):
@@ -128,18 +133,37 @@ func _keep_locks() -> void:
 		return
 	var agreed: int = int((_baseline.get("gen1_bytes", {}) as Dictionary).get(Gen2WorldAPI.GEN1_FIRST_LOCK, 0))
 	var rolled: int = state.gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK)
-	if rolled != agreed and _partner_on([VERMILION_CITY, VERMILION_GYM]):
+	if rolled != agreed and not _partner_on([VERMILION_CITY, VERMILION_GYM]).is_empty():
 		client.journal.add(PokeCoopLog.WORLD, "locks_kept", {"rolled": rolled, "kept": agreed}, client.player_id)
 		state.set_gen1_byte(Gen2WorldAPI.GEN1_FIRST_LOCK, agreed)
 
 
-func _partner_on(maps: Array) -> bool:
+func _partner_on(maps: Array, key: String = "map") -> String:
 	var players: Dictionary = client.state.get("players", {})
 	for player_id: String in players:
 		var view: Dictionary = players[player_id]
-		if player_id != client.player_id and bool(view.get("connected", false)) and maps.has(view.get("map")):
-			return true
-	return false
+		if player_id != client.player_id and bool(view.get("connected", false)) and maps.has(view.get(key)):
+			return player_id
+	return ""
+
+
+## A rival scene here is claimed as it starts and given back once its result is out; a partner's holds this window from a rest point (#24).
+func _tend_scene(resting: bool) -> void:
+	var map: Vector2i = world.map_id() if world != null else NO_SCENE
+	var states: Array = PokeCoopPolicy.RIVAL_SCENES.get(map, [])
+	var playing: bool = states.has(Gen1MapScripts.gen1_map_script_state(world)) if not states.is_empty() else false
+	if playing and (_scene != map or _scene_welcome != client.welcomes):
+		_scene = map
+		_scene_welcome = client.welcomes
+		client.send({"type": "scene", "map": map, "on": true})
+	elif _scene != NO_SCENE and resting and not playing:
+		client.send({"type": "scene", "map": _scene, "on": false})
+		_scene = NO_SCENE
+	var driver: String = _partner_on([map], "scene") if _scene == NO_SCENE and map != NO_SCENE else ""
+	driver = driver if not scene_driver.is_empty() or resting else ""
+	if driver != scene_driver:
+		client.journal.add(PokeCoopLog.WORLD, "scene_wait", {"map": map, "driver": driver, "after": scene_driver}, client.player_id)
+		scene_driver = driver
 
 
 static func _host_world(session: PokeCoopClient) -> Dictionary:
