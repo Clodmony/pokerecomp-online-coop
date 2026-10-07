@@ -102,6 +102,9 @@ never identity.
   split over its own party, as it would fighting alone (D61).
 - SET battle style is used in shared sessions for now, so the "will you switch"
   offer never interrupts a turn (#28).
+- A battle the cartridge plays by its own rules stays in the window and cannot
+  be joined: the Safari Zone, and a GHOST in Pokémon Tower without the SILPH
+  SCOPE, which can only be run from (D68).
 
 ## Story and unique encounters
 

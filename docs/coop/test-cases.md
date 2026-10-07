@@ -45,6 +45,7 @@ Red (or Blue) cartridge, the same one.
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
 | W12 | Both enter Vermilion Gym; one finds the first switch | Both windows search the same trash cans; each player's SURF score and slot machine stay their own | `test_vermilion_gyms_locks_are_shared_and_a_surf_score_is_its_players_own` | | |
 | W13 | One player takes the DOME (or HELIX) FOSSIL in Mt. Moon | Both players hold one; each revives their own | `test_a_gift_given_before_its_scripts_flag_still_reaches_every_player` | playthrough_misty | |
+| W14 | Walk Pokémon Tower without the SILPH SCOPE, then with it | Without it a GHOST appears in the window's own battle and can only be run from; with it MAROWAK is a normal fight the partner can join | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
 
 ## Battles
 

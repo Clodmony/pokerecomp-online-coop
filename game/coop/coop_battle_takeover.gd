@@ -20,7 +20,8 @@ static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattle
 
 func takes_battle(context: Dictionary) -> bool:
 	return client != null and client.connected and not client.me().is_empty() \
-		and StringName(context.get("battle_kind", &"")) in [&"wild", &"trainer"]
+		and StringName(context.get("battle_kind", &"")) in [&"wild", &"trainer"] \
+		and StringName(context.get("gen1_ghost", &"")) != Gen1Layout.GHOST_UNIDENTIFIED
 
 
 func create_battle() -> Node:
