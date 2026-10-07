@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
 ##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "autoplay: <player> finished" or "FAILED".
+##     [route=brock|misty|trade|surge] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -53,6 +53,7 @@ const SANDSHREW_DEX: int = 27
 var _played: Variant = null
 var _kit: GDScript = null
 var _route: String = "brock"
+var _from: String = ""
 var _speed: float = 1.0
 var _ball: int = 0
 var _shots: String = ""
@@ -71,11 +72,12 @@ var _link_pressed_at: int = 0
 
 
 func _read_option(arg: String) -> bool:
-	for option: String in ["route=", "speed=", "ball=", "shots="]:
+	for option: String in ["route=", "from=", "speed=", "ball=", "shots="]:
 		if arg.begins_with(option):
 			var value: String = arg.trim_prefix(option)
 			match option:
 				"route=": _route = value
+				"from=": _from = value
 				"speed=": _speed = clampf(value.to_float(), 1.0, float(Gen2WorldAnimation.MAX_CATCHUP_FRAMES))
 				"ball=": _ball = clampi(value.to_int(), 0, 2)
 				"shots=": _shots = value if not PokeToolPath.refuses(value) else ""
@@ -206,7 +208,12 @@ func _route_legs() -> Array:
 	var legs: Array = _opening_legs() + _brock_legs()
 	for stretch: StringName in ROUTES.get(_route, []):
 		legs += call(stretch)
-	return legs
+	if _from.is_empty():
+		return legs
+	var start: int = legs.find_custom(func(leg: Variant) -> bool: return leg is Array and leg[0] == _from)
+	if start < 0:
+		_fail("route %s has no leg %s" % [_route, _from])
+	return legs.slice(maxi(start, 0))
 
 
 func _opening_legs() -> Array:

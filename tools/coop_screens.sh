@@ -14,7 +14,8 @@
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
 # early once both windows print "autoplay: ... finished" or "FAILED").
 # HOST_TOOL=none starts no tool host, for windows that host from the launcher
-# (coop_launcher_play, whose seconds count from launch); a scenario may define
+# (coop_launcher_play, whose seconds count from launch); SEED=<dir> starts from the
+# coop_campaigns and coop_identity.json a past run left there; a scenario may define
 # check(), run last, that fails the scenario by returning non-zero.
 # The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
@@ -54,6 +55,7 @@ rm -rf "$out" && mkdir -p "$out"
 xdg="$out/xdg"
 user="$xdg/godot/app_userdata/pokerecomp"
 mkdir -p "$user/rom_cache"
+[[ -z "${SEED:-}" ]] || cp -r "$SEED/coop_campaigns" "$SEED/coop_identity.json" "$user/"
 cache="$(find "$real_user/rom_cache" -maxdepth 1 -name "${GAME}_????????" -print -quit)"
 [[ -n "$cache" ]] || { echo "coop_screens: no imported $GAME under $real_user/rom_cache" >&2; exit 2; }
 ln -s "$cache" "$user/rom_cache/"
