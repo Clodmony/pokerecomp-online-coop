@@ -4,14 +4,29 @@ The resume point for the next session. Read [playbook.md](playbook.md) for the
 why; this is the what, in order. Tick a box in the same commit as the work, and
 keep the snapshot below current.
 
-## Snapshot (2026-10-07, second session, in progress)
+## Snapshot (2026-10-07, second session, halted at the usage limit)
 
 - **Branches and pull requests** (all drafts, stacked, merge in this order):
   #58 `coop/slice-1`, #79 `coop/m1-state-sync`, #80 `coop/launcher`, #81
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Next free decision number:** D79 (D72 to D78 are recorded).
+- **Halted mid-round** (all pushed, none merged unless said):
+  - `coop/real-saves` (`f9a42ccc`): a checkpoint only on a real SAVE, not on
+    every heal or purchase; co-op session, save refusal and state suites
+    118/118, whole suite not run. Review, run the whole suite, merge, write
+    its D-entry.
+  - `coop/autoplay-erika` (3 commits, #88 Celadon and ERIKA), `coop/autoplay-tower`
+    (4, Pokémon Tower), `coop/autoplay-koga` (3, SNORLAX to KOGA): stretch
+    agents stopped mid-work, each with uncommitted changes left in its git
+    worktree. One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
+    panel. Check each worktree, finish or restart the stretch from its story
+    seed (`tools/coop_seed.gd`), merge one by one.
+  - `coop/rival-scenes` (#24): agent stopped before any commit; start again.
+  - Not rerun after the rest-points merge: `playthrough_surge` (the run was
+    stopped early); `playthrough_misty`, `cable_club_trade` and `rest_points`
+    passed on the agent's branch.
+- **Next free decision number:** D80 (D72 to D79 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
@@ -29,7 +44,7 @@ keep the snapshot below current.
 
 1. [x] **#86** Fix the Cerulean thief's stuck TM28 box (upstream), with a GUT
    test. Done when a no-press text followed by a fade leaves no box.
-2. [ ] **#87** Merge `coop/autoplay-surge` into `coop/playthrough`. Conflicts
+2. [x] **#87** Merge `coop/autoplay-surge` into `coop/playthrough`. Conflicts
    expected in `tools/coop_autoplay.gd`. Then: co-op suites, whole suite,
    `playthrough_misty`, `cable_club_trade`, `playthrough_surge` (should pass
    after task 1), D72 onward for its three fixes, test-case rows (re-host inside
@@ -37,11 +52,11 @@ keep the snapshot below current.
    Vermilion Gym's door for both; CUT), progress rows, PR #83's description.
 3. [x] **Owner decisions** (playbook, "Decisions waiting on the owner"):
    answered 2026-10-07, recorded as D72.
-4. [ ] **#84 step 1** Hold a window's world patches until a rest point
+4. [x] **#84 step 1** Hold a window's world patches until a rest point
    (`script_busy()` false and no map load pending) instead of 15 s; a partial
    patch only on SAVE or LEAVE. Tests: a 40 s scene with a battle sends nothing
    until it ends; LEAVE mid-scene sends the last resting state.
-5. [ ] **#84 step 2** Map-script steps: resting values only; classify the gym
+5. [x] **#84 step 2** Map-script steps: resting values only; classify the gym
    bytes BROCK to GIOVANNI as per player; a step for the window's own map waits
    for its next map load. Tests: one TM34 when a partner stands in Pewter Gym;
    the Vermilion dock with both in the city. Then `world_pull` logs the busy
