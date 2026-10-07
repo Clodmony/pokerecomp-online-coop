@@ -1131,5 +1131,4 @@ The world screen now calls `save_written` (beside `save_gate`, one line in
 `persist_world_snapshot`) after any SAVE: the START menu's, a link room's, a
 box change's or the Hall of Fame's. Only that asks the host for a checkpoint;
 a transaction still sends the party at the next rest point, and the host's
-own autosave keeps the rest. Rejected: telling a SAVE apart by
-`save_file_exists`, which upstream sets for other reasons.
+own autosave keeps the rest.
