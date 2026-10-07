@@ -83,6 +83,8 @@ func adopt_players(loaded: Array) -> void:
 ## `moves`, or `trainer_class` and `trainer_index`; `unique`, `victory_flags` and `badge` for story fights.
 func register_encounter(encounter_id: String, descriptor: Dictionary) -> void:
 	encounters[encounter_id] = descriptor.duplicate(true)
+	if _started:
+		journal.add(PokeCoopLog.HOST, "encounter", {"id": encounter_id, "descriptor": descriptor})
 
 
 func player(player_id: String) -> PokeCoopPlayer:
@@ -128,17 +130,18 @@ func _log_start() -> void:
 		})
 
 
-func _on_message(peer: int, message: Dictionary) -> void:
+func _on_message(peer: int, message: Dictionary) -> StringName:
 	var kind: String = PokeCoopTransport.text(message.get("type"))
 	if kind == "log":
 		_relay_log(peer, message.get("lines"))
-		return
+		return &""
 	var line: Dictionary = journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": message}, String(_peers.get(peer, "")))
 	var result: StringName = _hello(peer, message) if kind == "hello" else _answer(peer, kind, message)
 	if not line.is_empty():
 		line["data"]["result"] = String(result) if result != &"" else "ok"
 		line["player"] = String(_peers.get(peer, ""))
 	_note_campaign()
+	return result
 
 
 func _answer(peer: int, kind: String, message: Dictionary) -> StringName:
@@ -779,6 +782,8 @@ func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE
 	for session: PokeCoopBattleSession in battles.values():
 		session.abandon()
 		_finish(session)
+	if journal.is_on():
+		journal.add(PokeCoopLog.HOST, "host_end", {"save": PokeCoopSave.to_dict(campaign, players.values())})
 	_write_campaign("shutdown")
 	_share_log(true)
 	for peer: int in _peers:

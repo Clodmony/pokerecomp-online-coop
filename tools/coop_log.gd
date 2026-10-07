@@ -1,11 +1,13 @@
 extends SceneTree
 
 ## Co-op session logs (`user://coop_logs/*.jsonl`), as files or folders:
-##   Godot --headless --path . -s res://tools/coop_log.gd -- merge|summary <files...> [out=<path>]
+##   Godot --headless --path . -s res://tools/coop_log.gd -- merge|summary|replay <files...> [out=<path>]
 ## `merge` interleaves the devices' lines by time, a line also relayed kept once; `summary` lists
-## sessions, players, battles, saves and errors.
+## sessions, players, battles, saves and errors; `replay` runs the host of a log again from its start,
+## seeds and messages on this device's import of the cartridge, and exits 1 if anything came out otherwise.
 
-const MODES: Array[String] = ["merge", "summary"]
+const MODES: Array[String] = ["merge", "summary", "replay"]
+const REPLAY_SAVE: String = "user://coop_log_replay.json"
 
 
 func _initialize() -> void:
@@ -23,6 +25,9 @@ func _initialize() -> void:
 		for path: String in files_in(arg):
 			logs.append(read(path))
 	var timeline: Array = merge(logs)
+	if args[0] == "replay":
+		quit(_replay_cli(timeline))
+		return
 	if args[0] == "summary":
 		print(summary_text(summary(timeline)))
 		quit(0)
@@ -117,7 +122,7 @@ static func _write(timeline: Array, out_path: String) -> int:
 
 
 static func summary(timeline: Array) -> Dictionary:
-	var out: Dictionary = {"sessions": [], "players": {}, "battles": {}, "saves": [], "errors": [], "refusals": {}, "ended": []}
+	var out: Dictionary = {"sessions": {}, "players": {}, "battles": {}, "saves": [], "errors": [], "refusals": {}, "ended": []}
 	for entry: Dictionary in timeline:
 		var kind: String = str(entry.get("kind", ""))
 		var data: Dictionary = entry.get("data", {}) if entry.get("data") is Dictionary else {}
@@ -131,7 +136,10 @@ static func _summarise(out: Dictionary, kind: String, entry: Dictionary, data: D
 	var battle: String = "%s:%s" % [entry.get("device", ""), data.get("battle", "")]
 	match kind:
 		"header":
-			(out["sessions"] as Array).append(data.merged({"device": entry.get("device"), "ms": entry.get("ms")}))
+			out["sessions"][entry.get("device")] = data.merged({"device": entry.get("device"), "ms": entry.get("ms")})
+		"welcome", "host_start":
+			(out["sessions"].get_or_add(entry.get("device"), {}) as Dictionary)["campaign_id"] = data.get(
+				"campaign", (data.get("summary", {}) as Dictionary).get("campaign_id"))
 		"battle_start":
 			out["battles"][battle] = {"battle": data.get("battle"), "encounter": (data.get("encounter", {}) as Dictionary).get("id"),
 				"initiator": data.get("initiator"), "seed": data.get("seed"), "ms": entry.get("ms")}
@@ -152,11 +160,11 @@ static func _summarise(out: Dictionary, kind: String, entry: Dictionary, data: D
 
 static func summary_text(found: Dictionary) -> String:
 	var lines: PackedStringArray = PackedStringArray()
-	lines.append("sessions: %d" % (found["sessions"] as Array).size())
-	for row: Dictionary in found["sessions"]:
-		lines.append("  %s %s %s as %s, %s v%s protocol %s, campaign %s" % [
+	lines.append("sessions: %d" % (found["sessions"] as Dictionary).size())
+	for row: Dictionary in (found["sessions"] as Dictionary).values():
+		lines.append("  %s %s %s as %s, %s v%s protocol %d, campaign %s" % [
 			_when(row.get("ms")), row.get("device"), row.get("role"), row.get("player_name"), row.get("game_id"),
-			row.get("version"), row.get("protocol"), row.get("campaign_id", "?"),
+			row.get("version"), int(row.get("protocol", 0)), row.get("campaign_id", "?"),
 		])
 	lines.append("players: %s" % ", ".join((found["players"] as Dictionary).keys().map(
 		func(id: Variant) -> String: return "%s (%s)" % [id, found["players"][id]])))
@@ -177,4 +185,132 @@ static func summary_text(found: Dictionary) -> String:
 
 
 static func _when(ms: Variant) -> String:
-	return Time.get_datetime_string_from_unix_time(int(float(ms) / 1000.0), true) if ms != null else "?"
+	var local: int = int(float(ms) / 1000.0) + int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	return Time.get_datetime_string_from_unix_time(local, true) if ms != null else "?"
+
+
+func _replay_cli(timeline: Array) -> int:
+	var headers: Array = timeline.filter(func(line: Dictionary) -> bool:
+		return line.get("kind") == "header" and (line.get("data", {}) as Dictionary).get("role") == "host")
+	var game: String = str((headers[0]["data"] as Dictionary).get("game_id", "")) if not headers.is_empty() else ""
+	var data: GameData = GameData.open(StringName(game)) if not game.is_empty() else null
+	if data == null:
+		printerr("coop log: no host log, or %s is not imported on this device" % game)
+		return 2
+	if data.sha1 != str((headers[0]["data"] as Dictionary).get("rom_sha1", "")):
+		printerr("coop log: this device's %s is another revision than the host's" % game)
+	var found: Dictionary = replay(timeline, data)
+	print(JSON.stringify(found, "  "))
+	return 0 if found.get("ok") == true and (found["mismatches"] as Array).is_empty() and found["end"] != "differs" else 1
+
+
+## The host of [param timeline] run again: messages whose answer differs, and whether it ends as logged.
+static func replay(timeline: Array, data: GameData) -> Dictionary:
+	var starts: Array = timeline.filter(func(line: Dictionary) -> bool: return line.get("kind") == "host_start" and not line.has("relay"))
+	var host: PokeCoopHost = _replay_host(starts[0]["data"], data) if not starts.is_empty() else null
+	if host == null:
+		return {"ok": false, "why": "no readable host_start line"}
+	var lines: Array = timeline.filter(func(line: Dictionary) -> bool:
+		return line.get("device") == starts[0].get("device") and not line.has("relay"))
+	lines.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return float(first["n"]) < float(second["n"]))
+	var out: Dictionary = {"ok": true, "messages": 0, "mismatches": [], "end": "not logged", "differences": []}
+	for line: Dictionary in lines:
+		_replay_line(host, line, out)
+	var ends: Array = lines.filter(func(line: Dictionary) -> bool: return line.get("kind") == "host_end")
+	var summaries: Array = lines.filter(func(line: Dictionary) -> bool: return line.get("kind") == "campaign")
+	if not ends.is_empty():
+		var now: Variant = JSON.parse_string(JSON.stringify(PokeCoopLog.plain(PokeCoopSave.to_dict(host.campaign, host.players.values()))))
+		out["differences"] = _differences(ends[-1]["data"]["save"], now)
+		out["end"] = "match" if (out["differences"] as Array).is_empty() else "differs"
+	elif not summaries.is_empty():
+		var shared: Variant = JSON.parse_string(JSON.stringify(PokeCoopLog.plain(host.campaign.summary())))
+		out["end"] = "campaign matches" if shared == summaries[-1]["data"] else "differs"
+	for suffix: String in ["", PokeCoopSave.BACKUP_SUFFIX, ".tmp"]:
+		if FileAccess.file_exists(REPLAY_SAVE + suffix):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(REPLAY_SAVE + suffix))
+	return out
+
+
+static func _replay_host(start: Dictionary, data: GameData) -> PokeCoopHost:
+	var loaded: Dictionary = PokeCoopSave.from_dict(start.get("save"))
+	if loaded.is_empty():
+		return null
+	var host: PokeCoopHost = PokeCoopHost.create(data, loaded["campaign"], PokeCoopTransport.new())
+	host.adopt_players(loaded["players"])
+	host.allow_new_players = start.get("allow_new_players") == true
+	host.autosave_msec = 1 << 62
+	host.save_path = REPLAY_SAVE
+	var offered: Variant = start.get("encounters", {})
+	for encounter_id: String in offered if offered is Dictionary else {}:
+		host.register_encounter(encounter_id, restored(offered[encounter_id]))
+	host.seeds.seed = str(start.get("seed", "0")).to_int()
+	host.seeds.state = str(start.get("rng_state", "0")).to_int()
+	return host
+
+
+static func _replay_line(host: PokeCoopHost, line: Dictionary, out: Dictionary) -> void:
+	var data: Dictionary = line["data"] if line.get("data") is Dictionary else {}
+	match str(line.get("kind")):
+		"in":
+			var message: Variant = data.get("message")
+			if not message is Dictionary or message.get("type") == "log":
+				return
+			var answer: StringName = host._on_message(int(data.get("peer", 0)), restored(message))
+			out["messages"] += 1
+			var replayed: String = String(answer) if answer != &"" else "ok"
+			if replayed != str(data.get("result")):
+				(out["mismatches"] as Array).append({"n": line.get("n"), "type": message.get("type"), "seq": message.get("seq"),
+					"player": line.get("player", ""), "logged": data.get("result"), "replayed": replayed})
+		"disconnected":
+			host._on_disconnected(int(data.get("peer", 0)))
+		"battle_abandoned":
+			var session: PokeCoopBattleSession = host.battles.get(str(data.get("battle")))
+			if session != null:
+				session.abandon()
+				host._finish(session)
+		"controller":
+			_stand_in(host, str(data.get("battle")), str(data.get("controller")))
+		"encounter":
+			host.register_encounter(str(data.get("id")), restored(data.get("descriptor", {})))
+		"shutdown":
+			host.shutdown(str(data.get("reason")), 0)
+
+
+## A stand-in took over once the absent owner had been away long enough; here they have been.
+static func _stand_in(host: PokeCoopHost, battle_id: String, controller: String) -> void:
+	var session: PokeCoopBattleSession = host.battles.get(battle_id)
+	if session == null or session.controller() == controller:
+		return
+	for player_id: String in session.participants:
+		if not host.player(player_id).connected:
+			session.set_absent(player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+
+
+## A message as JSON left it, with whole numbers and number keys whole again.
+static func restored(value: Variant) -> Variant:
+	if value is float and is_finite(value) and value == floorf(value):
+		return int(value)
+	if value is Array:
+		return (value as Array).map(restored)
+	if not value is Dictionary:
+		return value
+	var out: Dictionary = {}
+	for key: Variant in value as Dictionary:
+		out[int(key) if key is String and (key as String).is_valid_int() else key] = restored((value as Dictionary)[key])
+	return out
+
+
+static func _differences(logged: Dictionary, now: Dictionary) -> Array:
+	var out: Array = []
+	for key: String in logged.get("campaign", {}) as Dictionary:
+		if logged["campaign"][key] != (now.get("campaign", {}) as Dictionary).get(key):
+			out.append("campaign.%s" % key)
+	var rows: Dictionary = {}
+	for row: Dictionary in now.get("players", []):
+		rows[row.get("player_id")] = row
+	for row: Dictionary in logged.get("players", []):
+		var mine: Dictionary = rows.get(row.get("player_id"), {})
+		for key: String in row:
+			if row[key] != mine.get(key):
+				out.append("players.%s.%s" % [row.get("player_id"), key])
+	return out
