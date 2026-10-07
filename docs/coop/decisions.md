@@ -831,3 +831,46 @@ battle should feel as close to a solo run as it can.
   left alone, since a purchase may be in it. Gift Pokémon no longer race at all.
   Cost: the second window may show the doubled item for a frame before the
   host's count arrives, and a race that also moves new story is not caught.
+
+## D63. Gen 1 script bytes are owned byte by byte (2026-10-07)
+
+`gen1_bytes` holds the Generation 1 script bytes the world keeps by name, and
+the host dropped them all because campaign tables took only numbered entries
+(#82). It is now owned entry by entry, like the engine and event flags:
+Vermilion Gym's three trash-can lock bytes are the campaign's, since the puzzle
+is in one shared gym whose lock event flags are already the campaign's and both
+windows must hide the switches in the same cans. Every other byte is its
+player's: the lucky slot machine, the SURF high score, and
+`cur_map_text_ptr_high`, scratch nobody reads, kept with its player because one
+key has no window-only half. A name not listed goes to the player, so a byte
+added later never reaches a partner before it is classified. Cost: the first
+lock re-rolls whenever any player's window loads Vermilion City, as it does on
+the cartridge for one player, so a partner arriving can move the first switch
+while someone is still searching for it.
+
+## D64. The trade movie shows the Pokémon as it was sent (2026-10-07)
+
+A Cable Club trade of a MACHOKE showed MACHAMP in the trade movie before the
+evolution played (#66). The cause was upstream's
+`Gen2WorldPartyHost.commit_link_trade`, which built the movie's context after
+applying the trade evolution; the co-op cable hands the window the partner's
+row from before the swap, so no co-op code was involved. The context is now
+built before the evolution, as the cartridge's `.doTrade` (the movie on
+`wTradedEnemyMonSpecies`, then `TryEvolvingMon`) and upstream's own NPC trade
+do. Single-player link trades had the same bug, so this is a candidate to offer
+upstream.
+
+## D65. Two-window checks run from scenarios, and a window can play itself (2026-10-07)
+
+The owner asked for a two-window check of every feature and a list of hand-test
+cases (`test-cases.md`). `tools/coop_screens.sh` runs the cartridge host and two
+windows from a scenario file, at 60 frames a second (the display is faster, and
+key timing counts frames), with a private `XDG_DATA_HOME`: the windows find the
+imported cartridge through a link to its cache, and the owner's campaigns,
+identity and logs are never touched, so runs can go side by side. Captures go
+outside the repository. `tools/coop_autoplay.gd` is a window that plays
+itself: it reuses the legs of upstream's `tools/checks/played.gd` (path
+finding, warps, talking, the save editor's grind) on its world, plays the
+opening, and fights from the co-op panel, so the run to BROCK (#48) needs no
+hand-written key list. The upstream check is loaded at run time, since a
+preload compiles it before the autoloads exist.

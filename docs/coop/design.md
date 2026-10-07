@@ -33,7 +33,10 @@ never identity.
 - Each window's world state follows the ownership table in
   `PokeCoopOwnership`: story flags, badges, map scenes, toggled objects and the
   other shared keys are the campaign's and appear in every window; the bag,
-  wallet, step counters, Pokédex and the rest are the player's own. A change
+  wallet, step counters, Pokédex and the rest are the player's own.
+  Vermilion Gym's trash-can locks are the campaign's, so both windows search
+  the same cans; every other Gen 1 script byte (the SURF high score, the lucky
+  slot machine) stays with its player (D63). A change
   made in either window reaches the other as a patch, entry by entry, so two
   flags set at once both survive.
 - The party a window shows follows the host: battle results replace it, and a
