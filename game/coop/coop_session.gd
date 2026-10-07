@@ -1,9 +1,8 @@
 class_name PokeCoopSession
 extends RefCounted
 
-## One co-op run on this device: the client, the host when it hosts, and the world
-## screen with the partner actor, battle takeover, sync link and panel, driven once
-## a frame by [Gen2GameRuntime]. The actor and the takeover follow the live session.
+## One co-op run on this device, driven each frame by [Gen2GameRuntime]: the client, the host when it hosts, and the
+## world screen with the actor and takeover (which follow the live session), the sync link and the panel.
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
@@ -34,6 +33,8 @@ var opening_screen: Gen2IntroScreen = null
 var panel: PokeCoopBattlePanel = null
 var link: PokeCoopWorldLink = null
 var cable: PokeCoopLinkTransport = null
+var journal: PokeCoopLog = PokeCoopLog.new()
+var _stage_seen: String = ""
 var _cable_state: Dictionary = {}
 var _identity_key: String = ""
 var _identity_saved: String = ""
@@ -99,11 +100,11 @@ static func move_legacy(game: GameData) -> void:
 			DirAccess.rename_absolute(ProjectSettings.globalize_path(old + suffix), ProjectSettings.globalize_path(target + suffix))
 
 
-## This device hosts on [param port] as [param player_name], loading or starting the
-## campaign; [param brought] is a save a new player brings instead of a starter.
+## This device hosts on [param port] as [param player_name], loading or starting the campaign; [param brought]
+## is a new player's save in place of a starter, [param session_log] an unopened log the session writes.
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null,
-	campaign_id: String = "", title: String = ""
+	campaign_id: String = "", title: String = "", session_log: PokeCoopLog = null
 ) -> PokeCoopSession:
 	last_failure = ""
 	if game == null:
@@ -128,34 +129,52 @@ static func hosting(
 	serving.save_path = path
 	serving.allow_new_players = true
 	serving.adopt_players(loaded.get("players", []))
+	serving.journal = _opened(session_log, "host", player_name, game, {
+		"port": port, "addresses": PokeCoopPage.local_addresses(), "campaign_id": campaign.campaign_id,
+		"campaign_title": campaign.title, "campaign_path": path,
+	})
 	var out: PokeCoopSession = _connect(
-		game, "127.0.0.1", port, player_name, starter, "", "%s/host:%d" % [String(game.id), port], brought
+		game, "127.0.0.1", port, player_name, starter, "", "%s/host:%d" % [String(game.id), port], brought, serving.journal
 	)
 	if out == null:
+		serving.journal.close()
 		link_out.close()
 		return null
 	out.host = serving
+	out.client.streams_log = false
 	return out
 
 
 ## [param player_id] reclaims a player; empty is this device's player in the host's campaign, or a new one.
 static func joining(
 	game: GameData, address: String, port: int, player_name: String, starter: int,
-	player_id: String = "", brought: Gen2SaveData = null
+	player_id: String = "", brought: Gen2SaveData = null, session_log: PokeCoopLog = null
 ) -> PokeCoopSession:
-	return _connect(
-		game, address, port, player_name, starter, player_id,
-		"%s/%s:%d" % [String(game.id) if game != null else "", address, port], brought
+	if game == null:
+		return null
+	var opened: PokeCoopLog = _opened(session_log, "join", player_name, game, {"address": address, "port": port})
+	var out: PokeCoopSession = _connect(
+		game, address, port, player_name, starter, player_id, "%s/%s:%d" % [String(game.id), address, port], brought, opened
 	)
+	if out == null:
+		opened.close()
+	return out
+
+
+static func _opened(session_log: PokeCoopLog, role: String, player_name: String, game: GameData, fields: Dictionary) -> PokeCoopLog:
+	var out: PokeCoopLog = session_log if session_log != null else PokeCoopLog.new()
+	out.open(role, player_name, fields.merged({"game_id": String(game.id), "rom_sha1": game.sha1}))
+	return out
 
 
 static func _connect(
 	game: GameData, address: String, port: int, player_name: String, starter: int,
-	player_id: String, identity_key: String, brought: Gen2SaveData = null
+	player_id: String, identity_key: String, brought: Gen2SaveData, session_log: PokeCoopLog
 ) -> PokeCoopSession:
 	if game == null:
 		return null
 	var out := PokeCoopSession.new()
+	out.journal = session_log
 	out.data = game
 	out._identity_key = identity_key
 	out._identity_saved = player_id
@@ -173,9 +192,13 @@ func _dial(player_id: String) -> bool:
 	var link_in: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(
 		String(_greeting["address"]), int(_greeting["port"])
 	)
+	journal.add(PokeCoopLog.CLIENT, "dial", {"address": _greeting["address"], "port": _greeting["port"],
+		"player_id": player_id, "known": _known, "ok": link_in != null})
 	if link_in == null:
 		return false
 	client = PokeCoopClient.over(link_in)
+	client.journal = journal
+	client.streams_log = host == null
 	client.greet(
 		String(_greeting["name"]), data.id, data.sha1, player_id, int(_greeting["starter"]),
 		_greeting["save"] if player_id.is_empty() else {}, _known
@@ -200,9 +223,9 @@ func process() -> void:
 	if host != null:
 		host.poll()
 	client.poll()
-	## Another window on this device already plays as the remembered player, so
-	## this one joins as somebody new.
+	## Another window here plays as the remembered player, so this one joins as somebody new.
 	if _retry_as_new and client.ended_reason == "refused: already_connected":
+		journal.add(PokeCoopLog.CLIENT, "retry_as_new", {"known": _known})
 		_retry_as_new = false
 		_known = {}
 		client.transport.close()
@@ -211,7 +234,9 @@ func process() -> void:
 	_was_ready = _was_ready or is_ready()
 	if not _was_ready and client.ended_reason.is_empty() and Time.get_ticks_msec() - _dialled_at > JOIN_TIMEOUT_MSEC:
 		client.ended_reason = "host_unreachable"
+		journal.add(PokeCoopLog.CLIENT, "unreachable", {"waited_msec": Time.get_ticks_msec() - _dialled_at})
 	_keep_connected()
+	_note_opening()
 	_follow_session_end()
 	_advance_links()
 	if not client.player_id.is_empty() and (client.player_id != _identity_saved or client.campaign_id != _campaign_saved):
@@ -220,6 +245,13 @@ func process() -> void:
 		_remember(_identity_key, client.campaign_id, client.player_id)
 	if screen != null and is_instance_valid(screen) and panel != null:
 		_tend_world()
+
+
+func _note_opening() -> void:
+	var stage: String = String((client.me().get("opening", {}) as Dictionary).get("stage", ""))
+	if stage != _stage_seen:
+		_stage_seen = stage
+		journal.add(PokeCoopLog.WORLD, "opening_stage", {"stage": stage}, client.player_id)
 
 
 func _advance_links() -> void:
@@ -244,8 +276,10 @@ func _tend_world() -> void:
 	_tell_saves()
 	if not panel.is_open() and _whiteout_due:
 		_whiteout_due = false
+		journal.add(PokeCoopLog.WORLD, "whiteout", {}, client.player_id)
 		screen.white_out()
 	elif not panel.is_open() and not _evolving.is_empty():
+		journal.add(PokeCoopLog.WORLD, "evolve", {"party_indices": _evolving}, client.player_id)
 		screen.evolve_after_battle(_evolving)
 		_evolving = []
 
@@ -257,8 +291,7 @@ static func hold_world(world: Node, audio: Node, frozen: bool) -> void:
 		audio.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
 
 
-## A dropped link: dial again as the same player until the host takes them back,
-## waiting out its refusal while it still counts them connected.
+## A dropped link: redial as the same player until the host takes them back, waiting out `already_connected`.
 func _keep_connected() -> void:
 	if client.welcomes != _welcomes_seen:
 		_welcomes_seen = client.welcomes
@@ -277,11 +310,13 @@ func _keep_connected() -> void:
 	_reconnect_attempts += 1
 	if _reconnect_attempts > RECONNECT_ATTEMPTS:
 		client.ended_reason = "host_unreachable"
+		journal.add(PokeCoopLog.CLIENT, "unreachable", {"attempts": RECONNECT_ATTEMPTS})
 		return
 	say("Lost the host: reconnecting...")
 	var link_again: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(
 		String(_greeting["address"]), int(_greeting["port"])
 	)
+	journal.add(PokeCoopLog.CLIENT, "redial", {"attempt": _reconnect_attempts, "ok": link_again != null})
 	if link_again != null:
 		client.transport = link_again
 		client.greet(String(_greeting["name"]), data.id, data.sha1, client.player_id)
@@ -292,6 +327,7 @@ func _follow_session_end() -> void:
 	if screen == null or not is_instance_valid(screen):
 		return
 	if _leaving_at < 0 and not client.ended_reason.is_empty():
+		journal.add(PokeCoopLog.WORLD, "leaving", {"reason": client.ended_reason}, client.player_id)
 		say("The session ended: %s." % client.ended_reason.replace("_", " "))
 		_leaving_at = Time.get_ticks_msec() + LEAVE_MSEC
 	if _leaving_at > 0 and Time.get_ticks_msec() >= _leaving_at:
@@ -300,11 +336,13 @@ func _follow_session_end() -> void:
 
 ## Back to the launcher; a hosting device first tells every client the run ended.
 func leave() -> void:
+	journal.add(PokeCoopLog.WORLD, "leave", {}, client.player_id)
 	_leaving_at = 0
 	_closed = true
 	if host != null and not host.ended:
 		host.shutdown()
 	else:
+		client.share_log(true)
 		client.transport.close()
 	if screen != null and is_instance_valid(screen):
 		screen.get_tree().change_scene_to_file.call_deferred(LAUNCHER_SCENE)
@@ -316,6 +354,7 @@ func _finish_closing() -> void:
 		host.poll()
 		return
 	_release_seams()
+	journal.close()
 	var runtime: Gen2GameRuntime = Gen2GameRuntime.instance()
 	if runtime != null and runtime.coop == self:
 		runtime.coop = null
@@ -330,6 +369,7 @@ func _tell_refused_save() -> void:
 	for rejection: Dictionary in client.rejections:
 		if int(rejection.get("seq", -1)) == link.save_seq:
 			_noticed_save = link.save_seq
+			journal.add(PokeCoopLog.WORLD, "save_refused", rejection, client.player_id)
 			say("The campaign was not saved: %s." % String(rejection.get("reason", "")).replace("_", " "))
 
 
@@ -407,6 +447,7 @@ static func save_news(seen: int, session: PokeCoopClient) -> String:
 
 ## A line over the world for a few seconds.
 func say(text: String) -> void:
+	journal.add(PokeCoopLog.WORLD, "say", {"text": text, "shown": _notice != null}, client.player_id)
 	if _notice == null:
 		return
 	_notice.text = text
@@ -414,8 +455,7 @@ func say(text: String) -> void:
 	_notice_until = Time.get_ticks_msec() + NOTICE_MSEC
 
 
-## Evolutions and a whiteout a finished host battle owes this window's world;
-## a battle the world opened itself is the world's to settle.
+## Evolutions and a whiteout a host battle owes this window; one the world opened itself is the world's to settle.
 func _collect_evolutions() -> void:
 	if link == null:
 		return
@@ -441,6 +481,7 @@ func open_start() -> Control:
 	if String(opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH or screen != null:
 		return open_world()
 	if opening_screen == null:
+		journal.add(PokeCoopLog.WORLD, "opening_speech", {"stage": opening.get("stage", "")}, client.player_id)
 		opening_screen = (load(INTRO_SCENE) as PackedScene).instantiate() as Gen2IntroScreen
 		opening_screen.writes_save = false
 		opening_screen.preset_names = {
@@ -453,6 +494,7 @@ func open_start() -> Control:
 
 
 func _on_spoken(_player_name: String, rival: String) -> void:
+	journal.add(PokeCoopLog.WORLD, "opening_spoken", {"rival": rival}, client.player_id)
 	client.send({"type": "opening", "rival": rival})
 	var tree: SceneTree = opening_screen.get_tree()
 	opening_screen = null
@@ -482,6 +524,7 @@ func open_world() -> Gen2WorldScreen:
 	screen.start_cell = view.get("cell", Vector2i.ZERO)
 	screen.set_data(data)
 	screen.set_save(save)
+	journal.add(PokeCoopLog.WORLD, "world_open", {"map": map, "cell": screen.start_cell, "party": save.party.size()}, client.player_id)
 	Gen2ModHost.instance().created_save(save)
 	Gen2ModHost.instance().activate_save(save)
 	screen.ready.connect(_on_world_ready.bind(save), CONNECT_ONE_SHOT)
@@ -534,13 +577,15 @@ func _claim_seams() -> void:
 func suspend() -> void:
 	_paused = true
 	_paused_at = Time.get_ticks_msec()
+	journal.add(PokeCoopLog.WORLD, "suspend", {}, client.player_id)
 	if host != null and not host.ended:
-		host.save_checkpoint()
+		host.save_checkpoint("suspend")
 
 
 ## Back from a long pause, a joining device redials rather than wait out a dead link.
 func resume() -> void:
 	var away: int = Time.get_ticks_msec() - _paused_at if _paused else 0
+	journal.add(PokeCoopLog.WORLD, "resume", {"away_msec": away}, client.player_id)
 	_paused = false
 	if host != null or _closed or away < RESUME_REDIAL_MSEC or not client.connected:
 		return
@@ -552,11 +597,14 @@ func resume() -> void:
 
 ## Ends the run: the host, when this device is it, tells everyone first.
 func close() -> void:
+	journal.add(PokeCoopLog.WORLD, "close_session", {}, client.player_id)
 	_closed = true
 	if host != null:
 		host.shutdown("host_shutdown", 0)
+	client.share_log(true)
 	client.transport.close()
 	_release_seams()
+	journal.close()
 
 
 func _release_seams() -> void:

@@ -1,9 +1,11 @@
 class_name PokeCoopClient
 extends RefCounted
 
-## A player's end of a co-op session: sends intentions with a sequence number and
-## keeps the last authoritative state and battle views it was sent. It decides
-## nothing; a local menu cursor stays here until it is sent as a suggestion.
+## A player's end of a co-op session: numbered intentions out, the last authoritative state and battle
+## views in. It decides nothing; a local menu cursor stays here until it is sent as a suggestion.
+
+## ENet drops data that arrives with a disconnect, so the last log batch is given a moment.
+const LAST_LOG_MSEC: int = 500
 
 var transport: PokeCoopTransport = null
 var player_id: String = ""
@@ -21,6 +23,12 @@ var _greeting: Dictionary = {}
 var _fresh: Dictionary = {}
 var campaign_id: String = ""
 var state_at: int = 0
+var journal: PokeCoopLog = PokeCoopLog.new()
+## Off for a hosting device's own client: the host sends that device's lines itself.
+var streams_log: bool = true
+var _streamed_at: int = 0
+var _welcomed: bool = false
+var _close_at: int = -1
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -29,8 +37,7 @@ static func over(link: PokeCoopTransport) -> PokeCoopClient:
 	return out
 
 
-## Sent as soon as the transport is connected; [param id] reclaims a player, and
-## a new player has [param starter] or the save [param brought] as a dictionary.
+## Sent once connected; [param id] reclaims a player, a new one brings [param starter] or the save [param brought].
 func greet(
 	player_name: String, game_id: StringName, rom_sha1: String, id: String = "", starter: int = 0,
 	brought: Dictionary = {}, known: Dictionary = {}
@@ -38,42 +45,70 @@ func greet(
 	_greeting = {
 		"type": "hello", "protocol": PokeCoopHost.PROTOCOL, "name": player_name,
 		"game_id": String(game_id), "rom_sha1": rom_sha1, "player_id": id, "starter": starter,
-		"known": known,
+		"known": known, "logs": {"device": journal.device, "share": journal.share},
 	}
 	if not brought.is_empty():
 		_greeting["save"] = brought
 	elif starter == PokeCoopPolicy.PLAY_OPENING:
 		_greeting["opening"] = true
 	if connected:
-		transport.send(PokeCoopTransport.HOST_PEER, _greeting)
+		_say_hello()
+
+
+func _say_hello() -> void:
+	journal.add(PokeCoopLog.CLIENT, "hello", _greeting, player_id)
+	transport.send(PokeCoopTransport.HOST_PEER, _greeting)
 
 
 func poll() -> void:
 	_fresh.clear()
 	for event: Dictionary in transport.poll():
 		var kind: StringName = StringName(event["kind"])
-		if kind == PokeCoopTransport.CONNECTED:
-			connected = true
-			if not _greeting.is_empty():
-				transport.send(PokeCoopTransport.HOST_PEER, _greeting)
-		elif kind == PokeCoopTransport.DISCONNECTED:
-			connected = false
-		elif kind == PokeCoopTransport.MESSAGE:
+		if kind == PokeCoopTransport.MESSAGE:
 			_receive(event["message"])
+			continue
+		connected = kind == PokeCoopTransport.CONNECTED
+		_welcomed = false
+		journal.add(PokeCoopLog.CLIENT, String(kind), {}, player_id)
+		if connected and not _greeting.is_empty():
+			_say_hello()
+	share_log()
+	journal.poll()
+	if _close_at >= 0 and Time.get_ticks_msec() >= _close_at:
+		_close_at = -1
+		transport.close()
+
+
+## [param now] sends what is left at once, as before leaving; true when there was something.
+func share_log(now: bool = false) -> bool:
+	if not journal.share or not streams_log or not _welcomed or (not now and Time.get_ticks_msec() - _streamed_at < journal.stream_msec):
+		return false
+	_streamed_at = Time.get_ticks_msec()
+	var lines: Array = journal.take_stream()
+	if not lines.is_empty():
+		transport.send(PokeCoopTransport.HOST_PEER, {"type": "log", "lines": lines})
+	return not lines.is_empty()
 
 
 func _receive(message: Dictionary) -> void:
 	match String(message.get("type", "")):
 		"welcome":
 			welcomes += 1
+			_welcomed = true
 			player_id = String(message.get("player_id", ""))
 			campaign_id = PokeCoopTransport.text(message.get("campaign"))
 			_seq = maxi(_seq, int(message.get("last_seq", 0)))
+			journal.add(PokeCoopLog.CLIENT, "welcome", message, player_id)
+			journal.want_full_state()
 		"state":
 			state = message
 			state_at = Time.get_ticks_msec()
+			journal.log_state(message, player_id)
 		"box":
 			box = {"rev": int(message.get("rev", 0)), "rows": message.get("rows", [])}
+			journal.add(PokeCoopLog.CLIENT, "box", {"rev": box["rev"], "rows": (box["rows"] as Array).size()}, player_id)
+		"log":
+			journal.take_relayed(message.get("lines"), "host", "", journal.share)
 		"battle":
 			var view: Dictionary = message.get("view", {})
 			var id: String = String(view.get("battle", ""))
@@ -82,16 +117,22 @@ func _receive(message: Dictionary) -> void:
 				view["events"] = (earlier.get("events", []) as Array) + (view.get("events", []) as Array)
 			_fresh[id] = true
 			battles[id] = view
+			journal.log_view(view, player_id)
 		"rejected":
 			rejections.append(message)
+			journal.add(PokeCoopLog.CLIENT, "rejected", message, player_id)
 			if int(message.get("seq", 0)) == -1:
 				ended_reason = "refused: %s" % message.get("reason", "")
 				connected = false
 				transport.close()
 		"ended":
 			ended_reason = String(message.get("reason", "ended"))
+			journal.add(PokeCoopLog.CLIENT, "ended", {"reason": ended_reason}, player_id)
 			connected = false
-			transport.close()
+			if share_log(true):
+				_close_at = Time.get_ticks_msec() + LAST_LOG_MSEC
+			else:
+				transport.close()
 
 
 func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false) -> int:
@@ -126,6 +167,7 @@ func send(message: Dictionary) -> int:
 	_seq += 1
 	var numbered: Dictionary = message.duplicate()
 	numbered["seq"] = _seq
+	journal.add(PokeCoopLog.CLIENT, "out", numbered, player_id)
 	transport.send(PokeCoopTransport.HOST_PEER, numbered)
 	return _seq
 
