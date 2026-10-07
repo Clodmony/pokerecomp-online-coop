@@ -229,7 +229,8 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),
-				PokeCoopTransport.number(message.get("facing"), sender.facing), PokeCoopTransport.number(message.get("warp")) == 1)
+				PokeCoopTransport.number(message.get("facing"), sender.facing), PokeCoopTransport.number(message.get("warp")) == 1,
+				message.get("places", {}))
 		"start_battle":
 			return start_battle(sender, PokeCoopTransport.text(message.get("encounter")))
 		"window_battle":
@@ -429,7 +430,7 @@ func _on_disconnected(peer: int) -> void:
 
 ## A step on the current map, or a [param warp] the client's world made, trusted until the host simulates it.
 func step(
-	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
+	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false, places: Variant = {}
 ) -> StringName:
 	if not exploring(mover):
 		return &"in_battle"
@@ -437,6 +438,7 @@ func step(
 	if not warp and to_map == mover.map and distance > MAX_STEP_CELLS:
 		return &"not_adjacent"
 	mover.place(to_map, to_cell, toward)
+	mover.keep_places(places)
 	_settle_opening(mover)
 	return &""
 

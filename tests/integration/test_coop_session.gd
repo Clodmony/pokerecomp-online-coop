@@ -1555,6 +1555,40 @@ func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:
 	assert_true(bool((drawn[0] as Dictionary).get("solid", false)))
 
 
+const CERULEAN_CITY: int = 3
+
+
+func test_a_window_opened_again_inside_a_building_leaves_by_its_own_door() -> void:
+	var world := Gen2WorldAPI.new(_data, Gen2WorldMap.new(), null)
+	world._gen1_last_map = CERULEAN_CITY
+	world._gen1_last_blackout_map = CERULEAN_CITY
+	var actor: PokeCoopRemoteActor = PokeCoopRemoteActor.over(_red)
+	actor.set_world(world)
+	actor.advance_frame()
+	_pump()
+	_send(func() -> void: _red.request_save())
+	var saved: Array = (PokeCoopSave.read(SAVE_PATH)["players"] as Array).filter(
+		func(player: PokeCoopPlayer) -> bool: return player.player_id == _red.player_id)
+
+	var reopened: Gen2WorldSnapshot = PokeCoopWorldLink.continued_world(_red)
+
+	assert_eq((saved[0] as PokeCoopPlayer).places, {"gen1_last_map": CERULEAN_CITY, "gen1_last_blackout_map": CERULEAN_CITY})
+	assert_eq(reopened.gen1_last_map, CERULEAN_CITY, "a LAST_MAP door leads back out to the town it is in")
+	assert_eq(reopened.gen1_last_blackout_map, CERULEAN_CITY, "a whiteout still ends at the last Pokémon Center")
+
+
+func test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place() -> void:
+	_host.campaign.commit("story:early", {"flags": [BEAT_LEADER]})
+	_host.broadcast()
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 6), Gen2WorldSprite.FACING_LEFT))
+
+	var opened: Gen2WorldSnapshot = PokeCoopWorldLink.continued_world(_red)
+
+	assert_true(opened.world_state.is_event_flag_active(BEAT_LEADER), "a map's load scripts read the campaign")
+	assert_eq(opened.world_state.money(), _host.player(_red.player_id).money, "and the player's own wallet")
+	assert_eq([opened.map_id, opened.player_cell, opened.player_facing], [PALLET, Vector2i(5, 6), Gen2WorldSprite.FACING_LEFT])
+
+
 func test_a_joiner_who_leaves_walks_on_while_their_pokemon_fight_and_keep_what_they_earn() -> void:
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	var battle_id: String = _battle_of(_red)
