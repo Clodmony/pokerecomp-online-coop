@@ -69,6 +69,7 @@ const CELADON_GYM_TREE := Vector2i(5, 7)
 const ERIKA := Vector2i(4, 3)
 const RAINBOW_BADGE: int = 3
 const GAME_CORNER_ROCKET := Vector2i(9, 5)
+const GAME_CORNER_STAIRS := Vector2i(17, 4)
 const HIDEOUT_ROCKET_3 := Vector2i(11, 2)
 const LIFT_KEY_BALL := Vector2i(10, 2)
 const CAR_PANEL_FRONT := Vector2i(1, 2)
@@ -77,7 +78,6 @@ const DOOR_ROCKETS: Array = [Vector2i(23, 12), Vector2i(26, 12)]
 const GIOVANNI := Vector2i(25, 3)
 const LIFT_KEY: int = 0x4A
 const SILPH_SCOPE: int = 0x48
-const EVENT_FOUND_ROCKET_HIDEOUT: int = 441
 const EVENT_ROCKET_DROPPED_LIFT_KEY: int = 1702
 const EVENT_BEAT_DOOR_ROCKETS: Array = [1698, 1699]
 const EVENT_BEAT_ROCKET_HIDEOUT_GIOVANNI: int = 1703
@@ -424,7 +424,7 @@ func _erika_legs() -> Array:
 		["erika_gym_out", p._warp_to(m.celadon_city), p._on_map(m.celadon_city)],
 		["celadon_tree_inside", _cut_tree.bind(p._talk(CELADON_TREE + Vector2i.DOWN, UP)), _tree_gone(CELADON_TREE)],
 		["game_corner", p._warp_to(m.game_corner), p._on_map(m.game_corner)],
-		["poster", _poster, p._flag(EVENT_FOUND_ROCKET_HIDEOUT)],
+		["poster", _poster, func(world: Gen2WorldAPI) -> bool: return world.can_walk_to(GAME_CORNER_STAIRS)],
 		["game_corner_stairs", p._warp_to(m.hideout_b1f), p._on_map(m.hideout_b1f)],
 		["hideout_b1f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
 		["hideout_b2f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
