@@ -13,6 +13,7 @@ const RECONNECT_ATTEMPTS: int = 60
 const RESUME_REDIAL_MSEC: int = 3000
 const QUIT_HOST_MSEC: int = 2500
 const QUIT_JOIN_MSEC: int = 600
+const CONTINUED: int = -2
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
 const LEFT_BATTLE_ENDED: Dictionary = {
 	"won": "The battle you left was won.", "lost": "The battle you left was lost.",
@@ -582,7 +583,7 @@ func continue_after_reset() -> bool:
 
 func _continue_world() -> void:
 	var tree: SceneTree = screen.get_tree()
-	_continuing = -1
+	_continuing = CONTINUED
 	screen = null
 	panel = null
 	link = null
@@ -626,6 +627,9 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	screen.add_child(layer)
 	panel = PokeCoopBattlePanel.over(client, data)
+	if _continuing == CONTINUED:
+		_continuing = -1
+		panel.dismiss_finished()
 	panel.leave_requested.connect(leave)
 	var field: PokeCoopBattleField = PokeCoopBattleField.over(panel, data)
 	field.audio = screen.get("_audio_player")

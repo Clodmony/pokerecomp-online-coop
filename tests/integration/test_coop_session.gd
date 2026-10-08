@@ -2005,6 +2005,16 @@ func test_a_save_the_story_makes_sends_its_scene_and_a_world_reset_behind_it_wai
 	assert_true(_host.campaign.has_flag(0x30C), "a SAVE the world makes at its next frame sends its scene too")
 
 
+func test_a_world_continued_after_a_reset_shows_no_closed_battle_again() -> void:
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	_fight_out(_battle_of(_red))
+	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
+	assert_eq(String(panel.battle_view().get("outcome", "")), "won", "a new panel shows a result nobody closed")
+
+	panel.dismiss_finished()
+	assert_true(panel.battle_view().is_empty(), "the world the reset reopened starts with none")
+
+
 func test_a_player_the_credits_left_in_the_hall_of_fame_continues_in_pallet_town() -> void:
 	var landing: Dictionary = {"x": 5, "y": 6}
 	var saved := Gen2WorldSnapshot.new()
