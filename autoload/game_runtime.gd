@@ -143,8 +143,10 @@ func soft_reset() -> void:
 	restart()
 
 
-## The cartridge's own `jp Reset`, left out of the count.
+## The cartridge's own `jp Reset`, left out of the count; a co-op window continues its own world instead.
 func restart() -> void:
+	if coop != null and coop.continue_after_reset():
+		return
 	var loop: SceneTree = Engine.get_main_loop() as SceneTree
 	if loop != null:
 		loop.change_scene_to_file.call_deferred(SAVE_SCENE)
