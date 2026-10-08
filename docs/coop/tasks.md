@@ -79,8 +79,9 @@ keep the snapshot below current.
 7. [x] **#24** (approved, D72; built as D84) the first player in drives a contested rival
    scene: every rival scene after the opening (Route 22 twice, Cerulean, S.S.
    Anne, Pokémon Tower, Silph Co.).
-8. [ ] **#88** Extend the autopilot stretch by stretch to the Hall of Fame;
-   two or three agents in parallel, one stretch each, the lead merging.
+8. [x] **#88** Extend the autopilot stretch by stretch to the Hall of Fame:
+   a new campaign reached both Halls of Fame on 2026-10-08 (resumed from
+   snapshots after each fix); one unbroken run on the final commit is next.
 9. [ ] **#44** Hand-played session when the owner is ready: fresh Windows and
    Linux builds from one commit, `test-cases.md` as the checklist.
 10. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
