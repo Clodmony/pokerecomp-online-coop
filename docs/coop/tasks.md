@@ -21,9 +21,8 @@ keep the snapshot below current.
     (map 203), one window's `gen1_elevator_shake` wait never ending while it
     stood on the panel cell (1,2). Not yet diagnosed; run logs under
     `/tmp/claude-1000/lead/runs/koga_full` (lost on reboot).
-  - `coop/autoplay-blaine` (6 commits, last "the BLAINE stretch ends outside the
-    gym"): Cinnabar and BLAINE, agent stopped while merging `coop/playthrough`;
-    check its last run, merge `coop/playthrough` (chain after `sabrina`), merge.
+  - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
+    `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
     Victory Road; unfinished.
   - `coop/autoplay-elite` (WIP commit, includes an unfinished
@@ -34,7 +33,7 @@ keep the snapshot below current.
     Four's flags for everyone)?
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D86 (D72 to D85 are recorded).
+- **Next free decision number:** D87 (D72 to D86 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
