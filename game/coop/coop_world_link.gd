@@ -8,7 +8,20 @@ const PARTY_CHECK_FRAMES: int = 30
 const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
-const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
+const VICTORY_ROAD_1F := Vector2i(0, 108)
+const VICTORY_ROAD_2F := Vector2i(0, 194)
+const VICTORY_ROAD_3F := Vector2i(0, 198)
+const EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH: int = 2327
+const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1: int = 1336
+const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2: int = 1343
+const EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1: int = 1632
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {
+	Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT],
+	EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH: [VICTORY_ROAD_1F, Gen1Layout.MAP_LOADED_1_BIT],
+	EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1: [VICTORY_ROAD_2F, Gen1Layout.MAP_LOADED_1_BIT],
+	EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2: [VICTORY_ROAD_2F, Gen1Layout.MAP_LOADED_1_BIT],
+	EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1: [VICTORY_ROAD_3F, Gen1Layout.MAP_LOADED_1_BIT],
+}
 const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
@@ -41,6 +54,7 @@ var _rest_streak: int = 0
 var _held_frames: int = 0
 var _held_by: StringName = &""
 var _owed_step: Dictionary = {}
+var _kept_switches: Dictionary = {}
 var _scene: Vector2i = NO_SCENE
 var _scene_welcome: int = -1
 var scene_driver: String = ""
@@ -79,6 +93,7 @@ func advance() -> void:
 	if resting:
 		_push_world()
 		_land_owed_step()
+		_release_switches()
 		_pull_world()
 		_held_frames = 0
 	else:
@@ -207,6 +222,7 @@ func _pull_world() -> void:
 	for pending: Dictionary in _unacked.values():
 		_drop_overlap(changes, pending, echoes)
 	var owed: int = _owe_step(changes)
+	_keep_switches(changes)
 	if not changes.is_empty() or not echoes.is_empty() or owed >= 0:
 		client.journal.add(PokeCoopLog.WORLD, "world_pull", {"changes": changes, "echoes": echoes, "unacked": _unacked.keys(),
 			"held": _held_frames, "held_by": _held_by, "owed": owed}, client.player_id)
@@ -260,6 +276,29 @@ func _land_owed_step(waited: bool = false) -> void:
 static func _touches(sent: Dictionary, byte: int) -> bool:
 	var change: Dictionary = sent.get("gen1_map_scripts", {})
 	return (change.get("set", change.get("value", {})) as Dictionary).has(byte) or (change.get("erase", []) as Array).has(byte)
+
+
+## A partner's clear of a switch that holds this window's floor open waits until the window leaves the floor.
+func _keep_switches(changes: Dictionary) -> void:
+	var flags: Dictionary = changes.get("event_flags", {})
+	for flag: Variant in (flags.get("erase", []) as Array).duplicate():
+		var owed: Array = MAP_LOADS_OWED_BY_FLAG.get(int(flag), [])
+		if world != null and not owed.is_empty() and world.map_id() == owed[0] and state.is_event_flag_active(int(flag)):
+			(flags["erase"] as Array).erase(flag)
+			_kept_switches[int(flag)] = owed[0]
+	if flags.has("erase") and (flags["erase"] as Array).is_empty() and (flags.get("set", {}) as Dictionary).is_empty():
+		changes.erase("event_flags")
+
+
+func _release_switches() -> void:
+	for flag: int in _kept_switches.keys():
+		if world != null and world.map_id() == _kept_switches[flag]:
+			continue
+		_kept_switches.erase(flag)
+		if not (_host_seen.get("event_flags", {}) as Dictionary).has(flag):
+			state.clear_event_flag(flag)
+			_baseline = state.to_dict()
+			_dirty = false
 
 
 func _owe_map_loads(flags_set: Dictionary) -> void:
