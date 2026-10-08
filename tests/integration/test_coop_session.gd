@@ -1302,6 +1302,27 @@ func test_a_change_between_battles_is_written_without_waiting_for_one() -> void:
 		"the flag a window set is on disk before any battle or SAVE")
 
 
+func test_a_runs_snapshot_copies_the_checkpoint_without_saving_and_keeps_each_windows_note() -> void:
+	var copy: String = "user://coop_snapshot_test.json"
+	var before: Dictionary = PokeCoopSave.to_dict(_host.campaign, _host.players.values())
+	var saves: int = int(_red.state["saved"]["count"])
+	var checkpoint: bool = FileAccess.file_exists(SAVE_PATH)
+	_send(func() -> void: _red.note("route_7_to_celadon#2"))
+	_send(func() -> void: _blue.note("lobby_nurse"))
+
+	assert_eq(_host.notes, {_red.player_id: "route_7_to_celadon#2", _blue.player_id: "lobby_nurse"})
+	assert_eq(_host.write_copy(copy), OK)
+	var loaded: Dictionary = PokeCoopSave.read(copy)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(copy))
+	assert_eq(PokeCoopSave.to_dict(loaded["campaign"], loaded["players"]), before, "what a checkpoint would write")
+	assert_eq(PokeCoopSave.to_dict(_host.campaign, _host.players.values()), before, "the campaign is left as it was")
+	assert_eq(FileAccess.file_exists(SAVE_PATH), checkpoint, "no checkpoint is written")
+	assert_eq(int(_red.state["saved"]["count"]), saves, "nor a SAVE counted")
+	assert_eq(_red.rejections.size() + _blue.rejections.size(), 0, "and a note is no numbered intention")
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	assert_eq(_host.write_copy(copy), ERR_BUSY, "a battle holds a snapshot off as it does a checkpoint")
+
+
 func test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	assert_eq(_host.save_checkpoint(), &"")

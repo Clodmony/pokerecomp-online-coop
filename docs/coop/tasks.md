@@ -22,7 +22,8 @@ keep the snapshot below current.
     after Mr. Fuji's rescue (`coop/tower-7f-late`, merged). The third chained run froze on Silph Co.
     7F: the autopilot looked for LAPRAS only in a full party
     (`coop/silph-7f-stall`, merged), then could not teach SURF with LAPRAS in
-    the box (`coop/seed-party`, merged). A fifth chained run is under way.
+    the box (`coop/seed-party`, merged). The fifth chained run stalled on a late
+    partner's way down Pokémon Tower (`coop/tower-late-descent`, merged: the autopilot's moves now respect type).
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` merged (D89, D90): GIOVANNI, Route 22's second
@@ -36,12 +37,14 @@ keep the snapshot below current.
     are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D96 (D72 to D95 are recorded).
+- **Next free decision number:** D97 (D72 to D96 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
 - **Cartridge:** the owner's Red import is `rom_cache/red_ea9bcae6` in the user
   folder; the scenario runner links it read-only into a private one.
+- **Snapshots (D96):** every autoplayed run writes `<out>/snapshots/`;
+  `tools/coop_resume.sh <run dir> [n | -seconds]` resumes a stalled run there.
 - **Seeds:** `SEED=<dir>` starts a scenario from a campaign and the autopilot's
   `from=<leg>` skips the legs before it; `tools/coop_seed.gd -- red <leg> <dir>`
   writes one at any leg of upstream's story walk in seconds (D78). Seeds are

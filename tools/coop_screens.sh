@@ -17,6 +17,10 @@
 # (coop_launcher_play, whose seconds count from launch); SEED=<dir> starts from the
 # coop_campaigns and coop_identity.json a past run left there; a scenario may define
 # check(), run last, that fails the scenario by returning non-zero.
+# An autoplayed window starts at leg P1_FROM / P2_FROM (each defaults to FROM), and an
+# autoplayed run has the host snapshot the campaign and each window's leg every 10 s
+# into <out>/snapshots/<n>/ (SNAPSHOTS=0 turns it off): tools/coop_resume.sh reruns
+# the scenario from one. <out>/run.env records the scenario and what shaped it.
 # The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
 # process logged a script error.
@@ -50,8 +54,14 @@ close() { closes[$1]="$2"; }
 
 # shellcheck source=/dev/null
 source "$scenario"
+P1_FROM="${P1_FROM:-${FROM:-}}" P2_FROM="${P2_FROM:-${FROM:-}}"
+[[ "$P1_TOOL" != coop_autoplay || -z "$P1_FROM" ]] || P1_ARGS+=" from=$P1_FROM"
+[[ "$P2_TOOL" != coop_autoplay || -z "$P2_FROM" ]] || P2_ARGS+=" from=$P2_FROM"
+[[ "$P1_TOOL$P2_TOOL" != *coop_autoplay* || "${SNAPSHOTS:-1}" == 0 ]] || HOST_ARGS+=" snapshots=$out/snapshots"
 
 rm -rf "$out" && mkdir -p "$out"
+[[ "$scenario" != "$root/tools/coop_screens/$name.sh" ]] || scenario="$name"
+printf '%s\n' "SCENARIO=$scenario" "P1_FROM=$P1_FROM" "P2_FROM=$P2_FROM" "WHITEOUT=${WHITEOUT:-}" "KILL=${KILL:-}" > "$out/run.env"
 xdg="$out/xdg"
 user="$xdg/godot/app_userdata/pokerecomp"
 mkdir -p "$user/rom_cache"
