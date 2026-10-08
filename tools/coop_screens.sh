@@ -37,7 +37,7 @@ case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&
 
 GAME="${GAME:-red}" DURATION=60 P2_DELAY=4 HOST_ARGS="" P1_ARGS="" P2_ARGS="" P1_TOOL=coop_play P2_TOOL=coop_play HOST_TOOL=coop_session
 declare -A keys=([p1]="" [p2]="") shots=([p1]="" [p2]="") closes=()
-start_frames=90 slot_frames=18 fps=60
+start_frames=90 slot_frames=18 fps=${FPS:-60}
 
 press() {
 	local who="$1" at="$2"; shift 2
