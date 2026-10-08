@@ -10,7 +10,7 @@ const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
 ## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among the Gen 1
-## bytes, every event flag and object but a player's own gifts, and every map script but one walk's and the gyms'.
+## bytes, every event flag and object but a player's own, and every map script but one walk's, the gyms' and the Elite Four's.
 const BY_FLAG: StringName = &"by_flag"
 const CAMPAIGN_BYTES: Array[String] = [
 	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
@@ -20,7 +20,8 @@ const PLAYER_MAP_SCRIPTS: Dictionary = {
 	"wCeladonGymCurScript": 15, "wMtMoonB2FCurScript": 23, "wCeruleanCityCurScript": 31, "wMuseum1FCurScript": 41,
 	"wSafariZoneGateCurScript": 47, "wVermilionCityCurScript": 58, "wChampionsRoomCurScript": 92,
 	"wFuchsiaGymCurScript": 107, "wSaffronGymCurScript": 108, "wCinnabarGymCurScript": 110,
-	"wSeafoamIslandsB3FCurScript": 118, "wSeafoamIslandsB4FCurScript": 120,
+	"wSeafoamIslandsB3FCurScript": 118, "wSeafoamIslandsB4FCurScript": 120, "wHallOfFameCurScript": 91,
+	"wLoreleisRoomCurScript": 93, "wBrunosRoomCurScript": 94, "wAgathasRoomCurScript": 95, "wLancesRoomCurScript": 99,
 }
 const KANTO_BADGES: int = 8
 
@@ -228,8 +229,7 @@ static func _split_flags(key: String, change: Dictionary, badges: Array[int], ow
 			(out[owner] as Dictionary)[key] = half
 
 
-## The synced keys of a world state in their in-memory types, whatever a save
-## file made of them: JSON leaves a Dictionary's integer keys as strings.
+## The synced keys of a world state in their in-memory types: a save's JSON leaves a Dictionary's integer keys as strings.
 static func canonical(world: Dictionary, owner: StringName) -> Dictionary:
 	var restored: Gen2WorldState = Gen2WorldState.from_dict(world)
 	var full: Dictionary = restored.to_dict() if restored != null else {}

@@ -70,6 +70,7 @@ var _dialled_at: int = 0
 var _quit_at: int = -1
 var quit_app: Callable = Callable()
 var _paused_at: int = 0
+var _continuing: int = -1
 
 
 static func campaign_path(game: GameData, id: String = "") -> String:
@@ -249,6 +250,8 @@ func process() -> void:
 	_note_opening()
 	_follow_session_end()
 	_advance_links()
+	if _continuing >= 0 and int(client.state.get("last_seq", 0)) >= _continuing:
+		_continue_world()
 	if not client.player_id.is_empty() and (client.player_id != _identity_saved or client.campaign_id != _campaign_saved):
 		_identity_saved = client.player_id
 		_campaign_saved = client.campaign_id
@@ -280,7 +283,7 @@ func _advance_links() -> void:
 func _tend_world() -> void:
 	if _takeover != null and not _takeover.waiting_on.is_empty():
 		panel.recall(_takeover.waiting_on)
-	var frozen: bool = panel.is_open() or (link != null and not link.scene_driver.is_empty())
+	var frozen: bool = panel.is_open() or (link != null and not link.scene_driver.is_empty()) or _continuing >= 0
 	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != frozen:
 		hold_world(screen, screen.get("_audio_player"), frozen)
 	var world: Gen2WorldAPI = screen.get("_world")
@@ -567,19 +570,38 @@ func rival_name() -> String:
 		else String(offered[1]) if offered.size() > 1 else ""
 
 
+## The world's own reset (the Hall of Fame's `jp Init`, a reset chord) waits for what it sent, then CONTINUEs (#88).
+func continue_after_reset() -> bool:
+	if _closed or link == null or screen == null or not is_instance_valid(screen):
+		return false
+	journal.add(PokeCoopLog.WORLD, "world_reset", {"map": link.world.map_id() if link.world != null else null}, client.player_id)
+	hold_world(screen, screen.get("_audio_player"), true)
+	_continuing = link.flush()
+	return true
+
+
+func _continue_world() -> void:
+	var tree: SceneTree = screen.get_tree()
+	_continuing = -1
+	screen = null
+	panel = null
+	link = null
+	tree.change_scene_to_node(open_world())
+
+
 ## This player's world screen, once the host has said who they are, for the caller to add.
 func open_world() -> Gen2WorldScreen:
 	if not is_ready() or screen != null:
 		return screen
 	_claim_seams()
 	Gen2SaveStore.use_root("%s/%s" % [WINDOW_SAVES, client.player_id.validate_filename()])
-	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(client.player_id, {})
 	var save: Gen2SaveData = PokeCoopWorldLink.local_save(client, data)
+	var continued: Gen2WorldSnapshot = save.world if save.world != null else PokeCoopWorldLink.continued_world(client)
 	screen = (load("res://game/world/world_screen.tscn") as PackedScene).instantiate() as Gen2WorldScreen
-	var map: Vector2i = view.get("map", PokeCoopPolicy.START_MAP)
+	var map: Vector2i = continued.map_id
 	screen.map_group = map.x
 	screen.map_number = map.y
-	screen.start_cell = view.get("cell", Vector2i.ZERO)
+	screen.start_cell = continued.player_cell
 	screen.set_data(data)
 	screen.set_save(save)
 	journal.add(PokeCoopLog.WORLD, "world_open", {"map": map, "cell": screen.start_cell, "party": save.party.size()}, client.player_id)
