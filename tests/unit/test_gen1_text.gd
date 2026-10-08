@@ -119,3 +119,40 @@ func test_poke_is_four_letters() -> void:
 	assert_eq(Gen1Text.encode(Gen1Text.character(0x54)).size(), 4)
 	assert_eq(Gen1Text.encode("#DEX"), Gen1Text.encode("POKéDEX"))
 	assert_eq(Gen1Text.encode("#DEX").size(), 7)
+
+
+func after_each() -> void:
+	Gen1Text.use_language("en")
+
+
+func test_german_puts_its_accents_where_english_put_its_ligatures() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(Gen1Text.character(0xBC), "é")
+	assert_eq(Gen1Text.character(0xBD), "ù")
+	assert_eq(Gen1Text.character(0xC1), "Ö")
+	assert_eq(Gen1Text.character(0xDC), "'s")
+	assert_eq(Gen1Text.character(0xE4), "+")
+	assert_eq(Gen1Text.character(0xE5), "<E5>", "the German font leaves $E5 blank")
+	assert_eq(Gen1Text.encode("PFÜTZE"), _bytes([0x8F, 0x85, 0xC2, 0x93, 0x99, 0x84]))
+
+
+func test_switching_back_to_english_drops_the_german_table() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(Gen1Text.encode("é"), _bytes([0xBC]))
+	Gen1Text.use_language("en")
+	assert_eq(Gen1Text.character(0xBD), "'s")
+	assert_eq(Gen1Text.character(0xC1), "<C1>")
+	assert_eq(Gen1Text.encode("é"), _bytes([0xBA]))
+
+
+func test_a_german_cartridge_draws_the_engines_own_words_as_it_spells_them() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(
+		Gen2Font.fit("CANCEL", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("ZURÜCK")
+	)
+	assert_eq(Gen1LayoutDe.ui(RomRegistry.RED_DE, "Enemy %s") % "ABC", "Gegn. ABC")
+	Gen1Text.use_language("en")
+	assert_eq(
+		Gen2Font.fit("CANCEL", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("CANCEL")
+	)
+	assert_eq(Gen1LayoutDe.ui(RomRegistry.RED, "Enemy %s"), "Enemy %s")

@@ -9619,7 +9619,9 @@ const GEN1_EVENT_BEAT_BROCK: int = 119
 const GEN1_OAKS_PARCEL: int = 0x46
 const GEN1_TM34: int = 0xEA
 const GEN1_BIT_BOULDERBADGE: int = 0
-const GEN1_RIVAL_NAMES: Dictionary = {&"red": "BLUE", &"blue": "RED", &"yellow": "BLUE"}
+const GEN1_RIVAL_NAMES: Dictionary = {
+	&"red": "BLUE", &"blue": "RED", &"yellow": "BLUE", &"red_de": "BLAU", &"blue_de": "ROT",
+}
 ## The opening's walk from the north path into the lab is about 300 passes.
 const GEN1_SETTLE_PASSES: int = 1200
 
@@ -9672,7 +9674,7 @@ func _gen1_story_start(data: GameData) -> Dictionary:
 	var world: Gen2WorldAPI = Gen2WorldAPI.open_snapshot(data, spawn) if spawn != null else null
 	if world == null:
 		return {"ok": false, "reason": "missing new-game spawn"}
-	world.rival_name = String(GEN1_RIVAL_NAMES.get(data.id, "BLUE"))
+	world.rival_name = String(RomRegistry.pick(GEN1_RIVAL_NAMES, data.id, "BLUE"))
 	world.set_player_name("RED")
 	var random := RandomNumberGenerator.new()
 	random.seed = 7
@@ -9960,7 +9962,7 @@ func _gen1_oak_leg(
 	path: Array
 ) -> Dictionary:
 	var walked: Dictionary = _gen1_walk(
-		world, GEN1_PALLET_NORTH_PATH[data.id], save, random, data
+		world, RomRegistry.pick(GEN1_PALLET_NORTH_PATH, data.id), save, random, data
 	)
 	var stepped: Dictionary = _gen1_step(path, "pallet_north_path_oak", world, walked)
 	if not bool(stepped["ok"]):
@@ -9975,7 +9977,7 @@ func _gen1_lab_leg(
 	world: Gen2WorldAPI, save: Gen2SaveData, random: RandomNumberGenerator, data: GameData,
 	path: Array
 ) -> Dictionary:
-	var ball: Array = GEN1_LAB_STARTER_BALLS[data.id]
+	var ball: Array = RomRegistry.pick(GEN1_LAB_STARTER_BALLS, data.id)
 	var starter: Dictionary = _gen1_talk(
 		world, ball[0], Gen2WorldSprite.FACING_UP, save, random, data
 	)
@@ -10201,7 +10203,7 @@ func _gen1_mt_moon_leg(
 	if not bool(stepped["ok"]):
 		return stepped
 	stepped = _gen1_flag_leg(
-		path, "mt_moon_dome_fossil", world, GEN1_EVENT_GOT_DOME_FOSSIL[data.id], "EVENT_GOT_DOME_FOSSIL"
+		path, "mt_moon_dome_fossil", world, RomRegistry.pick(GEN1_EVENT_GOT_DOME_FOSSIL, data.id), "EVENT_GOT_DOME_FOSSIL"
 	)
 	if not bool(stepped["ok"]):
 		return stepped
@@ -11107,7 +11109,7 @@ func _gen1_cinnabar_leg(
 	if not bool(stepped["ok"]):
 		return stepped
 	stepped = _gen1_step(path, "route_19_surf", world, _gen1_surf(
-		world, GEN1_ROUTE_19_SHORE[data.id], Gen2WorldSprite.FACING_DOWN, save, random, data
+		world, RomRegistry.pick(GEN1_ROUTE_19_SHORE, data.id), Gen2WorldSprite.FACING_DOWN, save, random, data
 	))
 	if not bool(stepped["ok"]):
 		return stepped

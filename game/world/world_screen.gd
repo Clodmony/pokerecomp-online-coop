@@ -5635,7 +5635,7 @@ func preview_meet_visible_encounter(cell: Vector2i) -> bool:
 func preview_catch_tutorial(pikachu: bool = false) -> void:
 	if _data != null and _data.generation == RomRegistry.GEN1:
 		var raw: int = Gen1Layout.BATTLE_TYPE_PIKACHU if pikachu else Gen1Layout.BATTLE_TYPE_OLD_MAN
-		var wilds: Dictionary = Gen1Layout.TUTOR_WILDS.get(_data.id, {})
+		var wilds: Dictionary = RomRegistry.pick(Gen1Layout.TUTOR_WILDS, _data.id, {})
 		if not wilds.has(raw):
 			return
 		var values: Dictionary = {

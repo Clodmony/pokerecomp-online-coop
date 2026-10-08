@@ -36,6 +36,8 @@ const FONT_TINY: int = 11
 const GAME_TINTS: Dictionary = {
 	&"red": Color("#d2483d"),
 	&"blue": Color("#4a7ad2"),
+	&"red_de": Color("#b8392f"),
+	&"blue_de": Color("#3a66b8"),
 	&"yellow": Color("#e8cf45"),
 	&"gold": Color("#dfa63a"),
 	&"silver": Color("#93a6bd"),

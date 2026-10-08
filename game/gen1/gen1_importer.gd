@@ -312,6 +312,7 @@ const PLAYER_FRONTPICS: Array[String] = [
 
 
 static func verify_layout(rom: RomFile) -> Dictionary:
+	Gen1Text.use_language(RomRegistry.language_of(rom.id))
 	var layout: Dictionary = Gen1Layout.for_id(rom.id)
 	if layout.is_empty():
 		return {"ok": false, "message": "No layout for %s." % rom.id}
@@ -345,7 +346,7 @@ static func _verify_species_names(rom: RomFile, layout: Dictionary) -> Dictionar
 		Gen1Layout.species_name_offset(layout, slots[Gen1Layout.SPECIES_COUNT]),
 		Gen1Layout.NAME_LENGTH,
 	)
-	if first != FIRST_SPECIES_NAME or last != LAST_SPECIES_NAME:
+	if first != Gen1LayoutDe.word(rom.id, FIRST_SPECIES_NAME) or last != LAST_SPECIES_NAME:
 		return _fail("Species names read '%s' and '%s'." % [first, last])
 	return _ok()
 
@@ -384,7 +385,8 @@ static func _verify_move_names(rom: RomFile, layout: Dictionary) -> Dictionary:
 	)
 	if names.size() != Gen1Layout.MOVE_COUNT:
 		return _fail("MoveNames holds %d names." % names.size())
-	if names[0] != FIRST_MOVE_NAME or names[Gen1Layout.MOVE_COUNT - 1] != LAST_MOVE_NAME:
+	if names[0] != Gen1LayoutDe.word(rom.id, FIRST_MOVE_NAME) \
+		or names[Gen1Layout.MOVE_COUNT - 1] != Gen1LayoutDe.word(rom.id, LAST_MOVE_NAME):
 		return _fail("Move names read '%s' and '%s'." % [names[0], names[names.size() - 1]])
 	return _ok()
 
@@ -404,7 +406,7 @@ static func _verify_move_data(rom: RomFile, layout: Dictionary) -> Dictionary:
 static func _verify_type_names(rom: RomFile, layout: Dictionary) -> Dictionary:
 	var first: String = read_type_name(rom, layout, 0)
 	var last: String = read_type_name(rom, layout, Gen1Layout.TYPE_COUNT - 1)
-	if first != FIRST_TYPE_NAME or last != LAST_TYPE_NAME:
+	if first != FIRST_TYPE_NAME or last != Gen1LayoutDe.word(rom.id, LAST_TYPE_NAME):
 		return _fail("Type names read '%s' and '%s'." % [first, last])
 	return _ok()
 
@@ -421,8 +423,9 @@ static func _verify_item_names(rom: RomFile, layout: Dictionary) -> Dictionary:
 	var names: PackedStringArray = Gen1Text.decode_sequence(
 		rom.bytes(), int(layout["item_names"]), Gen1Layout.ITEM_NAME_COUNT, MAX_NAME_LENGTH
 	)
-	if names.size() != Gen1Layout.ITEM_NAME_COUNT or names[0] != FIRST_ITEM_NAME \
-		or names[-1] != LAST_FLOOR_NAME:
+	if names.size() != Gen1Layout.ITEM_NAME_COUNT \
+		or names[0] != Gen1LayoutDe.word(rom.id, FIRST_ITEM_NAME) \
+		or names[-1] != Gen1LayoutDe.word(rom.id, LAST_FLOOR_NAME):
 		return _fail("Item names open on '%s'." % (names[0] if not names.is_empty() else ""))
 	return _ok()
 
@@ -462,7 +465,7 @@ static func _verify_dex_order(rom: RomFile, layout: Dictionary) -> Dictionary:
 ## Slot 1 is Rhydon, so the first pointer leads to Rhydon's own entry.
 static func _verify_dex_entries(rom: RomFile, layout: Dictionary) -> Dictionary:
 	var entry: Dictionary = read_dex_entry(rom, layout, 1)
-	if String(entry["category"]) != "DRILL":
+	if String(entry["category"]) != Gen1LayoutDe.word(rom.id, "DRILL"):
 		return _fail("The first Pokedex entry is categorised '%s'." % entry["category"])
 	return _ok()
 
@@ -475,7 +478,7 @@ static func _verify_palettes(rom: RomFile, layout: Dictionary) -> Dictionary:
 	var colors: Array[int] = []
 	for slot: int in Gen1Layout.SUPER_PALETTE_COLORS:
 		colors.append(rom.u16le(at + slot * PokePalette.COLOR_BYTES))
-	if colors != FIRST_PALETTE_COLORS.get(rom.id, []):
+	if colors != RomRegistry.pick(FIRST_PALETTE_COLORS, rom.id, []):
 		return _fail("PAL_GREENMON reads %s." % str(colors))
 	return _ok()
 
@@ -532,13 +535,14 @@ static func _verify_font(rom: RomFile, layout: Dictionary) -> Dictionary:
 	if not rom.in_bounds(int(layout["font"]), length):
 		return _fail("FontGraphics runs past the end of the dump.")
 
-	for run: Array in Gen1Layout.FONT_INK_RUNS:
+	var german: bool = Gen1LayoutDe.is_german(rom.id)
+	for run: Array in Gen1LayoutDe.FONT_INK_RUNS if german else Gen1Layout.FONT_INK_RUNS:
 		for code: int in range(int(run[0]), int(run[1]) + 1):
 			if _font_rows(rom, layout, code).count(0) == PokeTiles.TILE_1BPP_BYTES:
 				return _fail("FontGraphics: code $%02X (%s) has no glyph." % [
 					code, Gen1Text.character(code),
 				])
-	for run: Array in Gen1Layout.FONT_BLANK_RUNS:
+	for run: Array in Gen1LayoutDe.FONT_BLANK_RUNS if german else Gen1Layout.FONT_BLANK_RUNS:
 		for code: int in range(int(run[0]), int(run[1]) + 1):
 			if _font_rows(rom, layout, code).count(0) != PokeTiles.TILE_1BPP_BYTES:
 				return _fail("FontGraphics: code $%02X has a glyph but no character." % code)
@@ -617,9 +621,6 @@ static func _verify_battle_anims(rom: RomFile, layout: Dictionary) -> Dictionary
 	return _ok()
 
 
-## Every map and tileset decodes, which is the world layout's own check: a wrong
-## table reaches a tileset number, a map size or a block index the cartridge
-## cannot hold.
 ## Each run is one contiguous block of `text_far` stubs, so a base offset that
 ## has slipped shows up as a slot that does not decode at all.
 static func _verify_facility_text(rom: RomFile, layout: Dictionary) -> Dictionary:
@@ -637,7 +638,7 @@ static func _verify_facility_text(rom: RomFile, layout: Dictionary) -> Dictionar
 			continue
 		for name: String in slots:
 			var at: int = Gen1Layout.facility_text_offset(layout, key, slots, name)
-			if facility_text(rom, at).is_empty():
+			if facility_text(rom, at).is_empty() and not Gen1LayoutDe.prints_nothing(rom.id, key, name):
 				return _fail("%s's %s box does not decode at $%05X." % [run, name, at])
 	if facility_text(rom, int(layout["mart_greeting"])).is_empty():
 		return _fail("PokemartGreetingText does not decode.")
@@ -654,9 +655,10 @@ static func _verify_intro(rom: RomFile, layout: Dictionary) -> Dictionary:
 				return _fail("the intro's %s box does not decode." % name)
 	for role: String in INTRO_NAME_TABLES:
 		var key: String = INTRO_NAME_TABLES[role]
-		if Gen1Text.decode(rom.bytes(), int(layout[key]), NEW_NAME.length()) != NEW_NAME:
+		var new_name: String = Gen1LayoutDe.word(rom.id, NEW_NAME)
+		if Gen1Text.decode(rom.bytes(), int(layout[key]), new_name.length()) != new_name:
 			return _fail("%s does not open on NEW NAME." % key)
-	for table: int in [0, Gen1Layout.ALPHABET_STRIDE]:
+	for table: int in [0, Gen1Layout.alphabet_stride(rom.id)]:
 		var end: int = int(layout["intro_alphabet"]) + table \
 			+ Gen1Layout.ALPHABET_ROWS * Gen1Layout.ALPHABET_COLUMNS - 1
 		if rom.u8(end) != Gen1Layout.CHAR_ED:
@@ -675,7 +677,7 @@ static func _verify_intro(rom: RomFile, layout: Dictionary) -> Dictionary:
 			])
 	if not Gen1Text.decode(
 		rom.bytes(), int(layout["link_menu_rows"]), Gen1Layout.CABLE_CLUB_STRING_MAX
-	).begins_with(LINK_MENU_FIRST_ROW):
+	).begins_with(Gen1LayoutDe.word(rom.id, LINK_MENU_FIRST_ROW)):
 		return _fail("CableClubOptionsText does not open on TRADE CENTER.")
 	return _ok()
 
@@ -784,7 +786,9 @@ static func _verify_slots(rom: RomFile, layout: Dictionary) -> Dictionary:
 		!= Gen1Layout.SLOTS_ATTR_BLK_ROWS:
 		return _fail("BlkPacket_Slots does not hold five ATTR_BLK rows.")
 	for name: String in Gen1Layout.SLOTS_TEXT_AT:
-		if facility_text(rom, int(layout["slots_text"]) + int(Gen1Layout.SLOTS_TEXT_AT[name])).is_empty():
+		if facility_text(rom, Gen1Layout.facility_text_offset(
+			layout, "slots_text", Gen1Layout.SLOTS_TEXT_AT, name
+		)).is_empty():
 			return _fail("The slot machine's %s box does not decode." % name)
 	return _ok()
 
@@ -963,7 +967,8 @@ static func _verify_trainer_names(rom: RomFile, layout: Dictionary) -> Dictionar
 		rom.bytes(), int(layout["trainer_names"]), Gen1Layout.TRAINER_CLASS_COUNT,
 		MAX_NAME_LENGTH,
 	)
-	if names.size() != Gen1Layout.TRAINER_CLASS_COUNT or names[0] != FIRST_TRAINER_NAME:
+	if names.size() != Gen1Layout.TRAINER_CLASS_COUNT \
+		or names[0] != Gen1LayoutDe.word(rom.id, FIRST_TRAINER_NAME):
 		return _fail("Trainer names open on '%s'." % (names[0] if not names.is_empty() else ""))
 	return _ok()
 
@@ -1059,18 +1064,19 @@ static func read_dex_entry(rom: RomFile, layout: Dictionary, index: int) -> Dict
 	var at: int = Gen1Layout.pointer_target(rom, layout, "dex_entries", index - 1)
 	var category: String = Gen1Text.decode(data, at, Gen1Layout.DEX_CATEGORY_MAX)
 	var after: int = Gen1Text.terminated_end(data, at, Gen1Layout.DEX_CATEGORY_MAX)
+	var metric: bool = Gen1LayoutDe.is_german(rom.id)
 	var feet: int = rom.u8(after)
-	var inches: int = rom.u8(after + 1)
-	var weight: int = rom.u16le(after + 2)
+	var inches: int = 0 if metric else rom.u8(after + 1)
+	after += 1 if metric else 2
+	var weight: int = rom.u16le(after)
 	var pages := PackedStringArray()
-	if rom.u8(after + 4) == Gen1Layout.DEX_TEXT_FAR:
-		var target: int = RomFile.linear(rom.u8(after + 7), rom.u16le(after + 5))
+	if rom.u8(after + 2) == Gen1Layout.DEX_TEXT_FAR:
+		var target: int = RomFile.linear(rom.u8(after + 5), rom.u16le(after + 3))
 		pages = Gen1Text.decode_dex_pages(data, target, MAX_DEX_TEXT)
 	return {
 		"category": category,
-		# Feet and inches as one decimal number, the way Generation 2 stores the
-		# same measurement: 204 is 2'04".
-		"height": feet * 100 + inches,
+		# As Generation 2 stores it, 204 is 2'04"; German keeps decimetres.
+		"height": feet if metric else feet * 100 + inches,
 		"weight": weight,
 		"pages": pages,
 	}
@@ -1126,6 +1132,7 @@ func import_rom(
 ) -> Dictionary:
 	var started: int = Time.get_ticks_msec()
 	_last_breath = started
+	Gen1Text.use_language(RomRegistry.language_of(rom.id))
 	var directory: String = RomCache.directory_for(rom.id, rom.sha1)
 	var result: Dictionary = {
 		"ok": false,
@@ -1654,16 +1661,20 @@ func _import_vending(rom: RomFile, layout: Dictionary, items: Array) -> Array:
 	).split(Gen1Text.CONTROL_CHARACTERS[Gen1Text.NEXT_LINE])
 	var out: Array = []
 	for row: int in Gen1Layout.VENDING_ROWS:
-		var at: int = head + Gen1Layout.VENDING_PRICES_AT + row * Gen1Layout.VENDING_ROW_SIZE
+		var at: int = Gen1Layout.pinned(
+			layout, "vending_text", "prices", head + Gen1Layout.VENDING_PRICES_AT
+		) + row * Gen1Layout.VENDING_ROW_SIZE
 		out.append({"item": rom.u8(at), "price": _bcd3(rom, at + 1)})
-	return out if _vending_names_agree(drawn, out, items) else []
+	return out if _vending_names_agree(drawn, out, items, rom.id) else []
 
 
 ## `DrinkText` is written by hand rather than read off `ItemNames`, so an offset
 ## that has moved shows up as a machine selling something else.
-func _vending_names_agree(drawn: PackedStringArray, rows: Array, items: Array) -> bool:
+func _vending_names_agree(
+	drawn: PackedStringArray, rows: Array, items: Array, game: StringName
+) -> bool:
 	if drawn.size() != Gen1Layout.VENDING_ROWS + 1 \
-		or drawn[Gen1Layout.VENDING_ROWS] != Gen1Layout.VENDING_CANCEL:
+		or drawn[Gen1Layout.VENDING_ROWS] != Gen1LayoutDe.word(game, Gen1Layout.VENDING_CANCEL):
 		return false
 	for row: int in Gen1Layout.VENDING_ROWS:
 		var number: int = int((rows[row] as Dictionary)["item"])
@@ -1756,7 +1767,7 @@ func _import_alphabets(rom: RomFile, layout: Dictionary) -> Array:
 	for table: int in [Gen1Layout.ALPHABET_UPPER, Gen1Layout.ALPHABET_LOWER]:
 		var at: int = int(layout["intro_alphabet"])
 		if table == Gen1Layout.ALPHABET_UPPER:
-			at += Gen1Layout.ALPHABET_STRIDE
+			at += Gen1Layout.alphabet_stride(rom.id)
 		var rows: Array = []
 		for row: int in Gen1Layout.ALPHABET_ROWS:
 			var codes: Array[int] = []
@@ -1770,7 +1781,7 @@ func _import_alphabets(rom: RomFile, layout: Dictionary) -> Array:
 
 static func _label_codes(rom: RomFile, at: int) -> Array[int]:
 	var out: Array[int] = []
-	for index: int in Gen1Layout.ALPHABET_LABEL_LENGTH:
+	for index: int in Gen1Layout.alphabet_label_length(rom.id):
 		var code: int = rom.u8(at + index)
 		if code == Gen1Text.TERMINATOR:
 			break
@@ -1829,7 +1840,8 @@ func _import_cable_club_strings(rom: RomFile, layout: Dictionary) -> Dictionary:
 	for name: String in CABLE_CLUB_STRINGS:
 		var row: Array = CABLE_CLUB_STRINGS[name]
 		out[name] = Gen1Text.decode(
-			rom.bytes(), int(layout[String(row[0])]) + int(row[1]),
+			rom.bytes(),
+			Gen1Layout.pinned(layout, row[0], name, int(layout[String(row[0])]) + int(row[1])),
 			Gen1Layout.CABLE_CLUB_STRING_MAX
 		).replace(String(Gen1Text.CONTROL_CHARACTERS[Gen1Text.NEXT_LINE]), "\n")
 	return out
@@ -2212,9 +2224,9 @@ static func read_slots(rom: RomFile, layout: Dictionary) -> Dictionary:
 func _import_slots_text(rom: RomFile, layout: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
 	for name: String in Gen1Layout.SLOTS_TEXT_AT:
-		out[name] = facility_text(
-			rom, int(layout["slots_text"]) + int(Gen1Layout.SLOTS_TEXT_AT[name])
-		)
+		out[name] = facility_text(rom, Gen1Layout.facility_text_offset(
+			layout, "slots_text", Gen1Layout.SLOTS_TEXT_AT, name
+		))
 	return out
 
 
@@ -3032,7 +3044,7 @@ func _import_tiles(rom: RomFile, layout: Dictionary) -> Dictionary:
 			continue
 		run["offset"] = int(layout[run["pin"]])
 		if run["tiles"] is Dictionary:
-			run["tiles"] = int(run["tiles"].get(rom.id, 0))
+			run["tiles"] = int(RomRegistry.pick(run["tiles"], rom.id, 0))
 		sheets[sheet] = run
 	var directory: String = RomCache.directory_for(rom.id, rom.sha1)
 	var out: Dictionary = {}

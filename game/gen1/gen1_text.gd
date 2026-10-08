@@ -69,6 +69,15 @@ const EXTRA_CHARACTERS: Dictionary = {
 	0xF0: "¥", 0xF1: "×", 0xF2: ".", 0xF3: "/", 0xF4: ",", 0xF5: "♀",
 }
 
+const GERMAN_CHARACTERS: Dictionary = {
+	0xBA: "à", 0xBB: "è", 0xBC: "é", 0xBD: "ù", 0xBE: "ß", 0xBF: "ç",
+	0xC0: "Ä", 0xC1: "Ö", 0xC2: "Ü", 0xC3: "ä", 0xC4: "ö", 0xC5: "ü", 0xC6: "ë",
+	0xC7: "ï", 0xC8: "â", 0xC9: "ô", 0xCA: "û", 0xCB: "ê", 0xCC: "î",
+	0xD4: "c'", 0xD5: "d'", 0xD6: "j'", 0xD7: "l'", 0xD8: "m'", 0xD9: "n'",
+	0xDA: "p'", 0xDB: "s'", 0xDC: "'s", 0xDD: "t'", 0xDE: "u'", 0xDF: "y'", 0xE4: "+",
+}
+const GERMAN_UNMAPPED: Array[int] = [0xE5]
+
 ## `font_extra.png`, which `LoadTextBoxTilePatterns` parks at $60. Ordinary text
 ## prints the ellipsis, the quotes and the dot, so those encode as well as decode.
 const FONT_EXTRA_CHARACTERS: Dictionary = {
@@ -108,6 +117,19 @@ const MAX_LIGATURE: int = 2
 
 static var _table: Dictionary = {}
 static var _codes: Dictionary = {}
+static var _language: String = "en"
+
+
+static func use_language(language: String) -> void:
+	if language == _language:
+		return
+	_language = language
+	_table = {}
+	_codes = {}
+
+
+static func language() -> String:
+	return _language
 
 
 ## `TextBoxBorder`: the rows of a box around an [param inner] interior, as codes.
@@ -284,6 +306,10 @@ static func _characters() -> Dictionary:
 		table[0xF6 + i] = char("0".unicode_at(0) + i)
 	table[SPACE] = " "
 	table.merge(EXTRA_CHARACTERS)
+	if _language == "de":
+		table.merge(GERMAN_CHARACTERS, true)
+		for code: int in GERMAN_UNMAPPED:
+			table.erase(code)
 	table.merge(FONT_EXTRA_CHARACTERS)
 	table.merge(CONTROL_CHARACTERS)
 	_table = table

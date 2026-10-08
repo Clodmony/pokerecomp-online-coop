@@ -35,7 +35,7 @@ godot="${GODOT:?set GODOT to the Godot 4.8-dev4 binary}"
 real_user="${REAL_USER_DIR:-$HOME/.local/share/godot/app_userdata/pokerecomp}"
 case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&2; exit 2 ;; esac
 
-GAME=red DURATION=60 P2_DELAY=4 HOST_ARGS="" P1_ARGS="" P2_ARGS="" P1_TOOL=coop_play P2_TOOL=coop_play HOST_TOOL=coop_session
+GAME="${GAME:-red}" DURATION=60 P2_DELAY=4 HOST_ARGS="" P1_ARGS="" P2_ARGS="" P1_TOOL=coop_play P2_TOOL=coop_play HOST_TOOL=coop_session
 declare -A keys=([p1]="" [p2]="") shots=([p1]="" [p2]="") closes=()
 start_frames=90 slot_frames=18 fps=60
 

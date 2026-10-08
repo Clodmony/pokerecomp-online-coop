@@ -187,7 +187,7 @@ func _clean_frame(frame: Image) -> Image:
 	if frame == null:
 		return null
 	frame.fill_rect(
-		Rect2i(0, 0, frame.get_width(), int(LETTERING_BOTTOM.get(_data.id, 60))),
+		Rect2i(0, 0, frame.get_width(), int(RomRegistry.pick(LETTERING_BOTTOM, _data.id, 60))),
 		frame.get_pixel(0, 0),
 	)
 	# Preserve each profile's lower-band colour instead of imposing a colour of

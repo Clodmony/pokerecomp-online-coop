@@ -552,14 +552,14 @@ static func gen1_leave_steps(kind: StringName, id: StringName, image: int) -> Ar
 static func gen1_enter_steps(kind: StringName, id: StringName, image: int, on_pad: bool) -> Array:
 	var loading: Dictionary = PLAYER_ANIM_PAD_LOAD_FRAMES if kind == &"pad" \
 		else PLAYER_ANIM_SPECIAL_LOAD_FRAMES
-	var steps: Array = [{"hold": int(loading[id])}]
+	var steps: Array = [{"hold": int(RomRegistry.pick(loading, id))}]
 	var arrived: Dictionary = _standing(image)
 	arrived["y"] = PLAYER_ANIM_OFF_SCREEN_Y
 	arrived["hold"] = PLAYER_ANIM_SETUP_FRAMES
 	steps.append(arrived)
 	steps.append_array(_fade_steps(PLAYER_ANIM_FADE_IN_ROWS, id))
 	if kind == &"fly":
-		steps.append({"hold": int(PLAYER_ANIM_BIRD_ENTER_LOAD_FRAMES[id])})
+		steps.append({"hold": int(RomRegistry.pick(PLAYER_ANIM_BIRD_ENTER_LOAD_FRAMES, id))})
 		steps.append({"sfx": Gen1Sfx.SFX_FLY})
 		steps.append_array(_fly_flaps(
 			PLAYER_ANIM_FLY_BACK_IMAGE, Gen1Layout.FLY_ENTER_COORDS.size(),

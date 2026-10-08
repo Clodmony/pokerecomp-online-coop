@@ -155,6 +155,11 @@ Red (or Blue) cartridge, the same one.
 | P02 | Tap or click panel rows | First tap moves the cursor, the second chooses | `test_a_tap_on_a_row_moves_the_cursor...` | | |
 | P03 | A tall (portrait) window in a battle | The panel sits under the battle field | | | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |
+| G01 | A German campaign and an English window, or the reverse | The host refuses the join ("same game file"); campaigns, caches and saves stay apart by id (D95) | `test_coop_session` (stranger test) | | |
+| G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
+| G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |
+| G04 | A German Pokédex entry | Height in m and weight in kg | | | |
+| G05 | Blaue Edition from the opening to BROCK in two windows | Both reach BROCK's badge | | not yet run | |
 
 ## Logs
 
