@@ -126,6 +126,27 @@ func test_a_campaign_save_brings_back_both_players_and_the_shared_progress() -> 
 	)
 
 
+func test_the_teams_gate_drink_is_saved_with_the_campaign_and_a_drink_a_player_kept_moves_to_it() -> void:
+	var drink: int = Gen1Layout.status_flag_1(PokeCoopOwnership.SAFFRON_DRINK_BIT)
+	var strength: int = Gen1Layout.status_flag_1(Gen1Layout.STRENGTH_ACTIVE_BIT)
+	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	campaign.commit("victory:trainer:brock", {"badges": 1})
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	red.world["engine_flags"] = {drink: true, strength: true}
+	var blue := PokeCoopPlayer.create("p2", "BLUE", 200)
+
+	var raw: Variant = JSON.parse_string(JSON.stringify(PokeCoopSave.to_dict(campaign, [red, blue])))
+	var loaded: Dictionary = PokeCoopSave.from_dict(raw)
+
+	var back: PokeCoopCampaign = loaded["campaign"]
+	var badges: Array[int] = PokeCoopOwnership.badge_flags(_data)
+	assert_eq(back.world_part(badges)["engine_flags"], {badges[0]: true, drink: true}, "a save from before D91")
+	assert_eq((loaded["players"][0] as PokeCoopPlayer).world["engine_flags"], {strength: true})
+	var again: Dictionary = PokeCoopSave.from_dict(JSON.parse_string(JSON.stringify(
+		PokeCoopSave.to_dict(back, loaded["players"]))))
+	assert_eq(PokeCoopSave.to_dict(again["campaign"], again["players"]), PokeCoopSave.to_dict(back, loaded["players"]))
+
+
 func test_the_checkpoint_before_the_last_is_kept_and_never_replaced_by_a_damaged_one() -> void:
 	var backup: String = SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX
 	var red := PokeCoopPlayer.create("p1", "RED", 100)

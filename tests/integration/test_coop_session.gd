@@ -2002,6 +2002,32 @@ func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
 	assert_false(blue.state.is_event_flag_active(Gen1Layout.SAFARI_GAME_OVER_EVENT), "nor does Red's game end Blue's")
 
 
+const ROUTE_7_GATE := Vector2i(0, 76)
+
+
+func test_one_players_drink_lets_both_through_saffrons_gates_and_the_other_status_bits_stay_each_players() -> void:
+	var drink: int = Gen1Layout.status_flag_1(PokeCoopOwnership.SAFFRON_DRINK_BIT)
+	var strength: int = Gen1Layout.status_flag_1(Gen1Layout.STRENGTH_ACTIVE_BIT)
+	var surf: int = Gen1Layout.status_flag_1(Gen1Layout.SURF_ALLOWED_BIT)
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, ROUTE_7_GATE)
+
+	red.state.set_engine_flag(drink)
+	red.state.set_engine_flag(strength)
+	blue.state.set_engine_flag(surf)
+	_pump()
+
+	assert_true(blue.state.is_engine_flag_active(drink), "Blue, in a gate with no drink of its own, walks on")
+	var shared: Dictionary = _host.campaign.world_part(PokeCoopOwnership.badge_flags(_data))
+	assert_true((shared["engine_flags"] as Dictionary).has(drink), "the drink is the campaign's")
+	assert_eq(_host.campaign.badges, 0, "and no badge")
+	assert_false((_host.player(_red.player_id).world_part().get("engine_flags", {}) as Dictionary).has(drink))
+	assert_false(blue.state.is_engine_flag_active(strength), "Red's STRENGTH stays Red's")
+	assert_false(red.state.is_engine_flag_active(surf), "and Blue's surf check Blue's")
+	assert_true(red.state.is_engine_flag_active(strength) and blue.state.is_engine_flag_active(surf))
+
+
 const LORELEI_BEATEN: int = 0x8E1
 const INTO_LORELEIS_ROOM: int = 0x8E6
 const BRUNO_BEATEN: int = 0x8E9

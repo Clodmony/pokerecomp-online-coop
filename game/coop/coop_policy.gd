@@ -229,9 +229,8 @@ static func _stow(player: PokeCoopPlayer, item: int, count: int) -> void:
 	player.world["pc_items"] = stored
 
 
-## A trainer brought from a single-player save: their team, PC, bag, money, place
-## and own world keys, and with [param story] that campaign's flags, badges and
-## world too. Only a campaign's first player brings the story.
+## A trainer brought from a single-player save: their team, PC, bag, money, place and own world keys, and with
+## [param story] that campaign's flags, badges and world too. Only a campaign's first player brings the story.
 static func import_save(
 	save: Gen2SaveData, player: PokeCoopPlayer, story: PokeCoopCampaign, badge_flags: Array[int], own: Dictionary = {}
 ) -> void:

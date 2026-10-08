@@ -1,17 +1,18 @@
 class_name PokeCoopOwnership
 extends RefCounted
 
-## Who owns each piece of single-player state in a co-op run: the CAMPAIGN all
-## players share, one PLAYER, or this window alone (LOCAL). `test_coop_ownership`
-## fails on a field missing here, so a new one is classified when it lands.
+## Who owns each piece of single-player state in a co-op run: the CAMPAIGN all players share, one PLAYER, or this
+## window alone (LOCAL). `test_coop_ownership` fails on a field missing here, so a new one is classified when it lands.
 ## Synced keys travel as patches: a Dictionary as `{set, erase}`, else `{value}`.
 
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Owned entry by entry: the campaign keeps the badges among the engine flags, Vermilion Gym's locks among the Gen 1
-## bytes, every event flag and object but a player's own, and every map script but one walk's, the gyms' and the Elite Four's.
+## Owned entry by entry: the campaign keeps the badges and the team's gate drink (D91) among the engine flags, Vermilion
+## Gym's locks among the Gen 1 bytes, every event flag and object but a player's own, and every map script but one walk's,
+## the gyms' and the Elite Four's. The drink's bit sits in a Generation 1 run no Generation 2 world sets.
 const BY_FLAG: StringName = &"by_flag"
+const SAFFRON_DRINK_BIT: int = 6
 const CAMPAIGN_BYTES: Array[String] = [
 	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
 ]
@@ -205,6 +206,10 @@ static func route(changes: Dictionary, badges: Array[int], own: Dictionary = {})
 	return out
 
 
+static func campaign_engine_flag(flag: int, badges: Array[int]) -> bool:
+	return badges.has(flag) or flag == Gen1Layout.status_flag_1(SAFFRON_DRINK_BIT)
+
+
 static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Array, out: Dictionary) -> void:
 	var halves: Dictionary = {CAMPAIGN: {"set": {}, "erase": []}, PLAYER: {"set": {}, "erase": []}}
 	var shared: Callable = func(flag: Variant) -> bool:
@@ -212,7 +217,7 @@ static func _split_flags(key: String, change: Dictionary, badges: Array[int], ow
 			return CAMPAIGN_BYTES.has(flag)
 		if key == "gen1_map_scripts":
 			return not PLAYER_MAP_SCRIPTS.values().has(int(flag))
-		return badges.has(int(flag)) if key == "engine_flags" else not own.has(int(flag))
+		return campaign_engine_flag(int(flag), badges) if key == "engine_flags" else not own.has(int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
 		var half: Dictionary = halves[CAMPAIGN if shared.call(flag) else PLAYER]
