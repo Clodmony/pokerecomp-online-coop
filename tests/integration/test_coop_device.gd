@@ -74,6 +74,14 @@ func test_a_device_hosts_and_another_joins_with_their_own_starters() -> void:
 	assert_true(hosting.host.campaign.has_flag(0x22), "a new campaign starts after Oak's intro")
 
 
+func test_a_reset_with_no_world_open_is_left_to_the_game() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+
+	assert_false(hosting.continue_after_reset(), "Oak's speech or the launcher resets as it always did")
+
+
 func _until(condition: Callable, wait_msec: int) -> bool:
 	var deadline: int = Time.get_ticks_msec() + wait_msec
 	while Time.get_ticks_msec() < deadline:

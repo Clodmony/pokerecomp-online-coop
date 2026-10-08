@@ -18,20 +18,22 @@ keep the snapshot below current.
     D80 (a checkpoint only on a real SAVE).
   - The chained run's Rocket Hideout car stall was the autopilot choosing the
     wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
-    The chained run from a new campaign is to be re-run.
+    The chained run then stalled on Pokémon Tower 7F for a partner arriving
+    after Mr. Fuji's rescue (`coop/tower-7f-late`, in progress).
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
     Victory Road; unfinished.
-  - `coop/autoplay-elite` (WIP commit, includes an unfinished
-    `coop_world_link.gd` change): Elite Four and Hall of Fame; unfinished.
+  - `coop/autoplay-elite` merged (D87 provisional, D88): the Elite Four, the
+    Champion and each player's Hall of Fame, chained after `blaine` until
+    `victory` lands between them.
   - Questions for the owner: should Saffron's gate guards be the campaign's
     (today each player hands over their own drink, D85)? How should a shared
-    Elite Four run work (both together; the Hall of Fame resets the Elite
-    Four's flags for everyone)?
+    Elite Four run work? Built provisionally as D87 (each player's own run,
+    the members one encounter for the campaign); confirm or choose otherwise.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D87 (D72 to D86 are recorded).
+- **Next free decision number:** D89 (D72 to D88 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.

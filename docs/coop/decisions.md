@@ -1240,3 +1240,38 @@ player's right answer opens the gate for both. A Generation 1 window reopened
 on a water cell starts surfing, as a Continue does, since the host keeps the
 position but not `wWalkBikeSurfState`. The SECRET KEY is a shared key item;
 VOLCANOBADGE is the campaign's and TM38 is given once to each player.
+
+## D87. Each player's Elite Four run is their own (provisional, #88, 2026-10-08)
+
+The Indigo Plateau run flags 0x8E0 to 0x901 and the script bytes of the four
+rooms and the Hall of Fame are each player's (`PokeCoopPolicy.ELITE_FOUR_RUN`,
+`PLAYER_MAP_SCRIPTS`). The lobby after a whiteout and the Hall of Fame clear
+that range, so shared flags would let one player's reset undo the partner's
+run. As with every trainer, the members and the Champion are one encounter
+for the campaign: a partner who joined, or who arrives later, talks to the
+member and the host's `encounter_done` ends the fight at once as won, setting
+that player's own flag. The Champion's room keeps its per-player byte and has
+no rival-scene lock (D84): the scene gives no items, and two windows meeting
+him at once join one battle. The Hall of Fame's hiding of the Cerulean Cave
+guard stays the campaign's. Costs: rematches after the first Hall of Fame are
+wins without a fight; a partner who never fought gets the same instant wins;
+the host keeps no Hall of Fame records, so the PC's list is empty after the
+reopen. Asked of the owner: confirm, or have a joined win set the joiner's
+flag through the host, or forget the League's `defeated` once everyone is
+inducted.
+
+## D88. A side that wins blacks out nobody; a reset continues the co-op world (#88, 2026-10-08)
+
+Generation 1 checks for a living party member after every battle, so the
+initiator of a joined win whose own team fell was blacked out to the Plateau.
+The takeover now reports `team_won` and the world skips that check, so only
+lost battles white out, as `design.md` says. The Generation 1 Hall of Fame
+saves and then resets: any save the world reports (`save_written`) now sends
+the scene so far, as a real SAVE does (D80), and `Gen2GameRuntime.restart()`
+lets the session freeze the world, wait until the host has applied what was
+sent, and reopen it as a Continue. A player the credits left in the Hall of
+Fame flies to Pallet Town, the cartridge's own Continue rule, and the reopened
+panel drops finished battles. A reset in a co-op window continues the same way
+instead of dropping to the saves page. Costs: both players land on the same
+Pallet Town cell; play time comes back from the host; the reset writes one
+extra checkpoint.

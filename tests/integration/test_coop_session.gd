@@ -651,7 +651,7 @@ func test_a_battle_the_world_opens_is_fought_on_the_host_and_hands_back_the_part
 	_fight_out(battle_id)
 	bridge.call("_process", 0.0)
 
-	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 	assert_eq(
 		(context["player_party"] as Gen2Party).mons[0].exp,
 		_host.player(_red.player_id).team[0]["mon"].exp,
@@ -670,8 +670,26 @@ func test_the_world_whites_out_its_own_player_and_the_host_does_not_charge_twice
 	_fight_out(_battle_of(_blue))
 	bridge.call("_process", 0.0)
 
-	assert_eq(results, [{"outcome": &"lost"}])
+	assert_eq(results, [{"outcome": &"lost", "team_won": false}])
 	assert_eq(_host.player(_blue.player_id).money, PokeCoopPolicy.NEW_PLAYER_MONEY)
+
+
+func test_a_side_that_wins_whites_out_nobody_whose_own_team_fell() -> void:
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var context: Dictionary = _opened_by_world(blue, Gen2Party.of(
+		Gen2BattleMon.create(_data, Fixture.GEODUDE, 30, [Fixture.SLASH])
+	))
+	var results: Array = []
+	var bridge: Node = _take_over(_blue, context, results)
+	var battle_id: String = _battle_of(_blue)
+	_send(func() -> void: _red.join_battle(battle_id))
+
+	_fight_out(battle_id)
+	bridge.call("_process", 0.0)
+
+	var blue_team: Array = _host.player(_blue.player_id).team
+	assert_true(blue_team.all(func(row: Dictionary) -> bool: return (row["mon"] as Gen2SaveMon).hp == 0), "Blue's team fell")
+	assert_eq(results, [{"outcome": &"won", "team_won": true}], "but Red's won it, so Blue's world is told not to black out")
 
 
 func test_one_trainer_opened_in_two_windows_is_one_battle_both_fight() -> void:
@@ -698,8 +716,8 @@ func test_one_trainer_opened_in_two_windows_is_one_battle_both_fight() -> void:
 	red_bridge.call("_process", 0.0)
 	blue_bridge.call("_process", 0.0)
 
-	assert_eq(red_results, [{"outcome": &"won"}])
-	assert_eq(blue_results, [{"outcome": &"won"}])
+	assert_eq(red_results, [{"outcome": &"won", "team_won": true}])
+	assert_eq(blue_results, [{"outcome": &"won", "team_won": true}])
 	var prizes: Dictionary = _blue.battle(battle_id)["prizes"]
 	assert_eq(prizes.keys().size(), 2, "each player is told their own share")
 	assert_eq(int(prizes[_red.player_id]) + int(prizes[_blue.player_id]) + PokeCoopPolicy.NEW_PLAYER_MONEY * 2,
@@ -718,8 +736,9 @@ func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -
 	), results)
 	bridge.call("_process", 0.0)
 
-	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 	assert_true(_host.battles.is_empty())
+	assert_true(PokeCoopBattlePanel.REFUSALS.has(_blue.last_rejection()), "the panel says it counts as won, not refused")
 
 
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
@@ -1549,7 +1568,7 @@ func test_the_rival_fight_of_an_opening_is_the_players_own() -> void:
 	assert_false(_blue.state["battles"].any(func(running: Dictionary) -> bool: return not bool(running["private"])))
 	_fight_out(battle_id)
 	bridge.call("_process", 0.0)
-	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 	var encounter_id: String = "trainer:%d:0" % Fixture.GEN1_LEADER
 	assert_eq(_host.campaign.encounter_state(encounter_id), PokeCoopCampaign.ENCOUNTER_FREE,
 		"the campaign's own fight with that trainer is still to come")
@@ -1756,7 +1775,7 @@ func test_a_fight_the_world_opens_waits_until_the_pokemon_it_left_are_back() -> 
 	assert_true(fresh != "" and fresh != battle_id, "then it starts on the host")
 	_fight_out(fresh)
 	bridge.call("_process", 0.0)
-	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 
 
 func test_each_player_is_given_their_own_eevee_and_dojo_pokemon() -> void:
@@ -1983,6 +2002,82 @@ func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
 	assert_false(blue.state.is_event_flag_active(Gen1Layout.SAFARI_GAME_OVER_EVENT), "nor does Red's game end Blue's")
 
 
+const LORELEI_BEATEN: int = 0x8E1
+const INTO_LORELEIS_ROOM: int = 0x8E6
+const BRUNO_BEATEN: int = 0x8E9
+const CHAMPION_BEATEN: int = 0x901
+const LORELEIS_ROOM_SCRIPT: int = 93
+
+
+func test_each_players_elite_four_run_is_their_own_and_their_hall_of_fame_clears_only_it() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
+		red.state.set_event_flag(flag)
+	red.state.set_gen1_map_script(LORELEIS_ROOM_SCRIPT, 3)
+	blue.state.set_event_flag(INTO_LORELEIS_ROOM)
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(LORELEI_BEATEN), "Blue meets LORELEI on its own run")
+	assert_eq(blue.state.gen1_map_script(LORELEIS_ROOM_SCRIPT), 0, "and its room's script stays Blue's")
+	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
+		assert_false(_host.campaign.has_flag(flag), "0x%X is no campaign flag" % flag)
+	assert_true(_host.player(_red.player_id).world_part().get("event_flags", {}).has(BRUNO_BEATEN))
+
+	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
+		red.state.clear_event_flag(flag)
+	red.state.set_hall_of_fame()
+	_pump()
+	assert_true(blue.state.is_event_flag_active(INTO_LORELEIS_ROOM), "Red's Hall of Fame leaves Blue's run where it is")
+	assert_false(blue.state.hall_of_fame(), "and Blue is not inducted with Red")
+	assert_false(_host.player(_red.player_id).world_part().get("event_flags", {}).has(BRUNO_BEATEN))
+	assert_true(_host.player(_blue.player_id).world_part().get("event_flags", {}).has(INTO_LORELEIS_ROOM))
+
+
+func test_a_save_the_story_makes_sends_its_scene_and_a_world_reset_behind_it_waits_for_the_host() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	red.busy = &"script"
+	red.state.set_event_flag(0x30B)
+	red.note_save_written()
+
+	var waited: int = red.flush()
+	assert_lt(int(_red.state.get("last_seq", 0)), waited, "the Hall of Fame's world goes before the host has it")
+	_pump()
+	assert_true(int(_red.state.get("last_seq", 0)) >= waited)
+	assert_true(_host.campaign.has_flag(0x30B), "the scene so far went out with the SAVE, as START > SAVE's does")
+	assert_true((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).has_flag(0x30B))
+
+	red.state.set_event_flag(0x30C)
+	red.note_save_written()
+	_pump()
+	assert_true(_host.campaign.has_flag(0x30C), "a SAVE the world makes at its next frame sends its scene too")
+
+
+func test_a_world_continued_after_a_reset_shows_no_closed_battle_again() -> void:
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	_fight_out(_battle_of(_red))
+	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
+	assert_eq(String(panel.battle_view().get("outcome", "")), "won", "a new panel shows a result nobody closed")
+
+	panel.dismiss_finished()
+	assert_true(panel.battle_view().is_empty(), "the world the reset reopened starts with none")
+
+
+func test_a_player_the_credits_left_in_the_hall_of_fame_continues_in_pallet_town() -> void:
+	var landing: Dictionary = {"x": 5, "y": 6}
+	var saved := Gen2WorldSnapshot.new()
+	saved.map_id = PokeCoopWorldLink.HALL_OF_FAME
+	saved.player_cell = Vector2i(4, 2)
+	saved.world_state = Gen2WorldState.new()
+
+	PokeCoopWorldLink.after_the_credits(saved, landing)
+	assert_eq(saved.map_id, PokeCoopWorldLink.HALL_OF_FAME, "not inducted yet: the Hall's own script has to run")
+	saved.world_state.set_hall_of_fame()
+	PokeCoopWorldLink.after_the_credits(saved, landing)
+	assert_eq([saved.map_id, saved.player_cell, saved.player_facing],
+		[PokeCoopPolicy.START_MAP, Vector2i(5, 6), Gen2WorldSprite.FACING_DOWN], "MainMenu's fly warp home")
+
+
 func test_a_partner_entering_vermilion_city_leaves_the_switches_where_someone_searches() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
@@ -2088,7 +2183,7 @@ func test_a_long_scene_with_a_battle_in_it_reaches_the_partner_only_when_it_ends
 		red.advance()
 	_pump()
 
-	assert_eq(results, [{"outcome": &"won"}], "the battle in the scene was fought on the host")
+	assert_eq(results, [{"outcome": &"won", "team_won": true}], "the battle in the scene was fought on the host")
 	assert_false(_host.campaign.has_flag(0x307) or _host.campaign.has_flag(0x308), "40 seconds in, nothing has gone out")
 	assert_false(blue.state.event_flags().has(0x307))
 	red.busy = &""
@@ -2304,7 +2399,7 @@ func test_the_first_window_into_a_rival_scene_drives_it_and_a_partner_there_wait
 	_send(func() -> void: _blue.join_battle(battle_id))
 	_fight_out(battle_id)
 	bridge.call("_process", 0.0)
-	assert_eq(results, [{"outcome": &"won"}])
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 	assert_true((_blue.battle(battle_id).get("participants", []) as Array).has(_blue.player_id), "Blue joined the rival battle with SELECT")
 	assert_eq(blue.scene_driver, _red.player_id, "the scene goes on after its battle")
 	assert_false(_sees_rival_beaten(blue))
@@ -2381,7 +2476,7 @@ func test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_on
 	_fight_out(_battle_of(_red))
 	red_bridge.call("_process", 0.0)
 	blue_bridge.call("_process", 0.0)
-	assert_eq([red_results, blue_results], [[{"outcome": &"won"}], [{"outcome": &"won"}]])
+	assert_eq([red_results, blue_results], [[{"outcome": &"won", "team_won": true}], [{"outcome": &"won", "team_won": true}]])
 
 	_rival_scene_ends(blue)
 	assert_eq(_host.scenes, {ROUTE_22: _red.player_id}, "Blue gives back nothing it did not hold")
