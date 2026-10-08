@@ -1141,20 +1141,20 @@ const ROUTE_19_SHORE := Vector2i(8, 9)
 const ROUTE_20_NORTH_FIELD := Vector2i(61, 3)
 const ROUTE_20_SEAFOAM_WEST := Vector2i(48, 5)
 const ROUTE_20_EAST_BEACH := Vector2i(58, 11)
-## upstream's GEN1_SEAFOAM_PUZZLE as rows [kind, label, cell, direction or map, pushes or still surfing]; the partner walks the calm way.
+## upstream's GEN1_SEAFOAM_PUZZLE as rows [kind, label, cell, direction or map, pushes or still surfing, hole flag]; the partner walks the calm way.
 const SEAFOAM_PUZZLE: Array = [
 	["strength", "seafoam_1f_strength"],
 	["push", "seafoam_1f_boulder_1_up", Vector2i(18, 11), Vector2i.UP, 4],
-	["push", "seafoam_1f_boulder_1_into_hole", Vector2i(19, 6), Vector2i.LEFT, 1],
+	["push", "seafoam_1f_boulder_1_into_hole", Vector2i(19, 6), Vector2i.LEFT, 1, 1294],
 	["push", "seafoam_1f_boulder_2_left", Vector2i(27, 7), Vector2i.LEFT, 2],
-	["push", "seafoam_1f_boulder_2_into_hole", Vector2i(24, 8), Vector2i.UP, 1],
+	["push", "seafoam_1f_boulder_2_into_hole", Vector2i(24, 8), Vector2i.UP, 1, 1295],
 	["warp", "seafoam_1f_east_ladder", Vector2i(25, 3), 159],
-	["push", "seafoam_b1f_boulder_2_into_hole", Vector2i(21, 6), Vector2i.RIGHT, 1],
+	["push", "seafoam_b1f_boulder_2_into_hole", Vector2i(21, 6), Vector2i.RIGHT, 1, 2497],
 	["warp", "seafoam_b1f_east_ladder_up", Vector2i(25, 3), 192],
 	["warp", "seafoam_1f_to_b1f", Vector2i(7, 5), 159],
-	["push", "seafoam_b1f_boulder_1_into_hole", Vector2i(16, 6), Vector2i.RIGHT, 1],
+	["push", "seafoam_b1f_boulder_1_into_hole", Vector2i(16, 6), Vector2i.RIGHT, 1, 2496],
 	["warp", "seafoam_b1f_northwest_ladder", Vector2i(4, 2), 160],
-	["push", "seafoam_b2f_boulder_1_into_hole", Vector2i(17, 6), Vector2i.RIGHT, 1],
+	["push", "seafoam_b2f_boulder_1_into_hole", Vector2i(17, 6), Vector2i.RIGHT, 1, 2504],
 	["warp", "seafoam_b2f_northwest_ladder_up", Vector2i(5, 3), 159],
 	["warp", "seafoam_b1f_to_b2f", Vector2i(13, 7), 160],
 	["warp", "seafoam_b2f_to_b3f", Vector2i(5, 13), 161],
@@ -1162,7 +1162,7 @@ const SEAFOAM_PUZZLE: Array = [
 	["walk", "seafoam_b4f_pool_stairs", Vector2i(23, 5)],
 	["warp", "seafoam_b4f_pocket_ladder", Vector2i(25, 4), 161],
 	["warp", "seafoam_b3f_pocket_ladder", Vector2i(25, 3), 160],
-	["push", "seafoam_b2f_boulder_2_into_hole", Vector2i(24, 6), Vector2i.LEFT, 1],
+	["push", "seafoam_b2f_boulder_2_into_hole", Vector2i(24, 6), Vector2i.LEFT, 1, 2505],
 	["warp", "seafoam_b2f_pocket_ladder_down", Vector2i(25, 3), 161],
 	["warp", "seafoam_b3f_pocket_down", Vector2i(25, 4), 162],
 	["surf", "seafoam_b4f_surf_back", Vector2i(23, 5), 162, true],
@@ -1348,7 +1348,8 @@ func _seafoam_legs() -> Array:
 			"strength":
 				legs.append([row[1], _use_strength, func(world: Gen2WorldAPI) -> bool: return world.strength_active()])
 			"push":
-				legs.append([row[1], _push(row[2], row[3], int(row[4])), _pushed(row[2], row[3], int(row[4]))])
+				var hole: int = int(row[5]) if row.size() > 5 else -1
+				legs.append([row[1], _push(row[2], row[3], int(row[4])), _pushed(row[2], row[3], int(row[4]), hole)])
 			"warp":
 				legs.append([row[1], p._walk(row[2]), p._on_map(Vector2i(0, int(row[3])))])
 			"walk":
@@ -1377,8 +1378,9 @@ func _push(approach: Vector2i, direction: Vector2i, count: int) -> Callable:
 		return _played._step_toward(world, _played._is(boulder - direction))
 
 
-func _pushed(approach: Vector2i, direction: Vector2i, count: int) -> Callable:
-	return func(world: Gen2WorldAPI) -> bool: return _boulder_on(world, approach, direction, count).x < 0
+func _pushed(approach: Vector2i, direction: Vector2i, count: int, hole: int) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		return world.event_flag_active(hole) if hole >= 0 else _boulder_on(world, approach, direction, count).x < 0
 
 
 func _boulder_on(world: Gen2WorldAPI, approach: Vector2i, direction: Vector2i, count: int) -> Vector2i:
