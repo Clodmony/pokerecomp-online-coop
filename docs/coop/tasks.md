@@ -28,13 +28,12 @@ keep the snapshot below current.
     `playthrough_elite` from a new campaign.
   - `coop/autoplay-elite` merged (D87 provisional, D88): the Elite Four, the
     Champion and each player's Hall of Fame.
-  - Questions for the owner: should Saffron's gate guards be the campaign's
-    (today each player hands over their own drink, D85)? How should a shared
-    Elite Four run work? Built provisionally as D87 (each player's own run,
-    the members one encounter for the campaign); confirm or choose otherwise.
+  - Owner's answers (D91): Saffron's gate drink and the Elite Four are the
+    team's, not each player's; being built on `coop/saffron-drink` and
+    `coop/elite-team`.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D91 (D72 to D90 are recorded).
+- **Next free decision number:** D92 (D72 to D91 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.

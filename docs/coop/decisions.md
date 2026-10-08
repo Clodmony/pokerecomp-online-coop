@@ -1296,3 +1296,16 @@ does before `EnterMap`, so the reload after a wild fight runs the map's load
 callback and redraws the blocks a switch or script replaced. Before, a wild
 battle on a Victory Road floor closed the wall its switch had opened, also in
 single-player. A two-line upstream change, listed in `architecture.md`.
+
+## D91. The players are a team: a story gate one clears is cleared for both (owner, 2026-10-08)
+
+Asked whether Saffron's gate guards should be the campaign's (D85) and how a
+shared Elite Four run should work (D87, provisional), the owner answered: "we
+work together as a team so only one needs to provide the drink", and the same
+for the Elite Four. The rule for sharing questions from here on: a story gate,
+unlock or progress flag one player clears is cleared for both; Pokémon and
+items each player keeps (LAPRAS, TMs, fossils) stay each player's. So one
+FRESH WATER lets both through Saffron's gates, and the Elite Four is one run
+for the team: a member beaten by either player is beaten for both. This
+replaces D85's gate drink and D87; the built details follow in their own
+entries.
