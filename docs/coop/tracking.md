@@ -59,7 +59,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 47 | Two-process ENet integration check in CI | done: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes, and the CI step passed on #80 | `coop/launcher` (`d5e65c2f`), #80 | closes when #80 merges |
 | 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `tools/coop_autoplay.gd` plays two windows from Oak's speech to BROCK's badge (`playthrough_brock`, about five minutes, three clean runs); MISTY and beyond in progress | `coop/playthrough` | close when the branch merges |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
-| 50 | German Red/Blue support | open, waits for the owner's own dump (D72) | | keep open |
+| 50 | German Red/Blue support | in progress (D95): own game ids `red_de` and `blue_de`, no mixed-language sessions | `coop/german` | keep open |
 | 51 | Internet relay option | open (later milestone); WireGuard or a forwarded port work today | | keep open |
 | 52 | Dedicated server mode | open (later milestone); `tools/coop_session.gd host` runs a headless host already | | keep open |
 | 53 | Local split-screen | open (later milestone) | | keep open |
