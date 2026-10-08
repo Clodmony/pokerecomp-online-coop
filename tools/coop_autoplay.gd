@@ -1,8 +1,7 @@
 extends "res://tools/coop_play.gd"
 
-## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|elite|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -27,7 +26,10 @@ const ROUTES: Dictionary = {
 	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
 	"sabrina": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs"],
 	"blaine": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs", &"_blaine_legs"],
-	"elite": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs", &"_blaine_legs", &"_elite_legs"],
+	"victory": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs",
+		&"_blaine_legs", &"_victory_legs"],
+	"elite": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs",
+		&"_blaine_legs", &"_victory_legs", &"_elite_legs"],
 }
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
@@ -112,6 +114,7 @@ var _done: bool = false
 var _trade: Dictionary = {}
 var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
+var _filmed: Dictionary = {}
 var _car_floor: int = -1
 
 
@@ -197,6 +200,9 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
 		return _paced(PokeButton.A)
+	if String(view.get("encounter", "")).begins_with("trainer:") and panel._controls(view) and not _filmed.has(view["battle"]):
+		_filmed[view["battle"]] = true
+		_shot("battle_%s_%s" % [view["battle"], String(view.get("trainer_name", "")).to_lower().validate_filename()])
 	var target: int = -1
 	if bool(view.get("stand_in_due", false)):
 		target = panel._rows.find_custom(func(row: Dictionary) -> bool: return row.get("session") == "stand_in")
@@ -1380,6 +1386,230 @@ func _blaine_done() -> bool:
 		_player_id, world.state.badge_count(), (me.get("party", []) as Array).map(
 			func(row: Dictionary) -> int: return int(row["mon"]["species"])), world.state.item_quantity(TM38), _hosted(TM38), missing])
 	return missing.is_empty()
+
+
+const VICTORY_MAPS: Dictionary = {
+	&"cinnabar_island": Vector2i(0, 8), &"route_21": Vector2i(0, 32), &"pallet_town": Vector2i(0, 0),
+	&"route_1": Vector2i(0, 12), &"viridian_city": Vector2i(0, 1), &"viridian_gym": Vector2i(0, 45),
+	&"route_22": Vector2i(0, 33), &"route_22_gate": Vector2i(0, 193), &"route_23": Vector2i(0, 34),
+	&"victory_road_1f": Vector2i(0, 108), &"victory_road_2f": Vector2i(0, 194), &"victory_road_3f": Vector2i(0, 198),
+	&"indigo_plateau": Vector2i(0, 9), &"indigo_plateau_lobby": Vector2i(0, 174),
+}
+const CINNABAR_SHORES: Array = [Vector2i(4, 4), Vector2i(4, 5)]
+const GIOVANNI_FRONTS: Array = [[Vector2i(2, 2), Gen2WorldSprite.FACING_UP], [Vector2i(3, 1), Gen2WorldSprite.FACING_LEFT]]
+const ROUTE_22_GATE_NORTH: Array = [Vector2i(4, 0), Vector2i(5, 0)]
+const ROUTE_23_SOUTH_BANKS: Array = [Vector2i(11, 104), Vector2i(10, 104)]
+const ROUTE_23_NORTH_BANKS: Array = [Vector2i(8, 71), Vector2i(9, 71)]
+const VICTORY_ROAD_PUSHES: Dictionary = {
+	&"1f": [Vector2i(5, 15), Vector2i(5, 16), Vector2i(9, 16), Vector2i(9, 14), Vector2i(16, 14), Vector2i(16, 12),
+		Vector2i(17, 12), Vector2i(17, 13)],
+	&"2f": [Vector2i(4, 14), Vector2i(3, 14), Vector2i(3, 16), Vector2i(1, 16)],
+	&"3f": [Vector2i(22, 3), Vector2i(22, 1), Vector2i(6, 1), Vector2i(6, 2), Vector2i(2, 2), Vector2i(2, 5), Vector2i(3, 5)],
+	&"hole": [Vector2i(22, 15), Vector2i(23, 15)],
+	&"2f_fallen": [Vector2i(23, 16), Vector2i(9, 16)],
+}
+const VICTORY_ROAD_ASIDE: Dictionary = {
+	&"1f": Vector2i(6, 17), &"2f": Vector2i(1, 6), &"2f_ladder": Vector2i(21, 7), &"3f_hole": Vector2i(19, 14),
+}
+const VICTORY_ROAD_2F_LADDER := Vector2i(23, 7)
+const VICTORY_ROAD_3F_HOLE := Vector2i(23, 15)
+const VICTORY_ROAD_2F_EAST_LADDER := Vector2i(25, 14)
+const VICTORY_ROAD_3F_LADDER_DOWN := Vector2i(26, 8)
+const VICTORY_ROAD_2F_EXIT := Vector2i(29, 8)
+const EARTH_BADGE: int = 7
+const TM11: int = Gen1Layout.TM_FIRST_ITEM + 10
+const TM27: int = Gen1Layout.TM_FIRST_ITEM + 26
+const VICTORY_LEVEL: int = 55
+
+
+func _victory_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = VICTORY_MAPS
+	var me: int = mini(_order(), 1)
+	var earth: Callable = _badge(EARTH_BADGE)
+	var surfing: Callable = func(world: Gen2WorldAPI) -> bool: return world.movement_mode == Gen2WorldAPI.MOVEMENT_SURF
+	var north_bank: Vector2i = ROUTE_23_NORTH_BANKS[me]
+	return [
+		["cinnabar_gym_out", p._warp_to(m.cinnabar_island), p._on_map(m.cinnabar_island)],
+		_grind.bind(VICTORY_LEVEL, 0),
+		_teach_victory_moves,
+		["cinnabar_surf", _field_move_from.bind(CINNABAR_SHORES[me], Gen2WorldSprite.FACING_LEFT, Gen2WorldFieldMove.MOVE_SURF),
+			_either(surfing, p._on_map(m.route_21))],
+		["cinnabar_to_route_21", _swim.bind(Vector2i.UP, m.route_21), p._on_map(m.route_21)],
+		["route_21_to_pallet", _swim.bind(Vector2i.UP, m.pallet_town), p._on_map(m.pallet_town)],
+		["tm27_room", _toss_for_tm27, func(_world: Gen2WorldAPI) -> bool: return _hosted(TM11) <= 0],
+		["pallet_to_route_1", p._cross(Vector2i.UP, m.route_1), p._on_map(m.route_1)],
+		["route_1_to_viridian", p._cross(Vector2i.UP, m.viridian_city), p._on_map(m.viridian_city)],
+		["viridian_gym", p._warp_to(m.viridian_gym), p._on_map(m.viridian_gym)],
+		_meet_partner("meet_in_viridian_gym", earth),
+		["viridian_gym_giovanni", _join_or(_to_giovanni.bind(GIOVANNI_FRONTS[me])), earth],
+		["viridian_gym_out", _glide_to(m.viridian_city), p._on_map(m.viridian_city)],
+		["viridian_to_route_22", p._cross(Vector2i.LEFT, m.route_22), p._on_map(m.route_22)],
+		["route_22_rival", _join_or(p._warp_to(m.route_22_gate)), p._on_map(m.route_22_gate)],
+		["route_22_gate_north", p._walk(ROUTE_22_GATE_NORTH[me]), p._on_map(m.route_23)],
+		["route_23_surf", _field_move_from.bind(ROUTE_23_SOUTH_BANKS[me], UP, Gen2WorldFieldMove.MOVE_SURF), surfing],
+		["route_23_north_bank", _swim_to.bind(north_bank), p._at(north_bank)],
+		["victory_road_entry", p._warp_to(m.victory_road_1f), p._on_map(m.victory_road_1f)],
+	] + _victory_road_legs(me == 0) + [
+		["victory_road_exit", p._walk(VICTORY_ROAD_2F_EXIT), p._on_map(m.route_23)],
+		["route_23_to_indigo_plateau", p._cross(Vector2i.UP, m.indigo_plateau), p._on_map(m.indigo_plateau)],
+		["indigo_plateau_lobby", p._warp_to(m.indigo_plateau_lobby), p._on_map(m.indigo_plateau_lobby)],
+		_victory_done,
+	]
+
+
+func _victory_road_legs(lead: bool) -> Array:
+	var p: Variant = _played
+	var m: Dictionary = VICTORY_MAPS
+	var third: Callable = p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1)
+	var last: Callable = p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2)
+	var hole: Array = VICTORY_ROAD_PUSHES[&"hole"]
+	var legs: Array = _floor_legs(&"1f", p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH), lead)
+	legs.append(["victory_road_1f_to_2f", p._warp_to(m.victory_road_2f), p._on_map(m.victory_road_2f)])
+	legs += _floor_legs(&"2f", p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1), lead)
+	legs += _aside_legs(&"2f_ladder", third, not lead)
+	legs.append(["victory_road_2f_to_3f", p._walk(VICTORY_ROAD_2F_LADDER), p._on_map(m.victory_road_3f)])
+	legs += _push_legs(&"3f", third, lead)
+	legs += _aside_legs(&"3f_hole", last, not lead)
+	if lead:
+		legs.append(["victory_road_3f_hole_push", _push_boulder.bind(hole[0], hole[1]), _gone(hole[0])])
+	legs.append(["victory_road_3f_hole", p._walk(VICTORY_ROAD_3F_HOLE), p._on_map(m.victory_road_2f)])
+	legs += _push_legs(&"2f_fallen", last, lead)
+	return legs + [
+		["victory_road_2f_east_ladder", p._walk(VICTORY_ROAD_2F_EAST_LADDER), p._on_map(m.victory_road_3f)],
+		["victory_road_3f_ladder_down", p._walk(VICTORY_ROAD_3F_LADDER_DOWN), p._on_map(m.victory_road_2f)],
+	]
+
+
+func _floor_legs(stage: StringName, switch: Callable, lead: bool) -> Array:
+	var spot: Vector2i = _behind(VICTORY_ROAD_PUSHES[stage][0], VICTORY_ROAD_PUSHES[stage][1]) if lead else VICTORY_ROAD_ASIDE[stage]
+	var legs: Array = [
+		["victory_road_%s_spot" % stage, _played._walk(spot), _either(_played._at(spot), switch)],
+		_meet_partner("meet_in_victory_road_%s" % stage, switch),
+	]
+	if lead:
+		legs.append(["victory_road_%s_strength" % stage, _strength_button, func(world: Gen2WorldAPI) -> bool: return world.strength_active()])
+	return legs + _push_legs(stage, switch, lead) + _aside_legs(stage, switch, not lead)
+
+
+func _push_legs(stage: StringName, switch: Callable, lead: bool) -> Array:
+	var cells: Array = VICTORY_ROAD_PUSHES[stage]
+	var legs: Array = []
+	for index: int in range(1, cells.size() if lead else 1):
+		legs.append(["victory_road_%s_push_%d" % [stage, index], _push_boulder.bind(cells[0], cells[index]),
+			_either(_boulder_at(cells[0], cells[index]), switch)])
+	return legs
+
+
+func _aside_legs(stage: StringName, until: Callable, waits: bool) -> Array:
+	if not waits:
+		return []
+	var aside: Vector2i = VICTORY_ROAD_ASIDE[stage]
+	return [
+		["victory_road_%s_aside" % stage, _played._walk(aside), _either(_played._at(aside), until)],
+		["victory_road_%s_wait" % stage, _standing, until],
+	]
+
+
+func _behind(boulder: Vector2i, target: Vector2i) -> Vector2i:
+	return boulder - (target - boulder).sign()
+
+
+func _push_boulder(world: Gen2WorldAPI, boulder: Vector2i, target: Vector2i) -> int:
+	var at: Vector2i = _played._live_cell(world, boulder)
+	if at == target:
+		return PokeButton.NONE
+	if world.player_cell == _behind(at, target):
+		return _played._direction_button((target - at).sign())
+	return _played._step_toward(world, _played._is(_behind(at, target)))
+
+
+func _boulder_at(boulder: Vector2i, target: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool: return _played._live_cell(world, boulder) == target
+
+
+func _gone(initial: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		return not world.active_objects().any(func(object: Gen2WorldObject) -> bool: return object.initial_cell == initial)
+
+
+func _strength_button(world: Gen2WorldAPI) -> int:
+	_played._screen.call(&"_run_party_action", {"kind": &"field_move", "move": Gen2WorldFieldMove.MOVE_STRENGTH,
+		"slot": world.party_slot_with_move(Gen2WorldFieldMove.MOVE_STRENGTH)})
+	return PokeButton.NONE
+
+
+func _field_move_from(world: Gen2WorldAPI, cell: Vector2i, facing: int, move: int) -> int:
+	var button: int = _played._talk(cell, facing).call(world)
+	if button != PokeButton.A:
+		return button
+	_played._screen.call(&"_run_party_action", {"kind": &"field_move", "move": move, "slot": world.party_slot_with_move(move)})
+	return PokeButton.NONE
+
+
+func _to_giovanni(world: Gen2WorldAPI, front: Array) -> int:
+	if world.map_id() != VICTORY_MAPS.viridian_gym:
+		return _played._warp_to(VICTORY_MAPS.viridian_gym).call(world)
+	if world.player_cell == front[0]:
+		return _played._talk(front[0], front[1]).call(world)
+	var button: int = _glide_button(world, front[0])
+	return button if button != PokeButton.NONE else _glide_to(VICTORY_MAPS.viridian_city).call(world)
+
+
+func _swim(world: Gen2WorldAPI, direction: Vector2i, map: Vector2i) -> int:
+	if _played._crosses(world, world.player_cell, direction, map):
+		return _played._direction_button(direction)
+	return _swim_button(world, func(at: Vector2i) -> bool: return _played._crosses(world, at, direction, map))
+
+
+func _swim_to(world: Gen2WorldAPI, cell: Vector2i) -> int:
+	return _swim_button(world, _played._is(cell))
+
+
+func _swim_button(world: Gen2WorldAPI, goal: Callable) -> int:
+	var first: Dictionary = {world.player_cell: Vector2i.ZERO}
+	var frontier: Array[Vector2i] = [world.player_cell]
+	while not frontier.is_empty():
+		var at: Vector2i = frontier.pop_front()
+		if at != world.player_cell and goal.call(at):
+			return _played._direction_button(first[at])
+		for direction: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next: Vector2i = at + direction
+			if first.has(next) or not world.can_walk_to(next):
+				continue
+			if goal.call(next) or world.collision_permission_at(next) == Gen2WorldCollision.WATER_TILE:
+				first[next] = direction if at == world.player_cell else first[at]
+				frontier.append(next)
+	return PokeButton.NONE
+
+
+func _teach_victory_moves() -> bool:
+	for mon: Gen2SaveMon in _played._screen.active_save().party:
+		if Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_SURF) \
+				and Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_STRENGTH):
+			_played._editor.set_move(mon, 0, Gen2WorldFieldMove.MOVE_STRENGTH)
+			_played._editor.set_move(mon, 1, Gen2WorldFieldMove.MOVE_SURF)
+			_played._screen.call(&"_refresh_party_summary")
+			return true
+	return false
+
+
+func _toss_for_tm27(world: Gen2WorldAPI) -> int:
+	if world.state.item_quantity(TM11) > 0:
+		var tossed: Dictionary = Gen2WorldBagHost.toss(world, _played._screen.active_save(), TM11, world.state.item_quantity(TM11), false)
+		print("coop autoplay: %s tossed TM11 for TM27's room: %s" % [_player_id, tossed.get("ok")])
+	return PokeButton.NONE
+
+
+func _victory_done() -> bool:
+	var world: Gen2WorldAPI = _played._screen.world()
+	var earth: bool = bool(_badge(EARTH_BADGE).call(world))
+	var lobby: bool = world.map_id() == VICTORY_MAPS.indigo_plateau_lobby
+	print("coop autoplay: %s in the Indigo Plateau lobby %s: EARTHBADGE %s, badges %d (campaign %d), TM27 %d (host %d)" % [
+		_player_id, lobby, earth, world.state.badge_count(),
+		int((_session.client.state.get("campaign", {}) as Dictionary).get("badges", 0)),
+		world.state.item_quantity(TM27), _hosted(TM27)])
+	return earth and lobby
 
 
 const ELITE_MAPS: Dictionary = {
