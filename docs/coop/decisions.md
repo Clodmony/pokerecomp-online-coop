@@ -95,7 +95,7 @@ decoded without objects. LAN and direct IP need no relay or paid service.
 `PokeCoopSave` writes JSON with a campaign section and a section per player,
 through a temporary file and a rename. Saving is refused while any battle runs,
 so no session state is ever persisted; a host that closes first ends its
-running battles as fled (D37). Recovery between checkpoints is #39.
+running battles as fled (D37). Story changes between checkpoints are journaled (D66).
 
 ## D13. Comment ceiling raised for the co-op subsystem (2026-10-05)
 
@@ -449,9 +449,8 @@ the old file alone and reports the error. Before each rename, the file being
 replaced is copied beside it as `<campaign>.bak`, but only if it still reads as
 a campaign, so a damaged file never displaces the last good checkpoint. A
 campaign that cannot be read is still left as it is (D37); the launcher now
-names the backup. A damaged file is read without an engine error. There is
-still no journal between checkpoints and no migration between format versions
-(#39).
+names the backup. A damaged file is read without an engine error. The journal
+and format migration followed in D66.
 
 ## D41. A trainer win closes as the cartridge's does (2026-10-06)
 
@@ -831,3 +830,568 @@ battle should feel as close to a solo run as it can.
   left alone, since a purchase may be in it. Gift Pokémon no longer race at all.
   Cost: the second window may show the doubled item for a frame before the
   host's count arrives, and a race that also moves new story is not caught.
+
+## D63. Gen 1 script bytes are owned byte by byte (2026-10-07)
+
+`gen1_bytes` holds the Generation 1 script bytes the world keeps by name, and
+the host dropped them all because campaign tables took only numbered entries
+(#82). It is now owned entry by entry, like the engine and event flags:
+Vermilion Gym's three trash-can lock bytes are the campaign's, since the puzzle
+is in one shared gym whose lock event flags are already the campaign's and both
+windows must hide the switches in the same cans. Every other byte is its
+player's: the lucky slot machine, the SURF high score, and
+`cur_map_text_ptr_high`, scratch nobody reads, kept with its player because one
+key has no window-only half. A name not listed goes to the player, so a byte
+added later never reaches a partner before it is classified. Cost: the first
+lock re-rolls whenever any player's window loads Vermilion City, as it does on
+the cartridge for one player, so a partner arriving can move the first switch
+while someone is still searching for it.
+
+## D64. The trade movie shows the Pokémon as it was sent (2026-10-07)
+
+A Cable Club trade of a MACHOKE showed MACHAMP in the trade movie before the
+evolution played (#66). The cause was upstream's
+`Gen2WorldPartyHost.commit_link_trade`, which built the movie's context after
+applying the trade evolution; the co-op cable hands the window the partner's
+row from before the swap, so no co-op code was involved. The context is now
+built before the evolution, as the cartridge's `.doTrade` (the movie on
+`wTradedEnemyMonSpecies`, then `TryEvolvingMon`) and upstream's own NPC trade
+do. Single-player link trades had the same bug, so this is a candidate to offer
+upstream.
+
+## D65. Two-window checks run from scenarios, and a window can play itself (2026-10-07)
+
+The owner asked for a two-window check of every feature and a list of hand-test
+cases (`test-cases.md`). `tools/coop_screens.sh` runs the cartridge host and two
+windows from a scenario file, at 60 frames a second (the display is faster, and
+key timing counts frames), with a private `XDG_DATA_HOME`: the windows find the
+imported cartridge through a link to its cache, and the owner's campaigns,
+identity and logs are never touched, so runs can go side by side. Captures go
+outside the repository. `tools/coop_autoplay.gd` is a window that plays
+itself: it reuses the legs of upstream's `tools/checks/played.gd` (path
+finding, warps, talking, the save editor's grind) on its world, plays the
+opening, and fights from the co-op panel, so the run to BROCK (#48) needs no
+hand-written key list. The upstream check is loaded at run time, since a
+preload compiles it before the autoloads exist.
+
+## D66. A journal keeps story changes between checkpoints; format 2 settles the intro once (2026-10-07)
+
+The campaign file is written only between battles (D12, D28), so a crash lost
+every story change since the last checkpoint, and with one player fighting
+while the other explores that could be minutes (#39). The host now appends a
+line to `<campaign>.json.journal` at the end of every poll in which the
+campaign's revision moved past the last checkpoint or line, and every
+successful checkpoint removes the journal. Reading a campaign takes the
+checkpoint, then the newest whole journal line of the same campaign whose
+revision is above the checkpoint's: a torn last line is skipped, each line
+opens with its newline so the next one still reads, and lines a crash left
+behind a newer checkpoint are older by revision and change nothing. A line is
+the state, not the change: the campaign and every player, each PC left out
+while its `box_rev` is the one the last checkpoint wrote. Replaying campaign
+changes alone was rejected: the patch that sets a story flag hands over its
+item (OAK'S PARCEL, an HM, a gym TM to the partner) and a battle's commit
+brings its prize or catch, so a flag recovered without its item would strand
+the story. A late-game line measured 37 KB and 1.5 ms on a desktop, against
+169 KB and 12 ms for a checkpoint.
+
+The format had been version 1 from the start. `PokeCoopHost.create` settled
+every hosted campaign with the intro's world (D58), and since a script step
+back at 0 and an object shown again are erased from their tables, each hosting
+put them back. Format 2 marks a settled campaign: `PokeCoopSave.from_dict`
+settles a format 1 file once, and later steps follow as `if version < N`. An
+older build refuses a format 2 file and leaves it untouched. Limits: no fsync
+(a process crash is covered, a power loss may not be); a journal without a
+checkpoint is not read; restoring `.bak` by hand should remove the journal.
+
+## D67. A window sends what a script changed in one patch (2026-10-07)
+
+The autoplayed run to MISTY (D65) found the DOME FOSSIL reaching only the
+player who took it, though story items reach every player (D52). The fossil's
+script gives the item, waits on "got DOME FOSSIL!", and only then sets the
+flag, so the window's item and flag went out in two patches, and the host
+shares only what a patch that moves the story brings. Any gift with a text box
+between the item and the flag had the same gap. While the window's world runs
+a script (`script_busy`) its link now neither sends nor takes world patches,
+and sends everything the script changed in one patch when it ends; the
+partner's story changes wait until then too, so a running script is never
+changed under it. A script still running after 15 s (a long cutscene, a
+trainer battle) stops holding, as before. Cost: the partner sees a story change
+up to a script's length later.
+
+## D68. An unidentified GHOST stays in the window's own battle (2026-10-07)
+
+In Pokémon Tower without the SILPH SCOPE a wild Pokémon is a GHOST that nobody
+can hit or catch and that every run escapes (`IsGhostBattle`); upstream's battle
+models it with `gen1_ghost`. A takeover rebuilt the fight on the host from the
+enemy's rows, so it became a plain GASTLY that a co-op party could beat or
+catch. The takeover summary now carries the world's ghost kind (one line in
+`world_screen.gd`), and the co-op takeover leaves an unidentified GHOST to the
+window's own cartridge battle, as it already leaves the Safari Zone; the
+partner cannot join it, and there is nothing to do in it but run. The SILPH
+SCOPE's unveiled MAROWAK is an ordinary fight and stays on the host.
+
+## D69. The launcher path is checked in two windows (2026-10-07)
+
+Players start co-op from the launcher's Co-op tab, which no window check
+covered. `tools/coop_launcher_play.gd` drives the real launcher's Co-op tab
+through its own tab button, fields, choice rows and buttons, round after round,
+so leaving and hosting again run as a player does them; the runner gains
+`HOST_TOOL=none` (the first window hosts) and a scenario `check()` that can fail
+a run. The runs found five things, all fixed with tests: a pad landing on Host
+scrolled past it while the page still took its height; the first partner in a
+new campaign went unannounced; a partner in the opening was placed in Pallet
+Town in the session menu (now "in the opening"); leaving landed on the Play tab
+with no reason (now the Co-op tab, with "You left the session." or why the host
+ended it); and the tab forgot the name and address (now `user://coop_tab.json`).
+Left as they are: the campaign list clips long labels (upstream's sheet
+layout), and the toast covers a row until it fades.
+
+## D70. A failed save leaves no YES/NO behind (2026-10-07)
+
+A window's SAVE that the host would refuse ends in the prompt's own "Save
+failed" step (D56), which co-op makes common: any battle a partner fights
+refuses it. That step kept the YES/NO drawn with YES picked under the failure
+line. Upstream's prompt marks a box with no question by a negative cursor, and
+its failure step asks nothing (any press ends it as a NO does), so it now sets
+the cursor to -1. One line in `save_prompt.gd`.
+
+## D71. A link room closes the wait box it was entered with (2026-10-07)
+
+The autoplayed Cable Club trade found upstream's Generation 1 link rooms
+keeping a finished box on screen: "OK, please wait just a moment." after the
+special warp into the Trade Center, "Just a moment." after the trade screen
+closed. On the cartridge both `SpecialEnterMap` and `ReturnToCableClubRoom`
+load the room again, so no box survives. The two steps now send the world
+screen's existing `text_closed` event first (two lines in
+`gen1_map_scripts.gd`). Every co-op trade shows the room clean, and so does a
+single-player link session.
+
+## D72. The owner settles world sharing and the open scope questions (2026-10-07)
+
+The owner answered the six questions the playbook left open.
+
+- **Share the campaign at rest points (#84).** The rule is "share what the
+  cartridge would save, never what it is doing right now". A rest point is a
+  moment the cartridge could save: no script holds the player and no map load
+  is pending; a scene is the stretch between two. A window holds its world
+  patches until its next rest point however long that takes, replacing D67's
+  15 s cap; a partial patch goes out only when the window must answer the host
+  anyway (its world's SAVE). Battles are not touched: they run on the host and
+  are joined live.
+- **Accepted costs:** a partner sees a scene's result, not the scene; a scene
+  cut off by a disconnect replays from its start; a long scene reaches the
+  partner only when it ends; windows stay trusted (the host does not
+  re-simulate them).
+- **The brief's world-simulation item is read as:** "the host is authoritative
+  for the campaign and for battles; each window simulates the maps, NPCs and
+  movement it shows, and shares the campaign at rest points". #22 closes on
+  it, and #25 (host-side encounters and trainer sight) is won't-do: windows
+  roll encounters, the host fights them.
+- **Contested scenes (#24):** "the first player in drives a contested scene" is
+  the lock asked for in D61. It applies to every rival scene after the
+  opening: Route 22 (both), Cerulean City, S.S. Anne, Pokémon Tower and Silph
+  Co. A second window on that map starts no copy of the scene, is held until
+  it ends and sees its result; SELECT > JOIN stays open.
+- **Android (#45)** is deferred until after the Hall of Fame run and the
+  hand-played session. **German (#50)** waits for the owner's own dump.
+
+## D73. A window opens its world as a Continue does (2026-10-07)
+
+A window built its world on a blank state and pulled the host's story a frame
+later, so a map's entry and coord scripts ran on no story: a player reopened on
+the Cerulean thief's coord cell fought him again and was handed TM28 twice. The
+window also forgot `wLastMap` and `wLastBlackoutMap`, so a campaign hosted again
+with a player inside a building sent its LAST_MAP doors to Pallet Town. The
+window's save now carries a world snapshot as a Continue would: the player's
+map, cell and facing, the host's world with the player's keys over it, and the
+two outside maps, which each step reports and the host keeps with the player.
+A player brought from a single-player save brings them from its snapshot.
+
+## D74. The map scripts of one player's walk are that player's (2026-10-07)
+
+`gen1_map_scripts` was the campaign's, so a state one window reached ran in
+every window on that map: at Vermilion's dock a partner's window reset
+`wVermilionCityCurScript` and the ticket check looped forever, and in Cerulean
+a partner's window ran the thief's after-battle script. The bytes are now
+owned one by one, like `gen1_bytes` (D63): `wCeruleanCityCurScript` and
+`wVermilionCityCurScript` are each player's, every other byte stays the
+campaign's until #84 classifies the rest.
+
+## D75. A pulled story flag can owe the window a map load (2026-10-07)
+
+`GymTrashScript` sets `BIT_CUR_MAP_LOADED_2` with `EVENT_2ND_LOCK_OPENED`, so
+the door to LT. SURGE redraws in the window that found the switch. A partner
+already in the gym took the flag with a pull and no map load, and kept a shut
+door. The link now knows its world and owes it the map load a pulled flag
+needs, a table with one row so far (`MAP_LOADS_OWED_BY_FLAG`). The merge also
+drops the Surge branch's poison cure from the autopilot: the heal merged
+beside it already clears every status.
+
+## D76. A Generation 1 row's end closes a box that owed no press (2026-10-07)
+
+After the Cerulean Rocket thief, the "recovered TM28!" box stayed drawn over a
+map that took input again, and the autopilot (and upstream's `played` check)
+waited on it forever (#86, also in single player). On the cartridge
+`DisplayTextID` ends every row in `CloseTextDisplay`, which takes the window
+down whether or not `wDoNotWaitForButtonPressAfterDisplayingText` skipped the
+last press; the thief's row prints the receipt with no press and then fades out
+and back in (`CeruleanHideRocket`) before it ends. The world screen keeps a
+no-press box up while a wait is pending behind it, which is right during the
+fades, but nothing closed it at the row's end. The world now notes a box
+served with no press (`_gen1_box_held`, cleared on a map load), and the row's
+end sends `text_closed` for it as it already did for a balance window. The same
+tail closes Pallet Town's "Hey! Wait!", the Game Corner poster and the Pokémon
+Mansion switches. Left as it is: the receipt's `text_waitbutton` draws an arrow
+and an empty last page where the cartridge keeps "Bye!" through the fade.
+
+## D77. A window entering Vermilion City keeps the first lock while a partner is near (2026-10-07)
+
+D63 left a cost: `VermilionCity_Script`'s `.setFirstLockTrashCanIndex` rolls
+the first lock on every load of the city, so a partner walking in moved the
+first switch while someone was still searching the gym (#85). As agreed with
+the owner, the locks stay while anyone is in Vermilion City or its gym, a
+window entering takes them instead of rolling, and with nobody there the next
+entry rolls as on the cartridge. No can is searched in the city, so a first
+lock that differs from the one the window last synced is the city's roll;
+while the host's player list shows another connected player in the city or
+gym, `PokeCoopWorldLink._keep_locks` puts the synced value back before the
+window's patch goes out and logs `locks_kept`. A wrong second can is a search
+in the gym, so its reset still reaches everyone. Rejected: the host refusing a
+first-lock change, since the window would keep its own roll without a new
+correction message, and the host would have to tell a roll from a reset by a
+`move` that can arrive after the patch. Costs: a player stepping out of the gym
+while the partner is inside keeps the lock rather than re-rolling; two players
+arriving at the same moment may both roll, and the later roll wins before
+anyone searches; a dropped partner does not count as present.
+
+## D78. Stretch seeds come from upstream's story walk (2026-10-07)
+
+Extending the autopilot to the Hall of Fame one stretch at a time (#88) needs a
+campaign at each stretch's start, and the only ones came from the end of the
+previous stretch's two-window run, so stretches had to go one after another.
+`tools/coop_seed.gd` runs `preview_world_story.gd`'s Gen 1 legs to a named one
+(upstream's walk, split into `_gen1_story_start` and `_gen1_story_legs` with its
+output unchanged), steps out of the last door as the cartridge does, and
+imports the save as a campaign's first player brings one
+(`PokeCoopPolicy.import_save`): `p1` brings the story, `p2` gets its own copy on
+a free cell beside, with its own trainer as each Pokémon's OT. Costs: the
+story's thin party (one or two Pokémon, which the autopilot's grinding makes
+up), only the trainers the story fought, and no host `defeated` encounters or
+gift commits (event flags still stop re-fights). A stretch is proven from a
+seed; the Hall of Fame run is proven from a new campaign.
+
+## D79. How rest points are built (2026-10-07)
+
+D72 adopted the rule; this is how a window keeps it (#84).
+
+- **A rest point** is a frame where the cartridge could save.
+  `PokeCoopWorldLink.unrest(screen)` names what holds the window instead: the
+  session panel, a script, a map load, a forced walk or scripted NPC, a battle
+  (the world's own or one fought on the host), a whole-screen overlay, or a
+  locked screen (a fade, a trainer's approach). A scene's map-script states
+  hand over with one frame between them that nothing holds, so a rest point
+  counts after three such frames in a row (`REST_FRAMES`). D67's 15 s cap is
+  gone: the 15 s cap and the narrow `script_busy` signal had let a long scene's
+  middle steps out, and a world frozen under the panel pushed Oak's lab at
+  its after-battle step.
+- **Away from a rest point the window sends and takes nothing**, world or
+  party. Two exceptions answer the host: a battle the world asks for sends the
+  party first (the host fights with it), and the world's SAVE through the
+  START menu sends the scene so far. A heal, purchase or gift writes a fresh
+  snapshot and still asks for a checkpoint, but sends nothing of the scene.
+  LEAVE, closing the window and a lost link send nothing: the host keeps the
+  last resting state, and the scene replays. When a scene ends, its world patch
+  and the party leave in the same frame.
+- **A partner's step for the map a window stands on** waits until that window
+  has loaded another map (`_owe_step`), then the host's latest value lands
+  unless the window's own unconfirmed patch touched the byte. A pulled object
+  hide or show lands at once (`load_object_masks`), as `HideObject` does: the
+  first two-window run had Mt. Moon's fossils barring a partner's only way out.
+- **Map-script bytes that rest on a value one player's walk sets are that
+  player's**: the eight gyms (so a partner never replays a leader's lines or
+  gift; TM34 had been handed out twice), Mt. Moon B2F, Museum 1F, the Safari
+  Zone gate, the Champion's room and Seafoam B3F and B4F, beside D74's two
+  cities. The offsets follow pokered's `ram/wram.asm`. Every other byte stays
+  the campaign's: story steps whose resting value is permanent, Bill's house
+  (so a partner sees Bill come out), and transient spinner and forced-walk
+  states, which `movement` holds.
+- **Logs:** `world_pull` lines carry `held` (frames the scene held the pull),
+  `held_by` and `owed`.
+- **Costs:** every change leaves three frames late; a partner standing on a map
+  sees its story step only after leaving it; a partner's news waits while a
+  window is in a scene, the panel or a menu. Per-walk event flags such as
+  `EVENT_IN_SAFARI_ZONE` are still the campaign's.
+
+## D80. Only a real SAVE asks for a campaign checkpoint (2026-10-07)
+
+The link took any fresh world snapshot in the window's save for the world's
+SAVE, and every heal, purchase and gift writes one (`Gen2WorldTransaction`):
+about 40 "Campaign saved." lines in a ten-minute run, each a host checkpoint.
+The world screen now calls `save_written` (beside `save_gate`, one line in
+`persist_world_snapshot`) after any SAVE: the START menu's, a link room's, a
+box change's or the Hall of Fame's. Only that asks the host for a checkpoint;
+a transaction still sends the party at the next rest point, and the host's
+own autosave keeps the rest.
+
+## D81. Each player's Safari Game is their own, and a ball is no SAVE (2026-10-07)
+
+The autoplayed KOGA stretch (#88) found two things. `EVENT_SAFARI_GAME_OVER` and
+`EVENT_IN_SAFARI_ZONE` were campaign flags, and `_gen1_safari_check` runs on
+every map while the second is set, so when one player paid, the partner's
+window (holding no SAFARI BALL) ran the game-over warp from Route 14 to the
+gate, and leaving then ended the game of the player still inside. Both flags
+now join `PokeCoopPolicy.OWN_GIFTS`, beside the game's balls and steps, which
+were already each player's. And a capture commits a world transaction, so each
+SAFARI BALL wrote a snapshot the link took for a SAVE ("P1 saved the
+campaign." per ball, refused during a partner's battle): a snapshot written
+while the window's own battle is up is no SAVE (D80 later asks for checkpoints
+only on a real SAVE, so this also keeps the party from being pushed mid-battle).
+A campaign saved with someone inside the Safari Zone before this keeps the two
+flags as the campaign's; none exists.
+
+## D82. Pokémon Tower's purified zone is each player's (2026-10-08)
+
+The autoplayed tower stretch (#88) found `EVENT_IN_PURIFIED_ZONE` shared: one
+player stepped into Pokémon Tower 5F's purified zone and set it, the partner's
+5F script (that player outside the zone) cleared it, and the first player's
+window pulled the clear, healed and printed "Entered purified, protected
+zone!" again about every 1.2 s, holding both players on 5F. The flag joins
+`PokeCoopPolicy.OWN_GIFTS`. The same runs found a partner's picked-up item
+ball staying solid on the map (6F's RARE CANDY, the only way south), which
+D79's `load_object_masks` already fixes. A 2F rival met by both players is one
+host battle, but each window plays the rival's lines and exit (#24); MAROWAK
+is not a unique host encounter, and no second fight was seen.
+
+## D83. The battle panel names a disabled move and one out of PP (2026-10-08)
+
+The autoplayed ERIKA stretch (#88) met a Route 10 POKéMANIAC's SLOWPOKE using
+DISABLE on the only damaging move left with PP. The panel kept offering it
+unmarked and the host refused it (`_move_allowed`) with only "Refused:
+invalid_move", so the autoplayed window sent it over a thousand times while
+both windows sat in the joined fight. The battle view now carries the out
+Pokémon's disabled slot, the FIGHT rows say (DISABLED) or (NO PP) as the
+cartridge's move menu tells, and the refusal reads "That move can't be used
+now." The same runs met the Game Corner poster's no-press box (D76 fixes it),
+the Game Corner, Celadon Gym and Rocket Hideout B4F map-script steps crossing
+windows and a partner's item ball and GIOVANNI staying drawn (D79 fixes them),
+and one cost left as D79 states: a partner's poster switch opens the stairs in
+a window already in the Game Corner only when it reads the poster or enters
+again.
+
+## D84. The first window into a rival scene drives it (2026-10-08)
+
+D72's lock (#24) covers the rival scenes after the opening: Route 22 (both
+fights), Cerulean City, S.S. Anne 2F, Pokémon Tower 2F and Silph Co. 7F
+(`PokeCoopPolicy.RIVAL_SCENES`, by map, with the `w<Map>CurScript` states each
+scene runs in; the byte is what the cartridge dispatches on, so no table of
+trigger cells is kept). A window whose own byte enters one of those states
+claims the scene on the host (`scene`, protocol 5) and gives it back at its
+first rest point after the byte has left them, the world patch with the result
+going out first in the same frame. The host keeps one driver per map, shows it
+in that player's public view, refuses a second claim (`scene_taken`) and lets
+go when the driver drops, leaves or steps onto another map. A partner on that
+map waits from its next rest point with no step under way: its world stands
+still under "<name> is facing the rival here. Wait, or join the battle with
+SELECT.", SELECT > JOIN fights the rival together, and the frozen world counts
+as resting, so the result is pulled during the wait. The wait ends at the
+partner's next rest point, where the scene's script step for its map lands at
+once (S.S. Anne 2F's rival is guarded by no flag, only by its byte resting at
+NOOP, and a partner let go replayed his lines). Two windows that start the
+scene before either hears of the other both play it: the claim the host reads
+first drives, and the loser's battle joins the driver's as one unique
+encounter; the rival scenes give no items, so both copies leave the same
+result, and a rollback was rejected. A dropped driver lets the partner go at
+once and meets the rival again from the start (D72). Costs: Pokémon Tower 2F
+and Silph Co. 7F open with a text box before their byte moves, so a partner
+waits one box late and may start its own copy in that gap (the race rule
+covers it); anyone anywhere in Cerulean City waits out the Nugget Bridge
+scene; a window whose link drops while it waits stays frozen until it is back.
+
+## D85. What the SABRINA stretch showed about Saffron and Silph Co. (2026-10-08)
+
+The autoplayed stretch from KOGA to SABRINA (#88) needed no co-op code change.
+What it settles, as built: Saffron's gate drink (`BIT_GAVE_SAFFRON_GUARDS_DRINK`,
+`wStatusFlags1` bit 6) and LAPRAS (`BIT_GOT_LAPRAS`, `wStatusFlags4` bit 0) are
+Generation 1 engine flags, which `PokeCoopOwnership` gives each player (only
+badges are the campaign's), so each player buys and hands over their own FRESH
+WATER and is given their own LAPRAS. Silph Co.'s CARD KEY reaches every player
+once as a story key item, and the president's MASTER BALL once each as a found
+item. GIOVANNI on 11F starts his fight from a cell the partner cannot reach
+past the door, so the partner joins through SELECT > JOIN; with D84 the 7F
+rival held the second window, which joined his fight and did not replay the
+scene. Left as it is: a card-key door a partner opens on the floor a window
+stands on stays drawn shut there until that player opens it with the shared
+CARD KEY (the floor draws closed doors only on a map load). Whether the gate
+guards should be the campaign's is asked of the owner.
+
+## D86. What the BLAINE stretch showed about Cinnabar Island (2026-10-08)
+
+The autoplayed stretch from SABRINA to BLAINE (#88) made four sharing choices.
+The Pokémon Mansion's switch (`EVENT_MANSION_SWITCH_ON`) joins
+`PokeCoopPolicy.OWN_GIFTS`: `CinnabarIsland_Script` clears it on every frame a
+player stands on the island, so as a campaign flag a partner outside reset the
+other player's doors, and a partner's press toggled them. The fossil lab's
+`EVENT_GAVE_FOSSIL_TO_LAB` and the two flags after it are each player's, as
+`wFossilMon` already is (D52), so each player gives and revives their own.
+Cinnabar Gym's six quiz gates stay the campaign's: a window already in the gym
+owes itself a `MAP_LOADED_1_BIT` redraw when a partner's answer sets one
+(`MAP_LOADS_OWED_BY_FLAG`, beside Vermilion Gym's second lock), so either
+player's right answer opens the gate for both. A Generation 1 window reopened
+on a water cell starts surfing, as a Continue does, since the host keeps the
+position but not `wWalkBikeSurfState`. The SECRET KEY is a shared key item;
+VOLCANOBADGE is the campaign's and TM38 is given once to each player.
+
+## D87. Each player's Elite Four run is their own (provisional, #88, 2026-10-08)
+
+The Indigo Plateau run flags 0x8E0 to 0x901 and the script bytes of the four
+rooms and the Hall of Fame are each player's (`PokeCoopPolicy.ELITE_FOUR_RUN`,
+`PLAYER_MAP_SCRIPTS`). The lobby after a whiteout and the Hall of Fame clear
+that range, so shared flags would let one player's reset undo the partner's
+run. As with every trainer, the members and the Champion are one encounter
+for the campaign: a partner who joined, or who arrives later, talks to the
+member and the host's `encounter_done` ends the fight at once as won, setting
+that player's own flag. The Champion's room keeps its per-player byte and has
+no rival-scene lock (D84): the scene gives no items, and two windows meeting
+him at once join one battle. The Hall of Fame's hiding of the Cerulean Cave
+guard stays the campaign's. Costs: rematches after the first Hall of Fame are
+wins without a fight; a partner who never fought gets the same instant wins;
+the host keeps no Hall of Fame records, so the PC's list is empty after the
+reopen. Asked of the owner: confirm, or have a joined win set the joiner's
+flag through the host, or forget the League's `defeated` once everyone is
+inducted.
+
+## D88. A side that wins blacks out nobody; a reset continues the co-op world (#88, 2026-10-08)
+
+Generation 1 checks for a living party member after every battle, so the
+initiator of a joined win whose own team fell was blacked out to the Plateau.
+The takeover now reports `team_won` and the world skips that check, so only
+lost battles white out, as `design.md` says. The Generation 1 Hall of Fame
+saves and then resets: any save the world reports (`save_written`) now sends
+the scene so far, as a real SAVE does (D80), and `Gen2GameRuntime.restart()`
+lets the session freeze the world, wait until the host has applied what was
+sent, and reopen it as a Continue. A player the credits left in the Hall of
+Fame flies to Pallet Town, the cartridge's own Continue rule, and the reopened
+panel drops finished battles. A reset in a co-op window continues the same way
+instead of dropping to the saves page. Costs: both players land on the same
+Pallet Town cell; play time comes back from the host; the reset writes one
+extra checkpoint.
+
+## D89. Victory Road's switches are the campaign's; boulders are each window's (#88, 2026-10-08)
+
+A switch flag set in one window opens that floor's wall in every window
+standing on it, through a map load the window owes (`MAP_LOADS_OWED_BY_FLAG`),
+as for Vermilion's door and Cinnabar's gates (D86). The cartridge resets the
+puzzle in three places (Victory Road 2F clears the 1F switch, leaving Victory
+Road clears the 2F and 3F ones, the Indigo Plateau lobby clears the 1F one),
+and those resets stay the campaign's, but a window still on any Victory Road
+floor keeps the switches it holds open until it leaves, so a partner who gets
+out first never walls in the one still inside. Boulder positions are each
+window's: a window that never saw the switch set pushes its own boulder, as on
+the cartridge.
+
+## D90. A Generation 1 wild battle re-enters the map (#88, 2026-10-08)
+
+`gen1_end_of_battle` sets both map-load bits, as pokered's `.battleOccurred`
+does before `EnterMap`, so the reload after a wild fight runs the map's load
+callback and redraws the blocks a switch or script replaced. Before, a wild
+battle on a Victory Road floor closed the wall its switch had opened, also in
+single-player. A two-line upstream change, listed in `architecture.md`.
+
+## D91. The players are a team: a story gate one clears is cleared for both (owner, 2026-10-08)
+
+Asked whether Saffron's gate guards should be the campaign's (D85) and how a
+shared Elite Four run should work (D87, provisional), the owner answered: "we
+work together as a team so only one needs to provide the drink", and the same
+for the Elite Four. The rule for sharing questions from here on: a story gate,
+unlock or progress flag one player clears is cleared for both; Pokémon and
+items each player keeps (LAPRAS, TMs, fossils) stay each player's. So one
+FRESH WATER lets both through Saffron's gates, and the Elite Four is one run
+for the team: a member beaten by either player is beaten for both. This
+replaces D85's gate drink and D87; the built details follow in their own
+entries.
+
+## D92. One drink opens Saffron's gates for the team (2026-10-08)
+
+Following D91, `BIT_GAVE_SAFFRON_GUARDS_DRINK` (`wStatusFlags1` bit 6) is the
+campaign's: `PokeCoopOwnership.campaign_engine_flag` routes it with the
+badges, and the other `wStatusFlags1` bits (STRENGTH, the surf check) stay
+each player's. The campaign keeps engine flags beyond the badges in its
+`world`, so the drink is saved without a format change, and a save from
+before this in which a player kept their own drink has it moved to the
+campaign on load. The gate scripts read the flag each time they run, so a
+partner already standing in a gate walks on with no map load. The autopilot's
+SABRINA stretch has one player buy and hand over the only FRESH WATER. This
+replaces D85's drink; LAPRAS stays each player's.
+
+## D93. The Elite Four is one run for the team (replaces D87, #88, 2026-10-08)
+
+Following D91, the Indigo Plateau's beaten flags are the campaign's: LORELEI,
+BRUNO, AGATHA, LANCE (0x8F9, 0x8FE) and the Champion (0x901). A member beaten
+by either player, alone or joined, is beaten for both; a window standing in
+that room owes itself a `MAP_LOADED_1` redraw (`LEAGUE_EXITS_REDRAWN`), so the
+exit opens there too, and a partner arriving later walks through without a
+fight. LANCE's room needs nothing: its script returns early once 0x8FE is set.
+The walks in (`EVENT_AUTOWALKED_INTO_*_ROOM`) and LANCE's door lock stay each
+player's (`OWN_GIFTS`), as do the rooms', the Champion's room's and the Hall
+of Fame's script bytes. Only AGATHA's end-of-battle script readies the
+Champion's room, so a window the team's AGATHA win reaches sets its own byte
+to PLAYER_ENTERS; the late player then meets the rival, whose fight the host
+ends at once as won (`encounter_done`), and gets Oak's scene and its own Hall
+of Fame, credits and Continue (D88). The lobby after a whiteout and the Hall
+of Fame clear the run; the host holds that clear while a connected player is
+in the League and, once the Champion fell, until every connected player is
+inducted, and the clearing window takes the held flags back. Applied, the
+clear erases the run and forgets the League's encounters and their `victory:`
+commits, so the next run fights everyone again. Costs: the hold lives in the
+host's memory, so a host restart keeps the run open until the next clear; a
+connected player who never comes to the League after the Champion fell holds
+rematches back, and anyone walking in meanwhile gets another instant Champion
+win and Hall of Fame entry; a disconnected player inside holds nothing.
+
+## D94. Being in the Seafoam Islands is each player's (#88, 2026-10-08)
+
+`EVENT_IN_SEAFOAM_ISLANDS` (0x500) joins `PokeCoopPolicy.OWN_GIFTS`, beside
+the Safari flags (D81). Seafoam 1F sets it on every frame and Route 20 clears
+it, resetting the boulders while the puzzle is unfinished; as a campaign flag,
+a partner on Route 20 cleared it and sent that reset, so a boulder one player
+had dropped vanished from B1F and the B3F current never calmed. A host opening
+a campaign drops the walk flags the cartridge clears itself (`OWN_WALKS`: the
+two Safari flags and this one), so an older save does not keep resetting
+Route 20. This and D81 overtake D79's note that per-walk flags such as
+`EVENT_IN_SAFARI_ZONE` stay the campaign's. Costs: the boulders' hide and show
+stay the campaign's, so a player who leaves through Route 20 with the puzzle
+unfinished resets it for a partner still inside, as the cartridge resets it
+for one player.
+
+## D95. German Red and Blue are separate games (owner, #50, 2026-10-08)
+
+German and English are separate games: German plays only with German, English
+only with English, and mixed-language sessions are out of scope. German gets
+its own game ids, `red_de` and `blue_de`, in `RomRegistry` rather than a
+language flag on `red`, so the host's existing game-id checks refuse mixed
+joins and campaigns, and caches and saves stay apart by id. The owner's own
+dumps (Rote Edition and Blaue Edition, Germany, SGB Enhanced) are verified
+locally and are never copied, committed or uploaded. einstein95/pokered-de,
+which builds both byte for byte, is pinned as a reference like pret/pokered:
+addresses and constants only, never its asm, text, graphics or symbol files.
+
+## D96. Autoplayed runs snapshot every 10 s and resume from each window's leg (owner's request, 2026-10-08)
+
+Long autoplayed runs failed hours in, and resuming meant copying the campaign
+and guessing one `FROM` for both windows, though a stall often leaves them on
+different legs. The owner asked for a snapshot every 10 seconds or so. An
+autoplayed scenario's host now writes, every 10 s in which something changed
+and only between battles, a `SEED=`-shaped snapshot: the content a checkpoint
+would write (`PokeCoopHost.write_copy`; no SAVE counted, the checkpoint
+untouched), the identity file, and each window's leg. The autopilot sends its
+running leg as an unnumbered `note` once the world link has rested since the
+leg began, so the host already holds the world the leg starts from; a recorded
+leg can lag the window but never leads it. Repeated leg names are
+`<name>#<n>`. All snapshots of the last 30 minutes are kept, older ones one
+per 5 minutes. `tools/coop_resume.sh` reruns the scenario through
+`coop_screens.sh` from the last snapshot, a numbered one, or one so many
+seconds before the end, each window with its own `P1_FROM` / `P2_FROM`. It is
+not a memory image: the game is recompiled, and the host's campaign plus the
+leg is what a window reopens from. Cost: one tool-only message type the host
+ignores for game state; the autopilot's in-between steps before a resumed leg
+are skipped, as with `FROM`.

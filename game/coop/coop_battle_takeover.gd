@@ -9,6 +9,7 @@ var data: GameData = null
 ## The battles the world opened itself, whose evolutions it runs itself.
 var claimed: Dictionary = {}
 var waiting_on: String = ""
+var send_party: Callable = Callable()
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -20,7 +21,8 @@ static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattle
 
 func takes_battle(context: Dictionary) -> bool:
 	return client != null and client.connected and not client.me().is_empty() \
-		and StringName(context.get("battle_kind", &"")) in [&"wild", &"trainer"]
+		and StringName(context.get("battle_kind", &"")) in [&"wild", &"trainer"] \
+		and StringName(context.get("gen1_ghost", &"")) != Gen1Layout.GHOST_UNIDENTIFIED
 
 
 func create_battle() -> Node:
@@ -83,6 +85,8 @@ class Bridge extends Node:
 		if not busy.is_empty():
 			return
 		_known = client.battles.keys()
+		if _owner.send_party.is_valid():
+			_owner.send_party.call()
 		_seq = client.send(_asking)
 
 	func advance_frame() -> void:
@@ -137,4 +141,4 @@ class Bridge extends Node:
 	func _finish(outcome: StringName) -> void:
 		client.journal.add(PokeCoopLog.WORLD, "takeover_end", {"battle": _battle_id, "outcome": outcome}, client.player_id)
 		_done = true
-		finished.emit({"outcome": outcome})
+		finished.emit({"outcome": outcome, "team_won": outcome == &"won"})

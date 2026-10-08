@@ -1,9 +1,8 @@
 class_name PokeCoopCampaign
 extends RefCounted
 
-## What every player of a co-op run shares: story flags, badges and which unique
-## encounters are taken. Progress only moves through [method commit], keyed by an
-## id, so a message delivered twice cannot apply twice.
+## What every player of a co-op run shares: story flags, badges and which unique encounters are taken. Progress
+## only moves through [method commit], keyed by an id, so a message delivered twice cannot apply twice.
 
 const ENCOUNTER_FREE: StringName = &"free"
 const ENCOUNTER_ACTIVE: StringName = &"active"
@@ -16,8 +15,7 @@ var game_id: StringName = &""
 var rom_sha1: String = ""
 var flags: Dictionary = {}
 var badges: int = 0
-## The shared keys of the world state other than event flags and badges, which
-## [member flags] and [member badges] hold. See [PokeCoopOwnership].
+## The shared keys of the world state other than the event flags and badges [member flags] and [member badges] hold.
 var world: Dictionary = {}
 var revision: int = 0
 var next_battle_serial: int = 1
@@ -70,12 +68,11 @@ func commit(commit_id: String, changes: Dictionary) -> bool:
 	return true
 
 
-## The campaign's half of a world state: [member world] with the event flags and
-## the badges as the engine flags in [param badge_flags].
+## The campaign's half of a world state: [member world], its event flags and its badges as [param badge_flags].
 func world_part(badge_flags: Array[int]) -> Dictionary:
 	var out: Dictionary = world.duplicate(true)
 	out["event_flags"] = flags.duplicate()
-	var engine: Dictionary = {}
+	var engine: Dictionary = (world.get("engine_flags", {}) as Dictionary).duplicate()
 	for bit: int in badge_flags.size():
 		if has_badge(bit):
 			engine[badge_flags[bit]] = true
@@ -94,11 +91,19 @@ func apply_world_patch(changes: Dictionary, badge_flags: Array[int]) -> bool:
 		if bool((current["event_flags"] as Dictionary)[flag]):
 			flags[int(flag)] = true
 	badges = 0
-	for bit: int in badge_flags.size():
-		if bool((current["engine_flags"] as Dictionary).get(badge_flags[bit], false)):
+	var engine: Dictionary = {}
+	for flag: Variant in current["engine_flags"] as Dictionary:
+		var bit: int = badge_flags.find(int(flag))
+		if not bool((current["engine_flags"] as Dictionary)[flag]):
+			continue
+		if bit >= 0:
 			badges |= 1 << bit
+		else:
+			engine[int(flag)] = true
 	current.erase("event_flags")
 	current.erase("engine_flags")
+	if not engine.is_empty():
+		current["engine_flags"] = engine
 	world = current
 	revision += 1
 	return true
@@ -122,6 +127,12 @@ func release_encounter(encounter_id: String, battle_id: String) -> void:
 			and String(held.get("battle", "")) == battle_id:
 		_encounters.erase(encounter_id)
 		revision += 1
+
+
+## A rematch (D91): [param encounter_id] is free again, and its next win commits once more.
+func forget_encounter(encounter_id: String) -> void:
+	_encounters.erase(encounter_id)
+	_commits.erase("victory:" + encounter_id)
 
 
 func take_battle_id() -> String:

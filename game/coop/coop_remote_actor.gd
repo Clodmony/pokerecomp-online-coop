@@ -40,6 +40,7 @@ func advance_frame() -> void:
 func _report() -> void:
 	var here: Dictionary = {
 		"map": _world.map_id(), "cell": _world.player_cell, "facing": _world.player_facing,
+		"places": {"gen1_last_map": _world.gen1_last_map(), "gen1_last_blackout_map": _world.gen1_last_blackout_map()},
 	}
 	if here == _reported or not client.connected:
 		return
@@ -48,7 +49,7 @@ func _report() -> void:
 	if here["map"] != _reported.get("map"):
 		client.journal.add(PokeCoopLog.WORLD, "map", {"map": here["map"], "cell": here["cell"], "from": _reported.get("map")}, client.player_id)
 	_reported = here
-	client.step(here["map"], here["cell"], here["facing"], not walked)
+	client.step(here["map"], here["cell"], here["facing"], not walked, here["places"])
 
 
 static func _distance(first: Vector2i, second: Vector2i) -> int:
