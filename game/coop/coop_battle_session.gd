@@ -33,6 +33,9 @@ var seen: Dictionary = {}
 var catch: Dictionary = {}
 var _pending_joins: Array = []
 var _absent: Dictionary = {}
+var _left: Dictionary = {}
+var _stand_ins: Dictionary = {}
+var _attached: Dictionary = {}
 var _abandoned: bool = false
 var _members: Dictionary = {}
 
@@ -62,6 +65,7 @@ static func start(
 	if trainer_class > 0:
 		out.battle.init_enemy_trainer(trainer_class)
 	out._enlist(player, fighters)
+	out._attached[player.player_id] = true
 	return out
 
 
@@ -95,7 +99,17 @@ func _enlist(player: PokeCoopPlayer, fighters: Dictionary) -> Array[int]:
 	participants.append(player.player_id)
 	_members[player.player_id] = player
 	player.battle_id = id
+	_share_exp_all()
 	return added
+
+
+func _share_exp_all() -> void:
+	var teams: Dictionary = {}
+	for index: int in roster.size():
+		(teams.get_or_add(roster.owner_at(index), []) as Array).append(index)
+	battle.exp_all_groups = teams.values()
+	battle.exp_all_in_bag = battle.is_gen1() and participants.any(func(player_id: String) -> bool:
+		return (_members[player_id] as PokeCoopPlayer).item_count(Gen1Layout.ITEM_EXP_ALL) > 0)
 
 
 ## A move offered on the last knockout is still asked before the battle ends.
@@ -113,15 +127,47 @@ func phase() -> StringName:
 	return AWAITING_ACTION
 
 
-## The active Pokémon's owner, or a stand-in once they are away [constant PokeCoopPolicy.STAND_IN_MSEC].
+## The active Pokémon's owner, or while they are away whoever stands in for them (D61).
 func controller() -> String:
 	var owner: String = owner_deciding()
-	if not _absent.has(owner) or Time.get_ticks_msec() - int(_absent[owner]) < PokeCoopPolicy.STAND_IN_MSEC:
+	if is_present(owner):
 		return owner
-	for player_id: String in participants:
-		if not _absent.has(player_id):
-			return player_id
+	var chosen: String = _stands_in_for(owner)
+	if is_present(chosen):
+		return chosen
+	if _left.has(owner) or not chosen.is_empty():
+		for player_id: String in participants:
+			if is_present(player_id):
+				return player_id
 	return owner
+
+
+func _stands_in_for(owner: String) -> String:
+	return String(_stand_ins.get(owner, ""))
+
+
+func is_present(player_id: String) -> bool:
+	return participants.has(player_id) and not _absent.has(player_id)
+
+
+func has_left(player_id: String) -> bool:
+	return _left.has(player_id)
+
+
+func stand_in_due() -> bool:
+	var owner: String = owner_deciding()
+	return phase() != OVER and _absent.has(owner) and not _left.has(owner) \
+		and not is_present(_stands_in_for(owner)) \
+		and Time.get_ticks_msec() - int(_absent[owner]) >= PokeCoopPolicy.STAND_IN_MSEC
+
+
+func stand_in(player_id: String) -> StringName:
+	if not is_present(player_id):
+		return &"not_a_participant"
+	if not stand_in_due():
+		return &"no_stand_in_due"
+	_stand_ins[owner_deciding()] = player_id
+	return &""
 
 
 func owner_deciding() -> String:
@@ -134,12 +180,39 @@ func is_paused() -> bool:
 	return phase() != OVER and _absent.has(controller())
 
 
-## [param since_msec] is when they went, by `Time.get_ticks_msec`.
+## [param since_msec] is when they went, by `Time.get_ticks_msec`; one who left stays away until they rejoin.
 func set_absent(player_id: String, absent: bool, since_msec: int = Time.get_ticks_msec()) -> void:
 	if absent:
 		_absent[player_id] = since_msec
-	else:
+	elif not _left.has(player_id):
 		_absent.erase(player_id)
+		_stand_ins.erase(player_id)
+
+
+func attach(player_id: String) -> void:
+	_attached[player_id] = true
+
+
+func leave(player: PokeCoopPlayer) -> StringName:
+	if _attached.has(player.player_id):
+		return &"attached"
+	var queued: int = pending_players().find(player.player_id)
+	if queued >= 0:
+		_pending_joins.remove_at(queued)
+		player.battle_id = ""
+		player.resume_exploration()
+		return &""
+	if not participants.has(player.player_id):
+		return &"not_a_participant"
+	if phase() == OVER:
+		return &"battle_over"
+	if _left.has(player.player_id):
+		return &"already_left"
+	_left[player.player_id] = true
+	_absent[player.player_id] = Time.get_ticks_msec()
+	suggestions.erase(player.player_id)
+	player.resume_exploration()
+	return &""
 
 
 ## Ends the battle as fled: everybody left it, or the host is closing.
@@ -345,6 +418,11 @@ func _enemy_action() -> Dictionary:
 func request_join(data: GameData, player: PokeCoopPlayer) -> StringName:
 	if phase() == OVER:
 		return &"battle_over"
+	if _left.has(player.player_id):
+		_left.erase(player.player_id)
+		set_absent(player.player_id, false)
+		player.suspend_exploration()
+		return &""
 	if involves(player.player_id):
 		return &"already_joined"
 	var fighters: Dictionary = fighters_of(data, player)
@@ -449,6 +527,7 @@ func view() -> Dictionary:
 		"phase": phase(), "controller": controller(), "paused": is_paused(),
 		"owner": owner_deciding(), "learning": battle.pending_learn(Gen2Battle.PLAYER).duplicate(),
 		"participants": participants.duplicate(), "pending": pending_players(),
+		"left": _left.keys(), "attached": _attached.keys(), "stand_in_due": stand_in_due(),
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
 		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),

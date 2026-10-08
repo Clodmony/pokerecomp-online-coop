@@ -4,7 +4,7 @@ extends RefCounted
 ## The authoritative side of a co-op session: validates clients' intentions against the campaign,
 ## the players and the running battles, and answers every client with the state they may see.
 
-const PROTOCOL: int = 3
+const PROTOCOL: int = 4
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -27,6 +27,7 @@ var _closing_at: int = -1
 var _refused_peers: Dictionary = {}
 var _peers: Dictionary = {}
 var _badge_flags: Array[int] = []
+var _own_entries: Dictionary = {}
 var _last_seq: Dictionary = {}
 ## Final battle views a participant who was away when a battle ended is told on coming back.
 var _finished: Dictionary = {}
@@ -61,6 +62,7 @@ static func create(
 	out.campaign = run
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
+	out._own_entries = PokeCoopPolicy.own_entries(game_data)
 	out.trades = PokeCoopTrades.create(game_data)
 	PokeCoopPolicy.settle_intro(run)
 	return out
@@ -238,8 +240,8 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 		"suggest":
 			var suggestion: Variant = message.get("suggestion", {})
 			return suggest(sender, battle_id, suggestion if suggestion is Dictionary else {})
-		"join":
-			return join_battle(sender, battle_id)
+		"join", "leave_battle", "stand_in":
+			return _membership(sender, kind, battle_id)
 		"world":
 			return apply_world(sender, PokeCoopOwnership.well_formed(message.get("patch", {})))
 		"party":
@@ -280,7 +282,7 @@ func _hello(peer: int, message: Dictionary) -> StringName:
 			joining = add_player(PokeCoopTransport.text(message.get("name")), seeds.randi() & 0xFFFF)
 			if brought != null:
 				PokeCoopPolicy.import_save(
-					brought, joining, campaign if joined_before == 0 else null, _badge_flags
+					brought, joining, campaign if joined_before == 0 else null, _badge_flags, _own_entries
 				)
 			elif message.get("opening") is bool and bool(message.get("opening")):
 				PokeCoopPolicy.set_up_opening_player(data, joining)
@@ -374,24 +376,25 @@ func _autosave() -> void:
 		_changed = false
 
 
-## A battle everyone has left for longer than a stand-in waits ends as fled, holding up no save.
+## A battle nobody has been in for as long as a window redials ends as fled, holding up no save.
 func _end_abandoned() -> void:
 	for session: PokeCoopBattleSession in battles.values():
-		if session.everyone_away_for() >= PokeCoopPolicy.STAND_IN_MSEC:
+		if session.everyone_away_for() >= PokeCoopPolicy.ABANDON_MSEC:
 			journal.add(PokeCoopLog.HOST, "battle_abandoned", {"battle": session.id})
 			session.abandon()
 			_finish(session)
 			broadcast()
 
 
-## A stand-in's turn starts with no message to answer, so it is announced.
+## The offer to stand in comes with no message to answer, so it is announced.
 func _announce_stand_ins() -> void:
 	var changed: bool = false
 	for session: PokeCoopBattleSession in battles.values():
-		var now: String = session.controller()
+		var now: String = "%s/%s" % [session.controller(), session.stand_in_due()]
 		if String(_controllers.get(session.id, now)) != now:
 			changed = true
-			journal.add(PokeCoopLog.HOST, "controller", {"battle": session.id, "controller": now})
+			journal.add(PokeCoopLog.HOST, "controller", {"battle": session.id, "controller": session.controller(),
+				"stand_in_due": session.stand_in_due()})
 		_controllers[session.id] = now
 	if changed and _closing_at < 0:
 		broadcast()
@@ -428,7 +431,7 @@ func _on_disconnected(peer: int) -> void:
 func step(
 	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
 ) -> StringName:
-	if not mover.is_free():
+	if not exploring(mover):
 		return &"in_battle"
 	var distance: int = absi(to_cell.x - mover.cell.x) + absi(to_cell.y - mover.cell.y)
 	if not warp and to_map == mover.map and distance > MAX_STEP_CELLS:
@@ -438,9 +441,14 @@ func step(
 	return &""
 
 
+func exploring(member: PokeCoopPlayer) -> bool:
+	var session: PokeCoopBattleSession = battles.get(member.battle_id, null)
+	return member.is_free() or (session != null and session.has_left(member.player_id))
+
+
 ## A window's world-state patch, trusted for now: the shared half to the campaign, the rest to [param sender].
 func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
-	var halves: Dictionary = PokeCoopOwnership.route(changes, _badge_flags)
+	var halves: Dictionary = PokeCoopOwnership.route(changes, _badge_flags, _own_entries)
 	if not sender.opening.is_empty():
 		PokeCoopOwnership.apply_patch(sender.opening["world"], halves[PokeCoopOwnership.CAMPAIGN])
 		sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
@@ -448,12 +456,20 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 		return &""
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
+	var money_before: int = sender.money
 	var story_moved: bool = campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
 	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
+	if not story_moved and _sets_entries(halves[PokeCoopOwnership.CAMPAIGN]) and sender.money >= money_before:
+		PokeCoopPolicy.keep_once(sender, held_before)
 	var handled: Array[int] = PokeCoopPolicy.share_gifts(campaign, sender, players.values(), flags_before, held_before)
 	if story_moved:
 		PokeCoopPolicy.share_found_items(data, sender, players.values(), held_before, handled)
 	return &""
+
+
+static func _sets_entries(changes: Dictionary) -> bool:
+	return ["event_flags", "toggled_objects"].any(func(key: String) -> bool:
+		return not ((changes.get(key, {}) as Dictionary).get("set", {}) as Dictionary).is_empty())
 
 
 func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
@@ -595,7 +611,10 @@ func _join_window_battle(joiner: PokeCoopPlayer, encounter_id: String) -> String
 	for session: PokeCoopBattleSession in battles.values():
 		if String(session.encounter.get("id", "")) != encounter_id:
 			continue
-		return session.request_join(data, joiner)
+		var refused: StringName = session.request_join(data, joiner)
+		if refused == &"":
+			session.attach(joiner.player_id)
+		return refused
 	return &"encounter_taken"
 
 
@@ -641,6 +660,13 @@ func battle_command(sender: PokeCoopPlayer, battle_id: String, command: Dictiona
 func suggest(sender: PokeCoopPlayer, battle_id: String, suggestion: Dictionary) -> StringName:
 	var session: PokeCoopBattleSession = battles.get(battle_id, null)
 	return &"unknown_battle" if session == null else session.suggest(sender.player_id, suggestion)
+
+
+func _membership(sender: PokeCoopPlayer, kind: String, battle_id: String) -> StringName:
+	var session: PokeCoopBattleSession = battles.get(battle_id, null)
+	if kind == "join" or session == null:
+		return join_battle(sender, battle_id)
+	return session.leave(sender) if kind == "leave_battle" else session.stand_in(sender.player_id)
 
 
 func join_battle(joiner: PokeCoopPlayer, battle_id: String) -> StringName:
@@ -733,7 +759,7 @@ func _file_catch(caught: Dictionary) -> void:
 
 func _pay(session: PokeCoopBattleSession) -> Dictionary:
 	var total: int = session.battle.battle_reward + session.battle.pay_day_money
-	var split: Dictionary = PokeCoopPolicy.prize_split(total, session.participants, session.initiator)
+	var split: Dictionary = PokeCoopPolicy.prize_shares(total, session.participants)
 	for payee: String in split:
 		player(payee).add_money(int(split[payee]))
 	return split
@@ -804,6 +830,7 @@ func broadcast() -> void:
 		running.append({
 			"battle": session.id, "encounter": String(session.encounter.get("id", "")),
 			"participants": session.participants.duplicate(), "phase": session.phase(),
+			"left": session.participants.filter(session.has_left),
 			"enemy": session.battle.mon(Gen2Battle.ENEMY).species, "trainer_class": int(session.encounter.get("trainer_class", 0)),
 			"private": bool(session.encounter.get("private", false)),
 		})

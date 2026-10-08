@@ -583,6 +583,7 @@ var landmark: int = LANDMARK_NONE
 
 ## `HandleEnemyMonFainted`'s `IsItemInBag EXP_ALL`; nothing past Generation 1.
 var exp_all_in_bag: bool = false
+var exp_all_groups: Array = []
 
 ## `wEnemyTrainerItem1` and `wEnemyTrainerItem2`, one copy for the whole battle
 ## and each removed as it is spent (`xor a; ld [de], a`). Empty for a wild battle
@@ -2857,11 +2858,11 @@ func _gen1_award(defeated: Gen2BattleMon, participants: Array, halved: bool, eve
 	)
 	var award: int = _award_block(defeated, block, participants, false, events)
 	if exp_all_in_bag:
-		var everyone: Array = range(party(PLAYER).size())
-		block = Gen2Experience.shared_block(
-			block["stats"], int(block["base_exp"]), false, everyone.size()
-		)
-		_award_block(defeated, block, everyone, true, events)
+		for group: Array in exp_all_groups if not exp_all_groups.is_empty() else [range(party(PLAYER).size())]:
+			var share: Dictionary = Gen2Experience.shared_block(
+				block["stats"], int(block["base_exp"]), false, group.size()
+			)
+			_award_block(defeated, share, group, true, events)
 	return award
 
 

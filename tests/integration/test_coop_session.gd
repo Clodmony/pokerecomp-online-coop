@@ -674,6 +674,8 @@ func test_one_trainer_opened_in_two_windows_is_one_battle_both_fight() -> void:
 
 	var battle_id: String = _battle_of(_red)
 	assert_eq(_host.battles.size(), 1, "the second window joined instead of starting another")
+	_send(func() -> void: _blue.leave_battle(battle_id))
+	assert_eq(_blue.last_rejection(), &"attached", "a window waiting on the trainer stays in the fight")
 	assert_true((_blue.battle(battle_id).get("participants", []) as Array).has(_blue.player_id))
 	var view: Dictionary = _blue.battle(battle_id)
 	assert_eq([view["trainer_name"], view["win_text"], view["gym"]], ["GARY", "I lost!", true],
@@ -1094,6 +1096,13 @@ func test_a_partner_stands_in_for_a_controller_who_stays_away() -> void:
 
 	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
 	_pump()
+	assert_eq([bool(_blue.battle(battle_id)["paused"]), bool(_blue.battle(battle_id)["stand_in_due"])], [true, true],
+		"Blue is asked, and nothing moves until they answer")
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_blue, _data))
+	panel._process(0.0)
+	assert_eq(panel._rows.map(func(row: Dictionary) -> String: return String(row["session"])), ["stand_in", "wait", "leave"])
+	panel._choose()
+	_pump()
 
 	var view: Dictionary = _blue.battle(battle_id)
 	assert_false(bool(view["paused"]))
@@ -1271,7 +1280,7 @@ func test_a_join_still_queued_when_the_battle_ends_is_let_go() -> void:
 
 	_host.transport.drop(1)
 	_pump()
-	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.ABANDON_MSEC)
 	_host.poll()
 	_pump()
 
@@ -1320,11 +1329,14 @@ func test_a_battle_everyone_left_ends_and_stops_holding_up_saves() -> void:
 	var battle_id: String = _battle_of(_red)
 	_host.transport.drop(1)
 	_pump()
-	(_host.battles[battle_id] as PokeCoopBattleSession).set_absent(
-		_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC
-	)
+	var session: PokeCoopBattleSession = _host.battles[battle_id]
+	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
 	_host.poll()
+	assert_true(_host.battles.has(battle_id), "kept for as long as Red's window may still be redialling")
+	assert_eq(PokeCoopPolicy.ABANDON_MSEC, PokeCoopSession.RECONNECT_ATTEMPTS * PokeCoopSession.RECONNECT_MSEC)
 
+	session.set_absent(_red.player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.ABANDON_MSEC)
+	_host.poll()
 	assert_false(_host.battles.has(battle_id))
 	assert_true(_host.player(_red.player_id).is_free())
 	assert_eq(_host.save_checkpoint(), &"", "a SAVE goes through again")
@@ -1541,3 +1553,138 @@ func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:
 
 	assert_eq(drawn.size(), 1)
 	assert_true(bool((drawn[0] as Dictionary).get("solid", false)))
+
+
+func test_a_joiner_who_leaves_walks_on_while_their_pokemon_fight_and_keep_what_they_earn() -> void:
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _red.act(battle_id, {"type": "switch", "index": 2}))
+	assert_true(_blue.is_controller(battle_id), "Blue's Charmander is out")
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	var exp_before: int = int(blue.team[0]["mon"].exp)
+
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_blue, _data))
+	panel._process(0.0)
+	panel._cursor = panel._rows.size() - 1
+	assert_eq(String(panel._rows[panel._cursor]["text"]), "LEAVE BATTLE")
+	panel._choose()
+	_pump()
+	panel._process(0.0)
+	assert_false(panel.is_open(), "Blue's world goes on")
+	assert_eq(_red.battle(battle_id)["left"], [_blue.player_id])
+	assert_true(_red.is_controller(battle_id), "Red decides for the Charmander Blue left behind")
+	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0))
+	assert_eq(blue.cell, Vector2i(6, 6), "Blue walks on")
+	assert_true(_red.nearby().has(_blue.player_id), "and is seen again")
+	_send(func() -> void: _blue.start_battle("wild:stall"))
+	assert_eq(_blue.last_rejection(), &"already_in_battle", "Blue's Pokémon are still busy")
+	var red_panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	red_panel._process(0.0)
+	assert_false(red_panel._rows.any(func(row: Dictionary) -> bool: return row.has("session")), "Red's own fight offers no way out")
+
+	_fight_out(battle_id)
+	assert_eq(String(_blue.battle(battle_id)["outcome"]), "won")
+	assert_gt(int(blue.team[0]["mon"].exp), exp_before, "Blue's Charmander keeps what it earned")
+	assert_eq([blue.is_free(), blue.cell], [true, Vector2i(6, 6)], "and Blue stays where they walked")
+
+
+func test_a_player_who_left_rejoins_from_the_session_menu() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _blue.leave_battle(battle_id))
+	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0))
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_blue, _data))
+	panel._menu_open = true
+	panel._process(0.0)
+	panel._cursor = panel._rows.find_custom(func(row: Dictionary) -> bool: return String(row["text"]) == "REJOIN %s" % battle_id)
+	assert_gt(panel._cursor, -1, "the session menu offers the way back in")
+
+	panel._choose()
+	_pump()
+	var view: Dictionary = _blue.battle(battle_id)
+	assert_eq([view["left"], (view["participants"] as Array).count(_blue.player_id)], [[], 1], "back in, once")
+	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 7), 0))
+	assert_eq(_blue.last_rejection(), &"in_battle", "and held there again")
+
+
+func test_every_participant_is_paid_the_whole_prize() -> void:
+	_send(func() -> void: _red.start_battle("trainer:leader"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	var reward: int = (_host.battles[battle_id] as PokeCoopBattleSession).battle.battle_reward
+	_fight_out(battle_id)
+
+	assert_eq(String(_red.battle(battle_id)["outcome"]), "won")
+	assert_gt(reward, 0)
+	assert_eq(_red.battle(battle_id)["prizes"], {_red.player_id: reward, _blue.player_id: reward})
+	assert_eq([int(_red.me()["money"]), int(_blue.me()["money"])],
+		[PokeCoopPolicy.NEW_PLAYER_MONEY + reward, PokeCoopPolicy.NEW_PLAYER_MONEY + reward])
+
+
+func test_a_fight_the_world_opens_waits_until_the_pokemon_it_left_are_back() -> void:
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _blue.leave_battle(battle_id))
+	var window: PokeCoopWorldLink = _window(_blue)
+	var results: Array = []
+	var takeover: PokeCoopBattleTakeover = PokeCoopBattleTakeover.over(_blue, _data)
+	var bridge: Node = takeover.create_battle()
+	add_child_autofree(bridge)
+	bridge.connect("finished", func(result: Dictionary) -> void: results.append(result))
+	bridge.call("start", _opened_by_world(window, Gen2Party.of(Gen2BattleMon.create(_data, Fixture.BULBASAUR, 2, [Fixture.GROWL]))))
+	_pump()
+	bridge.call("_process", 0.0)
+	assert_eq([_host.battles.size(), takeover.waiting_on], [1, battle_id], "the new fight waits for Blue's Pokémon")
+
+	_fight_out(battle_id)
+	bridge.call("_process", 0.0)
+	_pump()
+	assert_eq(takeover.waiting_on, "")
+	var fresh: String = _battle_of(_blue)
+	assert_true(fresh != "" and fresh != battle_id, "then it starts on the host")
+	_fight_out(fresh)
+	bridge.call("_process", 0.0)
+	assert_eq(results, [{"outcome": &"won"}])
+
+
+func test_each_player_is_given_their_own_eevee_and_dojo_pokemon() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	const EEVEE_BALL: int = 0x45
+	const GOT_HITMONLEE: int = 0x356
+	const DEFEATED_DOJO: int = 0x350
+	red.state.set_object_toggled(EEVEE_BALL, true)
+	red.state.set_event_flag(GOT_HITMONLEE)
+	red.state.set_event_flag(DEFEATED_DOJO)
+	_pump()
+
+	assert_true(blue.state.event_flags().has(DEFEATED_DOJO), "the Dojo is beaten for everyone")
+	assert_false(blue.state.event_flags().has(GOT_HITMONLEE), "Blue may still take a Hitmon")
+	assert_false(blue.state.is_object_toggled(EEVEE_BALL), "and still finds the EEVEE ball")
+	assert_true(red.state.is_object_toggled(EEVEE_BALL) and red.state.event_flags().has(GOT_HITMONLEE), "Red keeps theirs")
+	_host.save_checkpoint()
+	var reloaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	var red_again: PokeCoopPlayer = (reloaded["players"] as Array).filter(
+		func(member: PokeCoopPlayer) -> bool: return member.player_id == _red.player_id)[0]
+	assert_eq([(red_again.world["toggled_objects"] as Dictionary).get(EEVEE_BALL), (red_again.world["event_flags"] as Dictionary).get(GOT_HITMONLEE)],
+		[true, true], "and Red's are saved with Red")
+
+
+func test_a_gift_two_windows_hand_out_at_once_is_kept_once() -> void:
+	var red: PokeCoopPlayer = _host.player(_red.player_id)
+	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
+	var picked: Dictionary = {"toggled_objects": {"set": {0x30: true}, "erase": []}}
+	_host.apply_world(red, picked.merged({"items": {"set": {Fixture.POTION: 1}, "erase": []}}))
+	assert_eq(blue.item_count(Fixture.POTION), 1, "Blue is handed Red's find")
+
+	_host.apply_world(blue, picked.merged({"items": {"set": {Fixture.POTION: 2}, "erase": []}}))
+	assert_eq(blue.item_count(Fixture.POTION), 1, "Blue's window picked it up as well before it heard; one is kept")
+	assert_eq(red.item_count(Fixture.POTION), 1)
+
+	_host.apply_world(blue, picked.merged({
+		"items": {"set": {Fixture.POTION: 1, Fixture.SMOKE_BALL: 1}, "erase": []}, "money": {"set": {0: blue.money - 10}, "erase": []},
+	}))
+	assert_eq(blue.item_count(Fixture.SMOKE_BALL), 1, "a purchase in the same change is not taken back")
