@@ -256,6 +256,30 @@ func test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of
 	assert_eq(known.get("testgame/127.0.0.1:%d" % PokeCoopEnetTransport.DEFAULT_PORT), {"testgame": "p2"})
 
 
+func test_a_seed_with_a_full_party_gives_each_player_six_of_their_own_told_apart_the_same_each_time() -> void:
+	var save := Gen2SaveData.new()
+	save.player_id = 0xFFFF
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	save.world = Gen2WorldSnapshot.new()
+	var again: Gen2SaveData = Gen2SaveData.from_dict(save.to_dict())
+	Seed.fill_party(_data, save, 9)
+	Seed.fill_party(_data, again, 9)
+	assert_eq(save.to_dict(), again.to_dict(), "the same party from the same save")
+
+	assert_eq(Seed.write_seed(_data, save, SEED_DIR, Vector2i(5, 9)), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SEED_DIR.path_join(PokeCoopSession.campaign_path(_data).trim_prefix("user://")))
+
+	for held: PokeCoopPlayer in loaded["players"]:
+		assert_eq(held.team.map(func(entry: Dictionary) -> String: return entry["uid"]),
+			range(1, 7).map(func(at: int) -> String: return "%s:%d" % [held.player_id, at]))
+		var mons: Array = held.team.map(func(entry: Dictionary) -> Gen2SaveMon: return entry["mon"])
+		assert_eq(mons.map(func(mon: Gen2SaveMon) -> Array: return [mon.species, mon.level, mon.ot_id, mon.hp > 0]),
+			range(6).map(func(_at: int) -> Array: return [Fixture.CHARMANDER, 12, held.trainer_id, true]))
+		var prints: Array = mons.map(PokeCoopPlayer.fingerprint)
+		assert_eq(prints.filter(func(row: Array) -> bool: return prints.count(row) == 1).size(), 6,
+			"the host tells every one apart")
+
+
 func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() -> void:
 	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
 	campaign.title = "WITH BLUE"
