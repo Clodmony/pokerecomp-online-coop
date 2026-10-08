@@ -988,10 +988,8 @@ func _sabrina_legs() -> Array:
 	var m: Dictionary = SABRINA_MAPS
 	var k: Dictionary = KOGA_MAPS
 	var gate_open: Callable = p._engine(Gen1Layout.status_flag_1(PokeCoopOwnership.SAFFRON_DRINK_BIT))
-	var bought: Callable = func(world: Gen2WorldAPI) -> bool: return _order() > 0 and not _partner_on(world.map_id())
-	var drink: Callable = _either(bought, _either(p._holds(FRESH_WATER), gate_open))
-	var hand_over: Callable = func(world: Gen2WorldAPI) -> int:
-		return p._walk(ROUTE_7_GATE_EAST).call(world) if _order() == 0 and _partner_on(m.route_7_gate) else PokeButton.NONE
+	var bought: Callable = func(world: Gen2WorldAPI) -> bool: return not _partner_on(world.map_id())
+	var partner_in_gate: Callable = func(_world: Gen2WorldAPI) -> bool: return _partner_on(m.route_7_gate)
 	var east_of_gate: Callable = func(world: Gen2WorldAPI) -> bool:
 		return world.map_id() == m.route_7 and world.player_cell.x >= ROUTE_7_EAST_DOOR_X
 	var legs: Array = [
@@ -1018,14 +1016,19 @@ func _sabrina_legs() -> Array:
 	var meet: Array = _meet_partner("meet_on_the_roof", p._holds(FRESH_WATER))
 	meet[1] = func(world: Gen2WorldAPI) -> int: return p._walk(_vending_cell()).call(world)
 	legs.append(meet)
-	legs.append(["fresh_water", func(world: Gen2WorldAPI) -> int:
-		return p._talk(_vending_cell(), UP).call(world) if _order() == 0 else PokeButton.NONE, drink])
+	var drinker: bool = _order() == 0
+	if drinker:
+		legs.append(["fresh_water", p._talk(_vending_cell(), UP), _either(p._holds(FRESH_WATER), gate_open)])
+	else:
+		legs += [["fresh_water", p._walk(_vending_cell()), _either(p._at(_vending_cell()), bought)],
+			["fresh_water_bought", _standing, bought]]
 	for floor: int in range(floors.size() - 2, -1, -1):
 		legs.append(["celadon_mart_down_%d" % floor, p._warp_to(floors[floor]), p._on_map(floors[floor])])
 	return legs + [
 		["celadon_to_route_7", p._cross(Vector2i.RIGHT, m.route_7), p._on_map(m.route_7)],
 		["route_7_gate", p._warp_to(m.route_7_gate), p._on_map(m.route_7_gate)],
-		["route_7_gate_drink", hand_over, _either(gate_open, east_of_gate)],
+	] + ([["route_7_gate_partner", _standing, _either(partner_in_gate, gate_open)]] if drinker else []) + [
+		["route_7_gate_drink", p._walk(ROUTE_7_GATE_EAST) if drinker else _standing, _either(gate_open, east_of_gate)],
 		["route_7_gate_east", p._walk(ROUTE_7_GATE_EAST), east_of_gate],
 		["route_7_to_saffron", p._cross(Vector2i.RIGHT, m.saffron_city), p._on_map(m.saffron_city)],
 	] + _silph_legs() + _saffron_gym_legs()
