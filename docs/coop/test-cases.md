@@ -94,6 +94,8 @@ Red (or Blue) cartridge, the same one.
 | W56 | One player enters the Hall of Fame while the partner is still in the League | The partner's own run flags stay; the partner finishes and gets their own Hall of Fame | the Elite Four run test | playthrough_elite | |
 | W57 | After the credits | The window continues in Pallet Town in front of the house, still in the session; the League's run flags are cleared for that player only; the Hall of Fame bit is set on the host | `test_coop_session` (credits test) | playthrough_elite | |
 | W58 | One window fights the Champion; the other joins from LANCE's room | The joiner then walks in, wins at once, sees Oak and gets its own Hall of Fame | | playthrough_elite | |
+| W59 | One player rescues Mr. Fuji; the other reaches Pokémon Tower 7F afterwards | 7F is empty; the late player walks back down and on to Mr. Fuji's house, already holding their own POKé FLUTE (window and host) | | seeded late-partner tower run (not a committed scenario) | |
+| W60 | One player waits beside SNORLAX on Route 12 while the partner is still in Lavender | When the partner arrives one wakes it and the other joins: one battle, SNORLAX gone for both | | playthrough_koga | |
 
 ## Battles
 
