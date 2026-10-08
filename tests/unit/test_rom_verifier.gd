@@ -108,3 +108,18 @@ func test_unknown_id_yields_no_hash() -> void:
 	assert_eq(RomRegistry.generation_for(&"emerald"), 0)
 	assert_eq(RomRegistry.size_for(&"emerald"), 0)
 	assert_false(RomRegistry.is_playable(&"emerald"))
+
+
+func test_german_red_and_blue_are_their_own_games_on_their_base_engine() -> void:
+	for pair: Array in [[RomRegistry.RED_DE, RomRegistry.RED], [RomRegistry.BLUE_DE, RomRegistry.BLUE]]:
+		var german: StringName = pair[0]
+		var english: StringName = pair[1]
+		assert_ne(
+			RomCache.directory_for(german, RomRegistry.sha1_for(german)),
+			RomCache.directory_for(english, RomRegistry.sha1_for(english)),
+		)
+		assert_eq(RomRegistry.base_of(german), english)
+		assert_eq(RomRegistry.language_of(german), "de")
+		assert_eq(RomRegistry.language_of(english), "en")
+	assert_eq(RomRegistry.pick({RomRegistry.RED: 1}, RomRegistry.RED_DE), 1)
+	assert_eq(RomRegistry.pick({RomRegistry.RED: 1, RomRegistry.RED_DE: 2}, RomRegistry.RED_DE), 2)

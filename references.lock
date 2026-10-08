@@ -1,7 +1,7 @@
 # Authoritative source repositories used for source comparison.
 # Keep exact commits here so local checkouts are reproducible.
 # `sources` drives tools/fetch_reference_sources.sh and tools/reference_status.sh.
-sources=pokered pokeyellow pokecrystal pokegold suicune
+sources=pokered pokeyellow pokecrystal pokegold suicune pokered_de pokered_de_symbols
 pokered_repo=https://github.com/pret/pokered.git
 pokered_branch=master
 pokered_ref=a1a22aaf84d1675bcdbaeb194592379d586d838e
@@ -17,3 +17,9 @@ pokegold_ref=a0dad0957ac8a9ffa67e950ee3ab6715a212ded5
 suicune_repo=https://github.com/DanZC/suiCune.git
 suicune_branch=main
 suicune_ref=201d70028249b3297c441be195489e579bbf231a
+pokered_de_repo=https://github.com/einstein95/pokered-de.git
+pokered_de_branch=master
+pokered_de_ref=f6a2c0cdc557e4c8c1886743629341848ff5bc40
+pokered_de_symbols_repo=https://github.com/einstein95/pokered-de.git
+pokered_de_symbols_branch=symbols
+pokered_de_symbols_ref=7987804c2bea3204d1f5593c74e174e3c51b6e5e

@@ -9,6 +9,8 @@ extends Control
 const ART: Dictionary = {
 	&"red": preload("res://assets/cartridges/red.webp"),
 	&"blue": preload("res://assets/cartridges/blue.webp"),
+	&"red_de": preload("res://assets/cartridges/red.webp"),
+	&"blue_de": preload("res://assets/cartridges/blue.webp"),
 	&"yellow": preload("res://assets/cartridges/yellow.webp"),
 	&"gold": preload("res://assets/cartridges/gold.webp"),
 	&"silver": preload("res://assets/cartridges/silver.webp"),

@@ -1062,7 +1062,7 @@ func _tick_auto_input() -> void:
 func _auto_input_streams() -> Dictionary:
 	if _generation() != RomRegistry.GEN1:
 		return DUDE_AUTO_INPUT
-	var frames: Array = Gen1Layout.TUTOR_FRAMES.get(_data.id, Gen1Layout.TUTOR_FRAMES[RomRegistry.RED])
+	var frames: Array = RomRegistry.pick(Gen1Layout.TUTOR_FRAMES, _data.id, Gen1Layout.TUTOR_FRAMES[RomRegistry.RED])
 	return {
 		&"menu": [
 			[PokeButton.NONE, int(frames[0]) - 1], [PokeButton.DOWN, int(frames[1]) - 1],
@@ -1398,7 +1398,7 @@ func _begin_world_battle(prepared: Dictionary, save: Gen2SaveData) -> void:
 func _set_up_dude_tutorial() -> void:
 	_stop_auto_input()
 	if _generation() == RomRegistry.GEN1:
-		var balls: Dictionary = {_tutor_ball(): int(Gen1Layout.TUTOR_BALLS.get(_data.id, 1))}
+		var balls: Dictionary = {_tutor_ball(): int(RomRegistry.pick(Gen1Layout.TUTOR_BALLS, _data.id, 1))}
 		set_battle_pack([_tutor_ball()], balls)
 		set_capture_balls([_tutor_ball()], balls)
 		return
