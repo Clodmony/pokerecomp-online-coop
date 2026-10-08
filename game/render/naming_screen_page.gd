@@ -395,7 +395,7 @@ func _string(
 ) -> void:
 	var lines: PackedStringArray = text.split("\n")
 	for line: int in lines.size():
-		var codes: PackedByteArray = Gen1Text.encode(lines[line]) if _gen1 \
+		var codes: PackedByteArray = Gen1Text.encode(Gen1LayoutDe.localized(lines[line])) if _gen1 \
 			else Gen2Text.encode(lines[line])
 		for index: int in codes.size():
 			_put(map, at + Vector2i(index, line * line_step), codes[index])

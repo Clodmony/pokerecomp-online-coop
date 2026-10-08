@@ -370,6 +370,108 @@ const WORDS: Dictionary = {
 	"SEED": "SAMEN", "NEW NAME": "NAME", "TRADE CENTER": "HANDELSCENTER", "DRILL": "BOHRER", "B4F": "UG4",
 }
 
+const SCROLL: String = Gen2TextStream.SCROLL_BREAK
+
+const UI: Dictionary = {
+	"FIGHT": "KMPF", "RUN": "FLUCHT", "BAIT": "KÖDER", "THROW ROCK": "STEIN",
+	"SAVE": "SICHERN", "EXIT": "ZURÜCK", "CANCEL": "ZURÜCK", "SWITCH": "TAUSCH",
+	"STATS": "STATUS", "YES": "JA", "NO": "NEIN", "BUY": "KAUF", "SELL": "VERKAUF",
+	"QUIT": "ZUR.", "USE": "OK", "TOSS": "MÜLL", "DEPOSIT": "ABLEGEN", "WITHDRAW": "MITNEHMEN",
+	"WITHDRAW ITEM": "ITEM AUFNEHMEN", "DEPOSIT ITEM": "ITEM ABLEGEN",
+	"TOSS ITEM": "ITEM WEGWERFEN", "LOG OFF": "AUSLOGGEN", "TEXT SPEED": "TEXT-TEMPO",
+	"BATTLE ANIMATION": "KAMPFANIMATION", "BATTLE STYLE": "KAMPFSTIL", "PLAYER": "SPIELER",
+	"BADGES": "ORDEN", "TIME": "ZEIT", "PLAY TIME": "SPIELZEIT", "HALL OF FAME": "RUHMESHALLE",
+	"MONEY": "GELD", "MONEY/": "GELD/", "TIME/": "ZEIT/", "EXP POINTS": "EP-PUNKTE",
+	"TYPE1/": "TYP1/", "TYPE2/": "TYP2/", "TYPE": "TYP", "NICKNAME?": "ALIAS?",
+	"SEEN": "GES", "OWN": "BES", "CONTENTS": "INHALT", "CRY": "RUF", "AREA": "GEB.",
+	"PSN": "GIF", "SLP": "SLF", "BRN": "BRT", "FRZ": "GFR", "OLD MAN": "GREIS",
+	"PROF.OAK": "PROF.EICH", "YOU WIN": "GEWONNEN", "YOU LOSE": "VERLOREN", "TRADE": "TAUSCH",
+	"Would you like to": "Möchtest Du das", "SAVE the game?": "Spiel SICHERN?",
+	"Now saving...": "Speichern...", "%s saved": "%s hat das", "the game!": "Spiel gesichert!",
+	"YOUR NAME?": "DEIN NAME?", "RIVAL's NAME?": "GEGNER-NAME?",
+	"STATS     TRADE": "STATUS    TAUSCH", "ABLE": "OK", "NOT ABLE": "NEIN", "COIN": "MÜNZEN",
+	"Enemy %s": "Gegn. %s", "%s wants\nto fight!": "%s\nmöchte kämpfen!",
+	"%s sent\nout %s!": "%s setzt\n%s ein!", "Wild %s\nappeared!": "Ein wildes\n%s!",
+	"Go! %s!": "Los! %s!", "Do it! %s!": "Los! %s!", "Get'm! %s!": "Los! %s!",
+	"The enemy's weak!\nGet'm! %s!": "Mach ihn fertig!\nLos! %s!",
+	"No PP left for\nthis move!": "Du hast keine AP\nfür diese Attacke" + SCROLL + "mehr übrig!",
+	"The move is\ndisabled!": "Diese Attacke\nist blockiert!", "Critical hit!": "Volltreffer!",
+	"It's super\neffective!": "Die Attacke ist\nsehr effektiv!",
+	"It's not very\neffective...": "Die Attacke ist\nnicht effektiv...",
+	"GHOST: Get out...\nGet out...": "GEIST: Hau ab...\nVerschwinde...",
+	"Darn! The GHOST\ncan't be ID'd!": "Mist! Dieser\nGEIST ist nicht" + SCROLL + "identifizierbar!",
+	"SILPH SCOPE\nunveiled the" + SCROLL + "GHOST's identity!":
+		"Das SILPH SCOPE\nhat den GEIST" + SCROLL + "identifiziert!",
+	"%sbegan\nto nap!": "%s hält\nein Nickerchen!", "%sis\nloafing around.": "%s\nfaulenzt!",
+	"%swon't\nobey!": "%s will\nnicht gehorchen!", "%sturned\naway!": "%s\nwendet sich ab!",
+	"%s\nignored orders!": "%s\nmißachtet die" + SCROLL + "Befehle!",
+	"%s\nis fast asleep!": "%s\nschläft!", "%s\nis frozen solid!": "%s\nist festgefroren!",
+	"%s's\nfully paralyzed!": "%s\nist paralysiert!", "%s\nflinched!": "%s\nist ausgewichen!",
+	"%s\nmust recharge!": "%s\nmuß sich wieder " + SCROLL + "aufladen!",
+	"%s's\n%s is" + SCROLL + "disabled!": "%ss\n%s ist" + SCROLL + "blockiert!",
+	"%s\ncan't move!": "%s\nist gelähmt!",
+	"%s is too\nscared to move!": "%s kann\nsich vor Angst" + SCROLL + "nicht bewegen!",
+	"%s\nfell asleep!": "%s\nschläft!", "%s\nwas poisoned!": "%s\nwurde vergiftet!",
+	"%s's\nbadly poisoned!": "%s\nist vergiftet!", "%s\nwas burned!": "%s\nbrennt!",
+	"%s\nwas frozen solid!": "%s\nerstarrt zu Eis!",
+	"%s's\nparalyzed! It may" + SCROLL + "not attack!": "%s\nist paralysiert!",
+	"%s's\nhurt by poison!": "Das Gift schadet\n%s!",
+	"%s's\nhurt by the burn!": "Die Verbrennung\nschadet" + SCROLL + "%s!",
+	"%s's\nprotected against" + SCROLL + "special attacks!":
+		"%s\nist gegen " + SCROLL + "SPEZIAL-ATTACKEN" + SCROLL + "immun!",
+	"%s\ngained armor!": "%s\nerhält Panzer!", "%s\nfainted!": "%s\nwurde besiegt!",
+	"%s gained\n%d EXP. Points!": "%s erhält\n%d EP!",
+	"%s gained\nwith EXP.ALL,%s%d EXP. Points!": "%s erhält\nmittels EP-TEILER%s%d EP!",
+	"%s gained\na boosted%s%d EXP. Points!": "%s erhält\nspezielle%s%d EP!",
+	"Hit the enemy\n%d times!": "Der Gegner wurde\n%d mal getroffen!",
+	"Hit %d times!": "%d Mal getroffen!", "%s's\nattack continues!": "%s\ngreift weiter an!",
+	"%s's\nalready asleep!": "%s\nschläft bereits!",
+	"Can't escape!": "Du kannst nicht\ndavonlaufen!", "%s's\nthrashing about!": "%s\nschlägt um sich!",
+	"%s's\nattack missed!": "%ss\nAttacke ging" + SCROLL + "daneben!",
+	"It doesn't affect\n%s!": "Keine Wirkung auf\n%s!", "%s's\nhit with recoil!": "%s\nwird verletzt!",
+	"%s\nwoke up!": "%s\nist aufgewacht!", "Fire defrosted\n%s!": "%s\nist aufgetaut!",
+	"%s\nbecame confused!": "%s\nist verwirrt!", "%s\nis confused!": "%s\nist verwirrt!",
+	"%s's\nconfused no more!": "%s\nist nicht mehr" + SCROLL + "verwirrt!",
+	"It hurt itself in\nits confusion!": "Es hat sich vor\nVerwirrung selbst" + SCROLL + "verletzt!",
+	"All STATUS changes\nare eliminated!": "Alle STATUS-\nVERÄNDERUNGEN" + SCROLL + "wurden entfernt!",
+	"%s grew\nto level %d!": "%s\nerreicht" + SCROLL + "Level %d!", "But, it failed!": "Die Attacke\nschlug fehl!",
+	"The MIRROR MOVE\nfailed!": "Der SPIEGELTRICK\nwar erfolglos!",
+	"%s\nis saving energy!": "%s\nsammelt Kräfte!", "%s\nunleashed energy!": "%s\nerzeugt Energie!",
+	"%s's\nRAGE is building!": "%s\nverfällt in" + SCROLL + "RASEREI!",
+	"%s\nlearned" + SCROLL + "%s!": "%s hat\n%s" + SCROLL + "gelernt!",
+	"Converted type to\n%s's!": "%ss\nElem. adaptiert!",
+	"%s's\n%s was" + SCROLL + "disabled!": "%ss\n%s" + SCROLL + "wird blockiert!",
+	"%s's\ndisabled no more!": "%s\nwird nicht mehr" + SCROLL + "blockiert!",
+	"%s\nregained health!": "%s\nerholt sich!", "%s\nstarted sleeping!": "%s\nschläft!",
+	"%s\nfell asleep and" + SCROLL + "became healthy!": "%s\nist eingeschlafen" + SCROLL + "und genesen!",
+	"No effect!": "Es hat keine\nWirkung!",
+	"%s\nkept going and" + SCROLL + "crashed!": "%s\nverfehlt das Ziel" + SCROLL + "und fällt hin!",
+	"It created a\nSUBSTITUTE!": "Es setzt einen\nDELEGATOR ein!", "%s\nhas a SUBSTITUTE!": "%s\nben. DELEGATOR!",
+	"Too weak to make\na SUBSTITUTE!": "Keine Energie für\nden DELEGATOR!",
+	"%s's\nSUBSTITUTE broke!": "%ss\nDELEGATOR wurde" + SCROLL + "zerstört!",
+	"%s\nwas seeded!": "%s\nwurde bepflanzt!",
+	"LEECH SEED saps\n%s!": "Die SCHMAROTZER-\nATTACKE schadet" + SCROLL + "%s!",
+	"%s\nevaded attack!": "%s\nist ausgewichen!", "It didn't affect\n%s!": "Es hat keine\nWirkung!",
+	"%s\nis unaffected!": "%s\nblieb unversehrt!", "%s's\nshrouded in mist!": "%s\nist eingenebelt!",
+	"Coins scattered\neverywhere!": "Es liegen überall\nMünzen verstreut!",
+	"%s\ntransformed into" + SCROLL + "%s!": "%s\nverwandelt sich" + SCROLL + "in  %s!",
+	"%s\nran from battle!": "%s\nist geflohen!", "%s\nran away scared!": "%s\nläuft davon!",
+	"%s\nused %s%s!": "%s\nben. %s%s!", "instead,": "stattdessen", "Got away safely!": "Du bist\nentkommen!",
+	"%s\nused %s!": "%s\nben. %s!", "%s used\n%s!": "%s setzt\n%s ein!",
+	"All right!\n%s was caught!": "Wunderbar!\n%s wurde" + SCROLL + "gefangen!",
+	"You missed the\nPOKéMON!": "Du hast das\nPOKéMON verfehlt!",
+	"Darn! The POKéMON\nbroke free!": "Mist! Das POKéMON\nhat sich befreit!",
+	"Aww! It appeared\nto be caught!": "Fast hätte es\ngeklappt! ",
+	"Shoot! It was so\nclose too!": "Verflixt! Es\nhätte beinahe" + SCROLL + "geklappt!",
+	"Bring out which\nPOKéMON?": "Welches POKéMON\nsoll antreten?",
+	"Which move should\nbe forgotten?": "Welche Attacke\nsoll vergessen" + SCROLL + "werden?",
+	"What will\n%s do?": "Was soll\n%s tun?", "%s is\ndeciding...": "%s\nüberlegt...",
+	"%s is away.\nWaiting...": "%s ist weg.\nWarte...",
+	"%s enough!\nCome back!": "%s genug!\nKomm zurück!", "%s\nCome back!": "%s\nKomm zurück!",
+	"%s OK!\nCome back!": "%s OK!\nKomm zurück!", "%s good!\nCome back!": "%s super!\nKomm zurück!",
+	"%s learned\n%s!": "%s lernt\n%s!", "%s is\ntrying to learn\n%s!": "%s\nversucht,\n%s zu" + SCROLL + "erlernen!",
+}
+
 static var _red: Dictionary = {}
 static var _blue: Dictionary = {}
 
@@ -401,6 +503,14 @@ static func trainer_ai_shift(id: StringName) -> int:
 
 static func prints_nothing(id: StringName, run: String, slot: String) -> bool:
 	return is_german(id) and EMPTY_TEXTS.has("%s.%s" % [run, slot])
+
+
+static func ui(id: StringName, english: String) -> String:
+	return String(UI.get(english, english)) if is_german(id) else english
+
+
+static func localized(english: String) -> String:
+	return String(UI.get(english, english)) if Gen1Text.language() == "de" else english
 
 
 static func word(id: StringName, english: String) -> String:

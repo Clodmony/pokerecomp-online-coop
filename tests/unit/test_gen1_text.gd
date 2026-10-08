@@ -143,3 +143,16 @@ func test_switching_back_to_english_drops_the_german_table() -> void:
 	assert_eq(Gen1Text.character(0xBD), "'s")
 	assert_eq(Gen1Text.character(0xC1), "<C1>")
 	assert_eq(Gen1Text.encode("é"), _bytes([0xBA]))
+
+
+func test_a_german_cartridge_draws_the_engines_own_words_as_it_spells_them() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(
+		Gen2Font.fit("CANCEL", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("ZURÜCK")
+	)
+	assert_eq(Gen1LayoutDe.ui(RomRegistry.RED_DE, "Enemy %s") % "ABC", "Gegn. ABC")
+	Gen1Text.use_language("en")
+	assert_eq(
+		Gen2Font.fit("CANCEL", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("CANCEL")
+	)
+	assert_eq(Gen1LayoutDe.ui(RomRegistry.RED, "Enemy %s"), "Enemy %s")
