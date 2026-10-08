@@ -66,6 +66,8 @@ static func create(
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
+	for flag: int in PokeCoopPolicy.OWN_WALKS if not out._own_entries.is_empty() else []:
+		run.flags.erase(flag)
 	out.trades = PokeCoopTrades.create(game_data)
 	out._kept_revision = run.revision
 	return out
