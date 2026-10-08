@@ -173,6 +173,12 @@ func request_save() -> int:
 	return send({"type": "save"})
 
 
+## A tool's label for what drives this window, such as the autopilot's leg: unnumbered, after all sent before it.
+func note(text: String) -> void:
+	journal.add(PokeCoopLog.CLIENT, "note", {"text": text}, player_id)
+	transport.send(PokeCoopTransport.HOST_PEER, {"type": "note", "text": text})
+
+
 func sent() -> int:
 	return _seq
 
