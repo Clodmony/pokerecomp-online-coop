@@ -1,8 +1,7 @@
 class_name PokeCoopSave
 extends RefCounted
 
-## A co-op campaign on disk: the shared campaign and each player in their own section, versioned, written between
-## battles. Beside it a journal keeps the state after each story change until the next checkpoint replaces it.
+## A co-op campaign and its players on disk, versioned, written between battles, beside a journal of each story change since.
 
 const KIND: String = "pokerecomp-coop-campaign"
 const FORMAT_VERSION: int = 2

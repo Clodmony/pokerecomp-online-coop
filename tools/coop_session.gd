@@ -1,13 +1,12 @@
 extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
-##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- check host|p1|p2 [port] [logs]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs] | check host|p1|p2 [port] [logs]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare] [snapshots=<dir>]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
-## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh), over
-## localhost; each exits 0 only if every step passed. `host red` plays an imported cartridge, campaign in
-## `user://coop_campaigns/<game>/<game>.json`, `bare` with nobody in it yet. Session logs: `user://coop_logs` (`demo`, `check`: with `logs`).
+## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh); each exits 0 only if
+## every step passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`, `bare` with
+## nobody in it yet, `snapshots=` a tools/coop_resume.sh seed in `<dir>/<n>/` every 10 s it changed. Logs: `user://coop_logs`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -28,6 +27,9 @@ const RATTATA: int = 19
 const ONIX: int = 95
 const POKE_BALL: int = 4
 const POTION: int = 20
+const SNAPSHOT_MSEC: int = 10000
+const SNAPSHOTS_ALL_SECONDS: int = 1800
+const SNAPSHOTS_OLD_EVERY: int = 300
 
 var _directory: String = ""
 var _data: GameData = null
@@ -48,6 +50,11 @@ var _known: Array = []
 var _mode: String = ""
 var _logging: bool = false
 var _journals: Array = []
+var _snapshots: String = ""
+var _snapshot_at: int = 0
+var _snapshot_state: String = ""
+var _snapshot_count: int = 0
+var _snapshots_kept: Array = []
 
 
 func _initialize() -> void:
@@ -72,6 +79,10 @@ func _initialize() -> void:
 		"check":
 			_start_check(args[1] if args.size() > 1 else "", _port(args, 2))
 		"host":
+			_snapshots = ProjectSettings.globalize_path(_option(args, "snapshots="))
+			if not _snapshots.is_empty() and PokeToolPath.refuses(_snapshots):
+				_finish(2)
+				return
 			_start_host(_port(args, 1), game, args.has("bare"))
 		"client":
 			_start_client(args)
@@ -91,6 +102,13 @@ static func _game_arg(args: PackedStringArray) -> String:
 	if args[0] == "client":
 		var game_at: int = 4 if args.size() > 2 and args[2].is_valid_int() else 3
 		return args[game_at] if args.size() > game_at else ""
+	return ""
+
+
+static func _option(args: PackedStringArray, prefix: String) -> String:
+	for arg: String in args:
+		if arg.begins_with(prefix):
+			return arg.trim_prefix(prefix)
 	return ""
 
 
@@ -306,6 +324,7 @@ func _noop() -> void:
 func _process(_delta: float) -> bool:
 	if _host != null:
 		_host.poll()
+		_snapshot()
 	for client: PokeCoopClient in [_red, _blue]:
 		if client != null:
 			client.poll()
@@ -314,6 +333,70 @@ func _process(_delta: float) -> bool:
 	elif _mode == "client" and _red != null:
 		_watch_client()
 	return false
+
+
+func _snapshot() -> void:
+	if _snapshots.is_empty() or _host.ended or not _host.battles.is_empty() \
+			or Time.get_ticks_msec() - _snapshot_at < SNAPSHOT_MSEC:
+		return
+	_snapshot_at = Time.get_ticks_msec()
+	var state: String = JSON.stringify([PokeCoopSave.to_dict(_host.campaign, _host.players.values()), _host.notes])
+	if state == _snapshot_state:
+		return
+	var staging: String = _snapshots.path_join(".writing")
+	_remove_tree(staging)
+	if not _write_snapshot(staging):
+		return
+	_snapshot_count += 1
+	while DirAccess.dir_exists_absolute(_snapshots.path_join(str(_snapshot_count))):
+		_snapshot_count += 1
+	if DirAccess.rename_absolute(staging, _snapshots.path_join(str(_snapshot_count))) == OK:
+		_snapshot_state = state
+		_thin_snapshots(_snapshot_count, floori(_snapshot_at / 1000.0))
+
+
+func _write_snapshot(folder: String) -> bool:
+	var campaign: String = folder.path_join(PokeCoopSession.campaign_path(_data).trim_prefix("user://"))
+	DirAccess.make_dir_recursive_absolute(campaign.get_base_dir())
+	if _host.write_copy(campaign) != OK:
+		return false
+	var lines: PackedStringArray = ["UNIX=%d" % int(Time.get_unix_time_from_system())]
+	var plain: RegEx = RegEx.create_from_string("^[A-Za-z0-9_#.-]+$")
+	for player_id: String in _host.notes:
+		if plain.search(player_id) != null and plain.search(String(_host.notes[player_id])) != null:
+			lines.append("%s_FROM=%s" % [player_id.to_upper(), _host.notes[player_id]])
+	var identity: String = PokeCoopSession.identity_path
+	var known: String = FileAccess.get_file_as_string(identity) if FileAccess.file_exists(identity) else "{}"
+	return _write_text(folder.path_join("snapshot.env"), "\n".join(lines) + "\n") \
+		and _write_text(folder.path_join(identity.trim_prefix("user://")), known)
+
+
+static func _write_text(path: String, text: String) -> bool:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	return file != null and file.store_string(text)
+
+
+func _thin_snapshots(added: int, second: int) -> void:
+	_snapshots_kept.append([added, second])
+	var buckets: Dictionary = {}
+	for row: Array in _snapshots_kept.duplicate():
+		if second - int(row[1]) <= SNAPSHOTS_ALL_SECONDS:
+			continue
+		var bucket: int = floori(float(row[1]) / SNAPSHOTS_OLD_EVERY)
+		if buckets.has(bucket):
+			_remove_tree(_snapshots.path_join(str(row[0])))
+			_snapshots_kept.erase(row)
+		buckets[bucket] = true
+
+
+static func _remove_tree(path: String) -> void:
+	if not DirAccess.dir_exists_absolute(path):
+		return
+	for folder: String in DirAccess.get_directories_at(path):
+		_remove_tree(path.path_join(folder))
+	for file: String in DirAccess.get_files_at(path):
+		DirAccess.remove_absolute(path.path_join(file))
+	DirAccess.remove_absolute(path)
 
 
 func _advance_steps() -> void:
