@@ -39,10 +39,12 @@ const GIFT_TMS: Dictionary = {
 const GIFT_COMMIT_PREFIX: String = "gift:"
 ## OLD_AMBER, DOME_FOSSIL and HELIX_FOSSIL: each player revives their own (D52).
 const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
-## Each player's own (D61): gifts EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; Safari Game;
-## EVENT_IN_PURIFIED_ZONE; EVENT_MANSION_SWITCH_ON, which Cinnabar Island clears; the fossil lab's EVENT_GAVE_FOSSIL_TO_LAB and next two.
+const IN_SEAFOAM_ISLANDS: int = 0x500
+const OWN_WALKS: Array[int] = [Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, IN_SEAFOAM_ISLANDS]
+## Each player's own (D61): gifts EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; Safari Game; EVENT_IN_PURIFIED_ZONE;
+## EVENT_MANSION_SWITCH_ON and EVENT_IN_SEAFOAM_ISLANDS, which Cinnabar Island and Route 20 (resetting Seafoam's boulders) clear; the fossil lab's EVENT_GAVE_FOSSIL_TO_LAB and next two.
 const OWN_GIFTS: Dictionary = {
-	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107,
+	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107, IN_SEAFOAM_ISLANDS,
 		0x278, 0x2E0, 0x2E1, 0x2E2, 0x8E6, 0x8EE, 0x8F6, 0x8FF],  # EVENT_AUTOWALKED_INTO_*_ROOM, EVENT_LANCES_ROOM_LOCK_DOOR
 	"toggled_objects": [0x45, 0x4A, 0x4B],
 }

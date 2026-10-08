@@ -2002,6 +2002,54 @@ func test_a_safari_game_is_only_the_players_who_paid_for_it() -> void:
 	assert_false(blue.state.is_event_flag_active(Gen1Layout.SAFARI_GAME_OVER_EVENT), "nor does Red's game end Blue's")
 
 
+const ROUTE_20 := Vector2i(0, 0x1F)
+const SEAFOAM_1F_BOULDER_1 := 215
+const SEAFOAM_B1F_BOULDER_1 := 217
+
+
+## Route20_Script's `CheckAndResetEvent EVENT_IN_SEAFOAM_ISLANDS`, whose boulder reset puts the fallen boulder back on 1F.
+func _route_20_script(link: PokeCoopWorldLink) -> void:
+	if link.state.is_event_flag_active(PokeCoopPolicy.IN_SEAFOAM_ISLANDS):
+		link.state.clear_event_flag(PokeCoopPolicy.IN_SEAFOAM_ISLANDS)
+		link.state.set_object_toggled(SEAFOAM_1F_BOULDER_1, false)
+		link.state.set_object_toggled(SEAFOAM_B1F_BOULDER_1, false)
+
+
+func test_a_partner_on_route_20_never_resets_the_seafoam_boulders_of_the_player_inside() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	_stand(blue, ROUTE_20)
+
+	red.state.set_event_flag(PokeCoopPolicy.IN_SEAFOAM_ISLANDS)
+	_pump()
+	red.state.set_object_toggled(SEAFOAM_1F_BOULDER_1, true)
+	red.state.set_object_toggled(SEAFOAM_B1F_BOULDER_1, true)
+	_pump()
+	for _frame: int in 3:
+		_route_20_script(blue)
+		_pump()
+
+	assert_false(blue.state.is_event_flag_active(PokeCoopPolicy.IN_SEAFOAM_ISLANDS), "Blue on Route 20 is not in Seafoam")
+	assert_false(_host.campaign.has_flag(PokeCoopPolicy.IN_SEAFOAM_ISLANDS))
+	assert_true(red.state.is_event_flag_active(PokeCoopPolicy.IN_SEAFOAM_ISLANDS))
+	assert_eq([red.state.is_object_toggled(SEAFOAM_1F_BOULDER_1), red.state.is_object_toggled(SEAFOAM_B1F_BOULDER_1)], [true, true],
+		"the boulder Red dropped stays on B1F for Red to push on")
+	assert_eq([blue.state.is_object_toggled(SEAFOAM_1F_BOULDER_1), blue.state.is_object_toggled(SEAFOAM_B1F_BOULDER_1)], [true, true],
+		"and Blue, who walks in later, finds it there too")
+
+
+func test_a_campaign_saved_while_a_player_was_in_seafoam_hands_the_walk_back() -> void:
+	var run: PokeCoopCampaign = PokeCoopCampaign.create("c2", _data.id, _data.sha1)
+	run.flags[PokeCoopPolicy.IN_SEAFOAM_ISLANDS] = true
+	run.flags[Gen1Layout.IN_SAFARI_ZONE_EVENT] = true
+	run.flags[0x350] = true
+	run.flags[0x356] = true
+
+	PokeCoopHost.create(_data, run, PokeCoopTransport.new())
+
+	assert_eq(run.flags.keys(), [0x350, 0x356], "the walks the cartridge clears leave the campaign; the story and a gift once given stay")
+
+
 const ROUTE_7_GATE := Vector2i(0, 76)
 
 
