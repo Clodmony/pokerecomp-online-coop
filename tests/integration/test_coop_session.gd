@@ -2031,33 +2031,96 @@ func test_one_players_drink_lets_both_through_saffrons_gates_and_the_other_statu
 const LORELEI_BEATEN: int = 0x8E1
 const INTO_LORELEIS_ROOM: int = 0x8E6
 const BRUNO_BEATEN: int = 0x8E9
+const AGATHA_BEATEN: int = 0x8F1
 const CHAMPION_BEATEN: int = 0x901
 const LORELEIS_ROOM_SCRIPT: int = 93
+const CHAMPIONS_ROOM_SCRIPT: int = 92
+const LORELEIS_ROOM := Vector2i(0, 0xF5)
+const BRUNOS_ROOM := Vector2i(0, 0xF6)
+const INDIGO_PLATEAU_LOBBY := Vector2i(0, 0xAE)
+const LORELEI: int = 44
+const CHAMPION: int = 43
 
 
-func test_each_players_elite_four_run_is_their_own_and_their_hall_of_fame_clears_only_it() -> void:
+func test_a_member_beaten_by_either_player_is_beaten_for_the_team_and_opens_the_exit_in_a_window_inside() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
-	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
+	_stand(blue, LORELEIS_ROOM)
+	var exit_load: int = 1 << Gen1Layout.MAP_LOADED_1_BIT
+	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN]:
 		red.state.set_event_flag(flag)
 	red.state.set_gen1_map_script(LORELEIS_ROOM_SCRIPT, 3)
-	blue.state.set_event_flag(INTO_LORELEIS_ROOM)
 	_pump()
 
-	assert_false(blue.state.is_event_flag_active(LORELEI_BEATEN), "Blue meets LORELEI on its own run")
-	assert_eq(blue.state.gen1_map_script(LORELEIS_ROOM_SCRIPT), 0, "and its room's script stays Blue's")
-	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
-		assert_false(_host.campaign.has_flag(flag), "0x%X is no campaign flag" % flag)
-	assert_true(_host.player(_red.player_id).world_part().get("event_flags", {}).has(BRUNO_BEATEN))
+	assert_true(_host.campaign.has_flag(LORELEI_BEATEN))
+	assert_true(blue.state.is_event_flag_active(LORELEI_BEATEN), "Blue has no LORELEI left to talk to")
+	assert_eq(int(blue.world.get("_gen1_map_load_pending")) & exit_load, exit_load,
+		"Blue's world, in her room, redraws the exit open as Red's does after the fight")
+	assert_false(blue.state.is_event_flag_active(INTO_LORELEIS_ROOM), "the walk in is each player's")
+	assert_eq(blue.state.gen1_map_script(LORELEIS_ROOM_SCRIPT), 0, "and so is the room's script")
 
-	for flag: int in [INTO_LORELEIS_ROOM, LORELEI_BEATEN, BRUNO_BEATEN, CHAMPION_BEATEN]:
-		red.state.clear_event_flag(flag)
+	red.state.set_event_flag(AGATHA_BEATEN)
+	_pump()
+	_pump()
+	assert_eq(blue.state.gen1_map_script(CHAMPIONS_ROOM_SCRIPT), 1,
+		"Blue's Champion's room plays its entrance, which only AGATHA's end of battle readies")
+	assert_eq(int((_host.player(_blue.player_id).world.get("gen1_map_scripts", {}) as Dictionary).get(CHAMPIONS_ROOM_SCRIPT, 0)), 1)
+
+
+func test_a_whiteout_leaves_the_teams_run_open_while_a_partner_is_inside() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var lorelei: String = "trainer:%d:0" % LORELEI
+	_host.campaign.commit("victory:" + lorelei, {"defeated": [lorelei]})
+	red.state.set_event_flag(LORELEI_BEATEN)
+	_send(func() -> void: _blue.step(BRUNOS_ROOM, Vector2i(5, 11), 0, true))
+	_send(func() -> void: _red.step(INDIGO_PLATEAU_LOBBY, Vector2i(7, 9), 0, true))
+
+	red.state.clear_event_flag(LORELEI_BEATEN)
+	_pump()
+	_pump()
+	assert_true(_host.campaign.has_flag(LORELEI_BEATEN), "the lobby's reset waits while Blue fights on in BRUNO's room")
+	assert_true(red.state.is_event_flag_active(LORELEI_BEATEN), "and Red, healed, walks back through the team's open doors")
+	assert_true(blue.state.is_event_flag_active(LORELEI_BEATEN))
+
+	_send(func() -> void: _blue.step(INDIGO_PLATEAU_LOBBY, Vector2i(7, 9), 0, true))
+	blue.state.clear_event_flag(LORELEI_BEATEN)
+	_pump()
+	_pump()
+	assert_false(_host.campaign.has_flag(LORELEI_BEATEN), "with nobody inside, the run is cleared for the campaign")
+	assert_false(red.state.is_event_flag_active(LORELEI_BEATEN))
+	assert_eq(_host.campaign.encounter_state(lorelei), PokeCoopCampaign.ENCOUNTER_FREE, "and LORELEI fights the next run for real")
+
+
+func test_the_champion_beaten_for_the_team_waits_for_every_players_hall_of_fame_then_fights_again() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var champion: String = "trainer:%d:0" % CHAMPION
+	var rival: Callable = func() -> Gen2Party: return Gen2Party.of(Gen2BattleMon.create(_data, Fixture.BULBASAUR, 2, [Fixture.GROWL]))
+	_host.campaign.commit("victory:" + champion, {"defeated": [champion]})
+	red.state.set_event_flag(CHAMPION_BEATEN)
+	_pump()
+	_send(func() -> void: _red.step(PokeCoopWorldLink.HALL_OF_FAME, Vector2i(4, 2), 0, true))
+	red.state.clear_event_flag(CHAMPION_BEATEN)
 	red.state.set_hall_of_fame()
 	_pump()
-	assert_true(blue.state.is_event_flag_active(INTO_LORELEIS_ROOM), "Red's Hall of Fame leaves Blue's run where it is")
-	assert_false(blue.state.hall_of_fame(), "and Blue is not inducted with Red")
-	assert_false(_host.player(_red.player_id).world_part().get("event_flags", {}).has(BRUNO_BEATEN))
-	assert_true(_host.player(_blue.player_id).world_part().get("event_flags", {}).has(INTO_LORELEIS_ROOM))
+	_send(func() -> void: _red.step(PALLET, Vector2i(5, 6), 0, true))
+
+	assert_true(_host.campaign.has_flag(CHAMPION_BEATEN), "Red's Hall of Fame clears nothing while Blue is not inducted")
+	var results: Array = []
+	var bridge: Node = _take_over(_blue, _opened_by_world(blue, rival.call(), CHAMPION), results)
+	bridge.call("_process", 0.0)
+	assert_eq(results, [{"outcome": &"won", "team_won": true}], "Blue's Champion counts as won, so Oak and the Hall follow")
+
+	_send(func() -> void: _blue.step(PokeCoopWorldLink.HALL_OF_FAME, Vector2i(4, 2), 0, true))
+	blue.state.clear_event_flag(CHAMPION_BEATEN)
+	blue.state.set_hall_of_fame()
+	_pump()
+	assert_true(_host.campaign.has_flag(CHAMPION_BEATEN), "Blue still stands in the Hall of Fame")
+	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0, true))
+	assert_false(_host.campaign.has_flag(CHAMPION_BEATEN), "both inducted and out: the run is cleared")
+	_take_over(_blue, _opened_by_world(blue, rival.call(), CHAMPION), [])
+	assert_eq(_host.battles.size(), 1, "and a rematch is a real fight")
 
 
 func test_a_save_the_story_makes_sends_its_scene_and_a_world_reset_behind_it_waits_for_the_host() -> void:

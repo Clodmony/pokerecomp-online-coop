@@ -52,6 +52,7 @@ var _streamed_at: int = 0
 var _started: bool = false
 var _logged_revision: int = -1
 var _logged_views: Dictionary = {}
+var _league_cleared: bool = false
 
 
 static func create(
@@ -161,6 +162,7 @@ func _answer(peer: int, kind: String, message: Dictionary) -> StringName:
 		return &"duplicate"
 	_last_seq[sender.player_id] = seq
 	var refusal: StringName = _dispatch(sender, kind, message)
+	_settle_league()
 	_changed = _changed or refusal == &""
 	if refusal != &"":
 		transport.send(peer, _rejected(seq, refusal))
@@ -430,8 +432,19 @@ func _on_disconnected(peer: int) -> void:
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
 			session.set_absent(leaving.player_id, true)
+	_settle_league()
 	if _closing_at < 0:
 		broadcast()
+
+
+## A clear of the team's League run reaches the campaign once nothing holds it (D91).
+func _settle_league() -> void:
+	if not _league_cleared or PokeCoopPolicy.league_held(campaign, players.values()):
+		return
+	_league_cleared = false
+	_changed = true
+	PokeCoopPolicy.clear_league(campaign)
+	journal.add(PokeCoopLog.HOST, "league_cleared", campaign.summary()["defeated"])
 
 
 ## A step on the current map, or a [param warp] the client's world made, trusted until the host simulates it.
@@ -466,6 +479,9 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
 	var money_before: int = sender.money
+	if PokeCoopPolicy.take_league_clear(halves[PokeCoopOwnership.CAMPAIGN]):
+		_league_cleared = true
+		journal.add(PokeCoopLog.HOST, "league_clear", {"held": PokeCoopPolicy.league_held(campaign, players.values())}, sender.player_id)
 	var story_moved: bool = campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
 	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
 	if not story_moved and _sets_entries(halves[PokeCoopOwnership.CAMPAIGN]) and sender.money >= money_before:

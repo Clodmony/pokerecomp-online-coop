@@ -382,8 +382,7 @@ func _learn(kind: String, forget_slot: int) -> Dictionary:
 	return _done(events)
 
 
-## The enemy's own side of a question: its replacement after a faint. SET style
-## means no switch offer is ever raised for the player.
+## The enemy's own side of a question, its replacement after a faint: SET style raises no switch offer for the player.
 func _settle(events: Array) -> void:
 	while not battle.is_over() and battle.must_replace(Gen2Battle.ENEMY) \
 			and not battle.must_replace(Gen2Battle.PLAYER):

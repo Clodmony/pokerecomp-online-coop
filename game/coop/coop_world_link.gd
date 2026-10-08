@@ -30,6 +30,13 @@ const MAP_LOADS_OWED_BY_FLAG: Dictionary = {
 	EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 2: CINNABAR_GATES_REDRAWN, EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 3: CINNABAR_GATES_REDRAWN,
 	EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 4: CINNABAR_GATES_REDRAWN, EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 5: CINNABAR_GATES_REDRAWN,
 }
+const EVENT_BEAT_AGATHAS_ROOM_TRAINER_0: int = 0x8F1
+const SCRIPT_CHAMPIONSROOM_PLAYER_ENTERS: int = 1
+## A member beaten for the team opens the room's exit in a window inside (D91): `*ShowOrHideExitBlock` runs on a map load.
+const LEAGUE_EXITS_REDRAWN: Dictionary = {
+	0x8E1: [Vector2i(0, 0xF5), Gen1Layout.MAP_LOADED_1_BIT], 0x8E9: [Vector2i(0, 0xF6), Gen1Layout.MAP_LOADED_1_BIT],
+	EVENT_BEAT_AGATHAS_ROOM_TRAINER_0: [Vector2i(0, 0xF7), Gen1Layout.MAP_LOADED_1_BIT],
+}
 const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
@@ -228,14 +235,15 @@ static func _host_world(session: PokeCoopClient) -> Dictionary:
 
 func _pull_world() -> void:
 	var host: Dictionary = _host_world(client)
-	if host == _host_seen:
+	var held: Dictionary = _held_erasures(host)
+	if host == _host_seen and held.is_empty():
 		return
 	var changes: Dictionary = PokeCoopOwnership.patch(_host_seen, host)
 	_host_seen = host
-	var applied: int = int(client.state.get("last_seq", 0))
-	for seq: int in _unacked.keys():
-		if seq <= applied:
-			_unacked.erase(seq)
+	if not held.is_empty():
+		var flags: Dictionary = changes.get_or_add("event_flags", {"set": {}, "erase": []})
+		var into: Dictionary = flags["value"] if flags.has("value") else flags.get_or_add("set", {})
+		into.merge(held)
 	var echoes: Dictionary = {}
 	for pending: Dictionary in _unacked.values():
 		_drop_overlap(changes, pending, echoes)
@@ -253,6 +261,33 @@ func _pull_world() -> void:
 			world.load_object_masks()
 	_baseline = state.to_dict()
 	_dirty = false
+	_ready_champions_room((changes.get("event_flags", {}) as Dictionary).get("set", {}))
+
+
+## `AgathasRoomAgathaEndBattleScript` readies the Champion's room, which a world the team's win reached never ran.
+func _ready_champions_room(flags_set: Dictionary) -> void:
+	var byte: int = PokeCoopOwnership.PLAYER_MAP_SCRIPTS["wChampionsRoomCurScript"]
+	if bool(flags_set.get(EVENT_BEAT_AGATHAS_ROOM_TRAINER_0, false)) and state.gen1_map_script(byte) == 0:
+		state.set_gen1_map_script(byte, SCRIPT_CHAMPIONSROOM_PLAYER_ENTERS)
+
+
+## Flags a patch the host has applied erased but the host still holds (the team's League run, D91), to take back.
+func _held_erasures(host: Dictionary) -> Dictionary:
+	var applied: int = int(client.state.get("last_seq", 0))
+	var erased: Array = []
+	for seq: int in _unacked.keys():
+		if seq <= applied:
+			erased.append_array(((_unacked[seq] as Dictionary).get("event_flags", {}) as Dictionary).get("erase", []))
+			_unacked.erase(seq)
+	var standing: Dictionary = host.get("event_flags", {})
+	var out: Dictionary = {}
+	for flag: Variant in erased:
+		var pending: bool = _unacked.values().any(func(sent: Dictionary) -> bool:
+			var change: Dictionary = sent.get("event_flags", {})
+			return (change.get("set", {}) as Dictionary).has(flag) or (change.get("erase", []) as Array).has(flag))
+		if bool(standing.get(flag, false)) and not pending:
+			out[flag] = true
+	return out
 
 
 ## A step for the map the window stands on waits for its next map load, never landing under the player: the byte, or -1.
@@ -325,8 +360,9 @@ func _release_switches() -> void:
 
 
 func _owe_map_loads(flags_set: Dictionary) -> void:
-	for flag: int in MAP_LOADS_OWED_BY_FLAG:
-		var owed: Array = MAP_LOADS_OWED_BY_FLAG[flag]
+	var redrawn: Dictionary = MAP_LOADS_OWED_BY_FLAG.merged(LEAGUE_EXITS_REDRAWN)
+	for flag: int in redrawn:
+		var owed: Array = redrawn[flag]
 		if world != null and bool(flags_set.get(flag, false)) and world.map_id() == owed[0]:
 			world.set("_gen1_map_load_pending", int(world.get("_gen1_map_load_pending")) | (1 << int(owed[1])))
 
