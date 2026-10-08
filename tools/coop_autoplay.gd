@@ -810,14 +810,18 @@ func _note_team() -> bool:
 
 
 func _host_team_size() -> int:
-	return (_session.client.me().get("party", []) as Array).size() + (_session.client.box.get("rows", []) as Array).size()
+	return _host_team().size()
+
+
+func _host_team() -> Array:
+	return (_session.client.me().get("party", []) as Array) + (_session.client.box.get("rows", []) as Array)
 
 
 func _caught_on_host(_world: Gen2WorldAPI) -> bool:
 	if _safari_team < 0 or _host_team_size() <= _safari_team:
 		return false
 	_safari_caught = true
-	var rows: Array = (_session.client.me().get("party", []) as Array) + (_session.client.box.get("rows", []) as Array)
+	var rows: Array = _host_team()
 	print("coop autoplay: %s caught in the Safari Zone, on the host: %s" % [
 		_player_id, rows.map(func(row: Dictionary) -> String: return "%s %d" % [row["uid"], int(row["mon"]["species"])])])
 	return true
@@ -982,7 +986,7 @@ func _silph_legs() -> Array:
 		["silph_5f_pad_to_3f", _ride(SILPH_5F_PAD_TO_3F), p._on_map(m.silph_3f)],
 		["silph_3f_door", p._talk(SILPH_3F_DOOR_SIDE, Gen2WorldSprite.FACING_LEFT), _open(SILPH_3F_DOOR_SIDE + Vector2i.LEFT)],
 		["silph_3f_pad_to_7f", _ride(SILPH_3F_PAD_TO_7F), p._on_map(m.silph_7f)],
-		["lapras", _join_or(p._talk_to(LAPRAS_WORKER)), _has_lapras],
+		["lapras", _join_or(p._talk_to(LAPRAS_WORKER)), func(_world: Gen2WorldAPI) -> bool: return _owns(LAPRAS_DEX)],
 		["silph_7f_pad_to_11f", _join_or(_ride(SILPH_7F_PAD_TO_11F)), p._on_map(m.silph_11f)],
 		_meet_to_join("meet_on_silph_11f", giovanni),
 		["silph_11f_door", _join_or(p._talk(SILPH_11F_DOOR_SIDE, UP)),
@@ -1046,14 +1050,18 @@ func _vending_cell() -> Vector2i:
 	return BELOW_VENDING_MACHINES[clampi(ids.find(_session.client.player_id), 0, BELOW_VENDING_MACHINES.size() - 1)]
 
 
-func _has_lapras(_world: Gen2WorldAPI) -> bool:
-	return _played._screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool: return mon.species == LAPRAS_DEX)
+func _owns(species: int) -> bool:
+	var save: Gen2SaveData = _played._screen.active_save()
+	var mons: Array = save.party.duplicate()
+	for box: Gen2SaveBox in save.boxes:
+		mons.append_array(box.slots.filter(func(mon: Variant) -> bool: return mon != null))
+	return mons.any(func(mon: Gen2SaveMon) -> bool: return mon.species == species)
 
 
 func _sabrina_done() -> bool:
 	var world: Gen2WorldAPI = _played._screen.world()
 	var me: Dictionary = _session.client.me()
-	var rows: Array = (me.get("party", []) as Array) + (_session.client.box.get("rows", []) as Array)
+	var rows: Array = _host_team()
 	var laprases: Array = rows.filter(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == LAPRAS_DEX)
 	var missing: PackedStringArray = []
 	if not bool(_badge(MARSHBADGE).call(world)):
@@ -1061,7 +1069,7 @@ func _sabrina_done() -> bool:
 	if world.state.item_quantity(MASTER_BALL) != 1 or int((me.get("items", {}) as Dictionary).get(MASTER_BALL, 0)) != 1:
 		missing.append("one MASTER BALL")
 	if laprases.size() != 1 or not String(laprases[0]["uid"]).begins_with(_session.client.player_id + ":") \
-			or not _has_lapras(world):
+			or not _owns(LAPRAS_DEX):
 		missing.append("own LAPRAS")
 	var defeated: Array = (_session.client.state.get("campaign", {}) as Dictionary).get("defeated", [])
 	print("coop autoplay: %s after SABRINA: badges %d, team on host %s, MASTER BALLs %d, beaten %s, missing %s" % [
@@ -1350,7 +1358,7 @@ func _gave_fossil(world: Gen2WorldAPI) -> bool:
 
 func _revived(world: Gen2WorldAPI) -> bool:
 	return not world.event_flag_active(EVENT_GAVE_FOSSIL_TO_LAB) \
-		and _played._screen.active_save().party.any(func(mon: Gen2SaveMon) -> bool: return mon.species == KABUTO)
+		and _owns(KABUTO)
 
 
 func _quiz(cell: Vector2i, answer: int) -> Callable:
@@ -1381,7 +1389,7 @@ func _blaine_done() -> bool:
 	var missing: PackedStringArray = []
 	if world.state.item_quantity(SECRET_KEY) <= 0 or int((me.get("items", {}) as Dictionary).get(SECRET_KEY, 0)) <= 0:
 		missing.append("SECRET KEY")
-	if not (me.get("party", []) as Array).any(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == KABUTO):
+	if not _host_team().any(func(row: Dictionary) -> bool: return int(row["mon"]["species"]) == KABUTO):
 		missing.append("KABUTO on the host")
 	if not _badge(VOLCANO_BADGE).call(world):
 		missing.append("VOLCANOBADGE")
