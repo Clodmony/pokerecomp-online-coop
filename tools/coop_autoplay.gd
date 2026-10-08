@@ -1,8 +1,7 @@
 extends "res://tools/coop_play.gd"
 
-## A co-op window that plays itself to BROCK's badge with `tools/checks/played.gd`'s legs, fighting from the panel:
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening]
-##     [route=brock|misty|trade|surge|erika|tower|koga|sabrina|victory|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]; prints "... finished" or "FAILED".
+## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|victory|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -1082,10 +1081,6 @@ const VICTORY_ROAD_3F_HOLE := Vector2i(23, 15)
 const VICTORY_ROAD_2F_EAST_LADDER := Vector2i(25, 14)
 const VICTORY_ROAD_3F_LADDER_DOWN := Vector2i(26, 8)
 const VICTORY_ROAD_2F_EXIT := Vector2i(29, 8)
-const EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH: int = 2327
-const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1: int = 1336
-const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2: int = 1343
-const EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1: int = 1632
 const EARTH_BADGE: int = 7
 const TM11: int = Gen1Layout.TM_FIRST_ITEM + 10
 const TM27: int = Gen1Layout.TM_FIRST_ITEM + 26
@@ -1102,12 +1097,12 @@ func _victory_legs() -> Array:
 	return [
 		["cinnabar_gym_out", p._warp_to(m.cinnabar_island), p._on_map(m.cinnabar_island)],
 		_grind.bind(VICTORY_LEVEL, 0),
-		_teach_surf_and_strength,
-		_toss_for_tm27,
-		["cinnabar_surf", _field_move_at.bind(CINNABAR_SHORES[me], Gen2WorldSprite.FACING_LEFT, Gen2WorldFieldMove.MOVE_SURF),
+		_teach_victory_moves,
+		["cinnabar_surf", _field_move_from.bind(CINNABAR_SHORES[me], Gen2WorldSprite.FACING_LEFT, Gen2WorldFieldMove.MOVE_SURF),
 			_either(surfing, p._on_map(m.route_21))],
 		["cinnabar_to_route_21", _swim.bind(Vector2i.UP, m.route_21), p._on_map(m.route_21)],
 		["route_21_to_pallet", _swim.bind(Vector2i.UP, m.pallet_town), p._on_map(m.pallet_town)],
+		["tm27_room", _toss_for_tm27, func(_world: Gen2WorldAPI) -> bool: return _hosted(TM11) <= 0],
 		["pallet_to_route_1", p._cross(Vector2i.UP, m.route_1), p._on_map(m.route_1)],
 		["route_1_to_viridian", p._cross(Vector2i.UP, m.viridian_city), p._on_map(m.viridian_city)],
 		["viridian_gym", p._warp_to(m.viridian_gym), p._on_map(m.viridian_gym)],
@@ -1117,7 +1112,7 @@ func _victory_legs() -> Array:
 		["viridian_to_route_22", p._cross(Vector2i.LEFT, m.route_22), p._on_map(m.route_22)],
 		["route_22_rival", _join_or(p._warp_to(m.route_22_gate)), p._on_map(m.route_22_gate)],
 		["route_22_gate_north", p._walk(ROUTE_22_GATE_NORTH[me]), p._on_map(m.route_23)],
-		["route_23_surf", _field_move_at.bind(ROUTE_23_SOUTH_BANKS[me], UP, Gen2WorldFieldMove.MOVE_SURF), surfing],
+		["route_23_surf", _field_move_from.bind(ROUTE_23_SOUTH_BANKS[me], UP, Gen2WorldFieldMove.MOVE_SURF), surfing],
 		["route_23_north_bank", _swim_to.bind(north_bank), p._at(north_bank)],
 		["victory_road_entry", p._warp_to(m.victory_road_1f), p._on_map(m.victory_road_1f)],
 	] + _victory_road_legs(me == 0) + [
@@ -1131,18 +1126,18 @@ func _victory_legs() -> Array:
 func _victory_road_legs(lead: bool) -> Array:
 	var p: Variant = _played
 	var m: Dictionary = VICTORY_MAPS
-	var third: Callable = p._flag(EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1)
-	var last: Callable = p._flag(EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2)
+	var third: Callable = p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_3_BOULDER_ON_SWITCH1)
+	var last: Callable = p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2)
 	var hole: Array = VICTORY_ROAD_PUSHES[&"hole"]
-	var legs: Array = _floor_legs(&"1f", p._flag(EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH), lead)
+	var legs: Array = _floor_legs(&"1f", p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH), lead)
 	legs.append(["victory_road_1f_to_2f", p._warp_to(m.victory_road_2f), p._on_map(m.victory_road_2f)])
-	legs += _floor_legs(&"2f", p._flag(EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1), lead)
+	legs += _floor_legs(&"2f", p._flag(PokeCoopWorldLink.EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1), lead)
 	legs += _aside_legs(&"2f_ladder", third, not lead)
 	legs.append(["victory_road_2f_to_3f", p._walk(VICTORY_ROAD_2F_LADDER), p._on_map(m.victory_road_3f)])
 	legs += _push_legs(&"3f", third, lead)
 	legs += _aside_legs(&"3f_hole", last, not lead)
 	if lead:
-		legs.append(["victory_road_3f_hole_push", _push.bind(hole[0], hole[1]), _gone(hole[0])])
+		legs.append(["victory_road_3f_hole_push", _push_boulder.bind(hole[0], hole[1]), _gone(hole[0])])
 	legs.append(["victory_road_3f_hole", p._walk(VICTORY_ROAD_3F_HOLE), p._on_map(m.victory_road_2f)])
 	legs += _push_legs(&"2f_fallen", last, lead)
 	return legs + [
@@ -1166,7 +1161,7 @@ func _push_legs(stage: StringName, switch: Callable, lead: bool) -> Array:
 	var cells: Array = VICTORY_ROAD_PUSHES[stage]
 	var legs: Array = []
 	for index: int in range(1, cells.size() if lead else 1):
-		legs.append(["victory_road_%s_push_%d" % [stage, index], _push.bind(cells[0], cells[index]),
+		legs.append(["victory_road_%s_push_%d" % [stage, index], _push_boulder.bind(cells[0], cells[index]),
 			_either(_boulder_at(cells[0], cells[index]), switch)])
 	return legs
 
@@ -1185,7 +1180,7 @@ func _behind(boulder: Vector2i, target: Vector2i) -> Vector2i:
 	return boulder - (target - boulder).sign()
 
 
-func _push(world: Gen2WorldAPI, boulder: Vector2i, target: Vector2i) -> int:
+func _push_boulder(world: Gen2WorldAPI, boulder: Vector2i, target: Vector2i) -> int:
 	var at: Vector2i = _played._live_cell(world, boulder)
 	if at == target:
 		return PokeButton.NONE
@@ -1209,7 +1204,7 @@ func _strength_button(world: Gen2WorldAPI) -> int:
 	return PokeButton.NONE
 
 
-func _field_move_at(world: Gen2WorldAPI, cell: Vector2i, facing: int, move: int) -> int:
+func _field_move_from(world: Gen2WorldAPI, cell: Vector2i, facing: int, move: int) -> int:
 	var button: int = _played._talk(cell, facing).call(world)
 	if button != PokeButton.A:
 		return button
@@ -1253,7 +1248,7 @@ func _swim_button(world: Gen2WorldAPI, goal: Callable) -> int:
 	return PokeButton.NONE
 
 
-func _teach_surf_and_strength() -> bool:
+func _teach_victory_moves() -> bool:
 	for mon: Gen2SaveMon in _played._screen.active_save().party:
 		if Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_SURF) \
 				and Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_STRENGTH):
@@ -1264,13 +1259,11 @@ func _teach_surf_and_strength() -> bool:
 	return false
 
 
-func _toss_for_tm27() -> bool:
-	var world: Gen2WorldAPI = _played._screen.world()
-	if world.state.item_quantity(TM11) <= 0:
-		return true
-	var tossed: Dictionary = Gen2WorldBagHost.toss(world, _played._screen.active_save(), TM11, 1, false)
-	print("coop autoplay: %s tossed TM11 for TM27's room: %s" % [_player_id, tossed.get("ok")])
-	return bool(tossed.get("ok", false))
+func _toss_for_tm27(world: Gen2WorldAPI) -> int:
+	if world.state.item_quantity(TM11) > 0:
+		var tossed: Dictionary = Gen2WorldBagHost.toss(world, _played._screen.active_save(), TM11, world.state.item_quantity(TM11), false)
+		print("coop autoplay: %s tossed TM11 for TM27's room: %s" % [_player_id, tossed.get("ok")])
+	return PokeButton.NONE
 
 
 func _victory_done() -> bool:
