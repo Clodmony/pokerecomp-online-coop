@@ -15,8 +15,7 @@ var game_id: StringName = &""
 var rom_sha1: String = ""
 var flags: Dictionary = {}
 var badges: int = 0
-## The shared keys of the world state other than event flags and badges, which
-## [member flags] and [member badges] hold. See [PokeCoopOwnership].
+## The shared keys of the world state other than the event flags and badges [member flags] and [member badges] hold.
 var world: Dictionary = {}
 var revision: int = 0
 var next_battle_serial: int = 1
@@ -69,8 +68,7 @@ func commit(commit_id: String, changes: Dictionary) -> bool:
 	return true
 
 
-## The campaign's half of a world state: [member world] with the event flags and
-## the badges as the engine flags in [param badge_flags].
+## The campaign's half of a world state: [member world], its event flags and its badges as [param badge_flags].
 func world_part(badge_flags: Array[int]) -> Dictionary:
 	var out: Dictionary = world.duplicate(true)
 	out["event_flags"] = flags.duplicate()

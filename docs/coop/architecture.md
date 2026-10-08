@@ -170,7 +170,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/save/save_prompt.gd` | the failure step draws no YES/NO (D70) |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64) |
-| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text, gym marker and Gen 1 ghost kind (D68); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2); `save_written`, called by `persist_world_snapshot` after any SAVE (D80) |
+| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text, gym marker and Gen 1 ghost kind (D68); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2); `save_written`, called by `persist_world_snapshot` after any SAVE (D80); a takeover's `team_won` carried into the battle result skips Generation 1's after-battle blackout (D88) |
 | `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11); `_gen1_box_held` notes a box that owed no press (D76); `gen1_end_of_battle` sets both map-load bits, so a wild fight's reload redraws a switch's block (#88) |
 | `game/world/gen1_map_scripts.gd` | the link rooms' special warp and return close the wait box first (D71); a row's end closes a no-press box its tail held up (D76) |
 | `tests/unit/test_world_api.gd` | `test_gen1_a_link_room_entered_or_reloaded_closes_the_wait_box` (D71); `test_gen1_a_wild_fights_reload_runs_the_maps_load_callback` (#88) |
@@ -180,7 +180,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
 | `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
-| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed |
+| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed; `restart()` first asks `coop.continue_after_reset()`, so the Hall of Fame's reset continues the co-op world (D88) |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
 | `tests/unit/test_link.gd` | `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`, the regression test for D64 |

@@ -30,6 +30,7 @@ Red (or Blue) cartridge, the same one.
 | S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
 | S15 | Host a campaign again while a player stands inside a building | That window opens inside it on the campaign's story and leaves by the building's own door; a coord script already done (the Cerulean thief) does not run again | `test_a_window_opened_again_inside_a_building_leaves_by_its_own_door`, `test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place` | | |
 | S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
+| S17 | A world reopened after the Hall of Fame's reset | It shows no earlier battle's result on the panel | `test_coop_session` (continued world test) | playthrough_elite | |
 
 ## Exploration and story
 
@@ -89,6 +90,10 @@ Red (or Blue) cartridge, the same one.
 | W52 | One player drops Seafoam's STRENGTH boulders while the partner waits | The calm water on B3F reaches the partner, who surfs across without pushing anything | | playthrough_blaine | |
 | W53 | After the SILPH SCOPE, ride the Rocket Hideout car from B4F and choose B1F | The car lands on B1F in both windows; choosing the floor you are on only shakes the car | | playthrough_tower | |
 | W54 | Both players in the Rocket Hideout car at once, one on the panel | The other waits beside it; the first walks out by the door once its ride ends; neither is stuck | | playthrough_tower (`P2_DELAY=1`, seeded) | |
+| W55 | Both players in an Elite Four room: one talks to the member, the other joins from SELECT, then talks to the member itself | The joiner wins at once ("Beaten already in this campaign"); both exits open; the same for LORELEI, BRUNO, AGATHA and LANCE | `test_coop_session` (Elite Four run tests) | playthrough_elite | |
+| W56 | One player enters the Hall of Fame while the partner is still in the League | The partner's own run flags stay; the partner finishes and gets their own Hall of Fame | the Elite Four run test | playthrough_elite | |
+| W57 | After the credits | The window continues in Pallet Town in front of the house, still in the session; the League's run flags are cleared for that player only; the Hall of Fame bit is set on the host | `test_coop_session` (credits test) | playthrough_elite | |
+| W58 | One window fights the Champion; the other joins from LANCE's room | The joiner then walks in, wins at once, sees Oak and gets its own Hall of Fame | | playthrough_elite | |
 
 ## Battles
 
@@ -113,6 +118,7 @@ Red (or Blue) cartridge, the same one.
 | B17 | A wild battle in the tower without the SILPH SCOPE | The window's own GHOST battle; no host battle, no join offered; RUN escapes | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
 | B18 | DISABLE hits a move; a move runs out of PP | The panel marks it (DISABLED) or (NO PP); choosing either says "That move can't be used now." | `test_the_panel_names_a_move_that_is_disabled_or_out_of_pp` | playthrough_erika | |
 | B19 | One player fights ERIKA; the partner in the gym joins with SELECT | One battle; the badge and TM21 reach both, once each; the partner's window does not play ERIKA's lines | `test_brock_beaten_in_one_window_hands_each_player_one_tm34` (the same gym rule) | playthrough_erika | |
+| B20 | A joined battle won by the partner while the initiator's whole team fainted | The initiator is not blacked out and keeps their place, flag and money | `test_coop_session` (won side test) | playthrough_elite | |
 
 ## Trades
 
