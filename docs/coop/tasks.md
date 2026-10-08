@@ -9,14 +9,15 @@ keep the snapshot below current.
 - **Branches and pull requests:** everything is merged into `main` (#58, #79,
   #80, #81, #83, #89 on 2026-10-08, with the owner's approval). New work
   branches from `main`.
-- **Halted at the weekly usage limit (2026-10-08, 23:40):** the first unbroken
+- **Halted at the weekly usage limit (2026-10-08/09):** the first unbroken
   `playthrough_elite` on `main` (`FPS=120`, about 1.3 times faster than 60)
-  stopped after 37 minutes in the Rocket Hideout car on the ERIKA stretch's ride
-  down (leg `elevator_panel` after `hideout_b2f_elevator`): both windows on
-  (1,3) beside the panel, each waiting, 420 s; 0 script errors. Diagnose (the
-  car fix covered the tower stretch's ride up), then resume from its snapshots
-  (`runs/main_full` in the session scratchpad, lost on reboot) or rerun.
-  Battles, paced in real time on the host, now dominate a run's length.
+  stopped after 37 minutes in the Rocket Hideout car: both windows arrived
+  together, each saw the other on the panel cell and stepped aside, then back,
+  forever. Fixed: only the second player yields the panel. Resumed from the
+  run's snapshot 105, both rode the car in 1 s each and took the SILPH SCOPE;
+  the resumed run went on toward the Hall of Fame. Next: one unbroken run on
+  `main` once this merges. Battles, paced in real time on the host, now
+  dominate a run's length.
 - **Owner decisions:** all six answered (D72); none waiting.
 - **This round** (all merged into `coop/playthrough` and pushed; the agents'
   git worktrees can be removed):
