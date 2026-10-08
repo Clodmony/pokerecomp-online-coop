@@ -9,6 +9,16 @@ keep the snapshot below current.
 - **Branches and pull requests:** everything is merged into `main` (#58, #79,
   #80, #81, #83, #89 on 2026-10-08, with the owner's approval). New work
   branches from `main`.
+- **Halted at the weekly usage limit (2026-10-08/09):** the first unbroken
+  `playthrough_elite` on `main` (`FPS=120`, about 1.3 times faster than 60)
+  stopped after 37 minutes in the Rocket Hideout car: both windows arrived
+  together, each saw the other on the panel cell and stepped aside, then back,
+  forever. Fixed: only the second player yields the panel. Resumed from the
+  run's snapshot 105, both rode the car in 1 s each and took the SILPH SCOPE;
+  the resumed run then reached both Halls of Fame in 51 minutes, 0 script
+  errors (a whole run at `FPS=120` is about 1½ hours). Next: one unbroken run on
+  `main` once this merges. Battles, paced in real time on the host, now
+  dominate a run's length.
 - **Owner decisions:** all six answered (D72); none waiting.
 - **This round** (all merged into `coop/playthrough` and pushed; the agents'
   git worktrees can be removed):
