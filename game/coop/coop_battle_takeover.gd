@@ -141,4 +141,4 @@ class Bridge extends Node:
 	func _finish(outcome: StringName) -> void:
 		client.journal.add(PokeCoopLog.WORLD, "takeover_end", {"battle": _battle_id, "outcome": outcome}, client.player_id)
 		_done = true
-		finished.emit({"outcome": outcome})
+		finished.emit({"outcome": outcome, "team_won": outcome == &"won"})

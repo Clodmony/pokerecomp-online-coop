@@ -187,8 +187,7 @@ func apply_world_patch(changes: Dictionary) -> bool:
 static var _mon_shape: Dictionary = {}
 
 
-## A Pokémon a client sent, read only when each field has the type a save gives
-## it, so a made-up one is no Pokémon rather than a broken read.
+## A Pokémon a client sent, read only when each field has a save's type: a made-up one is no Pokémon, not a broken read.
 static func mon_from(raw: Variant) -> Gen2SaveMon:
 	if not raw is Dictionary:
 		return null

@@ -6473,6 +6473,7 @@ func _on_takeover_finished(answer: Variant) -> void:
 		_data, _takeover["battle"], _takeover["request"], outcome, _takeover["levels"],
 		_active_battle_save
 	)
+	result["team_won"] = bool(said.get("team_won", false))
 	_takeover = {}
 	_on_battle_finished(result)
 
@@ -6641,8 +6642,8 @@ func _finish_battle_exit(result: Dictionary, fought_save: Gen2SaveData) -> void:
 	if _reaches_mood_update(result):
 		_world.gen1_pikachu_battle_ended(bool(_starter_pikachu(fought_save)["alive"]))
 	var resumed: Array = _world.complete_runtime_request(result)
-	## `AllPokemonFainted`: one `RunMapScript` under LOST_BATTLE, then `HandleBlackOut`.
-	if _world.gen1_blackout_due(fought_save, StringName(result.get("outcome", &""))):
+	## `AllPokemonFainted`: one `RunMapScript` under LOST_BATTLE, then `HandleBlackOut`; never after a takeover's `team_won`.
+	if not bool(result.get("team_won", false)) and _world.gen1_blackout_due(fought_save, StringName(result.get("outcome", &""))):
 		_active_battle_save = null
 		_active_battle_persist = false
 		_show_script_results(resumed)

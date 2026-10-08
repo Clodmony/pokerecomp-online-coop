@@ -173,6 +173,10 @@ func request_save() -> int:
 	return send({"type": "save"})
 
 
+func sent() -> int:
+	return _seq
+
+
 func send(message: Dictionary) -> int:
 	_seq += 1
 	var numbered: Dictionary = message.duplicate()

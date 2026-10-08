@@ -47,6 +47,9 @@ const OWN_GIFTS: Dictionary = {
 		0x278, 0x2E0, 0x2E1, 0x2E2],
 	"toggled_objects": [0x45, 0x4A, 0x4B],
 }
+## Each player's own Elite Four run (#88): INDIGO_PLATEAU_EVENTS_START to EVENT_BEAT_CHAMPION_RIVAL, which the lobby and Hall of Fame clear.
+const ELITE_FOUR_RUN := Vector2i(0x8E0, 0x901)
+static var _own_gen1: Dictionary = {}
 ## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the three birds and MEWTWO, one encounter each.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
 ## How long a dropped controller is waited for before the others are asked to stand in (D61).
@@ -72,7 +75,12 @@ static func prize_shares(total: int, participants: Array) -> Dictionary:
 
 
 static func own_entries(data: GameData) -> Dictionary:
-	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
+	if data == null or data.generation != RomRegistry.GEN1:
+		return {}
+	if _own_gen1.is_empty():
+		_own_gen1 = OWN_GIFTS.duplicate(true)
+		(_own_gen1["event_flags"] as Array).append_array(range(ELITE_FOUR_RUN.x, ELITE_FOUR_RUN.y + 1))
+	return _own_gen1
 
 
 static func new_player_money() -> int:
@@ -103,8 +111,7 @@ static func settle_intro(campaign: PokeCoopCampaign) -> void:
 		campaign.revision += 1
 
 
-## A player new to the campaign: [param starter] if it is one of the three, at
-## Oak's level and with the player as its trainer, standing in Pallet Town.
+## A player new to the campaign in Pallet Town: [param starter] if it is one of the three, at Oak's level, theirs.
 static func set_up_new_player(
 	data: GameData, player: PokeCoopPlayer, starter: int, joined_before: int
 ) -> void:
