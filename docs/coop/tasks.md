@@ -15,7 +15,8 @@ keep the snapshot below current.
   together, each saw the other on the panel cell and stepped aside, then back,
   forever. Fixed: only the second player yields the panel. Resumed from the
   run's snapshot 105, both rode the car in 1 s each and took the SILPH SCOPE;
-  the resumed run went on toward the Hall of Fame. Next: one unbroken run on
+  the resumed run then reached both Halls of Fame in 51 minutes, 0 script
+  errors (a whole run at `FPS=120` is about 1½ hours). Next: one unbroken run on
   `main` once this merges. Battles, paced in real time on the host, now
   dominate a run's length.
 - **Owner decisions:** all six answered (D72); none waiting.
