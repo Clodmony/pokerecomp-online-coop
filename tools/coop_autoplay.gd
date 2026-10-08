@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>] [speed=1..4] [ball=0..2] [shots=<dir>]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -119,6 +119,11 @@ var _car_floor: int = -1
 var _whiteout: bool = false
 var _losing: bool = false
 var _partner_lost: bool = false
+var _labels: Array = []
+var _skipped: int = 0
+var _noting: String = ""
+var _noted: String = ""
+var _rested: int = 0
 
 
 func _read_option(arg: String) -> bool:
@@ -138,6 +143,8 @@ func _read_option(arg: String) -> bool:
 
 func _process(delta: float) -> bool:
 	super(delta)
+	if _session != null and _session.is_ready():
+		_note_leg()
 	if _session == null or _done or not _session.is_ready():
 		return false
 	Engine.time_scale = _speed
@@ -268,12 +275,49 @@ func _route_legs() -> Array:
 	var legs: Array = _opening_legs() + _brock_legs()
 	for stretch: StringName in ROUTES.get(_route, []):
 		legs += call(stretch)
+	_labels = _leg_labels(legs)
 	if _from.is_empty():
 		return legs
-	var start: int = legs.find_custom(func(leg: Variant) -> bool: return leg is Array and leg[0] == _from)
+	var start: int = legs.size() if _from == "finished" else _labels.find(_from)
 	if start < 0:
 		_fail("route %s has no leg %s" % [_route, _from])
-	return legs.slice(maxi(start, 0))
+	_skipped = maxi(start, 0)
+	return legs.slice(_skipped)
+
+
+static func _leg_labels(legs: Array) -> Array:
+	var seen: Dictionary = {}
+	var out: Array = []
+	for leg: Variant in legs:
+		var name: String = String(leg[0]) if leg is Array else ""
+		seen[name] = int(seen.get(name, 0)) + 1
+		out.append(name if seen[name] == 1 or name.is_empty() else "%s#%d" % [name, seen[name]])
+	return out
+
+
+## The running leg reaches the host after the world it starts from: once the link has rested since it began.
+func _note_leg() -> void:
+	var link: PokeCoopWorldLink = _session.link
+	var leg: String = _running_leg()
+	if leg != _noting:
+		_noting = leg
+		_rested = 0
+	_rested = _rested + 1 if link != null and link._rest_streak >= PokeCoopWorldLink.REST_FRAMES else 0
+	if _noting.is_empty() or _noting == _noted or _rested <= PokeCoopWorldLink.REST_FRAMES:
+		return
+	if not link.hold_holdings and link._is_free():
+		link.push_party()
+	_session.client.note(_noting)
+	_noted = _noting
+
+
+func _running_leg() -> String:
+	if _played == null or _played._screen == null:
+		return ""
+	for at: int in range(_leg, _legs.size()):
+		if _legs[at] is Array:
+			return _labels[at + _skipped]
+	return "finished"
 
 
 func _opening_legs() -> Array:

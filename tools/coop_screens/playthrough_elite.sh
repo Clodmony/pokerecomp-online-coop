@@ -3,7 +3,7 @@
 # joined from the room behind and walking through afterwards without a fight; the Champion taken by one window and
 # joined by the other from LANCE's room, which then meets him beaten for Oak's scene and its own Hall of Fame, credits
 # and CONTINUE in Pallet Town; the run is cleared for the campaign once both are out of the League (#88).
-# FROM=<leg> starts both windows at that leg, for a SEED= at the Indigo Plateau lobby (FROM=lobby_nurse).
+# A SEED= at the Indigo Plateau lobby starts with FROM=lobby_nurse.
 # WHITEOUT=1 has BRUNO's fighter lose its first fight alone and white out to the Indigo Plateau while the partner
 # waits in LORELEI's room: the lobby's reset is held, and the fighter walks back through LORELEI's open exit.
 source "$(dirname "${BASH_SOURCE[0]}")/playthrough_victory.sh"
