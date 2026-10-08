@@ -188,6 +188,8 @@ func _choose() -> int:
 	_hide_wait_box_left_over_the_link_room(screen)
 	if _frames % 60 == 0 and not _losing and screen.active_save().party.any(_worn):
 		_heal(screen)
+	if _frames % 60 == 30:
+		_box_with_room(screen.active_save())
 	var battle: Gen2BattleScreen = screen.get("_battle_host")
 	if battle != null and battle.capture_safari_catch_rate() >= 0 and not bool(screen.call(&"_input_locked")):
 		return _safari_button(battle)
@@ -283,6 +285,8 @@ func _route_legs() -> Array:
 	var start: int = legs.size() if _from == "finished" else _labels.find(_from)
 	if start < 0:
 		_fail("route %s has no leg %s" % [_route, _from])
+	while start > 0 and legs[start - 1] is Callable and String((legs[start - 1] as Callable).get_method()).begins_with("_note_"):
+		start -= 1
 	_skipped = maxi(start, 0)
 	return legs.slice(_skipped)
 
@@ -984,10 +988,8 @@ func _sabrina_legs() -> Array:
 	var m: Dictionary = SABRINA_MAPS
 	var k: Dictionary = KOGA_MAPS
 	var gate_open: Callable = p._engine(Gen1Layout.status_flag_1(PokeCoopOwnership.SAFFRON_DRINK_BIT))
-	var bought: Callable = func(world: Gen2WorldAPI) -> bool: return _order() > 0 and not _partner_on(world.map_id())
-	var drink: Callable = _either(bought, _either(p._holds(FRESH_WATER), gate_open))
-	var hand_over: Callable = func(world: Gen2WorldAPI) -> int:
-		return p._walk(ROUTE_7_GATE_EAST).call(world) if _order() == 0 and _partner_on(m.route_7_gate) else PokeButton.NONE
+	var bought: Callable = func(world: Gen2WorldAPI) -> bool: return not _partner_on(world.map_id())
+	var partner_in_gate: Callable = func(_world: Gen2WorldAPI) -> bool: return _partner_on(m.route_7_gate)
 	var east_of_gate: Callable = func(world: Gen2WorldAPI) -> bool:
 		return world.map_id() == m.route_7 and world.player_cell.x >= ROUTE_7_EAST_DOOR_X
 	var legs: Array = [
@@ -1014,14 +1016,19 @@ func _sabrina_legs() -> Array:
 	var meet: Array = _meet_partner("meet_on_the_roof", p._holds(FRESH_WATER))
 	meet[1] = func(world: Gen2WorldAPI) -> int: return p._walk(_vending_cell()).call(world)
 	legs.append(meet)
-	legs.append(["fresh_water", func(world: Gen2WorldAPI) -> int:
-		return p._talk(_vending_cell(), UP).call(world) if _order() == 0 else PokeButton.NONE, drink])
+	var drinker: bool = _order() == 0
+	if drinker:
+		legs.append(["fresh_water", p._talk(_vending_cell(), UP), _either(p._holds(FRESH_WATER), gate_open)])
+	else:
+		legs += [["fresh_water", p._walk(_vending_cell()), _either(p._at(_vending_cell()), bought)],
+			["fresh_water_bought", _standing, bought]]
 	for floor: int in range(floors.size() - 2, -1, -1):
 		legs.append(["celadon_mart_down_%d" % floor, p._warp_to(floors[floor]), p._on_map(floors[floor])])
 	return legs + [
 		["celadon_to_route_7", p._cross(Vector2i.RIGHT, m.route_7), p._on_map(m.route_7)],
 		["route_7_gate", p._warp_to(m.route_7_gate), p._on_map(m.route_7_gate)],
-		["route_7_gate_drink", hand_over, _either(gate_open, east_of_gate)],
+	] + ([["route_7_gate_partner", _standing, _either(partner_in_gate, gate_open)]] if drinker else []) + [
+		["route_7_gate_drink", p._walk(ROUTE_7_GATE_EAST) if drinker else _standing, _either(gate_open, east_of_gate)],
 		["route_7_gate_east", p._walk(ROUTE_7_GATE_EAST), east_of_gate],
 		["route_7_to_saffron", p._cross(Vector2i.RIGHT, m.saffron_city), p._on_map(m.saffron_city)],
 	] + _silph_legs() + _saffron_gym_legs()
@@ -1118,8 +1125,18 @@ func _owns(species: int) -> bool:
 	return mons.any(func(mon: Gen2SaveMon) -> bool: return mon.species == species)
 
 
+func _box_with_room(save: Gen2SaveData) -> void:
+	if bool(save.deposit_box_slot().get("ok", false)):
+		return
+	var at: int = save.boxes.find_custom(func(box: Gen2SaveBox) -> bool: return box.first_empty_slot() >= 0)
+	if at >= 0:
+		save.current_box = at
+		print("coop autoplay: %s changed to box %d, the current one is full" % [_player_id, at + 1])
+
+
 func _room() -> bool:
 	var save: Gen2SaveData = _played._screen.active_save()
+	_box_with_room(save)
 	var at: Dictionary = save.deposit_box_slot()
 	if save.party.size() < Gen2SaveData.MAX_PARTY:
 		return true

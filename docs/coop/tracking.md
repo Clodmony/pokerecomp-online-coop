@@ -7,6 +7,11 @@ when GitHub use resumed (the table of found items gives its number).
 Statuses: **done** (acceptance criteria met and verified locally),
 **partial**, **in progress**, **open**.
 
+On 2026-10-08 the owner approved merging the stacked pull requests (#58,
+#79, #80, #81, #83, then #89) into `main` and closing the finished issues;
+every row marked done below was closed then. Work after that branches from
+`main`.
+
 ## Branches
 
 | Branch | Base | State | GitHub |
@@ -33,7 +38,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 21 | Protocol hardening: limits, schema validation and fuzzing | done: seeded fuzz test over every message type, boundary readers and shape checks, 2 MiB packet cap (D35) | `coop/launcher` | close when the branch merges |
 | 22 | Per-player actors in the world simulation | done as the owner reads it (D72): the host keeps the campaign and battles, each window simulates its maps, NPCs and movement and shares at rest points | | closed 2026-10-07 |
 | 23 | Remote players on the same map with interpolation | done | `coop/slice-1` (`PokeCoopRemoteActor`), screenshots in `progress.md` | close when the branch merges |
-| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | in progress on `coop/rival-scenes`: the first player in drives every rival scene after the opening (approved, D72); gifts settled on the host (D62) | | keep open until built |
+| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | done (D84): the first window into a rival scene drives it, the partner waits and can join | | keep open until built |
 | 25 | Host-side wild encounters and trainer sight per player | won't do (D72): windows roll them, the host fights them | `coop/m1-state-sync` (`15028474`) | closed as not planned 2026-10-07 |
 | 26 | Drive the battle screen from authoritative session events | partial: the battle field (pictures, panels, draining HP bars, turn text, move animations) is drawn from the host's view (D32), with move and hit sounds, blinks, screen shakes, palette effects, thrown balls, faints, recalls and send-outs (D39), battle music, cries and the victory fanfare (audible since D38); a trainer win closes with the defeat line, the trainer sliding back in, their line and the prize share (D41), and battles open with the sliding intro (D42); what is left is the field being a separate screen from `Gen2BattleScreen` | `coop/launcher` | comment, keep open |
 | 27 | Share the battle screen's enemy AI with host sessions | open for Generation 2 (a random usable move); Generation 1 sessions use the cartridge's trainer AI | | keep open; Generation 2 is out of scope for now (D61) |
@@ -57,9 +62,9 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 45 | Android client: lifecycle and reconnect | open, deferred by the owner until after #88 and #44 (D72): pause and resume handling exists (D46), no Android build | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
 | 47 | Two-process ENet integration check in CI | done: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes, and the CI step passed on #80 | `coop/launcher` (`d5e65c2f`), #80 | closes when #80 merges |
-| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `tools/coop_autoplay.gd` plays two windows from Oak's speech to BROCK's badge (`playthrough_brock`, about five minutes, three clean runs); MISTY and beyond in progress | `coop/playthrough` | close when the branch merges |
+| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `playthrough_brock` and every later stretch to the Hall of Fame (#88) | `coop/playthrough` | close when the branch merges |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
-| 50 | German Red/Blue support | in progress (D95): own game ids `red_de` and `blue_de`, no mixed-language sessions | `coop/german` | keep open |
+| 50 | German Red/Blue support | partial (D95): both German dumps import, Rote plays to BROCK in two windows; the engine's own English lines and a Blaue playthrough remain | `coop/german` | keep open |
 | 51 | Internet relay option | open (later milestone); WireGuard or a forwarded port work today | | keep open |
 | 52 | Dedicated server mode | open (later milestone); `tools/coop_session.gd host` runs a headless host already | | keep open |
 | 53 | Local split-screen | open (later milestone) | | keep open |
@@ -73,7 +78,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | done (D77): a window entering keeps the first lock while a partner is near | `coop/playthrough` (`209ba387`) | close when the branch merges |
 | 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | done (D76): a row's end closes a no-press box | `coop/playthrough` (`fa244045`) | close when the branch merges |
 | 87 | Review and merge coop/autoplay-surge | done: merged (`91e8c1c6`), D73 to D75; `playthrough_surge` passes from a new campaign | `coop/playthrough` | closed 2026-10-07 |
-| 88 | Autoplayed two-window run to the Hall of Fame | in progress: done to LT. SURGE; Celadon and ERIKA on `coop/autoplay-erika`; campaign seeds for parallel stretches on `coop/campaign-seed` | | |
+| 88 | Autoplayed two-window run to the Hall of Fame | done: every stretch chained in ROUTES; a new campaign reached both Halls of Fame in two windows on 2026-10-08, resumed from snapshots after each autopilot fix (D96); one unbroken run is the next check | | |
 
 ## Found while GitHub was paused
 
