@@ -188,6 +188,8 @@ func _choose() -> int:
 	_hide_wait_box_left_over_the_link_room(screen)
 	if _frames % 60 == 0 and not _losing and screen.active_save().party.any(_worn):
 		_heal(screen)
+	if _frames % 60 == 30:
+		_box_with_room(screen.active_save())
 	var battle: Gen2BattleScreen = screen.get("_battle_host")
 	if battle != null and battle.capture_safari_catch_rate() >= 0 and not bool(screen.call(&"_input_locked")):
 		return _safari_button(battle)
@@ -283,6 +285,8 @@ func _route_legs() -> Array:
 	var start: int = legs.size() if _from == "finished" else _labels.find(_from)
 	if start < 0:
 		_fail("route %s has no leg %s" % [_route, _from])
+	while start > 0 and legs[start - 1] is Callable and String((legs[start - 1] as Callable).get_method()).begins_with("_note_"):
+		start -= 1
 	_skipped = maxi(start, 0)
 	return legs.slice(_skipped)
 
@@ -1118,8 +1122,18 @@ func _owns(species: int) -> bool:
 	return mons.any(func(mon: Gen2SaveMon) -> bool: return mon.species == species)
 
 
+func _box_with_room(save: Gen2SaveData) -> void:
+	if bool(save.deposit_box_slot().get("ok", false)):
+		return
+	var at: int = save.boxes.find_custom(func(box: Gen2SaveBox) -> bool: return box.first_empty_slot() >= 0)
+	if at >= 0:
+		save.current_box = at
+		print("coop autoplay: %s changed to box %d, the current one is full" % [_player_id, at + 1])
+
+
 func _room() -> bool:
 	var save: Gen2SaveData = _played._screen.active_save()
+	_box_with_room(save)
 	var at: Dictionary = save.deposit_box_slot()
 	if save.party.size() < Gen2SaveData.MAX_PARTY:
 		return true

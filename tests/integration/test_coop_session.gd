@@ -532,6 +532,18 @@ func test_a_heal_and_a_deposit_made_in_a_window_reach_the_host() -> void:
 	assert_eq(int(player.box[0]["box"]), 3, "in the box it was put in")
 
 
+func test_a_box_changed_in_a_window_is_the_one_the_host_stores_into() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var player: PokeCoopPlayer = _host.player(_red.player_id)
+
+	red.save.current_box = 5
+	_settle()
+	player.store_mon(Gen2SaveMon.from_dict((player.team[0]["mon"] as Gen2SaveMon).to_dict()))
+
+	assert_eq(player.current_box, 5, "the host took the change")
+	assert_eq(int(player.box[0]["box"]), 5, "and stores into that box")
+
+
 func _settle() -> void:
 	for _wait: int in PokeCoopWorldLink.PARTY_CHECK_FRAMES:
 		_pump()
