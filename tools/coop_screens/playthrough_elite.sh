@@ -6,4 +6,4 @@
 source "$(dirname "${BASH_SOURCE[0]}")/playthrough_victory.sh"
 P1_ARGS="${P1_ARGS/route=victory/route=elite}"
 P2_ARGS="${P2_ARGS/route=victory/route=elite}"
-DURATION=25200
+DURATION=36000
