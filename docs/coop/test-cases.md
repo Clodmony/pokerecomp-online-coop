@@ -103,6 +103,7 @@ Red (or Blue) cartridge, the same one.
 | W65 | Route 22's second rival | The first player in drives the scene, the partner waits and joins from SELECT; Route 23's badge guards let both through | | playthrough_victory | |
 | W66 | A campaign saved before D92 in which one player gave the gate drink is reopened | The drink moves to the campaign; the partner walks through without one; STRENGTH and the surf check stay each player's | `test_the_teams_gate_drink_is_saved_with_the_campaign_and_a_drink_a_player_kept_moves_to_it` | | |
 | W67 | After both players' Hall of Fame (or both whiting out) | The run is cleared for the campaign and the next League run fights every member and the Champion for real | `test_the_champion_beaten_for_the_team_waits_for_every_players_hall_of_fame_then_fights_again` | | |
+| W68 | With six in the party, take LAPRAS from Silph Co. 7F's worker (or a revived fossil on Cinnabar) | It goes to that player's PC box, shown on the host under that player's uid; the partner's box is unchanged; talking to the worker again gives only his after-gift line | | playthrough_sabrina from a full-party seed | |
 
 ## Battles
 

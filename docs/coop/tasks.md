@@ -20,7 +20,8 @@ keep the snapshot below current.
     wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
     The chained run then stalled on Pokémon Tower 7F for a partner arriving
     after Mr. Fuji's rescue (`coop/tower-7f-late`, merged). The third chained run froze on Silph Co.
-    7F in a text box (`coop/silph-7f-stall`, in progress).
+    7F: the autopilot looked for LAPRAS only in a full party
+    (`coop/silph-7f-stall`, merged). A fourth chained run is under way.
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` merged (D89, D90): GIOVANNI, Route 22's second
