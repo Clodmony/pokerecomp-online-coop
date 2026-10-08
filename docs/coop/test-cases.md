@@ -87,6 +87,8 @@ Red (or Blue) cartridge, the same one.
 | W50 | One player talks to BLAINE with the partner in the gym | The partner joins with SELECT > JOIN; one battle; VOLCANOBADGE for the campaign; exactly one TM38 each, in the window and on the host | | playthrough_blaine | |
 | W51 | A player who left (or lost the link) while surfing rejoins | They reopen surfing on the water and can move | `test_a_player_back_on_the_water_surfs_as_a_continue_puts_them` | | |
 | W52 | One player drops Seafoam's STRENGTH boulders while the partner waits | The calm water on B3F reaches the partner, who surfs across without pushing anything | | playthrough_blaine | |
+| W53 | After the SILPH SCOPE, ride the Rocket Hideout car from B4F and choose B1F | The car lands on B1F in both windows; choosing the floor you are on only shakes the car | | playthrough_tower | |
+| W54 | Both players in the Rocket Hideout car at once, one on the panel | The other waits beside it; the first walks out by the door once its ride ends; neither is stuck | | playthrough_tower (`P2_DELAY=1`, seeded) | |
 
 ## Battles
 
