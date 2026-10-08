@@ -23,7 +23,7 @@ keep the snapshot below current.
     7F: the autopilot looked for LAPRAS only in a full party
     (`coop/silph-7f-stall`, merged), then could not teach SURF with LAPRAS in
     the box (`coop/seed-party`, merged). The fifth chained run stalled on a late
-    partner's way down Pokémon Tower (`coop/tower-late-descent`, in progress).
+    partner's way down Pokémon Tower (`coop/tower-late-descent`, merged: the autopilot's moves now respect type).
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` merged (D89, D90): GIOVANNI, Route 22's second
