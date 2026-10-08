@@ -111,6 +111,7 @@ var _done: bool = false
 var _trade: Dictionary = {}
 var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
+var _filmed: Dictionary = {}
 
 
 func _read_option(arg: String) -> bool:
@@ -193,6 +194,9 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
 		return _paced(PokeButton.A)
+	if String(view.get("encounter", "")).begins_with("trainer:") and panel._controls(view) and not _filmed.has(view["battle"]):
+		_filmed[view["battle"]] = true
+		_shot("battle_%s_%s" % [view["battle"], String(view.get("trainer_name", "")).to_lower().validate_filename()])
 	var target: int = -1
 	if bool(view.get("stand_in_due", false)):
 		target = panel._rows.find_custom(func(row: Dictionary) -> bool: return row.get("session") == "stand_in")

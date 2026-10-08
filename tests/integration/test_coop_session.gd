@@ -1861,23 +1861,31 @@ func test_a_partners_boulder_on_a_victory_road_switch_opens_the_wall_in_this_win
 		"Blue's world opens the wall as Red's does, with Blue's own boulder where Blue left it")
 
 
-func test_a_partner_leaving_victory_road_1f_keeps_its_wall_open_for_the_player_still_on_it() -> void:
+func test_a_partner_resetting_victory_roads_switches_leaves_them_open_for_the_player_still_inside() -> void:
 	var on_1f_switch: int = PokeCoopWorldLink.EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH
+	var on_2f_switch: int = PokeCoopWorldLink.EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2
 	var red: PokeCoopWorldLink = _window(_red)
 	var blue: PokeCoopWorldLink = _window(_blue)
 	_stand(blue, PokeCoopWorldLink.VICTORY_ROAD_1F)
 	red.state.set_event_flag(on_1f_switch)
+	red.state.set_event_flag(on_2f_switch)
 	_pump()
 
 	red.state.clear_event_flag(on_1f_switch)
 	_pump()
-
-	assert_false(_host.campaign.has_flag(on_1f_switch), "Red's 2F resets the switch, as the cartridge does on the way up")
-	assert_true(blue.state.is_event_flag_active(on_1f_switch), "a battle's map reload does not shut Blue in behind the wall")
-	_stand(blue, PokeCoopWorldLink.VICTORY_ROAD_2F)
+	_stand(blue, PokeCoopWorldLink.VICTORY_ROAD_3F)
+	red.state.clear_event_flag(on_2f_switch)
 	_pump()
 
-	assert_false(blue.state.is_event_flag_active(on_1f_switch), "off the floor, Blue's switch is the campaign's again")
+	assert_false(_host.campaign.has_flag(on_1f_switch), "Red's 2F resets the 1F switch, as the cartridge does on the way up")
+	assert_false(_host.campaign.has_flag(on_2f_switch), "and Red's way out resets the rest")
+	assert_true(blue.state.is_event_flag_active(on_1f_switch), "a battle's reload does not shut Blue in behind the 1F wall")
+	assert_true(blue.state.is_event_flag_active(on_2f_switch), "nor does Blue fall from 3F onto a 2F walled in again")
+	_stand(blue, Vector2i(0, 34))
+	_pump()
+
+	assert_false(blue.state.is_event_flag_active(on_1f_switch), "out on Route 23, Blue's switches are the campaign's again")
+	assert_false(blue.state.is_event_flag_active(on_2f_switch))
 	assert_false(_host.campaign.has_flag(on_1f_switch))
 
 
