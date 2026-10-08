@@ -96,6 +96,12 @@ func _has_left(view: Dictionary) -> bool:
 	return (view.get("left", []) as Array).has(client.player_id)
 
 
+func dismiss_finished() -> void:
+	for battle_id: String in client.battles:
+		if not String((client.battles[battle_id] as Dictionary).get("outcome", "")).is_empty():
+			_dismissed[battle_id] = true
+
+
 func recall(battle_id: String) -> void:
 	_recalled[battle_id] = true
 	_dismissed.erase(battle_id)
