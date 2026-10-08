@@ -1309,3 +1309,16 @@ FRESH WATER lets both through Saffron's gates, and the Elite Four is one run
 for the team: a member beaten by either player is beaten for both. This
 replaces D85's gate drink and D87; the built details follow in their own
 entries.
+
+## D92. One drink opens Saffron's gates for the team (2026-10-08)
+
+Following D91, `BIT_GAVE_SAFFRON_GUARDS_DRINK` (`wStatusFlags1` bit 6) is the
+campaign's: `PokeCoopOwnership.campaign_engine_flag` routes it with the
+badges, and the other `wStatusFlags1` bits (STRENGTH, the surf check) stay
+each player's. The campaign keeps engine flags beyond the badges in its
+`world`, so the drink is saved without a format change, and a save from
+before this in which a player kept their own drink has it moved to the
+campaign on load. The gate scripts read the flag each time they run, so a
+partner already standing in a gate walks on with no map load. The autopilot's
+SABRINA stretch has one player buy and hand over the only FRESH WATER. This
+replaces D85's drink; LAPRAS stays each player's.
