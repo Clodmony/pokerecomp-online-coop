@@ -1,8 +1,7 @@
 class_name PokeCoopRoster
 extends RefCounted
 
-## Who owns each Pokémon on the allied side of a co-op battle, index for index
-## with the battle's player party. Entries are only ever appended.
+## Who owns each Pokémon on the allied side of a co-op battle, index for index with its player party; entries are only appended.
 
 var _entries: Array = []
 

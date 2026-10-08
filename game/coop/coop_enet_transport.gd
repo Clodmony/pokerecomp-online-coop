@@ -1,8 +1,7 @@
 class_name PokeCoopEnetTransport
 extends PokeCoopTransport
 
-## [PokeCoopTransport] over ENet for LAN and direct-IP play: one reliable channel
-## of encoded Dictionaries, no relay and no external service.
+## [PokeCoopTransport] over ENet for LAN and direct-IP play: one reliable channel of encoded Dictionaries, no relay or service.
 
 const DEFAULT_PORT: int = 24680
 const MAX_CLIENTS: int = 4
