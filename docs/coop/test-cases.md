@@ -32,6 +32,7 @@ Red (or Blue) cartridge, the same one.
 | S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
 | S17 | A world reopened after the Hall of Fame's reset | It shows no earlier battle's result on the panel | `test_coop_session` (continued world test) | playthrough_elite | |
 | S18 | `tools/coop_seed.gd -- red <leg> <dir> party=6` | Each player opens with six of their own Pokémon on the host (p1:1 to p1:6); the files are identical each time | `test_coop_state` (seed party test) | | |
+| S19 | Reopen a campaign saved while a player stood in the Seafoam Islands (or in a Safari Game) | The walk flag is gone from the campaign; story flags and gifts stay | `test_a_campaign_saved_while_a_player_was_in_seafoam_hands_the_walk_back` | | |
 
 ## Exploration and story
 
@@ -105,6 +106,7 @@ Red (or Blue) cartridge, the same one.
 | W66 | A campaign saved before D92 in which one player gave the gate drink is reopened | The drink moves to the campaign; the partner walks through without one; STRENGTH and the surf check stay each player's | `test_the_teams_gate_drink_is_saved_with_the_campaign_and_a_drink_a_player_kept_moves_to_it` | | |
 | W67 | After both players' Hall of Fame (or both whiting out) | The run is cleared for the campaign and the next League run fights every member and the Champion for real | `test_the_champion_beaten_for_the_team_waits_for_every_players_hall_of_fame_then_fights_again` | | |
 | W68 | With six in the party, take LAPRAS from Silph Co. 7F's worker (or a revived fossil on Cinnabar) | It goes to that player's PC box, shown on the host under that player's uid; the partner's box is unchanged; talking to the worker again gives only his after-gift line | | playthrough_sabrina from a full-party seed | |
+| W69 | One player starts the Seafoam boulder puzzle while the partner still walks Route 20 | Every boulder dropped stays where it fell in both windows; the partner finds B3F's water calm | `test_a_partner_on_route_20_never_resets_the_seafoam_boulders_of_the_player_inside` | playthrough_blaine | |
 
 ## Battles
 

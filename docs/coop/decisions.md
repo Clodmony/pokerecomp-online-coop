@@ -1347,3 +1347,18 @@ host's memory, so a host restart keeps the run open until the next clear; a
 connected player who never comes to the League after the Champion fell holds
 rematches back, and anyone walking in meanwhile gets another instant Champion
 win and Hall of Fame entry; a disconnected player inside holds nothing.
+
+## D94. Being in the Seafoam Islands is each player's (#88, 2026-10-08)
+
+`EVENT_IN_SEAFOAM_ISLANDS` (0x500) joins `PokeCoopPolicy.OWN_GIFTS`, beside
+the Safari flags (D81). Seafoam 1F sets it on every frame and Route 20 clears
+it, resetting the boulders while the puzzle is unfinished; as a campaign flag,
+a partner on Route 20 cleared it and sent that reset, so a boulder one player
+had dropped vanished from B1F and the B3F current never calmed. A host opening
+a campaign drops the walk flags the cartridge clears itself (`OWN_WALKS`: the
+two Safari flags and this one), so an older save does not keep resetting
+Route 20. This and D81 overtake D79's note that per-walk flags such as
+`EVENT_IN_SAFARI_ZONE` stay the campaign's. Costs: the boulders' hide and show
+stay the campaign's, so a player who leaves through Route 20 with the puzzle
+unfinished resets it for a partner still inside, as the cartridge resets it
+for one player.
