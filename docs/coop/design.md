@@ -137,6 +137,13 @@ never identity.
 - A gift two windows hand out at the same moment is kept once: the second
   window's change repeats story the campaign already has, so the items it
   gained with it are taken back, the first window's share standing in (#24).
+- The Elite Four is one run for the team (D91): a member or the Champion beaten
+  by either player, alone or joined, is beaten for both, and the room's exit
+  opens in every window, so a partner arriving later walks through. Each window
+  plays its own walk in, Oak's scene and Hall of Fame; a partner who meets the
+  Champion after the team beat him wins at once. A whiteout's or Hall of Fame's
+  reset of the run waits while anyone is in the League, and after the Champion
+  until every player is inducted; then the next run fights them all again.
 - Major progression (flags, badges, defeated encounters) is applied through a
   commit with a stable id (`victory:<encounter id>`), so it happens exactly once
   even if messages repeat.

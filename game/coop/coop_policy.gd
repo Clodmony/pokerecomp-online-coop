@@ -12,8 +12,7 @@ const START_MAP: Vector2i = Vector2i(0, 0)
 const START_CELLS: Array[Vector2i] = [
 	Vector2i(5, 6), Vector2i(13, 6), Vector2i(6, 6), Vector2i(12, 6),
 ]
-## Where a played opening leaves the story (D58): its flags at the pinned pokered, the lab's,
-## Pallet Town's and the house's script steps, and the objects it took away.
+## Where a played opening leaves the story (D58): its flags, the lab's, Pallet Town's and the house's script steps, the objects it took.
 const INTRO_DONE_FLAGS: Array[int] = [0x00, 0x20, 0x21, 0x22, 0x23, 0x27]
 const INTRO_DONE_WORLD: Dictionary = {
 	"gen1_map_scripts": {"set": {0: 18, 1: 5, 28: 1}, "erase": []},
@@ -44,12 +43,16 @@ const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
 ## EVENT_IN_PURIFIED_ZONE; EVENT_MANSION_SWITCH_ON, which Cinnabar Island clears; the fossil lab's EVENT_GAVE_FOSSIL_TO_LAB and next two.
 const OWN_GIFTS: Dictionary = {
 	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107,
-		0x278, 0x2E0, 0x2E1, 0x2E2],
+		0x278, 0x2E0, 0x2E1, 0x2E2, 0x8E6, 0x8EE, 0x8F6, 0x8FF],  # EVENT_AUTOWALKED_INTO_*_ROOM, EVENT_LANCES_ROOM_LOCK_DOOR
 	"toggled_objects": [0x45, 0x4A, 0x4B],
 }
-## Each player's own Elite Four run (#88): INDIGO_PLATEAU_EVENTS_START to EVENT_BEAT_CHAMPION_RIVAL, which the lobby and Hall of Fame clear.
-const ELITE_FOUR_RUN := Vector2i(0x8E0, 0x901)
-static var _own_gen1: Dictionary = {}
+## The team's Elite Four run (D91): INDIGO_PLATEAU_EVENTS_START to _END, which the lobby and the Hall of Fame clear.
+const ELITE_FOUR_RUN := Vector2i(0x8E0, 0x907)
+const LEAGUE_MAPS: Array[Vector2i] = [
+	Vector2i(0, 0xF5), Vector2i(0, 0xF6), Vector2i(0, 0xF7), Vector2i(0, 0x71), Vector2i(0, 0x78), Vector2i(0, 0x76),
+]
+const EVENT_BEAT_CHAMPION_RIVAL: int = 0x901
+const LEAGUE_TRAINER_CLASSES: Array[int] = [33, 43, 44, 46, 47]  # BRUNO, RIVAL3, LORELEI, AGATHA, LANCE
 ## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the three birds and MEWTWO, one encounter each.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
 ## How long a dropped controller is waited for before the others are asked to stand in (D61).
@@ -75,12 +78,36 @@ static func prize_shares(total: int, participants: Array) -> Dictionary:
 
 
 static func own_entries(data: GameData) -> Dictionary:
-	if data == null or data.generation != RomRegistry.GEN1:
-		return {}
-	if _own_gen1.is_empty():
-		_own_gen1 = OWN_GIFTS.duplicate(true)
-		(_own_gen1["event_flags"] as Array).append_array(range(ELITE_FOUR_RUN.x, ELITE_FOUR_RUN.y + 1))
-	return _own_gen1
+	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
+
+
+## Takes a window's clear of the run out of [param changes], for the host to hold: answers whether there was one.
+static func take_league_clear(changes: Dictionary) -> bool:
+	var erased: Array = (changes.get("event_flags", {}) as Dictionary).get("erase", [])
+	var run: Array = erased.filter(func(flag: Variant) -> bool: return int(flag) >= ELITE_FOUR_RUN.x and int(flag) <= ELITE_FOUR_RUN.y)
+	for flag: Variant in run:
+		erased.erase(flag)
+	return not run.is_empty()
+
+
+## The team's run stands while a connected player is in the League, or has yet to be inducted once the Champion fell.
+static func league_held(campaign: PokeCoopCampaign, members: Array) -> bool:
+	var champion_beaten: bool = campaign.has_flag(EVENT_BEAT_CHAMPION_RIVAL)
+	for member: PokeCoopPlayer in members:
+		var inducted: bool = bool((member.world.get("engine_flags", {}) as Dictionary).get(Gen2WorldState.ENGINE_HALL_OF_FAME, false))
+		if member.connected and member.opening.is_empty() and (LEAGUE_MAPS.has(member.map) or (champion_beaten and not inducted)):
+			return true
+	return false
+
+
+## The run cleared for the campaign: the next one fights the League's trainers for real again.
+static func clear_league(campaign: PokeCoopCampaign) -> void:
+	for flag: int in range(ELITE_FOUR_RUN.x, ELITE_FOUR_RUN.y + 1):
+		campaign.flags.erase(flag)
+	for encounter: String in campaign.summary()["defeated"]:
+		if encounter.begins_with("trainer:") and LEAGUE_TRAINER_CLASSES.has(int(encounter.get_slice(":", 1))):
+			campaign.forget_encounter(encounter)
+	campaign.revision += 1
 
 
 static func new_player_money() -> int:
@@ -158,8 +185,7 @@ static func may_join(player: PokeCoopPlayer, fit_count: int) -> StringName:
 	return &""
 
 
-## A story gift reaches every player, committed once: the shared items
-## [param receiver] just gained and the TMs behind gift flags just set. Answers them.
+## A story gift reaches every player once: the shared items [param receiver] just gained, the TMs of gift flags just set. Answers them.
 static func share_gifts(
 	campaign: PokeCoopCampaign, receiver: PokeCoopPlayer, others: Array,
 	flags_before: Dictionary, held_before: Dictionary,

@@ -121,6 +121,12 @@ func release_encounter(encounter_id: String, battle_id: String) -> void:
 		revision += 1
 
 
+## A rematch (D91): [param encounter_id] is free again, and its next win commits once more.
+func forget_encounter(encounter_id: String) -> void:
+	_encounters.erase(encounter_id)
+	_commits.erase("victory:" + encounter_id)
+
+
 func take_battle_id() -> String:
 	next_battle_serial += 1
 	return "b%d" % (next_battle_serial - 1)
