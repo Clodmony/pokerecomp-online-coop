@@ -44,7 +44,17 @@ static func from_dict(raw: Variant) -> Dictionary:
 			return {}
 		seen[member.player_id] = true
 		players.append(member)
+		_hand_over_team_flags(campaign, member)
 	return {"campaign": campaign, "players": players}
+
+
+## A flag a player kept before the campaign took it over (D91), such as Saffron's gate drink, moves to the campaign.
+static func _hand_over_team_flags(campaign: PokeCoopCampaign, member: PokeCoopPlayer) -> void:
+	var own: Dictionary = member.world.get("engine_flags", {})
+	for flag: int in own.keys():
+		if PokeCoopOwnership.campaign_engine_flag(flag, []) and bool(own[flag]):
+			(campaign.world.get_or_add("engine_flags", {}) as Dictionary)[flag] = true
+			own.erase(flag)
 
 
 static func write(path: String, campaign: PokeCoopCampaign, players: Array) -> Error:

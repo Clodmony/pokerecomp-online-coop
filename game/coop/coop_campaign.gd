@@ -72,7 +72,7 @@ func commit(commit_id: String, changes: Dictionary) -> bool:
 func world_part(badge_flags: Array[int]) -> Dictionary:
 	var out: Dictionary = world.duplicate(true)
 	out["event_flags"] = flags.duplicate()
-	var engine: Dictionary = {}
+	var engine: Dictionary = (world.get("engine_flags", {}) as Dictionary).duplicate()
 	for bit: int in badge_flags.size():
 		if has_badge(bit):
 			engine[badge_flags[bit]] = true
@@ -91,11 +91,19 @@ func apply_world_patch(changes: Dictionary, badge_flags: Array[int]) -> bool:
 		if bool((current["event_flags"] as Dictionary)[flag]):
 			flags[int(flag)] = true
 	badges = 0
-	for bit: int in badge_flags.size():
-		if bool((current["engine_flags"] as Dictionary).get(badge_flags[bit], false)):
+	var engine: Dictionary = {}
+	for flag: Variant in current["engine_flags"] as Dictionary:
+		var bit: int = badge_flags.find(int(flag))
+		if not bool((current["engine_flags"] as Dictionary)[flag]):
+			continue
+		if bit >= 0:
 			badges |= 1 << bit
+		else:
+			engine[int(flag)] = true
 	current.erase("event_flags")
 	current.erase("engine_flags")
+	if not engine.is_empty():
+		current["engine_flags"] = engine
 	world = current
 	revision += 1
 	return true
