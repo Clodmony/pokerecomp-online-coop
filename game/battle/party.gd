@@ -9,6 +9,8 @@ extends RefCounted
 ## class, but a party that is longer is a bug somewhere upstream and is worth
 ## refusing at the door.
 const MAX_SIZE: int = 6
+## Two trainers fighting side by side in a co-op battle, each still carrying six.
+const MAX_ALLIED_SIZE: int = MAX_SIZE * 2
 
 var mons: Array = []
 var active: int = 0
@@ -27,6 +29,18 @@ static func create(members: Array) -> Gen2Party:
 	out.mons = members.duplicate()
 	out.active = 0
 	return out
+
+
+## Appends a joining trainer's Pokémon behind the ones already here, so every
+## index a battle has handed out still names the same Pokémon.
+func add_members(members: Array) -> bool:
+	if members.is_empty() or mons.size() + members.size() > MAX_ALLIED_SIZE:
+		return false
+	for member: Variant in members:
+		if member == null:
+			return false
+	mons.append_array(members)
+	return true
 
 
 ## A party of one, which is what a wild encounter is.

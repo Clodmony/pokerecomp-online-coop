@@ -539,6 +539,8 @@ var gen1_stadium_cup: bool = false
 ## `IsGhostBattle`: nobody moves, the ball is dodged and every run succeeds.
 var gen1_ghost: bool = false
 var player_id: int = -1
+## A co-op roster's trainer id per Pokémon, read in place of [member player_id].
+var owner_trainer_ids: Dictionary = {}
 
 ## `wBattleType`, set by `loadvar VAR_BATTLETYPE` before `startbattle`.
 var battle_type: int = BATTLETYPE_NORMAL
@@ -2933,7 +2935,8 @@ func _award_to(learner: Gen2BattleMon, defeated: Gen2BattleMon, block: Dictionar
 
 
 func _is_traded(learner: Gen2BattleMon) -> bool:
-	return player_id >= 0 and learner.ot_id >= 0 and learner.ot_id != player_id
+	var trainer: int = int(owner_trainer_ids.get(learner, player_id))
+	return trainer >= 0 and learner.ot_id >= 0 and learner.ot_id != trainer
 
 
 ## The one place a registered experience scale is applied; a non-zero award is
