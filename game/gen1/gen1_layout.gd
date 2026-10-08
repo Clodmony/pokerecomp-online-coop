@@ -1108,7 +1108,9 @@ const TITLE_LOGO_TILES_RED_BLUE: int = 112
 const TITLE_LOGO_TILES_YELLOW: int = 115
 const TITLE_PLAYER_TILES: int = 35
 const TITLE_MONS: int = 16
-const TITLE_VERSION_TILES: Dictionary = {RomRegistry.RED: 10, RomRegistry.BLUE: 8}
+const TITLE_VERSION_TILES: Dictionary = {
+	RomRegistry.RED: 10, RomRegistry.BLUE: 8, RomRegistry.RED_DE: 10, RomRegistry.BLUE_DE: 10,
+}
 const TITLE_VERSION_TEXT_MAX: int = 16
 const TITLE_LOGO_CORNER_TILES: int = 3
 const TITLE_PIKACHU_BG_TILES: int = 64
@@ -3895,6 +3897,10 @@ static func for_id(id: StringName) -> Dictionary:
 			return _blue
 		RomRegistry.YELLOW:
 			return YELLOW
+		RomRegistry.RED_DE:
+			return Gen1LayoutDe.red()
+		RomRegistry.BLUE_DE:
+			return Gen1LayoutDe.blue()
 	return {}
 
 
@@ -3906,7 +3912,7 @@ static func trainer_ai_routine(id: StringName, address: int) -> String:
 	var routines: Dictionary = TRAINER_AI_ROUTINES.get(
 		RomRegistry.YELLOW if id == RomRegistry.YELLOW else RomRegistry.RED, {}
 	)
-	return String(routines.get(address, ""))
+	return String(routines.get(address - Gen1LayoutDe.trainer_ai_shift(id), ""))
 
 
 ## `TrainerAI`'s `.done` guard on a locked opponent, Yellow's alone.
@@ -3978,7 +3984,11 @@ static func facility_text_offset(
 	var at: int = int(layout.get(run, 0))
 	if at <= 0 or not slots.has(name):
 		return -1
-	return at + int(slots[name])
+	return pinned(layout, run, name, at + int(slots[name]))
+
+
+static func pinned(layout: Dictionary, run: String, name: String, delta_at: int) -> int:
+	return int(layout.get("%s.%s" % [run, name], delta_at))
 
 
 ## `IsItemHM`, and the TM run that follows the five HMs in the item numbering.
@@ -4133,7 +4143,17 @@ static func pokedex_column(id: StringName) -> Dictionary:
 	return POKEDEX_COLUMN_YELLOW if id == RomRegistry.YELLOW else POKEDEX_COLUMN
 
 
+static func alphabet_label_length(id: StringName) -> int:
+	return Gen1LayoutDe.ALPHABET_LABEL_LENGTH if Gen1LayoutDe.is_german(id) else ALPHABET_LABEL_LENGTH
+
+
+static func alphabet_stride(id: StringName) -> int:
+	return ALPHABET_ROWS * ALPHABET_COLUMNS + alphabet_label_length(id)
+
+
 static func credits_string_count(id: StringName) -> int:
+	if Gen1LayoutDe.is_german(id):
+		return Gen1LayoutDe.CREDITS_STRINGS
 	return CREDITS_STRINGS_YELLOW if id == RomRegistry.YELLOW else CREDITS_STRINGS_RED_BLUE
 
 
@@ -4478,7 +4498,7 @@ const SCRIPT_STARTERS: Dictionary = {
 
 
 static func script_starters(id: StringName, who: String) -> Array:
-	return (SCRIPT_STARTERS.get(id, {}) as Dictionary).get(who, [])
+	return (RomRegistry.pick(SCRIPT_STARTERS, id, {}) as Dictionary).get(who, [])
 
 
 static func flat_super_rod(id: StringName) -> bool:

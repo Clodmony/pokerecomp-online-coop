@@ -600,3 +600,16 @@ func test_the_tutors_ball_lands_unless_yellows_initial_training_stands() -> void
 func test_yellow_alone_carries_prof_oaks_back_pic() -> void:
 	assert_eq(Gen1Layout.player_backpics(Gen1Layout.RED_BLUE), ["player", "old_man"])
 	assert_eq(Gen1Layout.player_backpics(Gen1Layout.YELLOW), ["player", "old_man", "prof_oak"])
+
+
+## Bank $1D moves one byte on Blue, and a pinned German slot in it moves too.
+func test_german_blue_shifts_its_pinned_slots_with_their_run() -> void:
+	var red: Dictionary = Gen1Layout.for_id(RomRegistry.RED_DE)
+	var blue: Dictionary = Gen1Layout.for_id(RomRegistry.BLUE_DE)
+	assert_ne(red["print_text"], Gen1Layout.for_id(RomRegistry.RED)["print_text"])
+	for slot: String in Gen1Layout.VENDING_TEXT_AT:
+		assert_eq(
+			Gen1Layout.facility_text_offset(blue, "vending_text", Gen1Layout.VENDING_TEXT_AT, slot),
+			Gen1Layout.facility_text_offset(red, "vending_text", Gen1Layout.VENDING_TEXT_AT, slot) + 1,
+			slot,
+		)

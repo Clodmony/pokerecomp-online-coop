@@ -188,7 +188,7 @@ static func fit(
 	text: String, max_tiles: int, font: StringName = Gen2Text.FONT_MAIN,
 	generation: int = RomRegistry.GEN2
 ) -> PackedByteArray:
-	var codes: PackedByteArray = Gen1Text.encode(text) \
+	var codes: PackedByteArray = Gen1Text.encode(Gen1LayoutDe.localized(text)) \
 		if generation == RomRegistry.GEN1 else Gen2Text.encode(text, font)
 	if max_tiles < 0 or codes.size() <= max_tiles:
 		return codes

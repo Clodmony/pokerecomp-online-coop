@@ -4,7 +4,7 @@ extends VBoxContainer
 ## The launcher's Co-op tab: host one of this device's campaigns or a new one, or join one by address. A new
 ## player picks a starter; the device remembers who it was in each campaign. The world opens once the host answers.
 
-const GAMES: Array[StringName] = [&"red", &"blue"]
+const GAMES: Array[StringName] = [&"red", &"blue", &"red_de", &"blue_de"]
 const STARTER_NAMES: Array[String] = ["BULBASAUR", "CHARMANDER", "SQUIRTLE"]
 const OPENINGS: Array[String] = ["Play it: Oak's speech, your room, his lab", "Skip it: start in Pallet Town with a starter"]
 const HIDDEN_NETWORKS: Array[String] = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "vEthernet"]

@@ -367,17 +367,22 @@ func test_a_new_player_joins_with_the_starter_they_chose_in_pallet_town() -> voi
 
 
 func test_a_client_with_another_cartridge_is_told_why_and_let_go() -> void:
-	var link := PokeCoopTransport.new()
-	PokeCoopTransport.link(_host.transport, link, 3)
-	var stranger: PokeCoopClient = PokeCoopClient.over(link)
-	stranger.greet("", &"blue", "not-this-cartridge")
-	_clients.append(stranger)
-	_pump()
+	var others: Array = [
+		[&"blue", "not-this-cartridge"],
+		[RomRegistry.RED_DE, RomRegistry.sha1_for(RomRegistry.RED_DE)],
+	]
+	for other: Array in others:
+		var link := PokeCoopTransport.new()
+		PokeCoopTransport.link(_host.transport, link, 3)
+		var stranger: PokeCoopClient = PokeCoopClient.over(link)
+		stranger.greet("", other[0], other[1])
+		_clients.append(stranger)
+		_pump()
 
-	assert_eq(stranger.last_rejection(), &"content_mismatch")
-	assert_eq(stranger.ended_reason, "refused: content_mismatch")
-	assert_eq(stranger.player_id, "", "no player was handed out")
-	assert_eq(_host.players.size(), 2)
+		assert_eq(stranger.last_rejection(), &"content_mismatch", String(other[0]))
+		assert_eq(stranger.ended_reason, "refused: content_mismatch")
+		assert_eq(stranger.player_id, "", "no player was handed out")
+		assert_eq(_host.players.size(), 2)
 
 
 func test_only_plain_data_crosses_the_wire() -> void:

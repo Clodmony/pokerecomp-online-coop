@@ -1062,7 +1062,7 @@ func _tick_auto_input() -> void:
 func _auto_input_streams() -> Dictionary:
 	if _generation() != RomRegistry.GEN1:
 		return DUDE_AUTO_INPUT
-	var frames: Array = Gen1Layout.TUTOR_FRAMES.get(_data.id, Gen1Layout.TUTOR_FRAMES[RomRegistry.RED])
+	var frames: Array = RomRegistry.pick(Gen1Layout.TUTOR_FRAMES, _data.id, Gen1Layout.TUTOR_FRAMES[RomRegistry.RED])
 	return {
 		&"menu": [
 			[PokeButton.NONE, int(frames[0]) - 1], [PokeButton.DOWN, int(frames[1]) - 1],
@@ -1398,7 +1398,7 @@ func _begin_world_battle(prepared: Dictionary, save: Gen2SaveData) -> void:
 func _set_up_dude_tutorial() -> void:
 	_stop_auto_input()
 	if _generation() == RomRegistry.GEN1:
-		var balls: Dictionary = {_tutor_ball(): int(Gen1Layout.TUTOR_BALLS.get(_data.id, 1))}
+		var balls: Dictionary = {_tutor_ball(): int(RomRegistry.pick(Gen1Layout.TUTOR_BALLS, _data.id, 1))}
 		set_battle_pack([_tutor_ball()], balls)
 		set_capture_balls([_tutor_ball()], balls)
 		return
@@ -1702,9 +1702,9 @@ func _build_entrance() -> void:
 	var send_out: Array[String] = GEN1_SEND_OUT_LINES if _generation() == RomRegistry.GEN1 \
 		else SEND_OUT_LINES
 	_entrance_stages.append({
-		"message": send_out[
+		"message": _de(send_out[
 			clampi(_battle.send_out_line(Gen2Battle.PLAYER), 0, send_out.size() - 1)
-		] % _battle.mon(Gen2Battle.PLAYER).display_name(),
+		]) % _battle.mon(Gen2Battle.PLAYER).display_name(),
 		"prompt": false,
 	})
 	_entrance_stages.append({
@@ -1718,11 +1718,11 @@ func _build_entrance() -> void:
 ## line, or `UnveiledGhostText`, `MarowakAnim` and `WildMonAppearedText`.
 func _ghost_entrance_stages() -> Array:
 	if _gen1_ghost != Gen1Layout.GHOST_UNVEILED:
-		return [{"message": GHOST_CANT_BE_IDD_TEXT}]
+		return [{"message": _de(GHOST_CANT_BE_IDD_TEXT)}]
 	return [
-		{"message": GHOST_UNVEILED_TEXT},
+		{"message": _de(GHOST_UNVEILED_TEXT)},
 		{"unveil": true},
-		{"message": "Wild %s\nappeared!" % _name_of(_enemy)},
+		{"message": _de("Wild %s\nappeared!") % _name_of(_enemy)},
 	]
 
 
@@ -1885,7 +1885,7 @@ func _apply_entrance_step(what: StringName) -> void:
 
 ## `WantsToBattleText`, or `_TrainerWantsToFightText` on Generation 1.
 func _wants_to_battle_text() -> String:
-	return ("%s wants\nto fight!" if _generation() == RomRegistry.GEN1 else "%s\nwants to battle!") \
+	return (_de("%s wants\nto fight!") if _generation() == RomRegistry.GEN1 else "%s\nwants to battle!") \
 		% _enemy_battler_label()
 
 
@@ -1905,8 +1905,12 @@ func _enemy_battler_label() -> String:
 
 ## `BattleText_EnemySentOut`, or Generation 1's `_TrainerSentOutText`.
 func _enemy_sent_out_line(mon_name: String) -> String:
-	return ("%s sent\nout %s!" if _generation() == RomRegistry.GEN1 else "%s\nsent out" + SCROLL + "%s!") \
+	return (_de("%s sent\nout %s!") if _generation() == RomRegistry.GEN1 else "%s\nsent out" + SCROLL + "%s!") \
 		% [_enemy_battler_label(), mon_name]
+
+
+func _de(english: String) -> String:
+	return Gen1LayoutDe.ui(_data.id if _data != null else &"", english)
 
 
 func _rival_class() -> bool:
@@ -5308,7 +5312,7 @@ func _answer_move_menu(button: int) -> void:
 				_play_sfx(Gen2Sfx.SFX_READ_TEXT_2)
 			if refusal != &"":
 				_menu_stage = &"refused"
-				show_message(String(GEN1_MOVE_REFUSALS[refusal]) if _generation() == RomRegistry.GEN1 \
+				show_message(_de(String(GEN1_MOVE_REFUSALS[refusal])) if _generation() == RomRegistry.GEN1 \
 					else _battle_text(refusal, {}))
 				_reopen_menu_layer()
 				return
@@ -6833,8 +6837,8 @@ func _line(row: Array, event: Dictionary) -> String:
 	for code: StringName in row.slice(1):
 		values.append(_line_argument(code, event))
 	if values.is_empty():
-		return String(row[0])
-	return String(row[0]) % values
+		return _de(String(row[0]))
+	return _de(String(row[0])) % values
 
 
 ## One `kind:field` argument: a battler's name, a species, a move, an item, a type,
@@ -6901,7 +6905,7 @@ func _used_move_text(event: Dictionary) -> String:
 	var who: String = _battler_name(int(event.get("side", Gen2Battle.PLAYER)))
 	var move: String = String(_data.move(int(event["move"])).get("name", ""))
 	var instead: bool = bool(event.get("instead", false))
-	return "%s\nused %s%s!" % [who, "instead," + SCROLL if instead else "", move]
+	return _de("%s\nused %s%s!") % [who, _de("instead,") + SCROLL if instead else "", move]
 
 
 func _critical_text(event: Dictionary) -> String:
@@ -6918,7 +6922,7 @@ func _effectiveness_text(event: Dictionary) -> String:
 
 func _hit_line(label: String, event: Dictionary) -> String:
 	if _generation() == RomRegistry.GEN1:
-		return String(GEN1_HIT_TEXT[label])
+		return _de(String(GEN1_HIT_TEXT[label]))
 	return _battle_text(label, event)
 
 
@@ -6928,17 +6932,17 @@ func _exp_gained_text(event: Dictionary) -> String:
 	var learner: String = _event_name(event)
 	var boosted: bool = bool(event.get("boosted", false))
 	if bool(event.get("exp_share", false)) and _generation() == RomRegistry.GEN1:
-		return "%s gained\nwith EXP.ALL,%s%d EXP. Points!" % [learner, SCROLL, int(event["amount"])]
+		return _de("%s gained\nwith EXP.ALL,%s%d EXP. Points!") % [learner, SCROLL, int(event["amount"])]
 	if boosted:
-		return "%s gained\na boosted%s%d EXP. Points!" % [learner, SCROLL, int(event["amount"])]
-	return "%s gained\n%d EXP. Points!" % [learner, int(event["amount"])]
+		return _de("%s gained\na boosted%s%d EXP. Points!") % [learner, SCROLL, int(event["amount"])]
+	return _de("%s gained\n%d EXP. Points!") % [learner, int(event["amount"])]
 
 
 ## `_MultiHitText` on the player's attack and `_HitXTimesText` on the enemy's.
 func _hit_times_text(event: Dictionary) -> String:
 	var times: int = int(event["times"])
 	if _generation() == RomRegistry.GEN1:
-		return ("Hit the enemy\n%d times!" if int(event.get("target", 0)) == Gen2Battle.ENEMY \
+		return _de("Hit the enemy\n%d times!" if int(event.get("target", 0)) == Gen2Battle.ENEMY \
 			else "Hit %d times!") % times
 	return _battle_text(
 		"PlayerHitTimesText" if int(event.get("side", 0)) == Gen2Battle.PLAYER else "EnemyHitTimesText",
@@ -6951,7 +6955,7 @@ func _hit_times_text(event: Dictionary) -> String:
 ## the way out of the fight.
 func _fainted_text(event: Dictionary) -> String:
 	var side: int = int(event.get("side", Gen2Battle.PLAYER))
-	var line: String = "%s\nfainted!" % _battler_name(side)
+	var line: String = _de("%s\nfainted!") % _battler_name(side)
 	if _generation() != RomRegistry.GEN1:
 		line = _battle_text(
 			"BattleText_EnemyMonFainted" if side == Gen2Battle.ENEMY else "BattleText_MonFainted",
@@ -6964,38 +6968,38 @@ func _fainted_text(event: Dictionary) -> String:
 
 func _cannot_move_text(event: Dictionary) -> String:
 	if event["reason"] == &"get_out":
-		return GHOST_GET_OUT_TEXT
+		return _de(GHOST_GET_OUT_TEXT)
 	if _generation() != RomRegistry.GEN1:
 		return _battle_line(STOPPED_BY.get(event["reason"], [""]) as Array, event)
 	var who: String = _battler_name(int(event.get("side", Gen2Battle.PLAYER)))
-	var line: String = who + String(GEN1_STOPPED_BY.get(event["reason"], "\ncan't move!"))
-	return line % String(_data.move(int(event.get("move", 0))).get("name", "")) \
-		if line.contains("%s") else line
+	var tail: String = String(GEN1_STOPPED_BY.get(event["reason"], "\ncan't move!"))
+	var move: String = String(_data.move(int(event.get("move", 0))).get("name", ""))
+	return _de("%s" + tail) % ([who, move] if tail.contains("%s") else [who])
 
 
 ## `_AttackContinuesText`, printed by `.MultiturnMoveCheck` in front of the hit.
 func _attack_continues_text(event: Dictionary) -> String:
-	return "%s's\nattack continues!" % _battler_name(int(event["side"]))
+	return _de("%s's\nattack continues!") % _battler_name(int(event["side"]))
 
 
 func _status_inflicted_text(event: Dictionary) -> String:
 	if _generation() != RomRegistry.GEN1:
 		return _battle_text(String(INFLICTED.get(event["name"], "")), event)
-	return _battler_name(int(event["target"])) + String(GEN1_INFLICTED.get(event["name"], ""))
+	return _de("%s" + String(GEN1_INFLICTED.get(event["name"], ""))) % _battler_name(int(event["target"]))
 
 
 ## `AlreadyAsleepText` and its siblings; Generation 1 reaches only the first.
 func _status_already_text(event: Dictionary) -> String:
 	if _generation() != RomRegistry.GEN1:
 		return _battle_text(String(ALREADY.get(int(event["status"]), "")), event)
-	return "%s's\nalready asleep!" % _battler_name(int(event["target"]))
+	return _de("%s's\nalready asleep!") % _battler_name(int(event["target"]))
 
 
 func _hurt_by_status_text(event: Dictionary) -> String:
 	if _generation() != RomRegistry.GEN1:
 		return _battle_text(String(HURT_BY.get(StringName(event["name"]), "")), event)
-	return _battler_name(int(event.get("side", Gen2Battle.PLAYER))) \
-		+ String(GEN1_HURT_BY.get(event["name"], ""))
+	return _de("%s" + String(GEN1_HURT_BY.get(event["name"], ""))) \
+		% _battler_name(int(event.get("side", Gen2Battle.PLAYER)))
 
 
 func _charging_up_text(event: Dictionary) -> String:
@@ -7029,7 +7033,7 @@ func _withdrew_text(event: Dictionary) -> String:
 		return ("%s\nwithdrew" + SCROLL + "%s!") % [_enemy_battler_label(), _event_name(event)]
 	var lines: Array[String] = GEN1_WITHDRAW_LINES if _generation() == RomRegistry.GEN1 \
 		else WITHDRAW_LINES
-	return lines[clampi(int(event.get("line", Gen2Battle.WITHDRAW_COME_BACK)), 0, lines.size() - 1)] \
+	return _de(lines[clampi(int(event.get("line", Gen2Battle.WITHDRAW_COME_BACK)), 0, lines.size() - 1)]) \
 		% _event_name(event)
 
 
@@ -7076,7 +7080,7 @@ func _sent_out_text(event: Dictionary) -> String:
 	if int(event.get("side", Gen2Battle.PLAYER)) == Gen2Battle.ENEMY:
 		return _enemy_sent_out_line(species)
 	var lines: Array[String] = GEN1_SEND_OUT_LINES if gen1 else SEND_OUT_LINES
-	return lines[clampi(int(event.get("line", Gen2Battle.SEND_OUT_GO)), 0, lines.size() - 1)] % species
+	return _de(lines[clampi(int(event.get("line", Gen2Battle.SEND_OUT_GO)), 0, lines.size() - 1)]) % species
 
 
 func _weather_text(event: Dictionary) -> String:
@@ -7088,7 +7092,7 @@ func _weather_text(event: Dictionary) -> String:
 
 func _screen_set_text(event: Dictionary) -> String:
 	if _generation() == RomRegistry.GEN1:
-		return GEN1_SCREEN_SET_TEXT.get(int(event["screen"]), "") % _battler_name(
+		return _de(GEN1_SCREEN_SET_TEXT.get(int(event["screen"]), "")) % _battler_name(
 			int(event.get("side", Gen2Battle.PLAYER))
 		)
 	return _battle_text(String(SCREEN_SET_TEXT.get(int(event["screen"]), "")), event)
@@ -7112,7 +7116,7 @@ func _fled_text(event: Dictionary) -> String:
 		if not gen1:
 			return _battle_text("BattleText_UserFledUsingAStringBuffer1", event, [item])
 		return ("%s\nfled using a" + SCROLL + "%s!") % [_battler_name(Gen2Battle.PLAYER), item]
-	return "Got away safely!" if gen1 else _battle_text("BattleText_GotAwaySafely", event)
+	return _de("Got away safely!") if gen1 else _battle_text("BattleText_GotAwaySafely", event)
 
 
 func _run_blocked_text(event: Dictionary) -> String:
@@ -7183,7 +7187,7 @@ func _stat_failed_text(event: Dictionary) -> String:
 ## the enemy's name is prefixed and the player's is not.
 func _battler_name(side: int) -> String:
 	if side == Gen2Battle.ENEMY:
-		return "Enemy %s" % _enemy_mon_name()
+		return _de("Enemy %s") % _enemy_mon_name()
 	return _player_nick if not _player_nick.is_empty() else _name_of(_player)
 
 

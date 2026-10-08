@@ -261,6 +261,7 @@ static func open_directory(path: String) -> GameData:
 	data.id = StringName(manifest.get("game_id", ""))
 	data.sha1 = String(manifest.get("sha1", ""))
 	data.generation = int(manifest.get("generation", RomRegistry.GEN2))
+	Gen1Text.use_language(RomRegistry.language_of(data.id))
 	for key: String in MANIFEST_DICTIONARIES:
 		var section: Variant = manifest.get(key, {})
 		if section is Dictionary:

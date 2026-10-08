@@ -72,7 +72,7 @@ var _events: Array[Dictionary] = []
 ## The driver, buffers and OAM every program starts from.
 func _init_machine(data: GameData) -> void:
 	_data = data
-	_profile = data.id
+	_profile = RomRegistry.base_of(data.id)
 	_sound = Gen1SoundEngine.new()
 	_sound.set_assets(data.audio_assets())
 	_sound.yellow = data.id == RomRegistry.YELLOW

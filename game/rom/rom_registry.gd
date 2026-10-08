@@ -21,6 +21,8 @@ const SIZES: Dictionary = {
 const RED: StringName = &"red"
 const BLUE: StringName = &"blue"
 const YELLOW: StringName = &"yellow"
+const RED_DE: StringName = &"red_de"
+const BLUE_DE: StringName = &"blue_de"
 const GOLD: StringName = &"gold"
 const SILVER: StringName = &"silver"
 const CRYSTAL: StringName = &"crystal"
@@ -43,6 +45,24 @@ const BY_SHA1: Dictionary = {
 		"revision": "USA/Europe",
 		"generation": GEN1,
 		"playable": true,
+	},
+	"87d523fe1a0c548db7c5477b451ddec1eb083c06": {
+		"id": RED_DE,
+		"title": "Rote Edition",
+		"revision": "Germany",
+		"generation": GEN1,
+		"playable": true,
+		"base": RED,
+		"language": "de",
+	},
+	"20e72dc6f41493eee1fdd0cef54214e6c3389688": {
+		"id": BLUE_DE,
+		"title": "Blaue Edition",
+		"revision": "Germany",
+		"generation": GEN1,
+		"playable": true,
+		"base": BLUE,
+		"language": "de",
 	},
 	"cc7d03262ebfaf2f06772c1a480c7d9d5f4a38e1": {
 		"id": YELLOW,
@@ -75,7 +95,7 @@ const BY_SHA1: Dictionary = {
 }
 
 ## Display order for the launcher shelf, oldest cartridge first.
-const ORDER: Array[StringName] = [RED, BLUE, YELLOW, GOLD, SILVER, CRYSTAL]
+const ORDER: Array[StringName] = [RED, BLUE, RED_DE, BLUE_DE, YELLOW, GOLD, SILVER, CRYSTAL]
 
 
 static func is_known(sha1: String) -> bool:
@@ -104,6 +124,18 @@ static func sha1_for(id: StringName) -> String:
 
 static func title_for(id: StringName) -> String:
 	return row_for(id).get("title", "")
+
+
+static func base_of(id: StringName) -> StringName:
+	return StringName(row_for(id).get("base", id))
+
+
+static func pick(table: Dictionary, id: StringName, fallback: Variant = null) -> Variant:
+	return table.get(id, table.get(base_of(id), fallback))
+
+
+static func language_of(id: StringName) -> String:
+	return String(row_for(id).get("language", "en"))
 
 
 static func generation_for(id: StringName) -> int:

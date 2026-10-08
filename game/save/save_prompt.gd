@@ -133,9 +133,11 @@ func reads_joypad() -> bool:
 
 
 func text() -> String:
-	if lines.size() <= 2:
-		return "\n".join(lines)
-	return "%s\n%s%s%s" % [lines[0], lines[1], Gen2TextStream.SCROLL_BREAK, lines[2]]
+	var shown: Array = lines.map(func(line: String) -> String: return Gen1LayoutDe.localized(line)) \
+		if _gen1() else lines
+	if shown.size() <= 2:
+		return "\n".join(shown)
+	return "%s\n%s%s%s" % [shown[0], shown[1], Gen2TextStream.SCROLL_BREAK, shown[2]]
 
 
 ## `SavingDontTurnOffThePower` and `SavedTheGame` force `TEXT_DELAY_MED`;
@@ -279,7 +281,7 @@ func _enter(next: Step) -> void:
 				_run_write()
 		Step.SAVED:
 			var saved: Array[String] = GEN1_SAVED_LINES if _gen1() else SAVED_LINES
-			lines.assign([saved[0] % _player_name, saved[1]])
+			lines.assign([Gen1LayoutDe.localized(saved[0]) % _player_name, saved[1]])
 			cursor = -1
 		Step.FAILED:
 			lines.assign([

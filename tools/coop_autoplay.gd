@@ -334,8 +334,8 @@ func _opening_legs() -> Array:
 	return [
 		["bedroom_to_1f", p._warp_to(_kit.REDS_HOUSE_1F), p._on_map(_kit.REDS_HOUSE_1F)],
 		["house_to_pallet", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
-		["north_path_to_lab", p._walk(_kit.PALLET_NORTH_PATH[game]), p._on_map(_kit.OAKS_LAB)],
-		["starter", p._talk(_kit.LAB_STARTER_BALLS[game] + Vector2i(_ball, 0), UP), p._flag(_kit.EVENT_GOT_STARTER)],
+		["north_path_to_lab", p._walk(RomRegistry.pick(_kit.PALLET_NORTH_PATH, game)), p._on_map(_kit.OAKS_LAB)],
+		["starter", p._talk(RomRegistry.pick(_kit.LAB_STARTER_BALLS, game) + Vector2i(_ball, 0), UP), p._flag(_kit.EVENT_GOT_STARTER)],
 		["rival_and_out", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
 	]
 

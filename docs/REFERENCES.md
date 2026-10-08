@@ -18,6 +18,7 @@ checkouts the fetch and status scripts manage.
 | Yellow | [pret/pokeyellow](https://github.com/pret/pokeyellow) | `e89ead154b9968aa50eed9328ff2b38b6c194382` | The same for Yellow, which moved most tables and retuned every palette |
 | Crystal | [pret/pokecrystal](https://github.com/pret/pokecrystal) | `8e8f7e20052a596371a77022f0392c285e51bbf1` | Maps, scripts, events, data, battle behavior |
 | Gold and Silver | [pret/pokegold](https://github.com/pret/pokegold) | `a0dad0957ac8a9ffa67e950ee3ab6715a212ded5` | Maps, scripts, events, data, battle behavior |
+| German Red and Blue | [einstein95/pokered-de](https://github.com/einstein95/pokered-de) | `f6a2c0cdc557e4c8c1886743629341848ff5bc40`, symbols `7987804c2bea3204d1f5593c74e174e3c51b6e5e` | Rote and Blaue Edition, built byte for byte. The repository carries no license: read it for addresses and constants only, as `Gen1LayoutDe` does, and never copy its asm, text, graphics or symbol files into the project. Its `symbols` branch holds `pokered.sym` and `pokeblue.sym`. |
 | Crystal, C port | [DanZC/suiCune](https://github.com/DanZC/suiCune) | `201d70028249b3297c441be195489e579bbf231a` | Secondary reference only: a C99 rewrite of pokecrystal, useful for how a routine reads once the GameBoy hardware assumptions are removed. Behavior is settled against pret, never against this port. |
 
 The lock file is the source of truth. The branch name recorded there is the

@@ -270,7 +270,10 @@ func test_a_port_save_the_cartridge_has_no_byte_for_is_not_exported() -> void:
 ## offsets in all three games, which is what lets one table serve them, and every
 ## address `Gen1Layout` reads out of a ROM names the same byte as the adapter's.
 func test_the_adapter_offsets_are_the_addresses_the_importer_read() -> void:
-	var main_start: Dictionary = {RomRegistry.RED: 0xD2F7, RomRegistry.BLUE: 0xD2F7, RomRegistry.YELLOW: 0xD2F6}
+	var main_start: Dictionary = {
+		RomRegistry.RED: 0xD2F7, RomRegistry.BLUE: 0xD2F7, RomRegistry.YELLOW: 0xD2F6,
+		RomRegistry.RED_DE: 0xD2FC, RomRegistry.BLUE_DE: 0xD2FC,
+	}
 	var offsets: Dictionary = {
 		"event_flags": Gen1SramWorld.EVENT_FLAGS_AT, "map_scripts": Gen1SramWorld.MAP_SCRIPTS_AT,
 		"obtained_badges": Gen1SramWorld.BADGES_AT, "first_lock_trash_can": Gen1SramWorld.LOCKS_AT,

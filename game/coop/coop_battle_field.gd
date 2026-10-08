@@ -271,19 +271,19 @@ func _open(view: Dictionary) -> void:
 	_board.open(int(view.get("trainer_class", 0)))
 	_messages.append({"stage": PokeCoopBattleStage.INTRO, "side": Gen2Battle.ENEMY})
 	if bool(view.get("trainer", false)):
-		_messages.append({"text": "%s wants\nto fight!" % _trainer_name(view)})
+		_messages.append({"text": _de(data, "%s wants\nto fight!") % _trainer_name(view)})
 		_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.ENEMY})
-		_messages.append({"text": "%s sent\nout %s!" % [_trainer_name(view), _species_name(data, enemy)]})
+		_messages.append({"text": _de(data, "%s sent\nout %s!") % [_trainer_name(view), _species_name(data, enemy)]})
 		_messages.append_array(send_out_steps(Gen2Battle.ENEMY))
 		_messages.append({"cry": enemy})
 	else:
 		_messages.append({"cry": enemy})
-		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, enemy)})
+		_messages.append({"text": _de(data, "Wild %s\nappeared!") % _species_name(data, enemy)})
 		_messages.append({"stage": PokeCoopBattleStage.PANEL, "side": Gen2Battle.ENEMY})
 	var ally: int = int(opening[Gen2Battle.PLAYER])
 	_messages.append({"hold": Gen2BattleScreen.PLAYER_ENTRANCE_FRAMES})
 	_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.PLAYER})
-	_messages.append({"text": "Go! %s!" % _species_name(data, ally)})
+	_messages.append({"text": _de(data, "Go! %s!") % _species_name(data, ally)})
 	_messages.append_array(send_out_steps(Gen2Battle.PLAYER))
 	_messages.append({"cry": ally})
 
@@ -646,15 +646,15 @@ func _waiting_text(view: Dictionary) -> String:
 	var out_now: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
 		if active >= 0 and active < allies.size() else ""
 	if bool(view.get("paused", false)):
-		return "%s is away.\nWaiting..." % _player_name(controller)
+		return _de(data, "%s is away.\nWaiting...") % _player_name(controller)
 	if controller == panel.client.player_id:
 		match StringName(view.get("phase", &"")):
 			PokeCoopBattleSession.AWAITING_SEND_OUT:
-				return "Bring out which\nPOKéMON?"
+				return _de(data, "Bring out which\nPOKéMON?")
 			PokeCoopBattleSession.AWAITING_LEARN:
-				return "Which move should\nbe forgotten?"
-		return "What will\n%s do?" % out_now
-	return "%s is\ndeciding..." % _player_name(controller)
+				return _de(data, "Which move should\nbe forgotten?")
+		return _de(data, "What will\n%s do?") % out_now
+	return _de(data, "%s is\ndeciding...") % _player_name(controller)
 
 
 func _player_name(player_id: String) -> String:
@@ -668,55 +668,56 @@ static func message(
 ) -> String:
 	var side: int = int(event.get("side", Gen2Battle.PLAYER))
 	var who_acted: String = String(names.get(String(event.get("player", "")), ""))
-	var who: String = ("Enemy " if side == Gen2Battle.ENEMY else "") + _species_name(game, int(out.get(side, 0)))
+	var who: String = _species_name(game, int(out.get(side, 0)))
+	who = _de(game, "Enemy %s") % who if side == Gen2Battle.ENEMY else who
 	match StringName(event.get("type", &"")):
 		Gen2Battle.USED_MOVE:
-			return "%s\nused %s!" % [who, String(game.move(int(event.get("move", 0))).get("name", ""))]
+			return _de(game, "%s\nused %s!") % [who, String(game.move(int(event.get("move", 0))).get("name", ""))]
 		Gen2Battle.MISSED:
-			return "%s's\nattack missed!" % who
+			return _de(game, "%s's\nattack missed!") % who
 		Gen2Battle.CRITICAL_HIT:
-			return "Critical hit!"
+			return _de(game, "Critical hit!")
 		Gen2Battle.EFFECTIVENESS:
-			return "It's super\neffective!" if int(event.get("effectiveness", 0)) > Gen2Layout.MATCHUP_EFFECTIVE \
-				else "It's not very\neffective..."
+			return _de(game, "It's super\neffective!") if int(event.get("effectiveness", 0)) > Gen2Layout.MATCHUP_EFFECTIVE \
+				else _de(game, "It's not very\neffective...")
 		Gen2Battle.FAINTED:
-			return "%s\nfainted!" % who
+			return _de(game, "%s\nfainted!") % who
 		Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW:
-			return _entrance_line(event, _species_name(game, int(out.get(side, 0))), trainer)
+			return _entrance_line(event, _species_name(game, int(out.get(side, 0))), trainer, game)
 		Gen2Battle.MOVE_FORGOTTEN:
 			return _forgot_line(event, game)
 		Gen2Battle.CAUGHT:
-			return "All right!\n%s was caught!" % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
+			return _de(game, "All right!\n%s was caught!") % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.FLED:
-			return "Got away safely!"
+			return _de(game, "Got away safely!")
 		Gen2Battle.EXP_GAINED:
-			return "%s gained\n%d EXP. Points!" % [event.get("name", ""), int(event.get("amount", 0))]
+			return _de(game, "%s gained\n%d EXP. Points!") % [event.get("name", ""), int(event.get("amount", 0))]
 		Gen2Battle.GREW_LEVEL:
-			return "%s grew\nto level %d!" % [event.get("name", ""), int(event.get("new_level", 0))]
+			return _de(game, "%s grew\nto level %d!") % [event.get("name", ""), int(event.get("new_level", 0))]
 		Gen2Battle.MOVE_LEARNED:
-			return "%s learned\n%s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
+			return _de(game, "%s learned\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		Gen2Battle.MOVE_OFFERED:
-			return "%s is\ntrying to learn\n%s!" % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
+			return _de(game, "%s is\ntrying to learn\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		PokeCoopBattleSession.JOINED:
 			return "%s joined\nthe battle!" % who_acted
 		PokeCoopBattleSession.ITEM_USED:
-			return "%s used\n%s!" % [who_acted, game.item_name(int(event.get("item", 0)))]
+			return _de(game, "%s used\n%s!") % [who_acted, game.item_name(int(event.get("item", 0)))]
 		PokeCoopBattleSession.BALL_THROWN:
 			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
 	return ""
 
 
 ## "Go!", the trainer's send-out and Generation 1's `PlayerMon2Text` endings.
-static func _entrance_line(event: Dictionary, species_name: String, trainer: String) -> String:
+static func _entrance_line(event: Dictionary, species_name: String, trainer: String, game: GameData) -> String:
 	var enemy: bool = int(event.get("side", Gen2Battle.PLAYER)) == Gen2Battle.ENEMY
 	if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
 		var go: Array[String] = Gen2BattleScreen.GEN1_SEND_OUT_LINES
-		return go[clampi(int(event.get("line", 0)), 0, go.size() - 1)] % species_name if not enemy else \
-			("%s sent\nout %s!" % [trainer, species_name] if not trainer.is_empty() else "")
+		return _de(game, go[clampi(int(event.get("line", 0)), 0, go.size() - 1)]) % species_name if not enemy else \
+			(_de(game, "%s sent\nout %s!") % [trainer, species_name] if not trainer.is_empty() else "")
 	if enemy or bool(event.get("quiet", false)):
 		return ""
 	var lines: Array[String] = Gen2BattleScreen.GEN1_WITHDRAW_LINES
-	return lines[clampi(int(event.get("line", 0)), 0, lines.size() - 1)] % String(event.get("name", ""))
+	return _de(game, lines[clampi(int(event.get("line", 0)), 0, lines.size() - 1)]) % String(event.get("name", ""))
 
 
 static func _forgot_line(event: Dictionary, game: GameData) -> String:
@@ -728,15 +729,19 @@ static func _forgot_line(event: Dictionary, game: GameData) -> String:
 
 ## `ItemUseBall`'s lines: the throw, then the catch or how close it came.
 static func _throw_line(event: Dictionary, thrower: String, wild: String, game: GameData) -> String:
-	var thrown: String = "%s used\n%s!" % [thrower, game.item_name(int(event.get("ball", 0)))]
+	var thrown: String = _de(game, "%s used\n%s!") % [thrower, game.item_name(int(event.get("ball", 0)))]
 	if bool(event.get("caught", false)):
 		var jingle: String = Gen2TextStream.sound_token(Gen1Sfx.SFX_CAUGHT_MON) if game.generation == RomRegistry.GEN1 else ""
-		return thrown + "\nAll right!\n%s was caught!%s" % [wild, jingle]
+		return thrown + "\n" + _de(game, "All right!\n%s was caught!") % wild + jingle
 	var near: Array[String] = [
 		"You missed the\nPOKéMON!", "Darn! The POKéMON\nbroke free!", "Aww! It appeared\nto be caught!",
 		"Shoot! It was so\nclose too!",
 	]
-	return thrown + "\n" + near[clampi(int(event.get("wobbles", 0)), 0, near.size() - 1)]
+	return thrown + "\n" + _de(game, near[clampi(int(event.get("wobbles", 0)), 0, near.size() - 1)])
+
+
+static func _de(game: GameData, english: String) -> String:
+	return Gen1LayoutDe.ui(game.id if game != null else &"", english)
 
 
 func _player_names() -> Dictionary:
