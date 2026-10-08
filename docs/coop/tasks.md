@@ -4,12 +4,11 @@ The resume point for the next session. Read [playbook.md](playbook.md) for the
 why; this is the what, in order. Tick a box in the same commit as the work, and
 keep the snapshot below current.
 
-## Snapshot (2026-10-08, third session)
+## Snapshot (2026-10-08, third session, after the merge)
 
-- **Branches and pull requests** (all drafts, stacked, merge in this order):
-  #58 `coop/slice-1`, #79 `coop/m1-state-sync`, #80 `coop/launcher`, #81
-  `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
-  merged, #87).
+- **Branches and pull requests:** everything is merged into `main` (#58, #79,
+  #80, #81, #83, #89 on 2026-10-08, with the owner's approval). New work
+  branches from `main`.
 - **Owner decisions:** all six answered (D72); none waiting.
 - **This round** (all merged into `coop/playthrough` and pushed; the agents'
   git worktrees can be removed):
@@ -82,9 +81,11 @@ keep the snapshot below current.
 8. [x] **#88** Extend the autopilot stretch by stretch to the Hall of Fame:
    a new campaign reached both Halls of Fame on 2026-10-08 (resumed from
    snapshots after each fix); one unbroken run on the final commit is next.
-9. [ ] **#44** Hand-played session when the owner is ready: fresh Windows and
+9. [ ] **One unbroken run:** `playthrough_elite` from a new campaign on `main`
+   in one go (snapshots on, D96), then Windows and Linux builds from that commit.
+10. [ ] **#44** Hand-played session when the owner is ready: fresh Windows and
    Linux builds from one commit, `test-cases.md` as the checklist.
-10. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
+11. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
     German as games of its own (D95) on `coop/german` (its own draft PR):
     both dumps import, Rote plays to BROCK in two windows; the engine's own
     English lines and a Blaue playthrough remain; **#14** upstream merge after the

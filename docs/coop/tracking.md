@@ -16,11 +16,12 @@ every row marked done below was closed then. Work after that branches from
 
 | Branch | Base | State | GitHub |
 |---|---|---|---|
-| `coop/slice-1` | `main` | pushed | draft PR #58 |
-| `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
-| `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
-| `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
-| `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to LT. SURGE and a Cable Club trade, the launcher check, campaign seeds, #39, #66, #82, #85, #86, D67 to D78 | draft PR #83 (stacked on #81) |
+| `coop/slice-1` | `main` | pushed | merged into `main` (#58, 2026-10-08) |
+| `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | merged into `main` (#79, 2026-10-08) |
+| `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | merged into `main` (#80, 2026-10-08) |
+| `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | merged into `main` (#81, 2026-10-08) |
+| `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to LT. SURGE and a Cable Club trade, the launcher check, campaign seeds, #39, #66, #82, #85, #86, D67 to D78 | merged into `main` (#83, 2026-10-08) |
+| `coop/german` | `coop/playthrough` | German Red and Blue (D95) | merged into `main` (#89, 2026-10-08) |
 | `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
 
 ## Issues
