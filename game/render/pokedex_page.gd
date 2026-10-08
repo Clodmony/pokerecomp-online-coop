@@ -1187,11 +1187,14 @@ func gen1_entry_map(
 	_put(map, 0, ROWS - 1, GEN1_ENTRY_BOTTOM_LEFT)
 	_put(map, COLUMNS - 1, ROWS - 1, GEN1_ENTRY_BOTTOM_RIGHT)
 	_tiles(map, 0, GEN1_DIVIDER_ROW, GEN1_DIVIDER)
-	_gen1_text(map, GEN1_ENTRY_HEIGHT_AT.x, GEN1_ENTRY_HEIGHT_AT.y, GEN1_HEIGHT_TEXT)
-	_put(map, GEN1_FEET_AT + 2, GEN1_ENTRY_HEIGHT_AT.y, GEN1_FEET_MARK)
-	_gen1_text(map, GEN1_INCHES_AT, GEN1_ENTRY_HEIGHT_AT.y, "??")
-	_put(map, GEN1_INCHES_AT + 2, GEN1_ENTRY_HEIGHT_AT.y, GEN1_INCHES_MARK)
-	_gen1_text(map, GEN1_ENTRY_WEIGHT_AT.x, GEN1_ENTRY_WEIGHT_AT.y, GEN1_WEIGHT_TEXT)
+	if Gen1Text.language() == "de":
+		_gen1_metric_template(map)
+	else:
+		_gen1_text(map, GEN1_ENTRY_HEIGHT_AT.x, GEN1_ENTRY_HEIGHT_AT.y, GEN1_HEIGHT_TEXT)
+		_put(map, GEN1_FEET_AT + 2, GEN1_ENTRY_HEIGHT_AT.y, GEN1_FEET_MARK)
+		_gen1_text(map, GEN1_INCHES_AT, GEN1_ENTRY_HEIGHT_AT.y, "??")
+		_put(map, GEN1_INCHES_AT + 2, GEN1_ENTRY_HEIGHT_AT.y, GEN1_INCHES_MARK)
+		_gen1_text(map, GEN1_ENTRY_WEIGHT_AT.x, GEN1_ENTRY_WEIGHT_AT.y, GEN1_WEIGHT_TEXT)
 	_gen1_text(map, GEN1_ENTRY_NAME_AT.x, GEN1_ENTRY_NAME_AT.y, name)
 	_gen1_text(
 		map, GEN1_ENTRY_CATEGORY_AT.x, GEN1_ENTRY_CATEGORY_AT.y,
@@ -1217,6 +1220,9 @@ func gen1_entry_map(
 ## `?`s, then five digits and `.next`'s own shuffle, which steps the last digit
 ## one cell on and writes the point behind it.
 func _gen1_measurements(map: PackedInt32Array, height: int, weight: int) -> void:
+	if Gen1Text.language() == "de":
+		_gen1_metric(map, height, weight)
+		return
 	var y: int = GEN1_ENTRY_HEIGHT_AT.y
 	@warning_ignore("integer_division")
 	_gen1_number(map, GEN1_FEET_AT, y, height / 100, 2)
@@ -1229,6 +1235,25 @@ func _gen1_measurements(map: PackedInt32Array, height: int, weight: int) -> void
 		_gen1_text(map, GEN1_WEIGHT_POINT_AT - 1, row, "0")
 	_put(map, GEN1_WEIGHT_POINT_AT + 1, row, map[row * COLUMNS + GEN1_WEIGHT_POINT_AT])
 	_put(map, GEN1_WEIGHT_POINT_AT, row, GEN1_DOT)
+
+
+## German `HeightWeightText`: `GR.` over `<M>`, `GEW` over `<K><G>`, the dex sheet's first three.
+func _gen1_metric_template(map: PackedInt32Array) -> void:
+	_gen1_text(map, GEN1_ENTRY_HEIGHT_AT.x, GEN1_ENTRY_HEIGHT_AT.y, "GR.  ???")
+	_put(map, GEN1_ENTRY_HEIGHT_AT.x + 8, GEN1_ENTRY_HEIGHT_AT.y, GEN1_FEET_MARK)
+	_gen1_text(map, GEN1_ENTRY_WEIGHT_AT.x, GEN1_ENTRY_WEIGHT_AT.y, "GEW  ???")
+	_put(map, GEN1_ENTRY_WEIGHT_AT.x + 8, GEN1_ENTRY_WEIGHT_AT.y, GEN1_INCHES_MARK)
+	_put(map, GEN1_ENTRY_WEIGHT_AT.x + 9, GEN1_ENTRY_WEIGHT_AT.y, GEN1_INCHES_MARK + 1)
+
+
+func _gen1_metric(map: PackedInt32Array, height: int, weight: int) -> void:
+	for row: Array in [[GEN1_ENTRY_HEIGHT_AT.y, 13, height, 3], [GEN1_ENTRY_WEIGHT_AT.y, 12, weight, 4]]:
+		var y: int = row[0]
+		_gen1_number(map, row[1], y, row[2], row[3])
+		if int(row[2]) < GEN1_WEIGHT_TENTH:
+			_gen1_text(map, GEN1_WEIGHT_POINT_AT - 1, y, "0")
+		_put(map, GEN1_WEIGHT_POINT_AT + 1, y, map[y * COLUMNS + GEN1_WEIGHT_POINT_AT])
+		_put(map, GEN1_WEIGHT_POINT_AT, y, GEN1_DOT)
 
 
 ## `TextCommandProcessor` from `bccoord 1, 11`, `<NEXT>` dropping two rows.
@@ -1251,7 +1276,7 @@ func gen1_blank_map() -> PackedInt32Array:
 
 ## `PlaceString` through the other generation's codec.
 func _gen1_text(map: PackedInt32Array, x: int, y: int, text: String) -> void:
-	var codes: PackedByteArray = Gen1Text.encode(text)
+	var codes: PackedByteArray = Gen1Text.encode(Gen1LayoutDe.localized(text))
 	for index: int in codes.size():
 		_put(map, x + index, y, codes[index])
 
