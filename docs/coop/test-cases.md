@@ -96,6 +96,11 @@ Red (or Blue) cartridge, the same one.
 | W58 | One window fights the Champion; the other joins from LANCE's room | The joiner then walks in, wins at once, sees Oak and gets its own Hall of Fame | | playthrough_elite | |
 | W59 | One player rescues Mr. Fuji; the other reaches Pokémon Tower 7F afterwards | 7F is empty; the late player walks back down and on to Mr. Fuji's house, already holding their own POKé FLUTE (window and host) | | seeded late-partner tower run (not a committed scenario) | |
 | W60 | One player waits beside SNORLAX on Route 12 while the partner is still in Lavender | When the partner arrives one wakes it and the other joins: one battle, SNORLAX gone for both | | playthrough_koga | |
+| W61 | One player pushes a Victory Road boulder onto its switch (1F, 2F or 3F) while the partner stands on that floor | The partner's wall opens at once; the partner's own boulder stays where they left it | `test_a_partners_boulder_on_a_victory_road_switch_opens_the_wall_in_this_window_too` | playthrough_victory | |
+| W62 | A wild battle on a Victory Road floor whose switch is on | The wall stays open after the battle (single-player too) | `test_gen1_a_wild_fights_reload_runs_the_maps_load_callback` | playthrough_victory | |
+| W63 | One player reaches Route 23 or the Indigo Plateau lobby while the other is still in Victory Road | The one inside keeps their walls open, falling from 3F to 2F included, until they leave | `test_a_partner_resetting_victory_roads_switches_leaves_them_open_for_the_player_still_inside` | | |
+| W64 | Both players fight GIOVANNI in Viridian Gym | EARTHBADGE for the campaign and one TM27 each, in the window and on the host; with a full bag "no space" is shown and TM27 comes on a later visit | | playthrough_victory | |
+| W65 | Route 22's second rival | The first player in drives the scene, the partner waits and joins from SELECT; Route 23's badge guards let both through | | playthrough_victory | |
 
 ## Battles
 

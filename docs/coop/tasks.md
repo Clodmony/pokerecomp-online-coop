@@ -4,15 +4,15 @@ The resume point for the next session. Read [playbook.md](playbook.md) for the
 why; this is the what, in order. Tick a box in the same commit as the work, and
 keep the snapshot below current.
 
-## Snapshot (2026-10-08, second session, halted at the usage limit)
+## Snapshot (2026-10-08, third session)
 
 - **Branches and pull requests** (all drafts, stacked, merge in this order):
   #58 `coop/slice-1`, #79 `coop/m1-state-sync`, #80 `coop/launcher`, #81
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Halted mid-round** (all pushed; the agents' git worktrees keep their
-  scratch files):
+- **This round** (all merged into `coop/playthrough` and pushed; the agents'
+  git worktrees can be removed):
   - Merged into `coop/playthrough` and chained in ROUTES: `erika` (D83),
     `tower` (D82), `koga` (D81), `sabrina` (D85); #24 (D84, protocol 5);
     D80 (a checkpoint only on a real SAVE).
@@ -22,18 +22,19 @@ keep the snapshot below current.
     after Mr. Fuji's rescue (`coop/tower-7f-late`, merged); a third chained run is under way.
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
-  - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
-    Victory Road; unfinished.
+  - `coop/autoplay-victory` merged (D89, D90): GIOVANNI, Route 22's second
+    rival and Victory Road, chained between `blaine` and `elite`. Every stretch
+    to the Hall of Fame is now in ROUTES; what is left of #88 is one chained
+    `playthrough_elite` from a new campaign.
   - `coop/autoplay-elite` merged (D87 provisional, D88): the Elite Four, the
-    Champion and each player's Hall of Fame, chained after `blaine` until
-    `victory` lands between them.
+    Champion and each player's Hall of Fame.
   - Questions for the owner: should Saffron's gate guards be the campaign's
     (today each player hands over their own drink, D85)? How should a shared
     Elite Four run work? Built provisionally as D87 (each player's own run,
     the members one encounter for the campaign); confirm or choose otherwise.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D89 (D72 to D88 are recorded).
+- **Next free decision number:** D91 (D72 to D90 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
