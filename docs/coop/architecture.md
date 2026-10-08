@@ -189,6 +189,14 @@ Kept small so upstream merges stay cheap (#14):
 | `.github/workflows/ci.yml` | co-op ENet demo and three-process check steps |
 | `.github/workflows/release.yml`, `export-templates.yml` | run only in `Decryptu/pokerecomp` |
 | `.githooks/pre-push` | attribution-trailer check removed |
+| `game/rom/rom_registry.gd` | `red_de` and `blue_de` rows, `base_of`, `pick`, `language_of` (D95, #50) |
+| `game/gen1/gen1_layout.gd` | `for_id` arms for the German games (`Gen1LayoutDe`), the trainer AI shift, `pinned()` facility text, German title tiles, the alphabet stride and the credits count (#50) |
+| `game/gen1/gen1_importer.gd` | the language switch, per-language name checks and font runs, pinned facility slots, the alphabet stride, empty German dex rating, metric dex entries, base-game fallbacks (#50) |
+| `game/gen1/gen1_text.gd`, `game/data/game_data.gd` | the German charmap, chosen by the cache's game (#50) |
+| `game/render/font.gd`, `pokedex_page.gd`, `naming_screen_page.gd`, `game/save/save_prompt.gd`, `game/battle/battle_screen.gd` | German Generation 1 lines from `Gen1LayoutDe.UI`; the Pokédex in metres and kilograms (#50) |
+| `game/world/gen1_movie.gd`, `world_effects.gd`, `world_screen.gd`, `game/launcher/cartridge.gd`, `launcher_theme.gd`, `title_backdrop.gd`, `tools/checks/played.gd`, `tools/preview_world_story.gd` | tables and art fall back to the base game for the German ids (#50) |
+| `tests/unit/test_gen1_layout.gd`, `test_gen1_text.gd`, `test_rom_verifier.gd`, `test_gen1_sram.gd` | German layout, charmap, registry and save-start cases (#50) |
+| `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
 | `README.md` | AI-authorship notice at the top |
 
 ## Planned changes

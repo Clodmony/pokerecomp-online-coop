@@ -84,8 +84,9 @@ keep the snapshot below current.
 9. [ ] **#44** Hand-played session when the owner is ready: fresh Windows and
    Linux builds from one commit, `test-cases.md` as the checklist.
 10. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
-    German as games of its own (D95), in progress on `coop/german` beside the
-    playthrough work; **#14** upstream merge after the
+    German as games of its own (D95) on `coop/german` (its own draft PR):
+    both dumps import, Rote plays to BROCK in two windows; the engine's own
+    English lines and a Blaue playthrough remain; **#14** upstream merge after the
     pull requests merge.
 
 ## Every task ends with
