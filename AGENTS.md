@@ -90,6 +90,9 @@ GODOT=godot tools/coop_screens.sh playthrough_brock /tmp/coop_screens/brock
 # played from it: SEED= starts the run there, the autopilot's from=<leg> skips ahead.
 godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower /tmp/seeds/tower
 SEED=/tmp/seeds/tower GODOT=godot tools/coop_screens.sh story_seed /tmp/coop_screens/seed
+# An autoplayed run's host snapshots the campaign and each window's leg every 10 s; rerun a
+# stalled or killed run from its last snapshot (or <n>, or -<seconds> before its end).
+GODOT=godot tools/coop_resume.sh /tmp/coop_screens/elite [<n> | -600] [out dir]
 
 # Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
 # (replay needs the cartridge imported); demo and check write logs only with `logs`.
@@ -150,10 +153,10 @@ before pushing.
 | `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab |
 | `game/coop/coop_log.gd` | `PokeCoopLog`: a device's session log, its debug-stream batches and the setting that shares them |
 | `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
-| `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game]` and `client` runners |
+| `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
-| `tools/coop_screens.sh`, `tools/coop_screens/*.sh` | the two-window runner and its scenarios |
+| `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69) |
 | `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead |

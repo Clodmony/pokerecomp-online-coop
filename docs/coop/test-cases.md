@@ -107,6 +107,8 @@ Red (or Blue) cartridge, the same one.
 | W67 | After both players' Hall of Fame (or both whiting out) | The run is cleared for the campaign and the next League run fights every member and the Champion for real | `test_the_champion_beaten_for_the_team_waits_for_every_players_hall_of_fame_then_fights_again` | | |
 | W68 | With six in the party, take LAPRAS from Silph Co. 7F's worker (or a revived fossil on Cinnabar) | It goes to that player's PC box, shown on the host under that player's uid; the partner's box is unchanged; talking to the worker again gives only his after-gift line | | playthrough_sabrina from a full-party seed | |
 | W69 | One player starts the Seafoam boulder puzzle while the partner still walks Route 20 | Every boulder dropped stays where it fell in both windows; the partner finds B3F's water calm | `test_a_partner_on_route_20_never_resets_the_seafoam_boulders_of_the_player_inside` | playthrough_blaine | |
+| W70 | A late partner whose lead knows only Normal moves walks down Pokémon Tower from 7F | Wild GASTLY and HAUNTER are beaten in seconds with a move that hits; the partner reaches Mr. Fuji's house and gets their own POKé FLUTE | | seeded run on a real chained campaign | |
+| W71 | A player's Safari Game ends with no catch (out of steps or Safari Balls) | They are returned to the gate, can pay again and catch; the catch reaches the host; the partner waiting in Fuchsia Gym is not stranded | | seeded KOGA run with a forced empty game (local change) | |
 
 ## Battles
 

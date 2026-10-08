@@ -1,7 +1,6 @@
 extends SceneTree
 
-## One co-op player's window on the real world screen, the Co-op tab's session, against a host started
-## with `tools/coop_session.gd -- host [port] <game>` and a locally imported cartridge:
+## One co-op player's window on the real world screen, the Co-op tab's session, against `tools/coop_session.gd -- host [port] <game>`:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
 ## SELECT opens the session menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
 ## picks the panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
