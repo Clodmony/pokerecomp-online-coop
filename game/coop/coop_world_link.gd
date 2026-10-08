@@ -11,6 +11,7 @@ const VERMILION_GYM := Vector2i(0, 92)
 const VICTORY_ROAD_1F := Vector2i(0, 108)
 const VICTORY_ROAD_2F := Vector2i(0, 194)
 const VICTORY_ROAD_3F := Vector2i(0, 198)
+const VICTORY_ROAD_FLOORS: Array[Vector2i] = [VICTORY_ROAD_1F, VICTORY_ROAD_2F, VICTORY_ROAD_3F]
 const EVENT_VICTORY_ROAD_1_BOULDER_ON_SWITCH: int = 2327
 const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH1: int = 1336
 const EVENT_VICTORY_ROAD_2_BOULDER_ON_SWITCH2: int = 1343
@@ -287,17 +288,23 @@ static func _touches(sent: Dictionary, byte: int) -> bool:
 func _keep_switches(changes: Dictionary) -> void:
 	var flags: Dictionary = changes.get("event_flags", {})
 	for flag: Variant in (flags.get("erase", []) as Array).duplicate():
-		var owed: Array = MAP_LOADS_OWED_BY_FLAG.get(int(flag), [])
-		if world != null and not owed.is_empty() and world.map_id() == owed[0] and state.is_event_flag_active(int(flag)):
+		if _inside(int(flag)) and state.is_event_flag_active(int(flag)):
 			(flags["erase"] as Array).erase(flag)
-			_kept_switches[int(flag)] = owed[0]
+			_kept_switches[int(flag)] = true
 	if flags.has("erase") and (flags["erase"] as Array).is_empty() and (flags.get("set", {}) as Dictionary).is_empty():
 		changes.erase("event_flags")
 
 
+func _inside(flag: int) -> bool:
+	var owed: Array = MAP_LOADS_OWED_BY_FLAG.get(flag, [])
+	if world == null or owed.is_empty():
+		return false
+	return world.map_id() == owed[0] or (VICTORY_ROAD_FLOORS.has(owed[0]) and VICTORY_ROAD_FLOORS.has(world.map_id()))
+
+
 func _release_switches() -> void:
 	for flag: int in _kept_switches.keys():
-		if world != null and world.map_id() == _kept_switches[flag]:
+		if _inside(flag):
 			continue
 		_kept_switches.erase(flag)
 		if not (_host_seen.get("event_flags", {}) as Dictionary).has(flag):
