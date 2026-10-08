@@ -1362,3 +1362,15 @@ Route 20. This and D81 overtake D79's note that per-walk flags such as
 stay the campaign's, so a player who leaves through Route 20 with the puzzle
 unfinished resets it for a partner still inside, as the cartridge resets it
 for one player.
+
+## D95. German Red and Blue are separate games (owner, #50, 2026-10-08)
+
+German and English are separate games: German plays only with German, English
+only with English, and mixed-language sessions are out of scope. German gets
+its own game ids, `red_de` and `blue_de`, in `RomRegistry` rather than a
+language flag on `red`, so the host's existing game-id checks refuse mixed
+joins and campaigns, and caches and saves stay apart by id. The owner's own
+dumps (Rote Edition and Blaue Edition, Germany, SGB Enhanced) are verified
+locally and are never copied, committed or uploaded. einstein95/pokered-de,
+which builds both byte for byte, is pinned as a reference like pret/pokered:
+addresses and constants only, never its asm, text, graphics or symbol files.
