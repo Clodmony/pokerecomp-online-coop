@@ -1,13 +1,13 @@
 class_name PokeCoopBattleTakeover
 extends RefCounted
 
-## A co-op window's own wild and trainer battles, taken over through the mod
-## seam and fought on the host as joinable sessions. The world keeps the trigger,
-## the script's branches, the party commit and the whiteout; the host keeps the
-## fight and the prize, so the world's prize is zeroed.
+## A window's own battles, fought on the host as joinable sessions: the world keeps the trigger, the script's
+## branches, the party and the whiteout, the host the fight and the prize, so the world's prize is zeroed.
 
 var client: PokeCoopClient = null
 var data: GameData = null
+## The battles the world opened itself, whose evolutions it runs itself.
+var claimed: Dictionary = {}
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -23,25 +23,36 @@ func takes_battle(context: Dictionary) -> bool:
 
 
 func create_battle() -> Node:
-	return Bridge.new(client, data)
+	return Bridge.new(self)
 
 
-## The world's battle Node: asks the host for the fight, waits for its outcome,
-## then puts the host's party into the world's before it says how it went.
+static func win_line(game: GameData, pointer: Variant) -> String:
+	if not pointer is Dictionary:
+		return ""
+	var text: String = String((pointer as Dictionary).get("text", ""))
+	var address: int = int((pointer as Dictionary).get("address", 0))
+	if text.is_empty() and address > 0 and game != null:
+		text = String(game.world_text_string(int((pointer as Dictionary).get("bank", 0)), address).get("text", ""))
+	return text
+
+
+## The world's battle Node: asks the host for the fight, then takes the host's party before saying how it went.
 class Bridge extends Node:
 	signal finished(result: Dictionary)
 
 	var client: PokeCoopClient = null
 	var data: GameData = null
+	var _owner: PokeCoopBattleTakeover = null
 	var _context: Dictionary = {}
 	var _known: Array = []
 	var _battle_id: String = ""
 	var _seq: int = -1
 	var _done: bool = false
 
-	func _init(session: PokeCoopClient, game_data: GameData) -> void:
-		client = session
-		data = game_data
+	func _init(takeover: PokeCoopBattleTakeover) -> void:
+		_owner = takeover
+		client = takeover.client
+		data = takeover.data
 		process_mode = Node.PROCESS_MODE_ALWAYS
 
 	func start(context: Dictionary) -> void:
@@ -54,10 +65,14 @@ class Bridge extends Node:
 			enemies.append(Gen2SaveBattleAdapter.from_battle_mon(member).to_dict())
 		var summary: Dictionary = context.get("summary", {})
 		_known = client.battles.keys()
+		client.journal.add(PokeCoopLog.WORLD, "takeover_start", {"summary": summary, "enemy": enemies.size()}, client.player_id)
 		_seq = client.send({
 			"type": "window_battle", "kind": String(summary.get("battle_kind", "wild")),
 			"trainer_class": int(summary.get("trainer_class", 0)),
 			"trainer_index": int(summary.get("trainer_index", 0)), "enemy": enemies,
+			"trainer_name": String(summary.get("trainer_name", "")), "win_text": PokeCoopBattleTakeover.win_line(data, summary.get("win_text")),
+			"gym": int(summary.get("lone_attack", 0)) != 0,
+			"map": [int(summary.get("map_group", -1)), int(summary.get("map_number", -1))],
 		})
 
 	func advance_frame() -> void:
@@ -75,13 +90,15 @@ class Bridge extends Node:
 			return
 		if _battle_id.is_empty():
 			_battle_id = _new_battle()
+			if not _battle_id.is_empty():
+				_owner.claimed[_battle_id] = true
 		var outcome: String = String(client.battle(_battle_id).get("outcome", ""))
 		if not _battle_id.is_empty() and not outcome.is_empty():
 			_take_party()
-			_finish(StringName(outcome) if outcome in ["won", "lost"] else &"ran")
+			## A catch ends a scripted battle as a win does: the object is gone.
+			_finish(&"won" if outcome in ["won", "caught"] else (&"lost" if outcome == "lost" else &"ran"))
 
-	## Why the host refused this fight, or empty. A trainer the campaign has
-	## already beaten counts as beaten here too.
+	## Why the host refused this fight, or empty; a trainer the campaign has beaten counts as beaten here.
 	func _refusal() -> StringName:
 		for rejection: Dictionary in client.rejections:
 			if int(rejection.get("seq", -1)) == _seq:
@@ -105,5 +122,6 @@ class Bridge extends Node:
 				party.mons[index] = fought
 
 	func _finish(outcome: StringName) -> void:
+		client.journal.add(PokeCoopLog.WORLD, "takeover_end", {"battle": _battle_id, "outcome": outcome}, client.player_id)
 		_done = true
 		finished.emit({"outcome": outcome})

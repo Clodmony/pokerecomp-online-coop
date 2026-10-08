@@ -3,7 +3,8 @@ extends RefCounted
 
 ## One battle of a co-op run with its own rng, participants, allied roster and
 ## revision. The owner of the Pokémon that is out decides; everybody else in the
-## battle may only suggest. Joins land at a turn boundary.
+## battle may only suggest. Joins land at a turn boundary; a team the roster has no
+## room for brings its first fit Pokémon in party order, the rest sitting it out.
 
 const AWAITING_ACTION: StringName = &"action"
 const AWAITING_SEND_OUT: StringName = &"send_out"
@@ -13,6 +14,8 @@ const OVER: StringName = &"over"
 
 const JOINED: StringName = &"coop_joined"
 const ITEM_USED: StringName = &"coop_item_used"
+const BALL_THROWN: StringName = &"coop_ball_thrown"
+const CAUGHT: StringName = &"caught"
 const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out"]
 
 var id: String = ""
@@ -25,8 +28,13 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var revision: int = 0
 var suggestions: Dictionary = {}
 var last_events: Array = []
+var seen: Dictionary = {}
+## Who a caught wild goes to and the wild itself, once a ball has held.
+var catch: Dictionary = {}
 var _pending_joins: Array = []
 var _absent: Dictionary = {}
+var _abandoned: bool = false
+var _members: Dictionary = {}
 
 
 static func start(
@@ -50,6 +58,7 @@ static func start(
 	if out.battle == null:
 		return null
 	out.battle.battle_style_set = true
+	out.seen[out.battle.mon(Gen2Battle.ENEMY).species] = true
 	if trainer_class > 0:
 		out.battle.init_enemy_trainer(trainer_class)
 	out._enlist(player, fighters)
@@ -84,15 +93,19 @@ func _enlist(player: PokeCoopPlayer, fighters: Dictionary) -> Array[int]:
 		added.append(roster.add(player.player_id, String((fighters["uids"] as Array)[index])))
 		battle.owner_trainer_ids[mons[index]] = player.trainer_id
 	participants.append(player.player_id)
+	_members[player.player_id] = player
 	player.battle_id = id
 	return added
 
 
+## A move offered on the last knockout is still asked before the battle ends.
 func phase() -> StringName:
-	if battle.is_over():
+	if _abandoned:
 		return OVER
-	if battle.must_learn_move(Gen2Battle.PLAYER):
+	if battle.must_learn_move(Gen2Battle.PLAYER) and catch.is_empty():
 		return AWAITING_LEARN
+	if battle.is_over() or not catch.is_empty():
+		return OVER
 	if battle.awaiting_mimic() == Gen2Battle.PLAYER:
 		return AWAITING_MIMIC
 	if battle.awaiting_baton_pass() == Gen2Battle.PLAYER or battle.must_replace(Gen2Battle.PLAYER):
@@ -100,7 +113,18 @@ func phase() -> StringName:
 	return AWAITING_ACTION
 
 
+## The active Pokémon's owner, or a stand-in once they are away [constant PokeCoopPolicy.STAND_IN_MSEC].
 func controller() -> String:
+	var owner: String = owner_deciding()
+	if not _absent.has(owner) or Time.get_ticks_msec() - int(_absent[owner]) < PokeCoopPolicy.STAND_IN_MSEC:
+		return owner
+	for player_id: String in participants:
+		if not _absent.has(player_id):
+			return player_id
+	return owner
+
+
+func owner_deciding() -> String:
 	if phase() == AWAITING_LEARN:
 		return roster.owner_at(int(battle.pending_learn(Gen2Battle.PLAYER).get("index", -1)))
 	return roster.owner_at(battle.party(Gen2Battle.PLAYER).active)
@@ -110,11 +134,27 @@ func is_paused() -> bool:
 	return phase() != OVER and _absent.has(controller())
 
 
-func set_absent(player_id: String, absent: bool) -> void:
+## [param since_msec] is when they went, by `Time.get_ticks_msec`.
+func set_absent(player_id: String, absent: bool, since_msec: int = Time.get_ticks_msec()) -> void:
 	if absent:
-		_absent[player_id] = true
+		_absent[player_id] = since_msec
 	else:
 		_absent.erase(player_id)
+
+
+## Ends the battle as fled: everybody left it, or the host is closing.
+func abandon() -> void:
+	_abandoned = true
+
+
+## How long nobody in the battle has been connected, in milliseconds, or -1.
+func everyone_away_for() -> int:
+	var latest: int = -(1 << 62)
+	for player_id: String in participants:
+		if not _absent.has(player_id):
+			return -1
+		latest = maxi(latest, int(_absent[player_id]))
+	return Time.get_ticks_msec() - latest if not participants.is_empty() else -1
 
 
 func pending_players() -> Array[String]:
@@ -129,7 +169,7 @@ func involves(player_id: String) -> bool:
 
 
 func submit(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var refusal: StringName = _refusal(player.player_id, int(command.get("revision", -1)))
+	var refusal: StringName = _refusal(player.player_id, PokeCoopTransport.number(command.get("revision"), -1))
 	if refusal != &"":
 		return {"ok": false, "reason": refusal}
 	var applied: Dictionary = _apply(player, command)
@@ -154,18 +194,18 @@ func _refusal(player_id: String, at_revision: int) -> StringName:
 
 
 func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var kind: String = String(command.get("type", ""))
+	var kind: String = PokeCoopTransport.text(command.get("type"))
 	match phase():
 		AWAITING_ACTION:
 			return _act(player, kind, command)
 		AWAITING_SEND_OUT:
-			return _send_out(kind, int(command.get("index", -1)))
+			return _send_out(kind, PokeCoopTransport.number(command.get("index"), -1))
 		AWAITING_LEARN:
-			return _learn(kind, int(command.get("forget_slot", -1)))
+			return _learn(kind, PokeCoopTransport.number(command.get("forget_slot"), -1))
 		AWAITING_MIMIC:
 			if kind == "mimic":
 				var before: int = battle.awaiting_mimic()
-				var events: Array = battle.answer_mimic(int(command.get("choice", -1)))
+				var events: Array = battle.answer_mimic(PokeCoopTransport.number(command.get("choice"), -1))
 				if battle.awaiting_mimic() != before:
 					return _done(events)
 	return _refused(&"invalid_command")
@@ -174,12 +214,12 @@ func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 func _act(player: PokeCoopPlayer, kind: String, command: Dictionary) -> Dictionary:
 	match kind:
 		"move":
-			var slot: int = int(command.get("slot", -1))
+			var slot: int = PokeCoopTransport.number(command.get("slot"), -1)
 			if not _move_allowed(slot):
 				return _refused(&"invalid_move")
 			return _done(battle.take_actions(Gen2Battle.use_move(slot), _enemy_action()))
 		"switch":
-			var index: int = int(command.get("index", -1))
+			var index: int = PokeCoopTransport.number(command.get("index"), -1)
 			if not battle.party(Gen2Battle.PLAYER).can_send_out(index):
 				return _refused(&"invalid_switch")
 			return _done(battle.take_actions(Gen2Battle.switch_to(index), _enemy_action()))
@@ -199,13 +239,13 @@ func _move_allowed(slot: int) -> bool:
 
 
 func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
-	var item: int = int(command.get("item", 0))
+	var item: int = PokeCoopTransport.number(command.get("item"), 0)
 	if player.item_count(item) <= 0:
 		return _refused(&"item_not_held")
 	if Gen2WorldPartyHost.is_ball(battle.data, item):
-		return _refused(&"capture_not_supported")
+		return _throw_ball(player, item, PokeCoopTransport.text(command.get("recipient"), player.player_id))
 	var used: Dictionary = battle.use_bag_item(
-		item, int(command.get("target", -1)), int(command.get("move_slot", -1))
+		item, PokeCoopTransport.number(command.get("target"), -1), PokeCoopTransport.number(command.get("move_slot"), -1)
 	)
 	if not bool(used.get("ok", false)):
 		return _refused(StringName(used.get("reason", &"item_has_no_effect")))
@@ -215,6 +255,31 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 	events.append_array(used.get("events", []) as Array)
 	if not battle.is_over():
 		events.append_array(battle.take_actions(Gen2Battle.use_item(item), _enemy_action()))
+	return _done(events)
+
+
+## `ItemUseBall` with the catch rolled on the host. The thrower names who the
+## catch is for, one of the participants; a held ball ends the battle.
+func _throw_ball(player: PokeCoopPlayer, ball: int, recipient: String) -> Dictionary:
+	if battle.is_trainer_battle:
+		return _refused(&"trainer_pokemon")
+	if not participants.has(recipient):
+		return _refused(&"invalid_recipient")
+	if not (_members[recipient] as PokeCoopPlayer).has_room():
+		return _refused(&"box_full")
+	var wild: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
+	var roll: Dictionary = Gen2WorldPartyHost.roll_capture(
+		battle.data, wild, ball, rng, battle.battle_type, battle.mon(Gen2Battle.PLAYER)
+	)
+	player.take_item(ball)
+	var events: Array = [{
+		"type": BALL_THROWN, "player": player.player_id, "ball": ball, "recipient": recipient,
+		"caught": bool(roll.get("caught", false)), "wobbles": int(roll.get("wobbles", 0)),
+	}]
+	if bool(roll.get("caught", false)):
+		catch = {"recipient": recipient, "mon": wild}
+		return _done(events)
+	events.append_array(battle.take_actions(Gen2Battle.use_item(ball), _enemy_action()))
 	return _done(events)
 
 
@@ -257,6 +322,9 @@ func _settle(events: Array) -> void:
 
 func _advance(events: Array) -> void:
 	revision += 1
+	for event: Dictionary in events:
+		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT and int(event.get("side", 0)) == Gen2Battle.ENEMY:
+			seen[int(event.get("species", 0))] = true
 	suggestions.clear()
 	if phase() == AWAITING_ACTION:
 		_apply_joins(events)
@@ -283,18 +351,30 @@ func request_join(data: GameData, player: PokeCoopPlayer) -> StringName:
 	var refusal: StringName = PokeCoopPolicy.may_join(player, fit_count(fighters))
 	if refusal != &"":
 		return refusal
-	var queued: int = 0
+	var room: int = Gen2Party.MAX_ALLIED_SIZE - roster.size()
 	for join: Dictionary in _pending_joins:
-		queued += ((join["fighters"] as Dictionary)["mons"] as Array).size()
-	if roster.size() + queued + (fighters["mons"] as Array).size() > Gen2Party.MAX_ALLIED_SIZE:
+		room -= ((join["fighters"] as Dictionary)["mons"] as Array).size()
+	if room <= 0:
 		return &"roster_full"
 	player.battle_id = id
 	player.suspend_exploration()
-	_pending_joins.append({"player": player, "fighters": fighters})
+	_pending_joins.append({"player": player, "fighters": _within(fighters, room)})
 	if phase() == AWAITING_ACTION:
 		var events: Array = []
 		_advance(events)
 	return &""
+
+
+static func _within(fighters: Dictionary, room: int) -> Dictionary:
+	var mons: Array = fighters["mons"]
+	if mons.size() <= room:
+		return fighters
+	var out: Dictionary = {"mons": [], "uids": []}
+	for index: int in mons.size():
+		if (out["mons"] as Array).size() < room and not (mons[index] as Gen2BattleMon).is_fainted():
+			(out["mons"] as Array).append(mons[index])
+			(out["uids"] as Array).append((fighters["uids"] as Array)[index])
+	return out
 
 
 func _apply_joins(events: Array) -> void:
@@ -317,14 +397,20 @@ func suggest(player_id: String, suggestion: Dictionary) -> StringName:
 		return &"battle_over"
 	if player_id == controller():
 		return &"controller_acts"
-	var kind: String = String(suggestion.get("type", ""))
+	var kind: String = PokeCoopTransport.text(suggestion.get("type"))
 	if not SUGGESTION_TYPES.has(kind):
 		return &"invalid_suggestion"
-	suggestions[player_id] = {"type": kind, "value": int(suggestion.get("value", -1)), "revision": revision}
+	suggestions[player_id] = {"type": kind, "value": PokeCoopTransport.number(suggestion.get("value"), -1), "revision": revision}
 	return &""
 
 
 func outcome() -> StringName:
+	if _abandoned:
+		return &"fled"
+	if phase() != OVER:
+		return &""
+	if not catch.is_empty():
+		return CAUGHT
 	if not battle.is_over():
 		return &""
 	if battle.is_draw():
@@ -361,10 +447,16 @@ func view() -> Dictionary:
 	return {
 		"battle": id, "encounter": String(encounter.get("id", "")), "revision": revision,
 		"phase": phase(), "controller": controller(), "paused": is_paused(),
+		"owner": owner_deciding(), "learning": battle.pending_learn(Gen2Battle.PLAYER).duplicate(),
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
+		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
+		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
+		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
+		"trainer_name": String(encounter.get("trainer_name", "")), "win_text": String(encounter.get("win_text", "")),
+		"gym": bool(encounter.get("gym", false)),
 	}
 
 

@@ -619,12 +619,22 @@ func _gen1_after_waiting_step() -> void:
 	match _gen1_after_waiting:
 		STEP.GEN1_ASK_DELAY:
 			_partner_choice = _transport_choice()
+			if _partner_choice == Gen2LinkTransport.PENDING:
+				_gen1_wait_then(STEP.GEN1_ASK_DELAY)
+				return
 			if _partner_choice < 0:
 				_step = STEP.SELECT
 				return
 			_step = STEP.GEN1_ASK_DELAY
 			_frames = Gen1Layout.TRADE_CENTER_DELAY_FRAMES
 		STEP.GEN1_TRADING:
+			var answer: int = _transport.trade_answer()
+			if answer == Gen2LinkTransport.PENDING:
+				_gen1_wait_then(STEP.GEN1_TRADING)
+				return
+			if answer == 0:
+				_gen1_cancel_trade()
+				return
 			_step = STEP.GEN1_TRADING
 			_frames = Gen1Layout.TRADE_CENTER_DELAY_FRAMES
 			music_requested.emit(Gen2EvolutionScreen.MUSIC_EVOLUTION)
@@ -663,12 +673,14 @@ func _gen1_open_ask() -> void:
 ## `.tradeConfirmed`: `$2` under `Waiting...!`, then the music and `ld c, 100`.
 func _gen1_start_trade() -> void:
 	_confirm = 0
+	_transport.answer_trade(true)
 	_gen1_wait_then(STEP.GEN1_TRADING)
 	_refresh()
 
 
 ## `TradeCanceled` under `Waiting...!`, then `.tradeCancelled`'s hundred.
 func _gen1_cancel_trade() -> void:
+	_transport.answer_trade(false)
 	_place_message(String(_page.strings.get("trade_canceled", "")))
 	_gen1_wait_then(STEP.GEN1_CANCELED_DELAY)
 	_refresh()
@@ -781,7 +793,7 @@ func _link_mode() -> int:
 ## [method Gen2LinkTransport.choose_trade_slot].
 func _transport_choice() -> int:
 	return _transport.choose_trade_slot({
-		"ot_cursor": _partner_index, "ot_count": _rows(LIST_PARTNER),
+		"ot_cursor": _partner_index, "ot_count": _rows(LIST_PARTNER), "slot": _index,
 	})
 
 

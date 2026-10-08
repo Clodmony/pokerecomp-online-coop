@@ -243,6 +243,40 @@ func test_a_partners_own_pokemon_earns_no_traded_bonus_and_a_traded_one_does() -
 	assert_eq(traded, own * 3 / 2, "only a Pokémon from another trainer is paid as traded")
 
 
+func test_a_ball_catches_the_wild_for_the_player_the_thrower_names() -> void:
+	var red: PokeCoopPlayer = _red()
+	var blue: PokeCoopPlayer = _blue()
+	red.give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 2)
+	var session: PokeCoopBattleSession = _start(red, _enemy(Fixture.BULBASAUR, 2))
+	session.request_join(_data, blue)
+
+	var thrown: Dictionary = _act(session, red, {
+		"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": "blue",
+	})
+
+	assert_true(bool(thrown["ok"]))
+	assert_eq(session.outcome(), PokeCoopBattleSession.CAUGHT)
+	assert_eq(String(session.catch["recipient"]), "blue")
+	assert_eq(red.item_count(Gen2WorldPartyHost.ITEM_MASTER_BALL), 1, "the thrower's ball")
+	assert_eq(StringName(_act(session, red, {"type": "move", "slot": 0})["reason"]), &"battle_over")
+
+
+func test_a_trainers_pokemon_cannot_be_caught_and_the_ball_is_kept() -> void:
+	var red: PokeCoopPlayer = _red()
+	red.give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	var session: PokeCoopBattleSession = PokeCoopBattleSession.start(
+		_data, "b1", 1, red, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0),
+		{"id": "trainer:leader", "trainer_class": Fixture.GEN1_LEADER}
+	)
+
+	var thrown: Dictionary = _act(session, red, {
+		"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": "red",
+	})
+
+	assert_eq(StringName(thrown["reason"]), &"trainer_pokemon")
+	assert_eq(red.item_count(Gen2WorldPartyHost.ITEM_MASTER_BALL), 1)
+
+
 func test_an_item_comes_out_of_the_acting_players_bag_only() -> void:
 	_data.generation = RomRegistry.GEN2
 	var red: PokeCoopPlayer = _red()

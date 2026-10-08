@@ -1,0 +1,333 @@
+class_name PokeCoopPage
+extends VBoxContainer
+
+## The launcher's Co-op tab: host one of this device's campaigns or a new one, or join one by address. A new
+## player picks a starter; the device remembers who it was in each campaign. The world opens once the host answers.
+
+const GAMES: Array[StringName] = [&"red", &"blue"]
+const STARTER_NAMES: Array[String] = ["BULBASAUR", "CHARMANDER", "SQUIRTLE"]
+const OPENINGS: Array[String] = ["Play it: Oak's speech, your room, his lab", "Skip it: start in Pallet Town with a starter"]
+const HIDDEN_NETWORKS: Array[String] = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "vEthernet"]
+const DEFAULT_NAME: String = "RED"
+const MAX_TITLE: int = 24
+
+var _theme: Gen2LauncherTheme = null
+var _host_control: Control = null
+var _games: Array[StringName] = []
+var _game: int = 0
+var _starter: int = 1
+var _skip_opening: bool = false
+var _name: LineEdit = null
+var _address: LineEdit = null
+var _status: Label = null
+var _host_button: Gen2LauncherButton = null
+var _host_addresses: Label = null
+var _addresses_shown: String = ""
+var _session: PokeCoopSession = null
+var _opening: bool = false
+## 0 brings a new trainer; above it, that row of [member _slots].
+var _bring: int = 0
+var _slots: Array = []
+var _bring_row: VBoxContainer = null
+var _campaign: int = 0
+var _campaigns: Array = []
+var _campaign_row: VBoxContainer = null
+var _title: LineEdit = null
+
+
+static func create(palette: Gen2LauncherTheme, host: Control = null) -> PokeCoopPage:
+	var page := PokeCoopPage.new()
+	page._theme = palette
+	page._host_control = host
+	page._build()
+	return page
+
+
+func _build() -> void:
+	add_theme_constant_override("separation", Gen2LauncherUI.GAP_LG)
+	add_child(Gen2LauncherUI.title(_theme, "Co-op", Gen2LauncherTheme.FONT_DISPLAY))
+	var scroll: Gen2LauncherScroll = Gen2LauncherScroll.create()
+	add_child(scroll)
+	var column: VBoxContainer = Gen2LauncherUI.column(Gen2LauncherUI.GAP_LG)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.content().add_child(column)
+	_games = GAMES.filter(func(game: StringName) -> bool: return GameData.open(game) != null)
+	_build_player(_card(column, "You"))
+	_build_host(_card(column, "Host a campaign"))
+	_build_join(_card(column, "Join a campaign"))
+	_status = Gen2LauncherUI.muted(_theme, "" if not _games.is_empty() \
+		else "Import Red or Blue on the Play tab first: co-op plays them.")
+	column.add_child(_status)
+	_build_logs(_card(column, "Debug logs"))
+
+
+func _card(host: VBoxContainer, title: String) -> VBoxContainer:
+	var panel: Gen2LauncherCard = Gen2LauncherCard.create(_theme, Gen2LauncherTheme.RADIUS_MD, 22)
+	host.add_child(panel)
+	var column: VBoxContainer = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD)
+	panel.add_child(column)
+	column.add_child(Gen2LauncherUI.caption(_theme, title))
+	return column
+
+
+func _build_player(card: VBoxContainer) -> void:
+	if _games.size() > 1:
+		card.add_child(Gen2LauncherUI.choice(
+			_theme, &"play", "Cartridge", _game_titles(), _game,
+			func(index: int) -> void:
+				_game = index
+				_build_bring()
+				_build_campaigns(), _host_control
+		))
+	_name = _field(DEFAULT_NAME, "Your name")
+	_name.max_length = Gen2SaveData.MAX_PLAYER_NAME
+	card.add_child(Gen2LauncherUI.stacked(_theme, "Name", _name))
+	var starter_row: Control = Gen2LauncherUI.choice(
+		_theme, &"sparkle", "Starter", STARTER_NAMES, _starter,
+		func(index: int) -> void: _starter = index, _host_control
+	)
+	starter_row.visible = _skip_opening
+	card.add_child(Gen2LauncherUI.choice(
+		_theme, &"play", "The opening, if you are new to the campaign", OPENINGS, int(_skip_opening),
+		func(index: int) -> void:
+			_skip_opening = index == 1
+			starter_row.visible = _skip_opening, _host_control
+	))
+	card.add_child(starter_row)
+	_bring_row = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD)
+	card.add_child(_bring_row)
+	_build_bring()
+
+
+## A new player may bring a trainer from a save slot instead of a starter; a campaign hosted so starts from its story.
+func _build_bring() -> void:
+	Gen2Screen.drop_children(_bring_row)
+	_bring = 0
+	var data: GameData = _data()
+	_slots = [] if data == null else Gen2SaveStore.slots_for(data.id, data.sha1, data).filter(
+		func(row: Dictionary) -> bool: return bool(row["valid"]))
+	if _slots.is_empty():
+		return
+	var labels: Array = ["A new trainer"]
+	for row: Dictionary in _slots:
+		labels.append("Slot %d: %s" % [int(row["slot"]) + 1, row["player_name"]])
+	_bring_row.add_child(Gen2LauncherUI.choice(
+		_theme, &"save", "Bring, if you are new to the campaign", labels, 0,
+		func(index: int) -> void: _bring = index, _host_control
+	))
+
+
+func _brought() -> Gen2SaveData:
+	var data: GameData = _data()
+	if _bring <= 0 or _bring > _slots.size() or data == null:
+		return null
+	var loaded: Dictionary = Gen2SaveStore.load_result(
+		data.id, data.sha1, int((_slots[_bring - 1] as Dictionary)["slot"]), data
+	)
+	return loaded["save"] if bool(loaded.get("ok", false)) else null
+
+
+func _build_host(card: VBoxContainer) -> void:
+	_campaign_row = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD)
+	card.add_child(_campaign_row)
+	_build_campaigns()
+	_host_addresses = Gen2LauncherUI.muted(_theme, "")
+	card.add_child(_host_addresses)
+	_show_addresses()
+	_host_button = Gen2LauncherButton.create(
+		_theme, "Host", Gen2LauncherButton.Variant.PRIMARY, &"play"
+	)
+	_host_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_host_button.pressed.connect(func() -> void: host_campaign())
+	card.add_child(_host_button)
+
+
+func _build_campaigns() -> void:
+	Gen2Screen.drop_children(_campaign_row)
+	var data: GameData = _data()
+	_campaigns = [] if data == null else PokeCoopSession.campaigns(data)
+	_campaign = 0 if _campaigns.is_empty() else 1
+	var labels: Array = ["A new campaign"]
+	for row: Dictionary in _campaigns:
+		labels.append(campaign_label(row))
+	_title = _field("CAMPAIGN %d" % (_campaigns.size() + 1), "A name for the new campaign")
+	_title.max_length = MAX_TITLE
+	var titled: Control = Gen2LauncherUI.stacked(_theme, "New campaign's name", _title)
+	titled.visible = _campaign == 0
+	_campaign_row.add_child(Gen2LauncherUI.choice(
+		_theme, &"folder", "Campaign", labels, _campaign,
+		func(index: int) -> void:
+			_campaign = index
+			titled.visible = index == 0, _host_control
+	))
+	_campaign_row.add_child(titled)
+
+
+static func campaign_label(row: Dictionary) -> String:
+	if not bool(row["readable"]):
+		return "%s (cannot be read)" % row["title"]
+	var players: Array = row["players"]
+	var local: int = int(row["saved"]) + int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	return "%s: %s, %d badge%s, saved %s" % [
+		row["title"], ", ".join(players) if not players.is_empty() else "nobody yet",
+		int(row["badges"]), "" if int(row["badges"]) == 1 else "s",
+		Time.get_datetime_string_from_unix_time(local, true).left(16),
+	]
+
+
+func _build_join(card: VBoxContainer) -> void:
+	_address = _field("", "The host's address, for example 192.168.1.20")
+	card.add_child(Gen2LauncherUI.stacked(_theme, "Address", _address))
+	var join: Gen2LauncherButton = Gen2LauncherButton.create(
+		_theme, "Join", Gen2LauncherButton.Variant.NEUTRAL, &"chevron"
+	)
+	join.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	join.pressed.connect(func() -> void: join_campaign(_address.text.strip_edges()))
+	card.add_child(join)
+
+
+func _build_logs(card: VBoxContainer) -> void:
+	card.add_child(Gen2LauncherUI.switch(
+		_theme, &"bug", "Share debug logs with the other players", PokeCoopLog.sharing(),
+		func(on: bool) -> void: PokeCoopLog.set_sharing(on)
+	))
+	card.add_child(Gen2LauncherUI.muted(_theme,
+		"Every session is written to this device's logs folder. Shared, each player's file also holds the others' lines."))
+	var folder: Gen2LauncherButton = Gen2LauncherButton.create(
+		_theme, "Open the logs folder", Gen2LauncherButton.Variant.NEUTRAL, &"folder"
+	)
+	folder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	folder.pressed.connect(open_logs_folder)
+	card.add_child(folder)
+
+
+static func open_logs_folder() -> void:
+	var folder: String = ProjectSettings.globalize_path(PokeCoopLog.DIRECTORY)
+	DirAccess.make_dir_recursive_absolute(folder)
+	OS.shell_open(folder)
+
+
+func _game_titles() -> Array:
+	var out: Array = []
+	for game: StringName in _games:
+		out.append(RomRegistry.title_for(game))
+	return out
+
+
+func _field(text: String, hint: String) -> LineEdit:
+	var out := LineEdit.new()
+	out.text = text
+	out.placeholder_text = hint
+	out.custom_minimum_size = Vector2(320, 0)
+	return out
+
+
+func focus_target() -> Control:
+	return _host_button
+
+
+## Each address others can join at, by network (a WireGuard tunnel is its own); bridges left out.
+static func local_addresses() -> PackedStringArray:
+	var out := PackedStringArray()
+	for network: Dictionary in IP.get_local_interfaces():
+		var named: String = String(network.get("friendly", network.get("name", "")))
+		if HIDDEN_NETWORKS.any(func(prefix: String) -> bool:
+				return String(network.get("name", "")).begins_with(prefix) or named.begins_with(prefix)):
+			continue
+		for address: String in network.get("addresses", []):
+			if address.count(".") == 3 and not address.begins_with("127.") and not address.begins_with("169.254."):
+				out.append("%s  (%s)" % [address, named] if not named.is_empty() else address)
+	return out if not out.is_empty() else PackedStringArray(["this device's address"])
+
+
+func _show_addresses() -> void:
+	var text: String = "Others join at one of these addresses, port %d:\n%s" % [
+		PokeCoopEnetTransport.DEFAULT_PORT, "\n".join(local_addresses()),
+	]
+	if text != _addresses_shown and _host_addresses != null:
+		_addresses_shown = text
+		_host_addresses.text = text
+
+
+func host_campaign(port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
+	var data: GameData = _data()
+	var picked: bool = _campaign > 0 and _campaign <= _campaigns.size()
+	var id: String = String((_campaigns[_campaign - 1] as Dictionary)["id"]) if picked \
+		else PokeCoopSession.new_campaign_id(data) if data != null else ""
+	var session: PokeCoopSession = PokeCoopSession.hosting(
+		data, port, _player_name(), _starter_species(), _brought(), id,
+		"" if picked else _title.text.strip_edges().to_upper(), PokeCoopLog.create(PokeCoopLog.sharing())
+	)
+	var kept: String = PokeCoopSession.campaign_path(data, id).get_file() + PokeCoopSave.BACKUP_SUFFIX \
+		if data != null else ""
+	_begin(session, "Could not host on port %d: is another host running?" % port \
+		if PokeCoopSession.last_failure.is_empty() \
+		else "This device's campaign file could not be read, so it was left as it is. The checkpoint before it is %s." % kept)
+
+
+func join_campaign(address: String, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> void:
+	if address.is_empty():
+		_say("Type the host's address first.")
+		return
+	_begin(PokeCoopSession.joining(_data(), address, port, _player_name(), _starter_species(), "", _brought(),
+		PokeCoopLog.create(PokeCoopLog.sharing())), "Could not reach %s." % address)
+
+
+func _begin(session: PokeCoopSession, failure: String) -> void:
+	if _session != null or _games.is_empty():
+		return
+	if session == null:
+		_say(failure)
+		return
+	_session = session
+	Gen2GameRuntime.instance().coop = session
+	_say("Waiting for the host...")
+
+
+func _process(_delta: float) -> void:
+	if Engine.get_process_frames() % 120 == 0:
+		_show_addresses()
+	if _session == null or _opening:
+		return
+	if not _session.ended_reason().is_empty():
+		_say(why_not(_session.ended_reason()))
+		_session.close()
+		Gen2GameRuntime.instance().coop = null
+		_session = null
+		return
+	if _session.is_ready():
+		_opening = true
+		Gen2GameRuntime.instance().select_game(_data().id)
+		get_tree().change_scene_to_node(_session.open_start())
+
+
+static func why_not(reason: String) -> String:
+	match reason:
+		"refused: content_mismatch":
+			return "The host plays a different cartridge. Both players need the same game file: Red and Blue, or two revisions of one, cannot play together."
+		"refused: protocol_mismatch":
+			return "The host runs a different version of the game. Both players need builds made from the same version."
+		"host_unreachable":
+			return "Could not reach the host. Check the address, that the host pressed Host, and that UDP port %d reaches their device (a shared VPN such as WireGuard avoids router setup)." % PokeCoopEnetTransport.DEFAULT_PORT
+		"host_shutdown":
+			return "The host closed the session."
+	return "The host said no: %s." % reason
+
+
+func _data() -> GameData:
+	return GameData.open(_games[clampi(_game, 0, _games.size() - 1)]) if not _games.is_empty() else null
+
+
+func _player_name() -> String:
+	var typed: String = _name.text.strip_edges().to_upper()
+	return typed if not typed.is_empty() else DEFAULT_NAME
+
+
+func _starter_species() -> int:
+	if not _skip_opening:
+		return PokeCoopPolicy.PLAY_OPENING
+	return PokeCoopPolicy.STARTERS[clampi(_starter, 0, PokeCoopPolicy.STARTERS.size() - 1)]
+
+
+func _say(text: String) -> void:
+	_status.text = text

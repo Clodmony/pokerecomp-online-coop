@@ -6,6 +6,9 @@ extends PokeCoopTransport
 
 const DEFAULT_PORT: int = 24680
 const MAX_CLIENTS: int = 4
+## How long a silent peer is waited for, in milliseconds, before it is let go.
+const PEER_TIMEOUT_MIN: int = 2000
+const PEER_TIMEOUT_MAX: int = 6000
 
 var _peer: ENetMultiplayerPeer = null
 var _live: Dictionary = {}
@@ -36,6 +39,9 @@ func _watch() -> void:
 
 func _on_peer_connected(peer: int) -> void:
 	_live[peer] = true
+	var packet_peer: ENetPacketPeer = _peer.get_peer(peer)
+	if packet_peer != null:
+		packet_peer.set_timeout(0, PEER_TIMEOUT_MIN, PEER_TIMEOUT_MAX)
 	_inbox.append({"kind": CONNECTED, "peer": peer})
 
 
@@ -68,6 +74,7 @@ func drop(peer: int) -> void:
 		_peer.disconnect_peer(peer)
 
 
+## Closing disconnects every peer on this end too, as the in-memory link does.
 func close() -> void:
 	if _peer == null:
 		return
@@ -75,3 +82,6 @@ func close() -> void:
 		_peer.host.flush()
 	_peer.close()
 	_peer = null
+	for peer: int in _live.keys():
+		_inbox.append({"kind": DISCONNECTED, "peer": peer})
+	_live.clear()

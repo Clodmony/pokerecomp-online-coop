@@ -91,6 +91,8 @@ const WARP_MUSIC_FADE_FRAMES: int = 8
 @export_range(0, 6) var day: int = 0
 @export_range(0, 3) var time_of_day: int = Gen2WorldPalette.TIME_MORNING
 @export var encounter_seed: int = 0
+## Asked before START > SAVE writes: a refusal ends in the prompt's "Save failed" box, {} writes.
+var save_gate: Callable = Callable()
 
 var _data: GameData = null
 var _injected_data: GameData = null
@@ -1857,12 +1859,13 @@ func _renderer_input_free() -> bool:
 		and not _world.script_input_waiting()
 
 
+## A Generation 1 map script walking someone holds the pad as its `wJoyIgnore` does (L10).
 func move_player(direction: Vector2i) -> bool:
 	if _world == null or _overlay_open() or _world.fishing_busy() \
 		or _field_move_text or not _field_move_tail.is_empty() or not _oak_pc_pages.is_empty() \
 		or _world.phone_ring_active() \
 		or not _trainer_approach.is_empty() or _world.script_busy() \
-		or _world.player_step_in_progress():
+		or _world.player_step_in_progress() or (_world.is_gen1() and _world.gen1_object_movement_running()):
 		return false
 	var movement: Dictionary = _world.player_input_move(direction)
 	if not bool(movement.get("ok", false)):
@@ -2181,6 +2184,14 @@ func _nuzlocke_ends_here(save: Gen2SaveData) -> bool:
 	return _world != null and _world.rules != null and _world.rules.is_nuzlocke() \
 		and save != null and not _world.bug_contest_active() \
 		and not Gen2WorldPartyHost.party_has_fit_mon(save)
+
+
+## `Script_BattleWhiteout` for a battle the world did not run itself: a co-op
+## battle lost on its host. Nothing happens while somebody can still fight.
+func white_out() -> void:
+	var save: Gen2SaveData = active_save()
+	if _world != null and save != null and not Gen2WorldPartyHost.party_has_fit_mon(save):
+		_start_whiteout()
 
 
 ## `Script_BattleWhiteout` and `OverworldWhiteoutScript`, which differ only in
@@ -3921,6 +3932,11 @@ func persist_world_snapshot() -> Dictionary:
 	if _injected_save != null:
 		return {"ok": true, "kind": &"world_snapshot_saved", "save": save}
 	return Gen2SaveStore.save(save, _data)
+
+
+func _save_from_menu() -> Dictionary:
+	var refusal: Dictionary = save_gate.call() if save_gate.is_valid() else {}
+	return refusal if not refusal.is_empty() else persist_world_snapshot()
 
 
 ## `GameTimer`, once a hardware frame; `wGameTimerPaused` is `Script_halloffame`'s.
@@ -6427,6 +6443,8 @@ func _takeover_summary(prepared: Dictionary) -> Dictionary:
 		"battle_type": battle.battle_type,
 		"trainer_class": int(prepared.get("trainer_class", 0)),
 		"trainer_index": int(prepared.get("trainer_index", 0)),
+		"trainer_name": String(request.get("trainer_name", "")), "win_text": request.get("win_text", {}),
+		"lone_attack": int(request.get("lone_attack", 0)),
 		"player_party": sides[Gen2Battle.PLAYER], "enemy_party": sides[Gen2Battle.ENEMY],
 		"generation": _data.generation,
 		"map_group": _world.map_id().x if _world != null else -1,
@@ -6749,6 +6767,17 @@ func _on_pack_evolution(plan: Dictionary, after: Callable) -> void:
 		]
 		return
 	open.call()
+
+
+## `EvolveAfterBattle` for party [param indices] whose battle the world did not
+## run itself: a co-op battle fought on its host.
+func evolve_after_battle(indices: Array) -> void:
+	var save: Gen2SaveData = _injected_save if _injected_save != null else _selected_runtime_save()
+	if _data == null or _world == null or save == null or indices.is_empty():
+		return
+	_open_evolution(
+		Gen2Evolution.after_battle(_data, save, indices, _world.object_time_of_day), save, Callable()
+	)
 
 
 ## `EvolveAfterBattle`'s screen. [param plans] is
@@ -7457,7 +7486,7 @@ func _open_start_menu_host(entry: Callable) -> void:
 		_injected_save == null
 	)
 	if not host.open(
-		_world, _data, Callable(self, "persist_world_snapshot"), _start_menu_cursor
+		_world, _data, Callable(self, "_save_from_menu"), _start_menu_cursor
 	):
 		Gen2Screen.drop(host)
 		_script_prompt = "Start menu unavailable"

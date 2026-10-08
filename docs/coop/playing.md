@@ -1,0 +1,157 @@
+# Playing co-op
+
+How two people play a Red or Blue campaign together with this fork. Each
+player needs their own copy of the game imported on the Play tab; nothing from
+the cartridge is sent between devices.
+
+## Starting
+
+1. Open the launcher and go to the **Co-op** tab.
+2. Under **You**, type your name and choose how a newcomer starts (this only
+   matters the first time you join a campaign):
+   - **The opening: Play it** (the default): Oak's speech, your bedroom, Oak
+     stopping you at the grass, his lab, your starter and the rival's
+     challenge, as in the cartridge. See "The opening" below.
+   - **Skip it**: start in Pallet Town with the **Starter** you pick, level 5.
+   - **Bring**, if the cartridge has a single-player save on this device: that
+     trainer's team, PC, bag, money and place. The first player of a new
+     campaign who brings a save brings its story and badges too.
+3. One player picks a **Campaign** under **Host a campaign**: one of this
+   device's campaigns (the latest is picked), or **A new campaign** with a name
+   such as WITH ALEX, then presses **Host**. The card lists the addresses
+   others on the same network can use, and the port (24680).
+4. The other player types one of those addresses under **Join a campaign** and
+   presses **Join**.
+
+Each campaign is its own file on the host's device, so a run with one friend
+never overwrites a run with another: start **A new campaign** for each group.
+The files are in the game's user folder under `coop_campaigns/<game>/`, each
+with the checkpoint before the latest beside it as `<file>.json.bak`. A
+campaign from an earlier build (`coop_<game>_campaign.json`) moves there by
+itself and is listed as FIRST CAMPAIGN. To back a campaign up, copy its file;
+to delete one, delete its file.
+
+**To carry on where you left off**, the host picks that campaign and presses
+Host on the same device, and the others press Join with the host's address:
+everyone gets their own trainer back, with their team, bag and place. A
+device remembers who it played as in each campaign; a player joining from
+another device or address gets their trainer back by typing the same name as
+before. Only the campaign the host picked is played: the others see its name
+at the top of the SELECT menu.
+
+## The opening
+
+Everyone who plays the opening plays it in their own world, at the same time
+or one after another:
+
+- Oak asks for your name and already knows it from the Co-op tab. The rival's
+  name is asked only until somebody has named him; after that Oak remembers
+  it for everyone.
+- Each player wakes up in their own bedroom and plays the opening alone: you
+  do not see each other, and nobody else sees you, until you have left Oak's
+  lab with your starter. Then you meet in Pallet Town.
+- Oak, the three POKé BALLs and the rival are yours alone: you can both take
+  CHARMANDER. The rival's fight in the lab is yours alone too: nobody can join
+  it.
+- Once you leave the lab with your starter, the campaign's story is yours: the
+  same shared flags, badges and beaten trainers as everyone else's. The rival
+  keeps the starter he took in the first opening to finish. Someone still in
+  the opening shows in the SELECT menu's list but not in the world.
+
+## Playing over the internet
+
+- **Same version, same cartridge.** Both players run builds made from the same
+  version of this project, and both import the same game file: the same game
+  (Red with Red, Blue with Blue) and the same revision. The host checks both and
+  the Co-op tab says which one failed.
+- **Easiest: a VPN you are both on** (WireGuard or the like). The
+  host's Co-op tab lists each address with the network it belongs to, for
+  example `10.0.0.1  (wg0)`; the other player joins the VPN one. No router
+  setup is needed and it works behind any NAT. The tab keeps the list current,
+  so a tunnel brought up after the game started shows up too.
+- **Without a VPN**, the host forwards UDP port 24680 on their router to their
+  device and gives the other player their public address. This does not work
+  behind carrier-grade NAT or DS-Lite, which many connections have.
+- **Firewall.** The host's device must let UDP 24680 in: on Linux with ufw,
+  `sudo ufw allow 24680/udp`; Windows asks the first time a build hosts.
+- **Windows builds are unsigned**, so SmartScreen warns on first start: choose
+  "More info", then "Run anyway".
+- If the host cannot be reached, joining gives up after fifteen seconds and
+  says what to check.
+
+## In the world
+
+- Both players explore freely, on the same map or on different ones. The
+  partner is drawn on your map in their own colour, with a "!" while they are
+  in a battle, and blocks your way like any person on the map.
+- Story flags, badges, beaten trainers and taken items on the ground are
+  shared. Your team, PC, bag, money and position are yours.
+- Every item one player finds or is given along the story reaches the other
+  too, in the same number: POKé BALLs on the ground, presents from people,
+  key items, HMs and TMs. A key item the story takes (OAK's PARCEL, the BIKE
+  VOUCHER, the GOLD TEETH) is taken from everyone; fossils are not, so each of
+  you revives your own. What you buy, trade for or use stays yours. Hidden
+  items are each player's own to find.
+- **Saving**: START > SAVE and "Save the campaign" in the SELECT menu do the
+  same thing: the host saves the whole campaign, everyone in it. You see
+  "Campaign saved." and the others see "BLUE saved the campaign."; a save
+  refused during a battle says so. The host also saves by itself after
+  battles, every thirty seconds of changes and when it closes, and the SELECT
+  menu shows when it last saved. Nobody has to save before leaving.
+
+## Battles
+
+- The session menu (SELECT) says where your partner is ("With RED (ROUTE 1)").
+- Wild and trainer battles your world starts are fought on the host, so the
+  partner can join; their window says so ("RED is in a battle against wild
+  RATTATA. SELECT to join."), and also when a player joins or leaves. **SELECT** opens the session menu: join a running battle
+  (from any map), save the campaign, leave the session.
+- A shared battle is one Pokémon a side, with both teams on your side (up to
+  twelve), listed in the panel under each player's name in their colour.
+  Whoever owns the Pokémon that is out decides; switching to the partner's
+  Pokémon hands them the turn. Your cursor in the panel is a suggestion the
+  partner sees ("◀ NAME") and never acts by itself.
+- The panel works with the d-pad and A, or by touch or mouse: tap a row to put
+  the cursor on it, tap it again to choose it.
+- Balls are listed once per player ("GREAT BALL x10, catch for BLUE"): the
+  catch goes to whoever you name.
+- If the deciding player drops, the battle waits; after thirty seconds the
+  other player decides for their Pokémon until they are back.
+- Evolutions and the whiteout after a loss happen in each owner's own world.
+
+## Trading
+
+Both players go to a Pokémon Center's Cable Club receptionist, enter the Trade
+Center, sit at the table facing right and press A. The trade screen shows the
+partner's real party; trade-evolving Pokémon evolve on arrival.
+
+## Leaving
+
+LEAVE SESSION in the SELECT menu returns you to the launcher. When the host
+leaves, everyone is told why and returned to the launcher. A dropped
+connection is retried for about two minutes ("Lost the host: reconnecting...",
+then "Back in the session."), so a host that restarts or a phone that comes
+back from the background picks up where it was.
+
+## Logs
+
+Every session is written to a file on your device, in `coop_logs` in the
+game's data folder: the Co-op tab's "Open the logs folder" opens it. On Linux it
+is `~/.local/share/godot/app_userdata/pokerecomp/coop_logs`, on Windows
+`%APPDATA%\Godot\app_userdata\pokerecomp\coop_logs`. The last 30 sessions are
+kept. With "Share debug logs with the other players" on (the default), your file
+also gets the other players' lines, so one file usually shows the whole session;
+turned off, your device neither sends nor receives them. To report a bug, send
+the file for that session's date and time (`..._host_...` or `..._join_...`)
+privately to whoever is debugging. The files hold player names, the host's
+addresses and some of the game's own text, so never post them publicly.
+
+## Known limits
+
+- The host trusts each window's world (positions, warps, the wild Pokémon it
+  rolled).
+- Shared battles are drawn as the cartridge draws them, intro to prize.
+- A won trainer battle tells each player their own share of the prize.
+- No phone or console builds yet.
+
+See `progress.md` for what has been verified and how.

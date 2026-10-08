@@ -1,10 +1,8 @@
 class_name PokeCoopRemoteActor
 extends RefCounted
 
-## The other players of a co-op session as world actors, registered the way a
-## mod's actor is, and this player's own position reported to the host. Remote
-## steps are eased over a walk's frames; a player in a battle wears the shock emote.
-## Each player keeps one colour in every window, by their place in the session.
+## The other players as world actors, registered as a mod's are, eased over a walk's frames in one colour
+## each in every window and wearing the shock emote in a battle; this player's position goes to the host.
 
 const STEP_FRAMES: int = 16
 const PLAYER_COLORS: Array = [
@@ -43,10 +41,12 @@ func _report() -> void:
 	var here: Dictionary = {
 		"map": _world.map_id(), "cell": _world.player_cell, "facing": _world.player_facing,
 	}
-	if here == _reported:
+	if here == _reported or not client.connected:
 		return
 	var walked: bool = not _reported.is_empty() and here["map"] == _reported["map"] \
 		and _distance(here["cell"], _reported["cell"]) <= PokeCoopHost.MAX_STEP_CELLS
+	if here["map"] != _reported.get("map"):
+		client.journal.add(PokeCoopLog.WORLD, "map", {"map": here["map"], "cell": here["cell"], "from": _reported.get("map")}, client.player_id)
 	_reported = here
 	client.step(here["map"], here["cell"], here["facing"], not walked)
 
@@ -55,8 +55,11 @@ static func _distance(first: Vector2i, second: Vector2i) -> int:
 	return absi(first.x - second.x) + absi(first.y - second.y)
 
 
+## Nobody in a Cable Club room, whose own friend sprite is the partner there.
 func _visible() -> Array[String]:
 	var out: Array[String] = []
+	if _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+		return out
 	for player_id: Variant in client.nearby():
 		var view: Dictionary = _view(String(player_id))
 		if not view.is_empty() and view.get("map") == _world.map_id():
@@ -94,6 +97,7 @@ func sprites() -> Array:
 			"sprite": Gen2WorldSprite.SPRITE_PLAYER, "facing": int(view["facing"]),
 			"position_cells": walk.get("at", Vector2(view["cell"] as Vector2i)),
 			"frame": _walk_frame(walk), "id": StringName(player_id), "colors": _colors(player_id),
+			"solid": true,
 		}
 		if not String(view.get("battle", "")).is_empty():
 			entry["emote"] = Gen2WorldActors.EMOTE_SHOCK
@@ -102,7 +106,11 @@ func sprites() -> Array:
 
 
 func _colors(player_id: String) -> PackedColorArray:
-	var ids: Array = (client.state.get("players", {}) as Dictionary).keys()
+	return colors_of(client.state, player_id)
+
+
+static func colors_of(state: Dictionary, player_id: String) -> PackedColorArray:
+	var ids: Array = (state.get("players", {}) as Dictionary).keys()
 	ids.sort()
 	return PackedColorArray(PLAYER_COLORS[maxi(ids.find(player_id), 0) % PLAYER_COLORS.size()])
 

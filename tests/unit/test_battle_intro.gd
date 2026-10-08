@@ -41,6 +41,23 @@ func test_each_game_has_its_own_bands() -> void:
 ## `ld a, c` / `ldh [hSCX], a` / `call DelayFrame` before `.loop1` is a frame of
 ## the whole screen at the starting offset, bottom band included. Crystal
 ## delays nowhere before its own loop and so has no such frame.
+## `LoadPlayerBackPic` puts the head of Red and Blue's seven-row back picture in
+## OAM: seven columns of three from $A0, $38, ending on the square's own column.
+func test_generation_1_slides_the_head_of_its_own_seven_row_back_picture() -> void:
+	var intro := Gen2BattleIntro.create(false, true)
+	intro.advance_frame()
+	var sprites: Array = intro.sprites()
+	assert_eq(sprites.size(), Gen2BattleIntro.GEN1_SPRITE_COLUMNS * Gen2BattleIntro.SPRITE_ROWS)
+	assert_eq(sprites[1]["tile"], 1)
+	assert_eq(sprites[3]["tile"], Gen2BattleScreenMap.GEN1_PLAYER_SIDE, "a column is seven tiles down the picture")
+	assert_eq(sprites[0]["y"], Gen2BattleIntro.GEN1_SPRITE_FIRST_Y)
+	while not intro.finished() and int(intro.sprites()[0]["x"]) > 16:
+		intro.advance_frame()
+	assert_eq(intro.sprites()[0]["x"], 16, "OAM's 16 is the square's first column")
+	assert_eq(Gen2BattleIntro.create(false, true).offsets(), Gen2BattleIntro.create(false).offsets(),
+		"the bands are the slide Gold and Silver kept")
+
+
 func test_only_gold_and_silver_lead_with_a_whole_screen_frame() -> void:
 	var gold: PackedInt32Array = Gen2BattleIntro.create(false).offsets()
 	assert_eq(gold[0], Gen2BattleIntro.GOLD_TOP_START)
