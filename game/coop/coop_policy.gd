@@ -27,8 +27,7 @@ const OPENING_BEDROOM: Vector2i = Vector2i(0, 0x26)
 const OPENING_BEDROOM_CELL: Vector2i = Vector2i(3, 6)
 const OPENING_LAB: Vector2i = Vector2i(0, 0x28)
 const OPENING_DONE_FLAG: int = 0x22
-## Red and Blue's unique items kept for good, most needed to get on: the map,
-## bicycle, keys, ticket, coin case, itemfinder, scope, flute, Exp. All, rods, HMs.
+## Red and Blue's unique items kept for good: the map, bicycle, keys, ticket, coin case, itemfinder, scope, flute, Exp. All, rods, HMs.
 const SHARED_ITEMS: Array[int] = [
 	5, 6, 43, 48, 63, 69, 71, 72, 73, 74, 75, 76, 77, 78, 196, 197, 198, 199, 200,
 ]
@@ -41,15 +40,17 @@ const GIFT_TMS: Dictionary = {
 const GIFT_COMMIT_PREFIX: String = "gift:"
 ## OLD_AMBER, DOME_FOSSIL and HELIX_FOSSIL: each player revives their own (D52).
 const OWN_FOSSILS: Array[int] = [0x1F, 0x29, 0x2A]
-## Each player's own (D61): gifts EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; Safari Game; EVENT_IN_PURIFIED_ZONE.
+## Each player's own (D61): gifts EVENT_GOT_HITMONLEE, _HITMONCHAN, _BOUGHT_MAGIKARP, EEVEE and Dojo balls; Safari Game;
+## EVENT_IN_PURIFIED_ZONE; EVENT_MANSION_SWITCH_ON, which Cinnabar Island clears; the fossil lab's EVENT_GAVE_FOSSIL_TO_LAB and next two.
 const OWN_GIFTS: Dictionary = {
-	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107],
+	"event_flags": [0x356, 0x357, 0x3FF, Gen1Layout.SAFARI_GAME_OVER_EVENT, Gen1Layout.IN_SAFARI_ZONE_EVENT, 0x107,
+		0x278, 0x2E0, 0x2E1, 0x2E2],
 	"toggled_objects": [0x45, 0x4A, 0x4B],
 }
 ## Each player's own Elite Four run (#88): INDIGO_PLATEAU_EVENTS_START to EVENT_BEAT_CHAMPION_RIVAL, which the lobby and Hall of Fame clear.
 const ELITE_FOUR_RUN := Vector2i(0x8E0, 0x901)
 static var _own_gen1: Dictionary = {}
-## Red and Blue's one-off wild Pokémon (SNORLAX, the three birds, MEWTWO), each one encounter for the whole campaign.
+## Red and Blue's one-off wild Pokémon, never met in the grass: SNORLAX, the three birds and MEWTWO, one encounter each.
 const UNIQUE_WILD: Array[int] = [143, 144, 145, 146, 150]
 ## How long a dropped controller is waited for before the others are asked to stand in (D61).
 const STAND_IN_MSEC: int = 30000

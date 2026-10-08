@@ -1223,3 +1223,20 @@ scene. Left as it is: a card-key door a partner opens on the floor a window
 stands on stays drawn shut there until that player opens it with the shared
 CARD KEY (the floor draws closed doors only on a map load). Whether the gate
 guards should be the campaign's is asked of the owner.
+
+## D86. What the BLAINE stretch showed about Cinnabar Island (2026-10-08)
+
+The autoplayed stretch from SABRINA to BLAINE (#88) made four sharing choices.
+The Pokémon Mansion's switch (`EVENT_MANSION_SWITCH_ON`) joins
+`PokeCoopPolicy.OWN_GIFTS`: `CinnabarIsland_Script` clears it on every frame a
+player stands on the island, so as a campaign flag a partner outside reset the
+other player's doors, and a partner's press toggled them. The fossil lab's
+`EVENT_GAVE_FOSSIL_TO_LAB` and the two flags after it are each player's, as
+`wFossilMon` already is (D52), so each player gives and revives their own.
+Cinnabar Gym's six quiz gates stay the campaign's: a window already in the gym
+owes itself a `MAP_LOADED_1_BIT` redraw when a partner's answer sets one
+(`MAP_LOADS_OWED_BY_FLAG`, beside Vermilion Gym's second lock), so either
+player's right answer opens the gate for both. A Generation 1 window reopened
+on a water cell starts surfing, as a Continue does, since the host keeps the
+position but not `wWalkBikeSurfState`. The SECRET KEY is a shared key item;
+VOLCANOBADGE is the campaign's and TM38 is given once to each player.
