@@ -116,10 +116,13 @@ var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
 var _filmed: Dictionary = {}
 var _car_floor: int = -1
+var _whiteout: bool = false
+var _losing: bool = false
+var _partner_lost: bool = false
 
 
 func _read_option(arg: String) -> bool:
-	for option: String in ["route=", "from=", "speed=", "ball=", "shots="]:
+	for option: String in ["route=", "from=", "speed=", "ball=", "shots=", "whiteout="]:
 		if arg.begins_with(option):
 			var value: String = arg.trim_prefix(option)
 			match option:
@@ -128,6 +131,7 @@ func _read_option(arg: String) -> bool:
 				"speed=": _speed = clampf(value.to_float(), 1.0, float(Gen2WorldAnimation.MAX_CATCHUP_FRAMES))
 				"ball=": _ball = clampi(value.to_int(), 0, 2)
 				"shots=": _shots = value if not PokeToolPath.refuses(value) else ""
+				"whiteout=": _whiteout = value == "1"
 			return true
 	return super(arg)
 
@@ -175,7 +179,7 @@ func _choose() -> int:
 	if screen.get("_link_host") != null:
 		return _link_button(screen)
 	_hide_wait_box_left_over_the_link_room(screen)
-	if _frames % 60 == 0 and screen.active_save().party.any(_worn):
+	if _frames % 60 == 0 and not _losing and screen.active_save().party.any(_worn):
 		_heal(screen)
 	var battle: Gen2BattleScreen = screen.get("_battle_host")
 	if battle != null and battle.capture_safari_catch_rate() >= 0 and not bool(screen.call(&"_input_locked")):
@@ -1627,9 +1631,10 @@ const ELITE_LEVEL: int = 62
 var _hall: Dictionary = {}
 var _beaten_before: Array = []
 var _battles_shot: Dictionary = {}
+var _seen_beaten: Dictionary = {}
 
 
-## Each room's member fought by one window and joined by the other, then met for its own run; the Champion likewise.
+## The team's run (D91): LORELEI and AGATHA fought with the partner joined beside, BRUNO and LANCE from the room behind.
 func _elite_legs() -> Array:
 	var p: Variant = _played
 	var m: Dictionary = ELITE_MAPS
@@ -1637,17 +1642,68 @@ func _elite_legs() -> Array:
 		["lobby_nurse", p._talk(BELOW_LOBBY_NURSE, UP), func(world: Gen2WorldAPI) -> bool:
 			return world.gen1_last_blackout_map() == INDIGO_PLATEAU],
 		_grind.bind(ELITE_LEVEL, 0),
-		["lobby_stairs", p._warp_to(m.lorelei), p._on_map(m.lorelei)],
 	]
 	for room: int in ELITE_ROOMS.size():
 		var row: Array = ELITE_ROOMS[room]
+		var map: Vector2i = m[StringName(row[0])]
 		var beaten: Callable = p._flag(int(row[2]))
-		legs += [_meet_partner("meet_in_%ss_room" % row[0], beaten), _note_beaten,
-			[String(row[0]), _join_or(_leads(room, p._talk_to(LANCE if row[0] == "lance" else ELITE_MEMBER))), beaten]]
-		if row[1] != &"champion":
-			legs.append(["%ss_room_out" % row[0], p._warp_to(m[row[1]]), p._on_map(m[row[1]])])
+		var member: Callable = p._talk_to(LANCE if row[0] == "lance" else ELITE_MEMBER)
+		var walk_in: Array = ["lobby_stairs" if room == 0 else "%ss_room_in" % row[0], p._warp_to(map), p._on_map(map)]
+		if room % 2 == 0:
+			legs += [walk_in, _meet_partner("meet_in_%ss_room" % row[0], beaten), _note_beaten,
+				[String(row[0]), _join_or(_fights(room, member)), beaten]]
+		else:
+			if _whiteout and room == 1:
+				var lobby: Vector2i = VICTORY_MAPS.indigo_plateau_lobby
+				legs += [["%ss_room_lost" % row[0], _lose_at(room, map, member), _whited_out(room)],
+					["lobby_again", _fights(room, p._warp_to(lobby)), _either(p._on_map(lobby), _follows(room))],
+					["back_through_loreleis_room", _fights(room, p._warp_to(m.lorelei)), _either(p._on_map(m.lorelei), _follows(room))]]
+			legs += [_note_beaten, ["%ss_room_ahead" % row[0], _join_any(_leads(room, p._warp_to(map))), _either(p._on_map(map), beaten)],
+				[String(row[0]), _fights(room, member), beaten], walk_in]
+		legs.append(["%ss_exit_open" % row[0], _standing, _settled(String(row[0]), beaten)])
 	return legs + [_note_beaten, ["champion", _join_any(_leads(ELITE_ROOMS.size(), p._warp_to(m.champion), true)), _inducted],
-		_elite_done]
+		["league_cleared", _standing, _league_cleared]]
+
+
+func _settled(room: String, beaten: Callable) -> Callable:
+	return func(world: Gen2WorldAPI) -> bool:
+		return bool(beaten.call(world)) and _frames - int(_seen_beaten.get_or_add(room, _frames)) >= FILM_FRAMES * 2
+
+
+func _follows(room: int) -> Callable:
+	return func(_world: Gen2WorldAPI) -> bool: return _order() != room % 2
+
+
+func _lose_at(room: int, map: Vector2i, member: Callable) -> Callable:
+	var to_room: Callable = _played._warp_to(map)
+	return func(world: Gen2WorldAPI) -> int:
+		if _order() != room % 2:
+			return PokeButton.NONE
+		if world.map_id() != map:
+			return to_room.call(world)
+		if not _losing:
+			_losing = true
+			var party: Array = _played._screen.active_save().party
+			for at: int in party.size():
+				(party[at] as Gen2SaveMon).hp = 1 if at == 0 else 0
+				(party[at] as Gen2SaveMon).status = 7 if at == 0 else 0
+			print("coop autoplay: %s faces %s with one sleeping Pokémon at 1 HP, to white out" % [_player_id, map])
+		return member.call(world)
+
+
+func _whited_out(room: int) -> Callable:
+	var outside: Vector2i = Vector2i(0, INDIGO_PLATEAU)
+	return func(world: Gen2WorldAPI) -> bool:
+		if _order() == room % 2:
+			_losing = _losing and world.map_id() != outside
+			return world.map_id() == outside
+		_partner_lost = _partner_lost or _partner_on(outside)
+		_still_since = Time.get_ticks_msec()
+		return _partner_lost
+
+
+func _fights(room: int, member: Callable) -> Callable:
+	return func(world: Gen2WorldAPI) -> int: return member.call(world) if _order() == room % 2 else PokeButton.NONE
 
 
 func _leads(room: int, goal: Callable, alone: bool = false) -> Callable:
@@ -1683,15 +1739,17 @@ func _inducted(world: Gen2WorldAPI) -> bool:
 	return world.map_id() == PokeCoopPolicy.START_MAP and world.state.hall_of_fame() and host.has(Gen2WorldState.ENGINE_HALL_OF_FAME)
 
 
-func _elite_done() -> bool:
+func _league_cleared(world: Gen2WorldAPI) -> bool:
 	var run: Array = range(PokeCoopPolicy.ELITE_FOUR_RUN.x, PokeCoopPolicy.ELITE_FOUR_RUN.y + 1)
-	var world: Gen2WorldAPI = _played._screen.world()
 	var host: Dictionary = (_session.client.me().get("world", {}) as Dictionary).get("event_flags", {})
 	var campaign: Array = ((_session.client.state.get("campaign", {}) as Dictionary).get("flags", []) as Array)
 	var left: Array = run.filter(func(flag: int) -> bool: return world.event_flag_active(flag) or host.has(flag) or campaign.has(flag))
-	print("coop autoplay: %s inducted on %s %s, run flags left %s, beaten %s, partners %s" % [_player_id, world.map_id(),
-		world.player_cell, left, _beaten(), _session.client.state.get("players", {}).keys()])
-	return left.is_empty()
+	if not left.is_empty():
+		_still_since = Time.get_ticks_msec()
+		return false
+	print("coop autoplay: %s inducted on %s %s, run cleared for the campaign, beaten %s, partners %s" % [_player_id,
+		world.map_id(), world.player_cell, _beaten(), _session.client.state.get("players", {}).keys()])
+	return true
 
 
 func _film_battle(view: Dictionary) -> void:
