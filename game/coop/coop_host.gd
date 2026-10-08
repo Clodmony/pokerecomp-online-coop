@@ -9,6 +9,7 @@ const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
 const MAX_TRAINER_NAME: int = 16
 const MAX_WIN_TEXT: int = 512
+const MAX_NOTE: int = 64
 ## How often a changed campaign is written between battles: a crashed host loses at most this much.
 var autosave_msec: int = 30000
 
@@ -53,6 +54,7 @@ var _started: bool = false
 var _logged_revision: int = -1
 var _logged_views: Dictionary = {}
 var _league_cleared: bool = false
+var notes: Dictionary = {}
 
 
 static func create(
@@ -144,6 +146,9 @@ func _on_message(peer: int, message: Dictionary) -> StringName:
 	if kind == "log":
 		_relay_log(peer, message.get("lines"))
 		return &""
+	if kind == "note":
+		_take_note(String(_peers.get(peer, "")), message.get("text"))
+		return &""
 	var line: Dictionary = journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": message}, String(_peers.get(peer, "")))
 	var result: StringName = _hello(peer, message) if kind == "hello" else _answer(peer, kind, message)
 	if not line.is_empty():
@@ -181,6 +186,12 @@ func _relay_log(peer: int, raw: Variant) -> void:
 	journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": {"type": "log", "lines": (raw as Array).size() if raw is Array else -1},
 		"result": "%d taken" % taken.size()}, sender)
 	_pass_log(taken, peer)
+
+
+func _take_note(sender: String, text: Variant) -> void:
+	if not sender.is_empty() and text is String:
+		notes[sender] = (text as String).left(MAX_NOTE)
+		journal.add(PokeCoopLog.HOST, "note", {"text": notes[sender]}, sender)
 
 
 static func _is_log(message: Dictionary) -> bool:
@@ -833,6 +844,11 @@ func save_checkpoint(why: String = "checkpoint") -> StringName:
 		journal.add(PokeCoopLog.HOST, "save_refused", {"why": why, "reason": blocked})
 		return blocked
 	return &"" if _write_campaign(why) == OK else &"save_failed"
+
+
+## The checkpoint's content written to [param path] (a run's snapshot), neither a SAVE nor the checkpoint.
+func write_copy(path: String) -> Error:
+	return ERR_BUSY if not battles.is_empty() else PokeCoopSave.write(path, campaign, players.values())
 
 
 ## The campaign between battles: a battle still running when the host closes is left out.
