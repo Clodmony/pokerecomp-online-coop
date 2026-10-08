@@ -385,6 +385,7 @@ func _teach_cut() -> bool:
 	var save: Gen2SaveData = _played._screen.active_save()
 	if _played._screen.world().state.item_quantity(Gen1Layout.HM_FIRST_ITEM) <= 0:
 		return false
+	_party_with(_learns.bind([Gen2WorldFieldMove.MOVE_CUT]))
 	for mon: Gen2SaveMon in save.party:
 		if Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_CUT):
 			_played._editor.set_move(mon, Gen2SaveMon.MAX_MOVES - 1, Gen2WorldFieldMove.MOVE_CUT)
@@ -913,6 +914,7 @@ const FRESH_WATER: int = 0x3C
 const CARD_KEY: int = 0x30
 const MASTER_BALL: int = 0x01
 const LAPRAS_DEX: int = 131
+const FIELD_MOVES: Array[int] = [Gen2WorldFieldMove.MOVE_CUT, Gen2WorldFieldMove.MOVE_SURF, Gen2WorldFieldMove.MOVE_STRENGTH]
 const MARSHBADGE: int = 5
 const EVENT_GOT_MASTER_BALL: int = 1933
 const EVENT_BEAT_SILPH_CO_GIOVANNI: int = 1935
@@ -1060,6 +1062,44 @@ func _owns(species: int) -> bool:
 	for box: Gen2SaveBox in save.boxes:
 		mons.append_array(box.slots.filter(func(mon: Variant) -> bool: return mon != null))
 	return mons.any(func(mon: Gen2SaveMon) -> bool: return mon.species == species)
+
+
+func _room() -> bool:
+	var save: Gen2SaveData = _played._screen.active_save()
+	var at: Dictionary = save.deposit_box_slot()
+	if save.party.size() < Gen2SaveData.MAX_PARTY:
+		return true
+	if not bool(at.get("ok", false)):
+		return false
+	var spare: int = save.party.size() - 1
+	while spare > 1 and FIELD_MOVES.any(func(move: int) -> bool: return (save.party[spare] as Gen2SaveMon).moves.has(move)):
+		spare -= 1
+	var mon: Gen2SaveMon = save.party.pop_at(spare)
+	(save.boxes[int(at["box"])] as Gen2SaveBox).put(mon, int(at["slot"]))
+	Gen2SaveStorage.deposited(_session.data, mon)
+	print("coop autoplay: %s boxed %d for room in the party" % [_player_id, mon.species])
+	_played._screen.call(&"_refresh_party_summary")
+	return true
+
+
+func _party_with(fits: Callable) -> bool:
+	var save: Gen2SaveData = _played._screen.active_save()
+	if save.party.any(fits):
+		return true
+	for box: Gen2SaveBox in save.boxes:
+		var at: int = box.slots.find_custom(func(mon: Variant) -> bool: return mon != null and bool(fits.call(mon)))
+		if at >= 0 and _room():
+			var mon: Gen2SaveMon = box.take(at)
+			save.party.append(mon)
+			mon.calc_stats(_session.data)
+			print("coop autoplay: %s took %d from the PC box" % [_player_id, mon.species])
+			_played._screen.call(&"_refresh_party_summary")
+			return true
+	return false
+
+
+func _learns(mon: Gen2SaveMon, moves: Array) -> bool:
+	return moves.all(func(move: int) -> bool: return Gen2WorldTMHM.can_learn(_session.data, mon.species, move))
 
 
 func _sabrina_done() -> bool:
@@ -1256,6 +1296,7 @@ func _teach_surf_and_strength() -> bool:
 	for row: Array in [[HM03, Gen2WorldFieldMove.MOVE_SURF, Gen2SaveMon.MAX_MOVES - 1], [HM04, Gen2WorldFieldMove.MOVE_STRENGTH, 0]]:
 		if _played._screen.world().state.item_quantity(int(row[0])) <= 0:
 			return false
+		_party_with(_learns.bind([int(row[1])]))
 		for mon: Gen2SaveMon in save.party:
 			if Gen2WorldTMHM.can_learn(_session.data, mon.species, int(row[1])):
 				_played._editor.set_move(mon, int(row[2]), int(row[1]))
@@ -1601,6 +1642,7 @@ func _swim_button(world: Gen2WorldAPI, goal: Callable) -> int:
 
 
 func _teach_victory_moves() -> bool:
+	_party_with(_learns.bind([Gen2WorldFieldMove.MOVE_SURF, Gen2WorldFieldMove.MOVE_STRENGTH]))
 	for mon: Gen2SaveMon in _played._screen.active_save().party:
 		if Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_SURF) \
 				and Gen2WorldTMHM.can_learn(_session.data, mon.species, Gen2WorldFieldMove.MOVE_STRENGTH):
@@ -1835,7 +1877,7 @@ func _heal(screen: Gen2WorldScreen) -> void:
 
 
 func _grind(level: int, caught: int) -> bool:
-	var grown: bool = _played._grind(level, caught)
+	var grown: bool = (caught <= 0 or _room()) and _played._grind(level, caught)
 	for failure: String in _played._r.failures:
 		print("coop autoplay: %s %s" % [_player_id, failure])
 	return grown
@@ -1935,7 +1977,7 @@ func _give_machoke() -> bool:
 	if ids.size() < 2 or ids[0] != _session.client.player_id:
 		return true
 	var save: Gen2SaveData = _played._screen.active_save()
-	if not bool(_played._editor.add_party_member(MACHOKE, _kit.BROCK_LEVEL).get("ok", false)):
+	if not _room() or not bool(_played._editor.add_party_member(MACHOKE, _kit.BROCK_LEVEL).get("ok", false)):
 		return false
 	var machoke: Gen2SaveMon = save.party.back()
 	machoke.ot_id = save.player_id
