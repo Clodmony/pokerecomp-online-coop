@@ -19,21 +19,22 @@ keep the snapshot below current.
   - The chained run's Rocket Hideout car stall was the autopilot choosing the
     wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
     The chained run then stalled on Pokémon Tower 7F for a partner arriving
-    after Mr. Fuji's rescue (`coop/tower-7f-late`, merged); a third chained run is under way.
+    after Mr. Fuji's rescue (`coop/tower-7f-late`, merged). The third chained run froze on Silph Co.
+    7F in a text box (`coop/silph-7f-stall`, in progress).
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` merged (D89, D90): GIOVANNI, Route 22's second
     rival and Victory Road, chained between `blaine` and `elite`. Every stretch
     to the Hall of Fame is now in ROUTES; what is left of #88 is one chained
     `playthrough_elite` from a new campaign.
-  - `coop/autoplay-elite` merged (D87 provisional, D88): the Elite Four, the
+  - `coop/autoplay-elite` merged (D87, replaced by D93; D88): the Elite Four, the
     Champion and each player's Hall of Fame.
   - Owner's answers (D91): Saffron's gate drink and the Elite Four are the
-    team's, not each player's: the drink is merged (D92); the Elite Four is
-    being built on `coop/elite-team`.
+    team's, not each player's: the drink (D92) and the Elite Four (D93)
+    are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D93 (D72 to D92 are recorded).
+- **Next free decision number:** D94 (D72 to D93 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
