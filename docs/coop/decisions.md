@@ -1374,3 +1374,24 @@ dumps (Rote Edition and Blaue Edition, Germany, SGB Enhanced) are verified
 locally and are never copied, committed or uploaded. einstein95/pokered-de,
 which builds both byte for byte, is pinned as a reference like pret/pokered:
 addresses and constants only, never its asm, text, graphics or symbol files.
+
+## D96. Autoplayed runs snapshot every 10 s and resume from each window's leg (owner's request, 2026-10-08)
+
+Long autoplayed runs failed hours in, and resuming meant copying the campaign
+and guessing one `FROM` for both windows, though a stall often leaves them on
+different legs. The owner asked for a snapshot every 10 seconds or so. An
+autoplayed scenario's host now writes, every 10 s in which something changed
+and only between battles, a `SEED=`-shaped snapshot: the content a checkpoint
+would write (`PokeCoopHost.write_copy`; no SAVE counted, the checkpoint
+untouched), the identity file, and each window's leg. The autopilot sends its
+running leg as an unnumbered `note` once the world link has rested since the
+leg began, so the host already holds the world the leg starts from; a recorded
+leg can lag the window but never leads it. Repeated leg names are
+`<name>#<n>`. All snapshots of the last 30 minutes are kept, older ones one
+per 5 minutes. `tools/coop_resume.sh` reruns the scenario through
+`coop_screens.sh` from the last snapshot, a numbered one, or one so many
+seconds before the end, each window with its own `P1_FROM` / `P2_FROM`. It is
+not a memory image: the game is recompiled, and the host's campaign plus the
+leg is what a window reopens from. Cost: one tool-only message type the host
+ignores for game state; the autopilot's in-between steps before a resumed leg
+are skipped, as with `FROM`.
