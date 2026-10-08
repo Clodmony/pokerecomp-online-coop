@@ -1,0 +1,139 @@
+class_name PokeCoopCampaign
+extends RefCounted
+
+## What every player of a co-op run shares: story flags, badges and which unique
+## encounters are taken. Progress only moves through [method commit], keyed by an
+## id, so a message delivered twice cannot apply twice.
+
+const ENCOUNTER_FREE: StringName = &"free"
+const ENCOUNTER_ACTIVE: StringName = &"active"
+const ENCOUNTER_DONE: StringName = &"done"
+
+var campaign_id: String = ""
+var game_id: StringName = &""
+var rom_sha1: String = ""
+var flags: Dictionary = {}
+var badges: int = 0
+var revision: int = 0
+var next_battle_serial: int = 1
+var next_player_serial: int = 1
+var _encounters: Dictionary = {}
+var _commits: Dictionary = {}
+
+
+static func create(id: String, game: StringName, sha1: String) -> PokeCoopCampaign:
+	var out := PokeCoopCampaign.new()
+	out.campaign_id = id
+	out.game_id = game
+	out.rom_sha1 = sha1
+	return out
+
+
+func has_flag(flag: int) -> bool:
+	return flags.has(flag)
+
+
+func has_badge(bit: int) -> bool:
+	return (badges & (1 << bit)) != 0
+
+
+func is_committed(commit_id: String) -> bool:
+	return _commits.has(commit_id)
+
+
+## Applies [param changes] (`flags`, `badges`, `defeated`) once per [param commit_id].
+func commit(commit_id: String, changes: Dictionary) -> bool:
+	if commit_id.is_empty() or _commits.has(commit_id):
+		return false
+	for flag: Variant in changes.get("flags", []) as Array:
+		flags[int(flag)] = true
+	badges |= int(changes.get("badges", 0))
+	for encounter: Variant in changes.get("defeated", []) as Array:
+		_encounters[String(encounter)] = {"state": ENCOUNTER_DONE, "battle": ""}
+	_commits[commit_id] = true
+	revision += 1
+	return true
+
+
+func encounter_state(encounter_id: String) -> StringName:
+	return StringName((_encounters.get(encounter_id, {}) as Dictionary).get("state", ENCOUNTER_FREE))
+
+
+func claim_encounter(encounter_id: String, battle_id: String) -> bool:
+	if encounter_state(encounter_id) != ENCOUNTER_FREE:
+		return false
+	_encounters[encounter_id] = {"state": ENCOUNTER_ACTIVE, "battle": battle_id}
+	revision += 1
+	return true
+
+
+func release_encounter(encounter_id: String, battle_id: String) -> void:
+	var held: Dictionary = _encounters.get(encounter_id, {})
+	if StringName(held.get("state", ENCOUNTER_FREE)) == ENCOUNTER_ACTIVE \
+			and String(held.get("battle", "")) == battle_id:
+		_encounters.erase(encounter_id)
+		revision += 1
+
+
+func take_battle_id() -> String:
+	next_battle_serial += 1
+	return "b%d" % (next_battle_serial - 1)
+
+
+func take_player_id() -> String:
+	next_player_serial += 1
+	return "p%d" % (next_player_serial - 1)
+
+
+func summary() -> Dictionary:
+	var done: Array = []
+	for encounter: String in _encounters:
+		if StringName((_encounters[encounter] as Dictionary)["state"]) == ENCOUNTER_DONE:
+			done.append(encounter)
+	done.sort()
+	return {
+		"campaign_id": campaign_id, "revision": revision, "flags": _sorted_flags(),
+		"badges": badges, "defeated": done,
+	}
+
+
+func _sorted_flags() -> Array:
+	var out: Array = flags.keys()
+	out.sort()
+	return out
+
+
+## Active claims are not written: a save is only taken with no battle running.
+func to_dict() -> Dictionary:
+	var done: Array = summary()["defeated"]
+	var commits: Array = _commits.keys()
+	commits.sort()
+	return {
+		"campaign_id": campaign_id, "game_id": String(game_id), "rom_sha1": rom_sha1,
+		"flags": _sorted_flags(), "badges": badges, "revision": revision,
+		"defeated": done, "commits": commits,
+		"next_battle_serial": next_battle_serial, "next_player_serial": next_player_serial,
+	}
+
+
+static func from_dict(raw: Variant) -> PokeCoopCampaign:
+	if not raw is Dictionary:
+		return null
+	var source: Dictionary = raw
+	var out := PokeCoopCampaign.create(
+		String(source.get("campaign_id", "")), StringName(source.get("game_id", "")),
+		String(source.get("rom_sha1", ""))
+	)
+	if out.campaign_id.is_empty():
+		return null
+	for flag: Variant in source.get("flags", []) as Array:
+		out.flags[int(flag)] = true
+	for encounter: Variant in source.get("defeated", []) as Array:
+		out._encounters[String(encounter)] = {"state": ENCOUNTER_DONE, "battle": ""}
+	for commit_id: Variant in source.get("commits", []) as Array:
+		out._commits[String(commit_id)] = true
+	out.badges = int(source.get("badges", 0))
+	out.revision = int(source.get("revision", 0))
+	out.next_battle_serial = maxi(int(source.get("next_battle_serial", 1)), 1)
+	out.next_player_serial = maxi(int(source.get("next_player_serial", 1)), 1)
+	return out
