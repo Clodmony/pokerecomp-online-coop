@@ -109,6 +109,7 @@ Red (or Blue) cartridge, the same one.
 | W69 | One player starts the Seafoam boulder puzzle while the partner still walks Route 20 | Every boulder dropped stays where it fell in both windows; the partner finds B3F's water calm | `test_a_partner_on_route_20_never_resets_the_seafoam_boulders_of_the_player_inside` | playthrough_blaine | |
 | W70 | A late partner whose lead knows only Normal moves walks down Pokémon Tower from 7F | Wild GASTLY and HAUNTER are beaten in seconds with a move that hits; the partner reaches Mr. Fuji's house and gets their own POKé FLUTE | | seeded run on a real chained campaign | |
 | W71 | A player's Safari Game ends with no catch (out of steps or Safari Balls) | They are returned to the gate, can pay again and catch; the catch reaches the host; the partner waiting in Fuchsia Gym is not stranded | | seeded KOGA run with a forced empty game (local change) | |
+| W72 | With a full party and a full current PC box, change box at a PC and catch a wild Pokémon | It is stored in the new box; the host's campaign records that box as current and holds the Pokémon there | `test_a_box_changed_in_a_window_is_the_one_the_host_stores_into` | resumed KOGA run with box 1 full | |
 
 ## Battles
 
