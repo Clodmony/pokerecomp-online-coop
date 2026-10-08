@@ -1,8 +1,8 @@
 extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
-##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>]
-## walks preview_world_story.gd's legs through <last leg>, the party grown to level=; p1 imports it as a host's first player, p2 a copy.
+##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>]
+## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=; p1 imports it, p2 a copy.
 
 const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
@@ -26,10 +26,15 @@ func _initialize() -> void:
 		push_error("coop seed: no imported Generation 1 cache for %s" % args[0])
 		quit(1)
 		return
-	quit(_seed(data, args[1], args[2], int(args[3].trim_prefix("level=")) if args.size() > 3 else 0))
+	var options: Dictionary = {"level=": 0, "party=": 0}
+	for arg: String in args.slice(3):
+		for key: String in options:
+			if arg.begins_with(key):
+				options[key] = int(arg.trim_prefix(key))
+	quit(_seed(data, args[1], args[2], options["level="], options["party="]))
 
 
-func _seed(data: GameData, last: String, out_dir: String, level: int = 0) -> int:
+func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0) -> int:
 	var story: Dictionary = _gen1_story_start(data)
 	if not story.has("world"):
 		push_error("coop seed: %s" % story.get("reason", ""))
@@ -50,11 +55,12 @@ func _seed(data: GameData, last: String, out_dir: String, level: int = 0) -> int
 		push_error("coop seed: no rest after stepping out of the door")
 		return 1
 	save.world = world.snapshot()
+	fill_party(data, save, party)
 	if level > 0:
 		_raise(data, save, level)
 	var written: Error = write_seed(data, save, out_dir, _beside(world))
-	print("coop seed: %s on %s %s, badges %d, %s" % [
-		last, world.map_id(), world.player_cell, world.state.badge_count(), error_string(written)])
+	print("coop seed: %s on %s %s, badges %d, party %d, %s" % [
+		last, world.map_id(), world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
 	return 0 if written == OK else 1
 
 
@@ -68,6 +74,25 @@ static func _raise(data: GameData, save: Gen2SaveData, level: int) -> void:
 		for slot: int in Gen2SaveMon.MAX_MOVES:
 			editor.set_move(mon, slot, int(known[slot]) if slot < known.size() else Gen2SaveEditor.NO_MOVE)
 		mon.hp = editor.max_hp_for(mon)
+
+
+static func fill_party(data: GameData, save: Gen2SaveData, size: int) -> void:
+	var editor := Gen2SaveEditor.new()
+	editor.data = data
+	editor.save = save
+	var lead: Gen2SaveMon = save.party.front() if not save.party.is_empty() else null
+	var used: Array = save.party.map(func(held: Gen2SaveMon) -> int: return held.dvs)
+	var top: int = Gen2Stats.MAX_DV
+	for special: int in range(top, -1, -1):
+		if lead == null or save.party.size() >= mini(size, Gen2SaveData.MAX_PARTY):
+			return
+		if used.has(Gen2Stats.pack_dvs(top, top, top, special)) \
+				or not bool(editor.add_party_member(lead.species, lead.level).get("ok", false)):
+			continue
+		var mon: Gen2SaveMon = save.party.back()
+		editor.set_dvs(mon, top, top, top, special)
+		mon.hp = editor.max_hp_for(mon)
+		used.append(mon.dvs)
 
 
 static func _leg_name(leg: Callable) -> String:
