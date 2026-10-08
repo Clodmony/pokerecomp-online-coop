@@ -79,6 +79,7 @@ const HIDEOUT_ROCKET_3 := Vector2i(11, 2)
 const LIFT_KEY_BALL := Vector2i(10, 2)
 const CAR_PANEL_FRONT := Vector2i(1, 2)
 const CAR_DOOR := Vector2i(2, 1)
+const CAR_ASIDE := Vector2i(3, 3)
 const DOOR_ROCKETS: Array = [Vector2i(23, 12), Vector2i(26, 12)]
 const GIOVANNI := Vector2i(25, 3)
 const LIFT_KEY: int = 0x4A
@@ -109,6 +110,7 @@ var _done: bool = false
 var _trade: Dictionary = {}
 var _trade_rounds: int = 0
 var _link_pressed_at: int = 0
+var _car_floor: int = -1
 
 
 func _read_option(arg: String) -> bool:
@@ -445,7 +447,7 @@ func _erika_legs() -> Array:
 		["hideout_b4f_to_b3f", _glide_to(m.hideout_b3f), p._on_map(m.hideout_b3f)],
 		["hideout_b3f_to_b2f", _glide_to(m.hideout_b2f), p._on_map(m.hideout_b2f)],
 		["hideout_b2f_elevator", _glide_to(m.hideout_elevator), p._on_map(m.hideout_elevator)],
-		["elevator_panel", p._talk(CAR_PANEL_FRONT, UP), _car_bound_for(m.hideout_b4f)],
+		["elevator_panel", _car_panel(m.hideout_b4f), _car_bound_for(m.hideout_b4f)],
 		["elevator_to_b4f", p._walk(CAR_DOOR), p._on_map(m.hideout_b4f)],
 		["door_rocket_1", p._talk_to(DOOR_ROCKETS[0]), p._flag(EVENT_BEAT_DOOR_ROCKETS[0])],
 		["door_rocket_2", p._talk_to(DOOR_ROCKETS[1]), p._flag(EVENT_BEAT_DOOR_ROCKETS[1])],
@@ -464,12 +466,20 @@ func _car_bound_for(map: Vector2i) -> Callable:
 	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
 
 
+func _car_panel(map: Vector2i) -> Callable:
+	return func(world: Gen2WorldAPI) -> int:
+		_car_floor = map.y
+		if bool(_partner_near(world.map_id(), CAR_PANEL_FRONT, 0).call(world)):
+			return _played._walk(CAR_ASIDE).call(world)
+		return _played._talk(CAR_PANEL_FRONT, UP).call(world)
+
+
 func _elevator_button(screen: Gen2WorldScreen) -> int:
 	var host: Gen2WorldServiceScreen = screen.get("_service_host")
 	if host == null or int(host.get("_mode")) != Gen2WorldServiceScreen.MODE.ELEVATOR or bool(host.call(&"_box_printing")):
 		return -1
 	var floors: Array = host.call(&"_elevator_floors")
-	var wanted: int = floors.find_custom(func(row: Dictionary) -> bool: return int(row["map"]) == ERIKA_MAPS.hideout_b4f.y)
+	var wanted: int = floors.find_custom(func(row: Dictionary) -> bool: return int(row["map"]) == _car_floor)
 	if wanted < 0:
 		return -1
 	return _paced(PokeButton.A if host.selected_index() == wanted else PokeButton.DOWN)
@@ -567,7 +577,7 @@ func _tower_legs() -> Array:
 	return [
 		["hideout_b4f_elevator", p._warp_to(m.hideout_elevator), p._on_map(m.hideout_elevator)],
 		_grind.bind(TOWER_LEVEL, 0),
-		["hideout_elevator_panel", p._talk(CAR_PANEL_FRONT, UP), _car_goes_to(m.hideout_b1f)],
+		["hideout_elevator_panel", _car_panel(m.hideout_b1f), _car_bound_for(m.hideout_b1f)],
 		["hideout_elevator_to_b1f", p._walk(CAR_DOOR), p._on_map(m.hideout_b1f)],
 		["hideout_b1f_door_rocket", p._talk_to(HIDEOUT_B1F_DOOR_ROCKET), p._flag(EVENT_BEAT_HIDEOUT_B1F_DOOR_ROCKET)],
 		["hideout_b1f_to_game_corner", p._warp_to(m.game_corner), p._on_map(m.game_corner)],
@@ -597,10 +607,6 @@ func _tower_legs() -> Array:
 		["poke_flute_on_host", _standing, func(world: Gen2WorldAPI) -> bool: return p._holds(POKE_FLUTE).call(world) and _hosted(POKE_FLUTE) > 0],
 		_flute_once,
 	]
-
-
-func _car_goes_to(map: Vector2i) -> Callable:
-	return func(world: Gen2WorldAPI) -> bool: return int((world.get("_gen1_warp_entry") as Dictionary).get("map", -1)) == map.y
 
 
 func _order() -> int:
