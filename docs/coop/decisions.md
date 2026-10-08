@@ -1322,3 +1322,28 @@ campaign on load. The gate scripts read the flag each time they run, so a
 partner already standing in a gate walks on with no map load. The autopilot's
 SABRINA stretch has one player buy and hand over the only FRESH WATER. This
 replaces D85's drink; LAPRAS stays each player's.
+
+## D93. The Elite Four is one run for the team (replaces D87, #88, 2026-10-08)
+
+Following D91, the Indigo Plateau's beaten flags are the campaign's: LORELEI,
+BRUNO, AGATHA, LANCE (0x8F9, 0x8FE) and the Champion (0x901). A member beaten
+by either player, alone or joined, is beaten for both; a window standing in
+that room owes itself a `MAP_LOADED_1` redraw (`LEAGUE_EXITS_REDRAWN`), so the
+exit opens there too, and a partner arriving later walks through without a
+fight. LANCE's room needs nothing: its script returns early once 0x8FE is set.
+The walks in (`EVENT_AUTOWALKED_INTO_*_ROOM`) and LANCE's door lock stay each
+player's (`OWN_GIFTS`), as do the rooms', the Champion's room's and the Hall
+of Fame's script bytes. Only AGATHA's end-of-battle script readies the
+Champion's room, so a window the team's AGATHA win reaches sets its own byte
+to PLAYER_ENTERS; the late player then meets the rival, whose fight the host
+ends at once as won (`encounter_done`), and gets Oak's scene and its own Hall
+of Fame, credits and Continue (D88). The lobby after a whiteout and the Hall
+of Fame clear the run; the host holds that clear while a connected player is
+in the League and, once the Champion fell, until every connected player is
+inducted, and the clearing window takes the held flags back. Applied, the
+clear erases the run and forgets the League's encounters and their `victory:`
+commits, so the next run fights everyone again. Costs: the hold lives in the
+host's memory, so a host restart keeps the run open until the next clear; a
+connected player who never comes to the League after the Champion fell holds
+rematches back, and anyone walking in meanwhile gets another instant Champion
+win and Hall of Fame entry; a disconnected player inside holds nothing.
