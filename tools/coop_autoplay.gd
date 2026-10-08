@@ -225,6 +225,7 @@ func _target_row(view: Dictionary, rows: Array) -> int:
 			active = ally
 	var best: int = -1
 	var best_power: int = -1
+	var enemy: Array = _session.data.species(int((view.get("enemy", {}) as Dictionary).get("species", 0))).get("types", [])
 	for index: int in rows.size():
 		var command: Dictionary = (rows[index] as Dictionary).get("command", {})
 		if String(command.get("type", "")) != wanted:
@@ -233,7 +234,8 @@ func _target_row(view: Dictionary, rows: Array) -> int:
 			return index
 		var slot: int = int(command["slot"])
 		var usable: bool = int((active.get("pp", []) as Array)[slot]) > 0 and slot != int(active.get("disabled", -1))
-		var power: int = int(_session.data.move(int(active["moves"][slot])).get("power", 0)) if usable else -1
+		var move: Dictionary = _session.data.move(int(active["moves"][slot]))
+		var power: int = int(move.get("power", 0)) * _session.data.type_effectiveness(int(move.get("type", 0)), enemy) if usable else -1
 		if power > best_power or best < 0:
 			best_power = power
 			best = index
