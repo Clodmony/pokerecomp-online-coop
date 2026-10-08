@@ -18,7 +18,8 @@ keep the snapshot below current.
     D80 (a checkpoint only on a real SAVE).
   - The chained run's Rocket Hideout car stall was the autopilot choosing the
     wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
-    The chained run from a new campaign is to be re-run.
+    The chained run then stalled on Pokémon Tower 7F for a partner arriving
+    after Mr. Fuji's rescue (`coop/tower-7f-late`, in progress).
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
