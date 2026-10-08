@@ -36,7 +36,7 @@ keep the snapshot below current.
     are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D95 (D72 to D94 are recorded).
+- **Next free decision number:** D96 (D72 to D95 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
@@ -81,7 +81,8 @@ keep the snapshot below current.
 9. [ ] **#44** Hand-played session when the owner is ready: fresh Windows and
    Linux builds from one commit, `test-cases.md` as the checklist.
 10. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
-    German once the owner supplies a dump; **#14** upstream merge after the
+    German as games of its own (D95), in progress on `coop/german` beside the
+    playthrough work; **#14** upstream merge after the
     pull requests merge.
 
 ## Every task ends with
