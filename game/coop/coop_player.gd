@@ -122,8 +122,7 @@ func mon(uid: String) -> Gen2SaveMon:
 	return null if index < 0 else (team[index] as Dictionary)["mon"]
 
 
-## A fought Pokémon written back over its own row by uid; false when the uid is
-## not on this team.
+## A fought Pokémon written back over its own row by uid; false when the uid is not on this team.
 func absorb_battle_mon(uid: String, fought: Gen2BattleMon) -> bool:
 	var index: int = team_index(uid)
 	if index < 0 or fought == null:

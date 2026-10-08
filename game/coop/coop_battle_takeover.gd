@@ -8,6 +8,7 @@ var client: PokeCoopClient = null
 var data: GameData = null
 ## The battles the world opened itself, whose evolutions it runs itself.
 var claimed: Dictionary = {}
+var waiting_on: String = ""
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -47,6 +48,7 @@ class Bridge extends Node:
 	var _known: Array = []
 	var _battle_id: String = ""
 	var _seq: int = -1
+	var _asking: Dictionary = {}
 	var _done: bool = false
 
 	func _init(takeover: PokeCoopBattleTakeover) -> void:
@@ -64,16 +66,24 @@ class Bridge extends Node:
 		for member: Gen2BattleMon in (context["enemy_party"] as Gen2Party).mons:
 			enemies.append(Gen2SaveBattleAdapter.from_battle_mon(member).to_dict())
 		var summary: Dictionary = context.get("summary", {})
-		_known = client.battles.keys()
 		client.journal.add(PokeCoopLog.WORLD, "takeover_start", {"summary": summary, "enemy": enemies.size()}, client.player_id)
-		_seq = client.send({
+		_asking = {
 			"type": "window_battle", "kind": String(summary.get("battle_kind", "wild")),
 			"trainer_class": int(summary.get("trainer_class", 0)),
 			"trainer_index": int(summary.get("trainer_index", 0)), "enemy": enemies,
 			"trainer_name": String(summary.get("trainer_name", "")), "win_text": PokeCoopBattleTakeover.win_line(data, summary.get("win_text")),
 			"gym": int(summary.get("lone_attack", 0)) != 0,
 			"map": [int(summary.get("map_group", -1)), int(summary.get("map_number", -1))],
-		})
+		}
+		_ask_when_free()
+
+	func _ask_when_free() -> void:
+		var busy: String = String(((client.state.get("players", {}) as Dictionary).get(client.player_id, {}) as Dictionary).get("battle", ""))
+		_owner.waiting_on = busy
+		if not busy.is_empty():
+			return
+		_known = client.battles.keys()
+		_seq = client.send(_asking)
 
 	func advance_frame() -> void:
 		pass
@@ -83,6 +93,9 @@ class Bridge extends Node:
 
 	func _process(_delta: float) -> void:
 		if _done:
+			return
+		if _seq < 0:
+			_ask_when_free()
 			return
 		var refusal: StringName = _refusal()
 		if refusal != &"":

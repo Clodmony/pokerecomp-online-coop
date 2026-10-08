@@ -161,6 +161,22 @@ charged twice; the world's SAVE writes the campaign.
 | Local x86_64, whole suite after the PC sync | 4873/4873; co-op suites 61/61; ENet demo 16/16; release gates pass |
 | Screens (scripted), Red: leaving | RED picks LEAVE SESSION from the SELECT menu: RED's window returns to the launcher, the campaign file holds both players, BLUE's world shows "The session ended: host shutdown." and returns to the launcher three seconds later |
 
+## Owner's rules (branch `coop/owner-rules`, 2026-10-07)
+
+The rules the owner settled in D61, built as D62.
+
+| Check | Result |
+|---|---|
+| Local x86_64, whole suite | 4977/4977, exit 0; co-op suites 164/164 |
+| Local x86_64, sockets | ENet demo 16/16; three-process check: host 4/4, p1 7/7, p2 8/8; boot smoke and release gates pass |
+| Tests: leaving | a joiner leaves, walks, is seen again and starts nothing; the partner decides for the Pokémon left behind; it keeps the experience it earned; the initiator cannot leave; REJOIN from the session menu; a queued join is called off |
+| Tests: stand-in | paused with no stand-in for 30 s, then `stand_in_due`; only TAKE OVER hands the turn over; the owner takes it back and is waited for again the next time; a battle nobody is in is kept 2 minutes, not 30 s |
+| Tests: rewards | each participant gets the whole trainer prize; one EXP.ALL pays each team what it would pay that team alone, whoever carries it |
+| Tests: gifts | the EEVEE ball, a Dojo gift and their flags stay with the player who took them and are saved with them, the Dojo's beaten flag reaches everyone; a found item two windows hand out at once is kept once, a purchase in the same change is not taken back |
+| Tests: world fight while busy | a fight the window's world opens after leaving waits until the old battle ends, then starts on the host and is won |
+| Screens (scripted), Red, 60 fps | a fresh campaign: RED fights a wild PIDGEY from the session menu, BLUE joins ("BLUE joined the battle!") and sees LEAVE BATTLE; BLUE leaves and is back in Pallet Town with RED marked "!" where the battle is; BLUE's SELECT menu offers "Rejoin the battle against wild PIDGEY" and rejoins; RED's window is closed, and 30 s later BLUE is asked "RED is still away. Take over their POKéMON, or keep waiting?"; TAKE OVER gives "RED is away: you choose for their POKéMON." and "What will CHARMANDER do?". The local campaign file was set aside for the run and put back unchanged |
+| Not run on screens | EXP.ALL, the full prize, gift Pokémon and the race, and a world fight waiting after leaving: tests only |
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -217,6 +233,10 @@ has **played** it by hand yet.
   hosting app is paused (D28); a stand-in for a controller who stays away
   (D33).
 - Protocol hardening backed by a seeded fuzz test (D35).
+- The owner's rules (D61, D62): LEAVE BATTLE and REJOIN, a dropped controller's
+  partner asked before standing in, a battle nobody is in kept two minutes,
+  the full prize for every participant, EXP.ALL per team, gift Pokémon per
+  player, and a gift two windows hand out at once kept once.
 
 ## Incomplete
 
@@ -242,11 +262,14 @@ has **played** it by hand yet.
   the host leaves and when a hosting app is paused, the checkpoint before is
   kept as `.bak`, and a failed write leaves the old file alone (D40); there is
   no journal between checkpoints or migration between formats yet (#39).
-- No private desktop or mobile builds yet: this machine has no Godot export
-  templates for 4.8-dev4 (#44, #45).
-- Shared NPCs, scripts and cutscenes are not locked while one player uses them;
-  two windows talking to the same gift giver at the same moment could both be
-  given it (#24).
+- Private Windows and Linux builds are exported, but the Windows build has only
+  run under Wine; there is no Android or iOS build (#44, #45, #46).
+- Shared NPCs, scripts and cutscenes are not locked while one player uses them
+  (#24). A gift two windows hand out at once is kept once (D62), but a race
+  that also moves new story, or one that gives coins, is not caught.
+- The host drops every `gen1_bytes` change a window sends (its entries are
+  named, not numbered), so the Vermilion Gym's trash-can locks, the slot
+  machines' lucky index and the SURF score are not kept between sessions (#82).
 - Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
   `palette` key for Generation 1 trainers (#59); see also L6 and L7.
 
@@ -256,10 +279,12 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand on two devices with the private Windows and Linux
-builds (the opening, then the first routes) and note what feels wrong in
-`tracking.md`; the builds also open the device checks for suspend (#20) and
-touch (#43). The largest open design item is the host-side world simulation
-(#22, #25): today each window walks its own world and the host trusts it, which
-also leaves the simultaneous-gift race of #24; it needs the owner's go-ahead
-before it starts, since it reworks the part every verified flow stands on.
+In order (D61):
+
+1. A hand-played session on the owner's devices with fresh Windows and Linux
+   builds (#44), including a battle left and rejoined and a dropped player.
+2. The scripted two-window playthrough from the opening to BROCK's badge (#48).
+3. The Android export and device checks (#45, #20, #43), then German Red/Blue
+   (#50).
+4. Once #58, #79, #80 and this branch are merged, the upstream merge to
+   0.1.74 (#14).

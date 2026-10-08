@@ -255,6 +255,8 @@ static func _replay_line(host: PokeCoopHost, line: Dictionary, out: Dictionary) 
 			var message: Variant = data.get("message")
 			if not message is Dictionary or message.get("type") == "log":
 				return
+			if message.get("type") == "stand_in":
+				_away_long_enough(host, str(message.get("battle")))
 			var answer: StringName = host._on_message(int(data.get("peer", 0)), restored(message))
 			out["messages"] += 1
 			var replayed: String = String(answer) if answer != &"" else "ok"
@@ -268,18 +270,16 @@ static func _replay_line(host: PokeCoopHost, line: Dictionary, out: Dictionary) 
 			if session != null:
 				session.abandon()
 				host._finish(session)
-		"controller":
-			_stand_in(host, str(data.get("battle")), str(data.get("controller")))
 		"encounter":
 			host.register_encounter(str(data.get("id")), restored(data.get("descriptor", {})))
 		"shutdown":
 			host.shutdown(str(data.get("reason")), 0)
 
 
-## A stand-in took over once the absent owner had been away long enough; here they have been.
-static func _stand_in(host: PokeCoopHost, battle_id: String, controller: String) -> void:
+## A stand-in was offered once the absent owner had been away long enough; here they have been.
+static func _away_long_enough(host: PokeCoopHost, battle_id: String) -> void:
 	var session: PokeCoopBattleSession = host.battles.get(battle_id)
-	if session == null or session.controller() == controller:
+	if session == null:
 		return
 	for player_id: String in session.participants:
 		if not host.player(player_id).connected:

@@ -81,8 +81,7 @@ static func number(value: Variant, fallback: int = 0) -> int:
 	return int(value) if value is int or value is float or value is bool else fallback
 
 
-## [param value] with every object and engine type dropped, so nothing but plain
-## data ever reaches the wire.
+## [param value] with every object and engine type dropped, so only plain data reaches the wire.
 static func wire_value(value: Variant) -> Variant:
 	if value is Dictionary:
 		var out: Dictionary = {}

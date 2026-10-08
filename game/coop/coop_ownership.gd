@@ -9,13 +9,13 @@ extends RefCounted
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Engine flags are owned flag by flag: badges are the campaign's.
+## Owned entry by entry: badges are the campaign's engine flags, a player's own gifts their event flags and objects.
 const BY_FLAG: StringName = &"by_flag"
 const KANTO_BADGES: int = 8
 
 const WORLD_STATE: Dictionary = {
 	"beat_red": CAMPAIGN, "starter_species": CAMPAIGN, "gs_ball_stage": CAMPAIGN,
-	"gs_ball_wait": CAMPAIGN, "event_flags": CAMPAIGN, "engine_flags": BY_FLAG,
+	"gs_ball_wait": CAMPAIGN, "event_flags": BY_FLAG, "engine_flags": BY_FLAG,
 	"map_scenes": CAMPAIGN, "items": PLAYER, "pc_items": PLAYER, "money": PLAYER,
 	"coins": PLAYER, "phone_contacts": PLAYER, "just_battled": LOCAL,
 	"repel_steps": PLAYER, "wild_encounter_cooldown": LOCAL, "step_count": PLAYER,
@@ -31,7 +31,7 @@ const WORLD_STATE: Dictionary = {
 	"script_memory": LOCAL, "used_flash": PLAYER, "bike_step": PLAYER, "map_music": LOCAL,
 	"radio_knob": LOCAL, "radio_channel": LOCAL, "last_dex_mode": PLAYER,
 	"maptile_decorations": PLAYER, "kurt_apricorn_quantity": PLAYER,
-	"picked_fruit_trees": CAMPAIGN, "toggled_objects": CAMPAIGN,
+	"picked_fruit_trees": CAMPAIGN, "toggled_objects": BY_FLAG,
 	"gen1_map_scripts": CAMPAIGN, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
 	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": CAMPAIGN,
 	"npc_trades": PLAYER, "registered_item": PLAYER, "day_care_man": PLAYER,
@@ -183,26 +183,28 @@ static func apply_patch(into: Dictionary, changes: Dictionary) -> void:
 		into[key] = target
 
 
-## [param changes] cut into the campaign's and the player's halves.
-static func route(changes: Dictionary, badges: Array[int]) -> Dictionary:
+## [param changes] cut into the campaign's and the player's halves; [param own] lists entries players keep.
+static func route(changes: Dictionary, badges: Array[int], own: Dictionary = {}) -> Dictionary:
 	var out: Dictionary = {CAMPAIGN: {}, PLAYER: {}}
 	for key: String in changes:
 		var owner: StringName = StringName(WORLD_STATE.get(key, LOCAL))
 		if owner == BY_FLAG:
-			_split_flags(key, changes[key], badges, out)
+			_split_flags(key, changes[key], badges, own.get(key, []), out)
 		elif owner != LOCAL:
 			(out[owner] as Dictionary)[key] = changes[key]
 	return out
 
 
-static func _split_flags(key: String, change: Dictionary, badges: Array[int], out: Dictionary) -> void:
+static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Array, out: Dictionary) -> void:
 	var halves: Dictionary = {CAMPAIGN: {"set": {}, "erase": []}, PLAYER: {"set": {}, "erase": []}}
+	var shared: Callable = func(flag: Variant) -> bool:
+		return badges.has(int(flag)) if key == "engine_flags" else not own.has(int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
-		var half: Dictionary = halves[CAMPAIGN if badges.has(int(flag)) else PLAYER]
+		var half: Dictionary = halves[CAMPAIGN if shared.call(flag) else PLAYER]
 		(half["set"] as Dictionary)[flag] = entries[flag]
 	for flag: Variant in change.get("erase", []) as Array:
-		var half: Dictionary = halves[CAMPAIGN if badges.has(int(flag)) else PLAYER]
+		var half: Dictionary = halves[CAMPAIGN if shared.call(flag) else PLAYER]
 		(half["erase"] as Array).append(flag)
 	for owner: StringName in [CAMPAIGN, PLAYER]:
 		var half: Dictionary = halves[owner]

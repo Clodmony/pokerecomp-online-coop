@@ -115,8 +115,19 @@ or one after another:
   the cursor on it, tap it again to choose it.
 - Balls are listed once per player ("GREAT BALL x10, catch for BLUE"): the
   catch goes to whoever you name.
-- If the deciding player drops, the battle waits; after thirty seconds the
-  other player decides for their Pokémon until they are back.
+- If the deciding player drops, the battle waits. After thirty seconds the
+  others are asked: TAKE OVER decides for that player's Pokémon until they are
+  back, KEEP WAITING goes on waiting. Nobody plays your Pokémon unless they
+  choose to.
+- If you joined a partner's battle, LEAVE BATTLE in the panel takes you back
+  to your world. Your Pokémon stay in the fight under the partner and keep
+  what they earn, so you cannot start another battle until it ends; REJOIN in
+  the panel or the SELECT menu takes you back in. A battle your own world
+  started can't be left.
+- A won battle pays every participant the whole prize. One EXP.ALL in anyone's
+  bag shares experience over each player's own team, as it would alone.
+- Gift Pokémon (EEVEE, LAPRAS, a HITMON, the MAGIKARP for sale, fossils) can
+  be had once by each player.
 - Evolutions and the whiteout after a loss happen in each owner's own world.
 
 ## Trading
@@ -151,7 +162,6 @@ addresses and some of the game's own text, so never post them publicly.
 - The host trusts each window's world (positions, warps, the wild Pokémon it
   rolled).
 - Shared battles are drawn as the cartridge draws them, intro to prize.
-- A won trainer battle tells each player their own share of the prize.
 - No phone or console builds yet.
 
 See `progress.md` for what has been verified and how.

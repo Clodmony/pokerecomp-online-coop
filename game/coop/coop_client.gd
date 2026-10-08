@@ -159,6 +159,14 @@ func join_battle(battle_id: String) -> int:
 	return send({"type": "join", "battle": battle_id})
 
 
+func leave_battle(battle_id: String) -> int:
+	return send({"type": "leave_battle", "battle": battle_id})
+
+
+func stand_in(battle_id: String) -> int:
+	return send({"type": "stand_in", "battle": battle_id})
+
+
 func request_save() -> int:
 	return send({"type": "save"})
 
