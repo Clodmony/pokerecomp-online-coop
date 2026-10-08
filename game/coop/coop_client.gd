@@ -1,8 +1,7 @@
 class_name PokeCoopClient
 extends RefCounted
 
-## A player's end of a co-op session: numbered intentions out, the last authoritative state and battle
-## views in. It decides nothing; a local menu cursor stays here until it is sent as a suggestion.
+## A player's end of a co-op session, deciding nothing: numbered intentions out, the authoritative state and battle views in.
 
 ## ENet drops data that arrives with a disconnect, so the last log batch is given a moment.
 const LAST_LOG_MSEC: int = 500
@@ -135,8 +134,11 @@ func _receive(message: Dictionary) -> void:
 				transport.close()
 
 
-func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false) -> int:
-	return send({"type": "move", "map": map, "cell": cell, "facing": facing, "warp": warp})
+func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false, places: Dictionary = {}) -> int:
+	var message: Dictionary = {"type": "move", "map": map, "cell": cell, "facing": facing, "warp": warp}
+	if not places.is_empty():
+		message["places"] = places
+	return send(message)
 
 
 func start_battle(encounter_id: String) -> int:
@@ -169,6 +171,16 @@ func stand_in(battle_id: String) -> int:
 
 func request_save() -> int:
 	return send({"type": "save"})
+
+
+## A tool's label for what drives this window, such as the autopilot's leg: unnumbered, after all sent before it.
+func note(text: String) -> void:
+	journal.add(PokeCoopLog.CLIENT, "note", {"text": text}, player_id)
+	transport.send(PokeCoopTransport.HOST_PEER, {"type": "note", "text": text})
+
+
+func sent() -> int:
+	return _seq
 
 
 func send(message: Dictionary) -> int:

@@ -1,8 +1,7 @@
 class_name PokeCoopBattlePanel
 extends PanelContainer
 
-## The co-op overlay: the session menu on SELECT and, in a shared battle, the allies by
-## owner, who decides and each partner's suggestion. It sends intentions, decides nothing.
+## The session menu on SELECT and, in a shared battle, the allies, who decides and the suggestions; it decides nothing.
 
 signal leave_requested
 
@@ -17,9 +16,10 @@ const REFUSALS: Dictionary = {
 	&"already_in_battle": "You are already in a battle.", &"roster_full": "No room for more POKéMON in that battle.",
 	&"encounter_taken": "Someone is already fighting that.", &"battle_over": "That battle is over.",
 	&"item_has_no_effect": "It won't have any effect.", &"no_fit_pokemon": "None of your POKéMON can fight.",
-	&"save_failed": "The campaign could not be saved.",
+	&"save_failed": "The campaign could not be saved.", &"encounter_done": "Beaten already in this campaign: it counts as won.",
 	&"attached": "Your own world started this battle: you stay in it.",
-	&"in_battle": "Your POKéMON are still in a battle.",
+	&"in_battle": "Your POKéMON are still in a battle.", &"invalid_move": "That move can't be used now.",
+	&"scene_taken": "A partner met the rival first: the battle is one for both.",
 }
 
 var client: PokeCoopClient = null
@@ -94,6 +94,12 @@ func _involves_me(view: Dictionary) -> bool:
 
 func _has_left(view: Dictionary) -> bool:
 	return (view.get("left", []) as Array).has(client.player_id)
+
+
+func dismiss_finished() -> void:
+	for battle_id: String in client.battles:
+		if not String((client.battles[battle_id] as Dictionary).get("outcome", "")).is_empty():
+			_dismissed[battle_id] = true
 
 
 func recall(battle_id: String) -> void:
@@ -265,10 +271,11 @@ func _menu_text() -> String:
 	var others: PackedStringArray = []
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:
-		if player_id != client.player_id and bool((everyone[player_id] as Dictionary).get("connected", true)):
-			var busy_with: String = String((everyone[player_id] as Dictionary).get("battle", ""))
-			var place: String = _place((everyone[player_id] as Dictionary).get("map"))
-			others.append(_name_bb(player_id) + (" (in a battle)" if not busy_with.is_empty() \
+		var view: Dictionary = everyone[player_id]
+		if player_id != client.player_id and bool(view.get("connected", true)):
+			var place: String = _place(view.get("map"))
+			others.append(_name_bb(player_id) + (" (in a battle)" if not String(view.get("battle", "")).is_empty() \
+				else " (in the opening)" if view.get("opening") == true \
 				else (" (%s)" % _escaped(place) if not place.is_empty() else "")))
 	lines.append("[color=%s]With %s[/color]" % [MUTED, ", ".join(others) if not others.is_empty() else "nobody yet"])
 	lines.append("[color=%s]%s It also saves itself after battles and every thirty seconds of changes.[/color]" % [
@@ -322,14 +329,23 @@ func _active(view: Dictionary) -> Dictionary:
 
 func _move_rows(view: Dictionary) -> Array:
 	var rows: Array = []
-	var moves: Array = _active(view).get("moves", [])
+	var active: Dictionary = _active(view)
+	var moves: Array = active.get("moves", [])
 	for slot: int in moves.size():
 		if int(moves[slot]) != 0:
+			var move: String = _move_name(int(moves[slot])) + _move_state(active, slot)
 			rows.append({
-				"text": "FIGHT  %s" % _move_name(int(moves[slot])), "label": _move_name(int(moves[slot])), "section": "FIGHT",
+				"text": "FIGHT  %s" % move, "label": move, "section": "FIGHT",
 				"command": {"type": "move", "slot": slot}, "suggest": "move", "value": slot,
 			})
 	return rows
+
+
+static func _move_state(mon: Dictionary, slot: int) -> String:
+	if int(mon.get("disabled", -1)) == slot:
+		return " (DISABLED)"
+	var pp: Array = mon.get("pp", [])
+	return " (NO PP)" if slot < pp.size() and int(pp[slot]) <= 0 else ""
 
 
 func _switch_rows(view: Dictionary, kind: String) -> Array:

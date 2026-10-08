@@ -55,6 +55,18 @@ func test_badges_go_to_the_campaign_and_other_engine_flags_to_the_player() -> vo
 	assert_false(shared.has("map_music") or own.has("map_music"), "music is this window's own")
 
 
+func test_saffrons_gate_drink_is_the_campaigns_and_the_other_status_bits_each_players() -> void:
+	var drink: int = Gen1Layout.status_flag_1(PokeCoopOwnership.SAFFRON_DRINK_BIT)
+	var strength: int = Gen1Layout.status_flag_1(Gen1Layout.STRENGTH_ACTIVE_BIT)
+	var surf: int = Gen1Layout.status_flag_1(Gen1Layout.SURF_ALLOWED_BIT)
+	var changes: Dictionary = {"engine_flags": {"set": {drink: true, strength: true, surf: true}, "erase": []}}
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, PokeCoopOwnership.badge_flags(null))
+
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {"engine_flags": {"set": {drink: true}, "erase": []}})
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {"engine_flags": {"set": {strength: true, surf: true}, "erase": []}})
+
+
 func test_a_patch_reproduces_the_change_and_keeps_what_it_did_not_touch() -> void:
 	var before: Dictionary = {
 		"event_flags": {1: true, 2: true}, "items": {0x14: 1}, "coins": 5, "map_music": 1,

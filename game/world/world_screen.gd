@@ -91,8 +91,9 @@ const WARP_MUSIC_FADE_FRAMES: int = 8
 @export_range(0, 6) var day: int = 0
 @export_range(0, 3) var time_of_day: int = Gen2WorldPalette.TIME_MORNING
 @export var encounter_seed: int = 0
-## Asked before START > SAVE writes: a refusal ends in the prompt's "Save failed" box, {} writes.
+## START > SAVE asks `save_gate` first (a refusal ends in "Save failed"); any SAVE then calls `save_written`.
 var save_gate: Callable = Callable()
+var save_written: Callable = Callable()
 
 var _data: GameData = null
 var _injected_data: GameData = null
@@ -3929,6 +3930,8 @@ func persist_world_snapshot() -> Dictionary:
 	## what the file carries.
 	Gen2MysteryGift.backup(_world.state.mystery_gift())
 	save.mystery_gift = _world.state.mystery_gift().duplicate(true)
+	if save_written.is_valid():
+		save_written.call()
 	if _injected_save != null:
 		return {"ok": true, "kind": &"world_snapshot_saved", "save": save}
 	return Gen2SaveStore.save(save, _data)
@@ -6445,6 +6448,7 @@ func _takeover_summary(prepared: Dictionary) -> Dictionary:
 		"trainer_index": int(prepared.get("trainer_index", 0)),
 		"trainer_name": String(request.get("trainer_name", "")), "win_text": request.get("win_text", {}),
 		"lone_attack": int(request.get("lone_attack", 0)),
+		"gen1_ghost": StringName(request.get("gen1_ghost", &"")),
 		"player_party": sides[Gen2Battle.PLAYER], "enemy_party": sides[Gen2Battle.ENEMY],
 		"generation": _data.generation,
 		"map_group": _world.map_id().x if _world != null else -1,
@@ -6469,6 +6473,7 @@ func _on_takeover_finished(answer: Variant) -> void:
 		_data, _takeover["battle"], _takeover["request"], outcome, _takeover["levels"],
 		_active_battle_save
 	)
+	result["team_won"] = bool(said.get("team_won", false))
 	_takeover = {}
 	_on_battle_finished(result)
 
@@ -6637,8 +6642,8 @@ func _finish_battle_exit(result: Dictionary, fought_save: Gen2SaveData) -> void:
 	if _reaches_mood_update(result):
 		_world.gen1_pikachu_battle_ended(bool(_starter_pikachu(fought_save)["alive"]))
 	var resumed: Array = _world.complete_runtime_request(result)
-	## `AllPokemonFainted`: one `RunMapScript` under LOST_BATTLE, then `HandleBlackOut`.
-	if _world.gen1_blackout_due(fought_save, StringName(result.get("outcome", &""))):
+	## `AllPokemonFainted`: one `RunMapScript` under LOST_BATTLE, then `HandleBlackOut`; never after a takeover's `team_won`.
+	if not bool(result.get("team_won", false)) and _world.gen1_blackout_due(fought_save, StringName(result.get("outcome", &""))):
 		_active_battle_save = null
 		_active_battle_persist = false
 		_show_script_results(resumed)

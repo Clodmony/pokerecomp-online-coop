@@ -262,7 +262,7 @@ static func _gen1_result(world: Gen2WorldAPI) -> Array:
 	while not world._gen1_steps.is_empty() and _gen1_written(world, world._gen1_steps[0], events, world._gen1_steps):
 		world._gen1_steps.pop_front()
 	if world._gen1_steps.is_empty():
-		_gen1_close_money_window(world, events)
+		_gen1_close_text_display(world, events)
 		return [] if events.is_empty() \
 			else [{"ok": true, "status": &"done", "events": events}]
 	_gen1_stand_sprites_still(world)
@@ -316,12 +316,13 @@ static func _gen1_record_blackout_map(world: Gen2WorldAPI) -> void:
 	world._gen1_last_blackout_map = world._gen1_last_map
 
 
-## `AfterDisplayingTextID` redraws the map behind the row, which takes a balance
-## window down the way `closetext`'s redraw takes Generation 2's.
-static func _gen1_close_money_window(world: Gen2WorldAPI, events: Array) -> void:
-	if not world._gen1_money_window:
+## `CloseTextDisplay` ends the row and takes down a balance window, and a box that
+## owed no press but stood through the row's own tail, such as a fade behind it.
+static func _gen1_close_text_display(world: Gen2WorldAPI, events: Array) -> void:
+	if not world._gen1_money_window and not world._gen1_box_held:
 		return
 	world._gen1_money_window = false
+	world._gen1_box_held = false
 	events.append({"type": &"text_closed"})
 
 
@@ -351,12 +352,14 @@ static func _gen1_waiting_result(world: Gen2WorldAPI, step: Dictionary) -> Dicti
 		}
 	## `AfterDisplayingTextID` ends every box on `WaitForTextScrollButtonPress`
 	## unless the row set `wDoNotWaitForButtonPress...` before its last one.
+	var press: bool = bool(step.get("press", true))
+	world._gen1_box_held = world._gen1_box_held or not press
 	return {
 		"ok": true, "status": &"waiting",
 		"event": {
 			"type": &"text",
 			"text": String(step["text"]),
-			"prompt": bool(step.get("press", true)),
+			"prompt": press,
 		},
 	}
 
@@ -444,11 +447,13 @@ static func _gen1_linked(world: Gen2WorldAPI, step: Dictionary, events: Array, s
 			world.state.link_session().gen1_link_connected = bool(step["set"])
 			return true
 		&"special_warp":
+			events.append({"type": &"text_closed"})
 			var warped: Dictionary = Gen1FacilityScripts._gen1_special_warp(world, String(step["name"]))
 			if not warped.is_empty():
 				events.append(warped)
 			return true
 		&"cable_club_return":
+			events.append({"type": &"text_closed"})
 			events.append_array(Gen1FacilityScripts.gen1_return_to_cable_club_room(world))
 			return true
 		&"cup_menu":

@@ -1,16 +1,29 @@
 class_name PokeCoopOwnership
 extends RefCounted
 
-## Who owns each piece of single-player state in a co-op run: the CAMPAIGN all
-## players share, one PLAYER, or this window alone (LOCAL). `test_coop_ownership`
-## fails on a field missing here, so a new one is classified when it lands.
+## Who owns each piece of single-player state in a co-op run: the CAMPAIGN all players share, one PLAYER, or this
+## window alone (LOCAL). `test_coop_ownership` fails on a field missing here, so a new one is classified when it lands.
 ## Synced keys travel as patches: a Dictionary as `{set, erase}`, else `{value}`.
 
 const CAMPAIGN: StringName = &"campaign"
 const PLAYER: StringName = &"player"
 const LOCAL: StringName = &"local"
-## Owned entry by entry: badges are the campaign's engine flags, a player's own gifts their event flags and objects.
+## Owned entry by entry: the campaign keeps the badges and the team's gate drink (D91) among the engine flags, Vermilion
+## Gym's locks among the Gen 1 bytes, every event flag and object but a player's own, and every map script but one walk's,
+## the gyms' and the Elite Four's. The drink's bit sits in a Generation 1 run no Generation 2 world sets.
 const BY_FLAG: StringName = &"by_flag"
+const SAFFRON_DRINK_BIT: int = 6
+const CAMPAIGN_BYTES: Array[String] = [
+	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
+]
+const PLAYER_MAP_SCRIPTS: Dictionary = {
+	"wViridianGymCurScript": 11, "wPewterGymCurScript": 12, "wCeruleanGymCurScript": 13, "wVermilionGymCurScript": 14,
+	"wCeladonGymCurScript": 15, "wMtMoonB2FCurScript": 23, "wCeruleanCityCurScript": 31, "wMuseum1FCurScript": 41,
+	"wSafariZoneGateCurScript": 47, "wVermilionCityCurScript": 58, "wChampionsRoomCurScript": 92,
+	"wFuchsiaGymCurScript": 107, "wSaffronGymCurScript": 108, "wCinnabarGymCurScript": 110,
+	"wSeafoamIslandsB3FCurScript": 118, "wSeafoamIslandsB4FCurScript": 120, "wHallOfFameCurScript": 91,
+	"wLoreleisRoomCurScript": 93, "wBrunosRoomCurScript": 94, "wAgathasRoomCurScript": 95, "wLancesRoomCurScript": 99,
+}
 const KANTO_BADGES: int = 8
 
 const WORLD_STATE: Dictionary = {
@@ -32,8 +45,8 @@ const WORLD_STATE: Dictionary = {
 	"radio_knob": LOCAL, "radio_channel": LOCAL, "last_dex_mode": PLAYER,
 	"maptile_decorations": PLAYER, "kurt_apricorn_quantity": PLAYER,
 	"picked_fruit_trees": CAMPAIGN, "toggled_objects": BY_FLAG,
-	"gen1_map_scripts": CAMPAIGN, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
-	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": CAMPAIGN,
+	"gen1_map_scripts": BY_FLAG, "gen1_starters": CAMPAIGN, "safari_balls": PLAYER,
+	"safari_steps": PLAYER, "card_key_door": CAMPAIGN, "gen1_bytes": BY_FLAG,
 	"npc_trades": PLAYER, "registered_item": PLAYER, "day_care_man": PLAYER,
 	"day_care_lady": PLAYER, "day_care_mons": PLAYER, "steps_to_egg": PLAYER,
 	"day_care_egg": PLAYER, "battle_caught_celebi": CAMPAIGN, "lucky_id_number": PLAYER,
@@ -73,8 +86,7 @@ const GAME_RUNTIME: Dictionary = {
 }
 
 
-## The engine flag behind each campaign badge bit: Kanto's eight on Generation
-## 1, all sixteen on Generation 2.
+## The engine flag behind each campaign badge bit: Kanto's eight on Generation 1, all sixteen on Generation 2.
 static func badge_flags(data: GameData) -> Array[int]:
 	var out: Array[int] = []
 	if data == null or data.generation == RomRegistry.GEN1:
@@ -87,13 +99,12 @@ static func badge_flags(data: GameData) -> Array[int]:
 	return out
 
 
-## A table the campaign keeps whose entries are named rather than numbered.
-const TEXT_KEYED: Array[String] = ["gen1_starters"]
+const TEXT_KEYED: Array[String] = ["gen1_starters", "gen1_bytes"]
 static var _reference: Dictionary = {}
 
 
 ## [param changes] cut to what a window could have sent: each synced key in its own
-## shape and type, the campaign's tables holding plain numbered entries.
+## shape and type, the campaign's tables holding plain numbered or named entries.
 static func well_formed(changes: Variant) -> Dictionary:
 	if _reference.is_empty():
 		_reference = Gen2WorldState.new().to_dict()
@@ -195,10 +206,18 @@ static func route(changes: Dictionary, badges: Array[int], own: Dictionary = {})
 	return out
 
 
+static func campaign_engine_flag(flag: int, badges: Array[int]) -> bool:
+	return badges.has(flag) or flag == Gen1Layout.status_flag_1(SAFFRON_DRINK_BIT)
+
+
 static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Array, out: Dictionary) -> void:
 	var halves: Dictionary = {CAMPAIGN: {"set": {}, "erase": []}, PLAYER: {"set": {}, "erase": []}}
 	var shared: Callable = func(flag: Variant) -> bool:
-		return badges.has(int(flag)) if key == "engine_flags" else not own.has(int(flag))
+		if key == "gen1_bytes":
+			return CAMPAIGN_BYTES.has(flag)
+		if key == "gen1_map_scripts":
+			return not PLAYER_MAP_SCRIPTS.values().has(int(flag))
+		return campaign_engine_flag(int(flag), badges) if key == "engine_flags" else not own.has(int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
 		var half: Dictionary = halves[CAMPAIGN if shared.call(flag) else PLAYER]
@@ -215,8 +234,7 @@ static func _split_flags(key: String, change: Dictionary, badges: Array[int], ow
 			(out[owner] as Dictionary)[key] = half
 
 
-## The synced keys of a world state in their in-memory types, whatever a save
-## file made of them: JSON leaves a Dictionary's integer keys as strings.
+## The synced keys of a world state in their in-memory types: a save's JSON leaves a Dictionary's integer keys as strings.
 static func canonical(world: Dictionary, owner: StringName) -> Dictionary:
 	var restored: Gen2WorldState = Gen2WorldState.from_dict(world)
 	var full: Dictionary = restored.to_dict() if restored != null else {}

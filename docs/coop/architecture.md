@@ -99,9 +99,13 @@ Further findings that shape the design:
    Co-op tab (`PokeCoopPage`) and by the tool; `Gen2GameRuntime.coop` holds the
    live session and drives it each frame. After a host battle the session runs
    the window's own evolution and whiteout for its player (D26, D27).
-6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version`, the
+6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version` (2), the
    campaign section and one section per player, written atomically through a
-   temporary file. Refuses unknown kinds and newer versions.
+   temporary file, the replaced checkpoint kept as `.bak`. Refuses unknown kinds
+   and newer versions; a format 1 file is settled once on read. Between
+   checkpoints the host appends the state after each story change to
+   `<campaign>.json.journal`, which the next checkpoint removes; `read` returns
+   the newest whole line newer than the checkpoint (D66).
 
 ## Protocol
 
@@ -131,18 +135,19 @@ Peer 1 is the host.
 | `log` | `lines` (no `seq`): a sharing device's own session-log lines; the host passes them on (D59) |
 | `leave_battle` | `seq`, `battle`: back to the player's world while their Pokémon fight on, or a queued join called off (protocol 4, D62) |
 | `stand_in` | `seq`, `battle`: decide for the Pokémon of an owner who dropped, once the view says `stand_in_due` (protocol 4, D62) |
+| `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.RIVAL_SCENES` started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
 
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
-| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
 
-The protocol is version 4 (`PokeCoopHost.PROTOCOL`); a peer of another version is
+The protocol is version 5 (`PokeCoopHost.PROTOCOL`); a peer of another version is
 refused with `protocol_mismatch`.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
@@ -163,17 +168,24 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/party.gd` | `MAX_ALLIED_SIZE` and `add_members()`; `create()` unchanged |
 | `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded`; `exp_all_groups`, the party indices each EXP.ALL pass splits over (D62) |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
-| `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll |
-| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text and gym marker; on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2) |
-| `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11) |
+| `game/save/save_prompt.gd` | the failure step draws no YES/NO (D70) |
+| `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64) |
+| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host; the takeover summary carries the trainer's name, win text, gym marker and Gen 1 ghost kind (D68); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2); `save_written`, called by `persist_world_snapshot` after any SAVE (D80); a takeover's `team_won` carried into the battle result skips Generation 1's after-battle blackout (D88) |
+| `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11); `_gen1_box_held` notes a box that owed no press (D76); `gen1_end_of_battle` sets both map-load bits, so a wild fight's reload redraws a switch's block (#88) |
+| `game/world/gen1_map_scripts.gd` | the link rooms' special warp and return close the wait box first (D71); a row's end closes a no-press box its tail held up (D76) |
+| `tests/unit/test_world_api.gd` | `test_gen1_a_link_room_entered_or_reloaded_closes_the_wait_box` (D71); `test_gen1_a_wild_fights_reload_runs_the_maps_load_callback` (#88) |
+| `tests/integration/test_world_frame_pump.gd` | `test_a_gen1_rows_end_takes_down_a_no_press_box_its_fade_held_up` (D76) |
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/oak_speech_screen.gd` | `preset_names`: a name settled before the speech is said rather than asked |
 | `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
 | `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
-| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed |
+| `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed; `restart()` first asks `coop.continue_after_reset()`, so the Hall of Fame's reset continues the co-op world (D88) |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |
+| `tests/unit/test_link.gd` | `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`, the regression test for D64 |
+| `tools/preview_world_story.gd` | `_gen1_story_path` split into `_gen1_story_start` and `_gen1_story_legs`, so `tools/coop_seed.gd` can stop after a leg; output unchanged (D78) |
+| `tools/checks/played.gd` | `_warp_press`: on Generation 1, a player standing on a stair warp with nothing to press against steps off it, so a route can take back the stairs it arrived by (#88) |
 | `.github/workflows/ci.yml` | co-op ENet demo and three-process check steps |
 | `.github/workflows/release.yml`, `export-templates.yml` | run only in `Decryptu/pokerecomp` |
 | `.githooks/pre-push` | attribution-trailer check removed |

@@ -49,7 +49,7 @@ func after_each() -> void:
 		journal.close()
 	_journals = []
 	RomCache.clear(_directory)
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	if DirAccess.dir_exists_absolute(DIR):
@@ -350,6 +350,32 @@ func test_a_window_logs_its_own_battle_and_the_hosts_echo_it_left_out() -> void:
 	assert_eq(_of(red_lines, "takeover_end")[0]["data"]["outcome"], "won")
 
 
+func test_a_world_pull_says_how_long_a_scene_held_it_and_which_step_waits_for_a_map_load() -> void:
+	_both()
+	var windows: Array = [_red, _blue].map(func(client: PokeCoopClient) -> PokeCoopWorldLink:
+		var state := Gen2WorldState.new()
+		state.gen1 = true
+		return PokeCoopWorldLink.over(client, state, PokeCoopWorldLink.local_save(client, _data), _data))
+	_links.append_array(windows)
+	_pump()
+	var gym := Gen2WorldMap.new()
+	gym.scripts = {"entry": [{"op": "map_script_table", "byte": 0x26}]}
+	windows[0].world = Gen2WorldAPI.new(_data, gym, null, Vector2i.ZERO, windows[0].state)
+	windows[0].busy = &"script"
+	(windows[1].state as Gen2WorldState).set_event_flag(0x305)
+	(windows[1].state as Gen2WorldState).set_gen1_map_script(0x26, 2)
+	for _frame: int in 90:
+		_pump(1)
+	windows[0].busy = &""
+	_pump()
+
+	var pulls: Array = _of(_lines(_red.journal), "world_pull").filter(func(line: Dictionary) -> bool: return line["data"]["changes"].has("event_flags"))
+	var pull: Dictionary = pulls[-1]["data"]
+	assert_eq(pull["held_by"], "script")
+	assert_gte(int(pull["held"]), 90, "the frames the scene held it back")
+	assert_eq(int(pull["owed"]), 0x26, "the step for the map Red stands on waits")
+
+
 func test_the_merged_timeline_of_three_devices_summarises_the_session() -> void:
 	_both()
 	_beat_the_leader()
@@ -425,7 +451,7 @@ func test_a_hosting_device_writes_one_file_for_its_host_and_client_and_the_joine
 	joining.close()
 	PokeCoopSession.identity_path = identity_before
 	for path: String in ["user://coop_logs_session_test_identity.json", PokeCoopSession.campaign_path(_data, hosting.host.campaign.campaign_id)]:
-		for file: String in [path, path + PokeCoopSave.BACKUP_SUFFIX]:
+		for file: String in [path, path + PokeCoopSave.BACKUP_SUFFIX, path + PokeCoopSave.JOURNAL_SUFFIX]:
 			if FileAccess.file_exists(file):
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
 	var campaigns: String = PokeCoopSession.campaign_path(_data).get_base_dir()

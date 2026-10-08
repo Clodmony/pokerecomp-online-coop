@@ -3289,9 +3289,11 @@ func _arm_wild_encounter_cooldown(after_battle: bool) -> void:
 
 
 ## `EndOfBattle`'s `set BIT_WILD_ENCOUNTER_COOLDOWN` and the `EnterMap` behind it.
+## `.battleOccurred` sets both map-load bits for `EnterMap`, so a wild fight's reload redraws what a switch opened.
 func gen1_end_of_battle() -> void:
 	if _gen1 and state != null:
 		_arm_wild_encounter_cooldown(true)
+		_gen1_map_load_pending = Gen1Layout.MAP_LOAD_BOTH
 
 
 ## `CountStep` whole: the two guards in front of the counters, which every step
@@ -4338,6 +4340,7 @@ var rival_name: String = Gen2WorldScriptRunner.UNNAMED
 ## box; `DisplayPokemonCenterDialogue_` is five of them around a choice.
 var _gen1_steps: Array = []
 var _gen1_money_window: bool = false
+var _gen1_box_held: bool = false
 
 
 ## The raw permission byte at a walk cell: the imported grid, unless a
@@ -8066,6 +8069,7 @@ func _apply_map(
 	_gen1_entry_steps = []
 	_gen1_map_load_pending = 0
 	_gen1_money_window = false
+	_gen1_box_held = false
 	_gen1_destination_warp = -1
 	_gen1_warps_dropped = 0
 	## `WarpFound2`'s `CheckIfInOutsideMap`: leaving a town or a route records it,

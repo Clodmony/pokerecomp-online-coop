@@ -51,7 +51,7 @@ func after_each() -> void:
 		_world_screen = null
 	RomCache.clear(WorldFixture.directory(WORLD_GAME))
 	RomCache.clear(_directory)
-	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
@@ -164,6 +164,7 @@ func _gen1_save(link: PokeCoopWorldLink) -> Gen2SavePrompt:
 		var snapshot := Gen2WorldSnapshot.new()
 		snapshot.frame_number = _frame
 		link.save.world = snapshot
+		link.note_save_written()
 		return {"ok": true}
 	var timing: Dictionary = Gen2SavePrompt.TIMINGS[Gen2SavePrompt.Kind.GEN1_MENU]
 	var prompt: Gen2SavePrompt = Gen2SavePrompt.open(Gen2SavePrompt.Kind.GEN1_MENU, link.save.player_name, write)
@@ -188,6 +189,7 @@ func test_the_red_save_menu_says_the_save_failed_during_a_partners_battle() -> v
 	var prompt: Gen2SavePrompt = _gen1_save(blue)
 	assert_eq(prompt.step, Gen2SavePrompt.Step.FAILED, "never SAVED")
 	assert_eq(prompt.lines, FAILED_LINES)
+	assert_eq(prompt.cursor, -1, "the YES/NO is gone once the answer is in")
 	prompt.text_printed()
 	prompt.confirm(true)
 	assert_true(prompt.refused(), "the failed save ends the way a NO does")
@@ -268,6 +270,7 @@ func test_start_save_in_a_window_during_a_battle_ends_in_save_failed() -> void:
 	var save: Gen2SaveData = _world_screen._injected_save
 	var link: PokeCoopWorldLink = PokeCoopWorldLink.over(_blue, Gen2WorldState.new(), save, _data)
 	_world_screen.save_gate = link.save_refusal
+	_world_screen.save_written = link.note_save_written
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	var before: Gen2WorldSnapshot = save.world
 
@@ -294,3 +297,22 @@ func test_start_save_in_a_window_during_a_battle_ends_in_save_failed() -> void:
 	_pump()
 	assert_ne(link.save_seq, -1)
 	assert_eq(_saves(_blue), saves + 1, "and the host wrote the campaign")
+
+
+func test_a_window_is_at_a_rest_point_only_where_the_cartridge_could_save() -> void:
+	await _open_world()
+	var world: Gen2WorldAPI = _world_screen._world
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"", "standing free on the map")
+	world._gen1_steps = [{"type": &"text", "text": ""}]
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"script", "a script holds the player")
+	world._gen1_steps = []
+	var bridge: Node = PokeCoopBattleTakeover.over(_blue, _data).create_battle()
+	_world_screen._takeover_host = bridge
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"battle", "a battle the world opened, fought on the host")
+	_world_screen._takeover_host = null
+	bridge.free()
+	_world_screen._map_fade = {"frames": 1}
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"locked", "a warp's fade")
+	PokeCoopSession.hold_world(_world_screen, null, true)
+	assert_eq(PokeCoopWorldLink.unrest(_world_screen), &"panel", "a world held still under the panel, wherever it stopped")
+	PokeCoopSession.hold_world(_world_screen, null, false)

@@ -1,15 +1,15 @@
 class_name PokeCoopHost
 extends RefCounted
 
-## The authoritative side of a co-op session: validates clients' intentions against the campaign,
-## the players and the running battles, and answers every client with the state they may see.
+## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 4
+const PROTOCOL: int = 5
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
 const MAX_TRAINER_NAME: int = 16
 const MAX_WIN_TEXT: int = 512
+const MAX_NOTE: int = 64
 ## How often a changed campaign is written between battles: a crashed host loses at most this much.
 var autosave_msec: int = 30000
 
@@ -18,6 +18,7 @@ var campaign: PokeCoopCampaign = null
 var players: Dictionary = {}
 var battles: Dictionary = {}
 var encounters: Dictionary = {}
+var scenes: Dictionary = {}
 var transport: PokeCoopTransport = null
 var save_path: String = ""
 var allow_new_players: bool = false
@@ -35,6 +36,8 @@ var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
 var _changed: bool = false
+var _kept_revision: int = 0
+var _boxes_written: Dictionary = {}
 var _written_at: int = 0
 var _saves: int = 0
 var _saved_by: String = ""
@@ -50,6 +53,8 @@ var _streamed_at: int = 0
 var _started: bool = false
 var _logged_revision: int = -1
 var _logged_views: Dictionary = {}
+var _league_cleared: bool = false
+var notes: Dictionary = {}
 
 
 static func create(
@@ -63,8 +68,10 @@ static func create(
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
+	for flag: int in PokeCoopPolicy.OWN_WALKS if not out._own_entries.is_empty() else []:
+		run.flags.erase(flag)
 	out.trades = PokeCoopTrades.create(game_data)
-	PokeCoopPolicy.settle_intro(run)
+	out._kept_revision = run.revision
 	return out
 
 
@@ -112,6 +119,7 @@ func poll() -> void:
 	_end_abandoned()
 	_announce_stand_ins()
 	_autosave()
+	_keep_story()
 	_note_campaign()
 	_share_log()
 	if _closing_at >= 0 and (_peers.is_empty() or Time.get_ticks_msec() >= _closing_at):
@@ -138,6 +146,9 @@ func _on_message(peer: int, message: Dictionary) -> StringName:
 	if kind == "log":
 		_relay_log(peer, message.get("lines"))
 		return &""
+	if kind == "note":
+		_take_note(String(_peers.get(peer, "")), message.get("text"))
+		return &""
 	var line: Dictionary = journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": message}, String(_peers.get(peer, "")))
 	var result: StringName = _hello(peer, message) if kind == "hello" else _answer(peer, kind, message)
 	if not line.is_empty():
@@ -158,6 +169,7 @@ func _answer(peer: int, kind: String, message: Dictionary) -> StringName:
 		return &"duplicate"
 	_last_seq[sender.player_id] = seq
 	var refusal: StringName = _dispatch(sender, kind, message)
+	_settle_league()
 	_changed = _changed or refusal == &""
 	if refusal != &"":
 		transport.send(peer, _rejected(seq, refusal))
@@ -174,6 +186,12 @@ func _relay_log(peer: int, raw: Variant) -> void:
 	journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": {"type": "log", "lines": (raw as Array).size() if raw is Array else -1},
 		"result": "%d taken" % taken.size()}, sender)
 	_pass_log(taken, peer)
+
+
+func _take_note(sender: String, text: Variant) -> void:
+	if not sender.is_empty() and text is String:
+		notes[sender] = (text as String).left(MAX_NOTE)
+		journal.add(PokeCoopLog.HOST, "note", {"text": notes[sender]}, sender)
 
 
 static func _is_log(message: Dictionary) -> bool:
@@ -229,7 +247,8 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),
-				PokeCoopTransport.number(message.get("facing"), sender.facing), PokeCoopTransport.number(message.get("warp")) == 1)
+				PokeCoopTransport.number(message.get("facing"), sender.facing), PokeCoopTransport.number(message.get("warp")) == 1,
+				message.get("places", {}))
 		"start_battle":
 			return start_battle(sender, PokeCoopTransport.text(message.get("encounter")))
 		"window_battle":
@@ -254,6 +273,8 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return refused
 		"opening":
 			return finish_speech(sender, PokeCoopTransport.text(message.get("rival")))
+		"scene":
+			return claim_scene(sender, _vector(message.get("map")), message.get("on") is bool and bool(message.get("on")))
 		"trade":
 			var swaps: int = trades.swaps
 			var answer: StringName = trades.handle(sender, message, players)
@@ -419,24 +440,38 @@ func _on_disconnected(peer: int) -> void:
 	if leaving == null:
 		return
 	leaving.connected = false
+	_release_scenes(leaving.player_id)
 	trades.leave(leaving.player_id, players)
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
 			session.set_absent(leaving.player_id, true)
+	_settle_league()
 	if _closing_at < 0:
 		broadcast()
 
 
+## A clear of the team's League run reaches the campaign once nothing holds it (D91).
+func _settle_league() -> void:
+	if not _league_cleared or PokeCoopPolicy.league_held(campaign, players.values()):
+		return
+	_league_cleared = false
+	_changed = true
+	PokeCoopPolicy.clear_league(campaign)
+	journal.add(PokeCoopLog.HOST, "league_cleared", campaign.summary()["defeated"])
+
+
 ## A step on the current map, or a [param warp] the client's world made, trusted until the host simulates it.
 func step(
-	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false
+	mover: PokeCoopPlayer, to_map: Vector2i, to_cell: Vector2i, toward: int, warp: bool = false, places: Variant = {}
 ) -> StringName:
 	if not exploring(mover):
 		return &"in_battle"
 	var distance: int = absi(to_cell.x - mover.cell.x) + absi(to_cell.y - mover.cell.y)
 	if not warp and to_map == mover.map and distance > MAX_STEP_CELLS:
 		return &"not_adjacent"
+	_release_scenes(mover.player_id, to_map)
 	mover.place(to_map, to_cell, toward)
+	mover.keep_places(places)
 	_settle_opening(mover)
 	return &""
 
@@ -457,6 +492,9 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
 	var money_before: int = sender.money
+	if PokeCoopPolicy.take_league_clear(halves[PokeCoopOwnership.CAMPAIGN]):
+		_league_cleared = true
+		journal.add(PokeCoopLog.HOST, "league_clear", {"held": PokeCoopPolicy.league_held(campaign, players.values())}, sender.player_id)
 	var story_moved: bool = campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
 	sender.apply_world_patch(halves[PokeCoopOwnership.PLAYER])
 	if not story_moved and _sets_entries(halves[PokeCoopOwnership.CAMPAIGN]) and sender.money >= money_before:
@@ -470,6 +508,26 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 static func _sets_entries(changes: Dictionary) -> bool:
 	return ["event_flags", "toggled_objects"].any(func(key: String) -> bool:
 		return not ((changes.get(key, {}) as Dictionary).get("set", {}) as Dictionary).is_empty())
+
+
+## The first window into a rival scene drives it and a later one plays its own copy, the battle being one (#24).
+func claim_scene(sender: PokeCoopPlayer, map: Vector2i, on: bool) -> StringName:
+	var driver: String = String(scenes.get(map, ""))
+	if not PokeCoopPolicy.RIVAL_SCENES.has(map):
+		return &"not_a_scene"
+	if on and not driver.is_empty() and driver != sender.player_id:
+		return &"scene_taken"
+	if on:
+		scenes[map] = sender.player_id
+	elif driver == sender.player_id:
+		scenes.erase(map)
+	return &""
+
+
+func _release_scenes(player_id: String, kept: Vector2i = Vector2i(-1, -1)) -> void:
+	for map: Vector2i in scenes.keys():
+		if scenes[map] == player_id and map != kept:
+			scenes.erase(map)
 
 
 func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
@@ -546,8 +604,7 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 	return &""
 
 
-## A battle the player's own world opened, its enemies trusted. A second window walking
-## into a trainer joins; a beaten one stays beaten; the world's script sets the flags.
+## A battle the player's own world opened, its enemies trusted: a second window joins, a beaten trainer stays beaten.
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
 	if not initiator.is_free():
 		return &"already_in_battle"
@@ -789,6 +846,11 @@ func save_checkpoint(why: String = "checkpoint") -> StringName:
 	return &"" if _write_campaign(why) == OK else &"save_failed"
 
 
+## The checkpoint's content written to [param path] (a run's snapshot), neither a SAVE nor the checkpoint.
+func write_copy(path: String) -> Error:
+	return ERR_BUSY if not battles.is_empty() else PokeCoopSave.write(path, campaign, players.values())
+
+
 ## The campaign between battles: a battle still running when the host closes is left out.
 func _write_campaign(why: String) -> Error:
 	_written_at = Time.get_ticks_msec()
@@ -796,9 +858,21 @@ func _write_campaign(why: String) -> Error:
 		if not save_path.is_empty() else ERR_UNCONFIGURED
 	if written == OK:
 		_saved_unix = Time.get_unix_time_from_system()
+		_kept_revision = campaign.revision
+		for member: PokeCoopPlayer in players.values():
+			_boxes_written[member.player_id] = member.box_rev
 	journal.add(PokeCoopLog.HOST, "save" if written in [OK, ERR_UNCONFIGURED] else "save_error",
 		{"why": why, "path": save_path, "result": error_string(written)})
 	return written
+
+
+func _keep_story() -> void:
+	if campaign.revision == _kept_revision or save_path.is_empty():
+		return
+	_kept_revision = campaign.revision
+	var kept: Error = PokeCoopSave.append(save_path, campaign, players.values(), _boxes_written)
+	if kept != OK:
+		journal.add(PokeCoopLog.HOST, "journal_error", {"path": save_path, "result": error_string(kept)})
 
 
 ## Tells every client the session is over, closing once all left or after [param grace_msec], so the notice arrives.
@@ -824,6 +898,8 @@ func broadcast() -> void:
 	var everyone: Dictionary = {}
 	for player_id: String in players:
 		everyone[player_id] = player(player_id).public_view()
+	for map: Vector2i in scenes:
+		(everyone[scenes[map]] as Dictionary)["scene"] = map
 	var running: Array = []
 	for session: PokeCoopBattleSession in battles.values():
 		_log_view(session)

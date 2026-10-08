@@ -10936,6 +10936,24 @@ func test_gen1_an_empty_party_does_not_black_out_after_a_fight() -> void:
 	assert_true(world.gen1_blackout_due(save, Gen2WorldBattleAdapter.OUTCOME_LOST))
 
 
+## `.battleOccurred` sets BIT_CUR_MAP_LOADED_1 and _2 and jumps to `EnterMap`, so
+## after a wild fight the floor's callback puts back a block its switch opened.
+func test_gen1_a_wild_fights_reload_runs_the_maps_load_callback() -> void:
+	var world: Gen2WorldAPI = _gen1_world(0, Vector2i(1, 2))
+	var opened := {"op": "replace_block", "x": 0, "y": 0, "block": 1}
+	world.current_map.scripts["callbacks"] = [{"mask": Gen1Layout.MAP_LOAD_BOTH, "nodes": [opened]}]
+	world.current_tileset.block_count = 2
+	assert_true(bool(world.change_block(0, 0, 1).get("ok", false)))
+	assert_false(world.gen1_map_load_pending())
+
+	world.gen1_end_of_battle()
+	assert_true(world.reload_current_map()["ok"])
+
+	assert_eq(world.changed_blocks(), {}, "the reload takes the blocks back from the ROM")
+	assert_true(world.gen1_map_load_pending(), "and the callback that redraws the switch's block is owed")
+	RomCache.clear(_gen1_directory())
+
+
 ## `EnterMap` writes `wNumberOfNoRandomBattleStepsLeft` only under the bit
 ## `EndOfBattle` sets, so a door costs no quiet steps, a fight's reload three,
 ## and a door taken inside those three starts them again.
@@ -11377,3 +11395,12 @@ func test_gen1_an_escort_hides_its_original_object_after_a_map_change() -> void:
 	assert_true(world.state.is_object_toggled(7))
 	assert_false(world.state.is_object_toggled(9))
 	assert_false(world.gen1_movement_script_running())
+
+
+## `SpecialEnterMap` and `ReturnToCableClubRoom` load the room again, so no wait box from before stays up.
+func test_gen1_a_link_room_entered_or_reloaded_closes_the_wait_box() -> void:
+	var world: Gen2WorldAPI = _gen1_world(0, Vector2i(1, 2))
+	for step: StringName in [&"special_warp", &"cable_club_return"]:
+		var events: Array = []
+		Gen1MapScripts._gen1_linked(world, {"type": step, "name": "trade_center"}, events, [])
+		assert_eq(StringName((events[0] as Dictionary).get("type", &"")), &"text_closed", String(step))

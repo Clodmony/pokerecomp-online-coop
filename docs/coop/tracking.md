@@ -7,6 +7,11 @@ when GitHub use resumed (the table of found items gives its number).
 Statuses: **done** (acceptance criteria met and verified locally),
 **partial**, **in progress**, **open**.
 
+On 2026-10-08 the owner approved merging the stacked pull requests (#58,
+#79, #80, #81, #83, then #89) into `main` and closing the finished issues;
+every row marked done below was closed then. Work after that branches from
+`main`.
+
 ## Branches
 
 | Branch | Base | State | GitHub |
@@ -15,6 +20,8 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | `coop/m1-state-sync` | `coop/slice-1` | pushed: ownership, world and party sync, battle takeover, unique window trainers | draft PR #79 (stacked on #58) |
 | `coop/launcher` | `coop/m1-state-sync` | pushed: everything from the Co-op tab to private builds, opening, campaigns, story items, logs | draft PR #80 (stacked on #79) |
 | `coop/owner-rules` | `coop/launcher` | pushed: the owner's rules (D61) built (D62) | draft PR #81 (stacked on #80) |
+| `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to LT. SURGE and a Cable Club trade, the launcher check, campaign seeds, #39, #66, #82, #85, #86, D67 to D78 | draft PR #83 (stacked on #81) |
+| `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
 
 ## Issues
 
@@ -29,10 +36,10 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 19 | Session handshake: protocol version, cartridge identity, no content transfer | done: the hello carries the protocol and the cartridge id and SHA-1, and a mismatch is refused with a reason the Co-op tab explains; nothing from the cartridge is sent | `coop/slice-1`, `coop/launcher` | close when the branch merges |
 | 20 | Reconnection tokens and mobile suspend/resume | partial: a dropped link redials as the remembered player for about two minutes with a notice; a hosting app sent to the background saves the campaign; a joiner back from a pause redials at once (D46); no device suspend test yet | `coop/launcher` | comment, keep open for #45 |
 | 21 | Protocol hardening: limits, schema validation and fuzzing | done: seeded fuzz test over every message type, boundary readers and shape checks, 2 MiB packet cap (D35) | `coop/launcher` | close when the branch merges |
-| 22 | Per-player actors in the world simulation | open: each window runs its own world and the host trusts it; a host-side world needs the owner's go-ahead | | keep open; parked by the owner (D61) |
+| 22 | Per-player actors in the world simulation | done as the owner reads it (D72): the host keeps the campaign and battles, each window simulates its maps, NPCs and movement and shares at rest points | | closed 2026-10-07 |
 | 23 | Remote players on the same map with interpolation | done | `coop/slice-1` (`PokeCoopRemoteActor`), screenshots in `progress.md` | close when the branch merges |
-| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | partial: a gift two windows hand out at once is kept once, settled on the host rather than with a lock (D62); gift Pokémon no longer race; cutscenes still run in each window | `coop/owner-rules` | comment, keep open for a lock if one is still wanted |
-| 25 | Host-side wild encounters and trainer sight per player | partial: the window's world rolls them, the host fights them | `coop/m1-state-sync` (`15028474`) | comment, keep open for host-side generation with #22 |
+| 24 | Lock shared NPCs, scripts and cutscenes while one player uses them | done (D84): the first window into a rival scene drives it, the partner waits and can join | | keep open until built |
+| 25 | Host-side wild encounters and trainer sight per player | won't do (D72): windows roll them, the host fights them | `coop/m1-state-sync` (`15028474`) | closed as not planned 2026-10-07 |
 | 26 | Drive the battle screen from authoritative session events | partial: the battle field (pictures, panels, draining HP bars, turn text, move animations) is drawn from the host's view (D32), with move and hit sounds, blinks, screen shakes, palette effects, thrown balls, faints, recalls and send-outs (D39), battle music, cries and the victory fanfare (audible since D38); a trainer win closes with the defeat line, the trainer sliding back in, their line and the prize share (D41), and battles open with the sliding intro (D42); what is left is the field being a separate screen from `Gen2BattleScreen` | `coop/launcher` | comment, keep open |
 | 27 | Share the battle screen's enemy AI with host sessions | open for Generation 2 (a random usable move); Generation 1 sessions use the cartridge's trainer AI | | keep open; Generation 2 is out of scope for now (D61) |
 | 28 | Route switch offers, Baton Pass and Mimic to the right owner | partial: Mimic's choice goes to the Pokémon's owner in the panel; Red and Blue have no switch offer or Baton Pass; Generation 2 not checked | `coop/launcher` | keep open; Generation 2 is out of scope for now (D61) |
@@ -46,18 +53,18 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 36 | Policy: prize money, Pay Day and blackout costs | done: every participant is paid the whole prize with Pay Day's; a loss halves each loser's own money (D61) | `coop/owner-rules` | close when the branch merges |
 | 37 | Evolution and move learning for each owner after shared battles | done, with EXP.ALL per team (D61, D62) | `coop/launcher`, `coop/owner-rules` | close when the branches merge |
 | 38 | Player services: Pokémon Center, Mart, PC and trades between players | done: each window's own Center, Mart and PC on the player's own team, bag, money and PC (D29); trades through the Cable Club (D31) | `coop/launcher` | close when the branch merges |
-| 39 | Save migration, autosave and recovery journal | partial: autosave after battles, every 30 s of changes, on leaving and on pause; the checkpoint before is kept as `.bak` and a failed write changes nothing (D40); no journal or migration | `coop/launcher` | comment, keep open |
+| 39 | Save migration, autosave and recovery journal | done: autosave, `.bak` and a failed write changing nothing (D40); a journal of the state after each story change between checkpoints, and format 2 settling format 1 files once (D66) | `coop/playthrough` | close when the branch merges |
 | 40 | Import a single-player save as a co-op player | done: a new player brings a save slot; a new campaign's first player brings its story too (D34) | `coop/launcher` | close when the branch merges |
 | 41 | Co-op battle HUD: controller, owner tags and advisory cursor | done: the panel names who decides, tags each ally with its owner's colour, shows the partner's suggestion and fades refusals (D45) | `coop/launcher` | close when the branch merges |
 | 42 | Host and join screens and the in-game session menu | done (launcher tab; the in-game menu is the SELECT panel) | `coop/launcher` (`65d6c0d6`) | close when the branch merges |
 | 43 | Touch and pad input for co-op menus | partial: the on-screen pad's presses reach the panel by the same path as keys; panel rows take a tap or a click (cursor, then choose); a tall window puts the panel under the battle; not tried on a device | `coop/launcher` | comment, keep open |
 | 44 | Private Windows and Linux builds | partial: the stock 4.8-dev4 export templates are installed locally; `Windows Desktop` and `Linux` export from the existing presets (release, one file each, no cartridge data); a Windows engine under Wine joined a Linux host; not yet run on a real Windows PC | `coop/launcher` | comment, keep open until the first session on Windows |
-| 45 | Android client: lifecycle and reconnect | open: pause and resume handling exists (D46), no Android build or device run | | keep open |
+| 45 | Android client: lifecycle and reconnect | open, deferred by the owner until after #88 and #44 (D72): pause and resume handling exists (D46), no Android build | | keep open |
 | 46 | iOS client build without executable mods | open: no iOS build; needs a Mac and the owner's account | | keep open |
 | 47 | Two-process ENet integration check in CI | done: `tools/coop_two_process.sh` runs the host and both players as three processes (`coop_session.gd -- check host\|p1\|p2`), 30/30 local passes, and the CI step passed on #80 | `coop/launcher` (`d5e65c2f`), #80 | closes when #80 merges |
-| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | partial: scripted two-window runs cover the opening, Route 1, a joined wild battle, BROCK from the session menu, the Cable Club trade and OAK's PARCEL; no single run from the start to BROCK's gym | local scratch drivers | keep open |
+| 48 | Scripted co-op playthrough to the first gym (local cartridge only) | done: `playthrough_brock` and every later stretch to the Hall of Fame (#88) | `coop/playthrough` | close when the branch merges |
 | 49 | Readiness checklist for private builds | done: `readiness.md`, with a player guide in `playing.md` | `coop/launcher` | close when the branch merges |
-| 50 | German Red/Blue support | open (later milestone) | | keep open |
+| 50 | German Red/Blue support | partial (D95): both German dumps import, Rote plays to BROCK in two windows; the engine's own English lines and a Blaue playthrough remain | `coop/german` | keep open |
 | 51 | Internet relay option | open (later milestone); WireGuard or a forwarded port work today | | keep open |
 | 52 | Dedicated server mode | open (later milestone); `tools/coop_session.gd host` runs a headless host already | | keep open |
 | 53 | Local split-screen | open (later milestone) | | keep open |
@@ -66,7 +73,12 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | 56 | Investigate iOS App Store feasibility | open | | keep open |
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
 | 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
-| 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | open: found while building #81 | | keep open |
+| 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
+| 84 | World sharing: share the campaign at rest points, never mid-scene | done (D72, D79): rest points, per-player gym bytes, owed steps, `world_pull` logs the hold | `coop/playthrough` (`f3fe5d45`) | close when the branch merges |
+| 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | done (D77): a window entering keeps the first lock while a partner is near | `coop/playthrough` (`209ba387`) | close when the branch merges |
+| 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | done (D76): a row's end closes a no-press box | `coop/playthrough` (`fa244045`) | close when the branch merges |
+| 87 | Review and merge coop/autoplay-surge | done: merged (`91e8c1c6`), D73 to D75; `playthrough_surge` passes from a new campaign | `coop/playthrough` | closed 2026-10-07 |
+| 88 | Autoplayed two-window run to the Hall of Fame | done: every stretch chained in ROUTES; a new campaign reached both Halls of Fame in two windows on 2026-10-08, resumed from snapshots after each autopilot fix (D96); one unbroken run is the next check | | |
 
 ## Found while GitHub was paused
 
@@ -79,7 +91,7 @@ Statuses: **done** (acceptance criteria met and verified locally),
 | L5 | #64 | Story gifts (key items, HMs, gift TMs) reach every player | M6 | done on `coop/launcher`: policy in `PokeCoopPolicy.share_gifts` (D30) |
 | L6 | #65 | Upstream: a Gen 1 link trade from a save slot puts the catch rate in the item byte, so a Pokémon whose catch rate is not an item (RATTATA, 255) fails the arriving save's check | upstream | seen in co-op before the co-op cable sent host rows; file upstream with a repro |
 | L8 | #67 | Upstream: the Gen 1 battle intro draws the player's back-picture head as Crystal's six-column OAM, scrambling it | upstream | fixed in the fork's `battle_intro.gd` (D42); file upstream with the fix |
-| L7 | #66 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream |
+| L7 | #66 | Upstream: the Gen 1 trade movie names the received Pokémon after its trade evolution (MACHAMP is transferred) before the evolution plays | upstream | cosmetic; file upstream Fixed on `coop/playthrough` (`4dd8cba6`, D64): the movie is built before the evolution |
 | L9 | #68 | Several campaigns per host device, so a run with another group does not overwrite the first | M8 | done on `coop/launcher`: one file per campaign, a picker and a name on the Co-op tab, identity per campaign (D49) |
 | L10 | #69 | Upstream: the rival's challenge in Oak's lab can be walked past: the player can move while the rival walks to his POKé BALL (`wJoyIgnore` not modelled), and walking down at once leaves the lab without the fight | upstream | fixed in the fork's `world_screen.gd` (D54): no player step while a Gen 1 script walks someone; checked in single player. File upstream with the fix |
 | L11 | #70 | Upstream: a direction pressed on the frame the player stops never turns them, and a press that does not turn leaves the facing alone, so after the Viridian Mart's parcel scene DOWN does not leave the shop | upstream | fixed in the fork's `world_api.gd` (D57): a Gen 1 press faces its direction as `wPlayerDirection` does; file upstream with the fix |
