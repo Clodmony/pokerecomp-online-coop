@@ -1437,7 +1437,9 @@ func _partner_on(map: Vector2i) -> bool:
 
 
 func _join_any(goal: Callable) -> Callable:
-	return func(world: Gen2WorldAPI) -> int: return PokeButton.SELECT if not _partner_fight(true).is_empty() else goal.call(world)
+	return func(world: Gen2WorldAPI) -> int:
+		_joining = _partner_fight(true)
+		return PokeButton.SELECT if not _joining.is_empty() else goal.call(world)
 
 
 func _inducted(world: Gen2WorldAPI) -> bool:
@@ -1473,6 +1475,7 @@ func _watch_hall_of_fame(screen: Gen2WorldScreen) -> void:
 			_hall[host] = _frames
 			print("coop autoplay: %s %s on map %s, ENGINE_HALL_OF_FAME %s" % [
 				_player_id, host, screen.world().map_id(), screen.world().state.hall_of_fame()])
+		if _frames - int(_hall[host]) == FILM_FRAMES * 16:
 			_shot(String(host).trim_prefix("_").trim_suffix("_host"))
 
 
