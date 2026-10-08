@@ -3289,9 +3289,11 @@ func _arm_wild_encounter_cooldown(after_battle: bool) -> void:
 
 
 ## `EndOfBattle`'s `set BIT_WILD_ENCOUNTER_COOLDOWN` and the `EnterMap` behind it.
+## `.battleOccurred` sets both map-load bits for `EnterMap`, so a wild fight's reload redraws what a switch opened.
 func gen1_end_of_battle() -> void:
 	if _gen1 and state != null:
 		_arm_wild_encounter_cooldown(true)
+		_gen1_map_load_pending = Gen1Layout.MAP_LOAD_BOTH
 
 
 ## `CountStep` whole: the two guards in front of the counters, which every step

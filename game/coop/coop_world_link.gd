@@ -284,7 +284,6 @@ static func _touches(sent: Dictionary, byte: int) -> bool:
 	return (change.get("set", change.get("value", {})) as Dictionary).has(byte) or (change.get("erase", []) as Array).has(byte)
 
 
-## A partner's clear of a switch that holds this window's floor open waits until the window leaves the floor.
 func _keep_switches(changes: Dictionary) -> void:
 	var flags: Dictionary = changes.get("event_flags", {})
 	for flag: Variant in (flags.get("erase", []) as Array).duplicate():
