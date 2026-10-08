@@ -372,7 +372,7 @@ func _stand_by_legs() -> Array:
 
 func _misty_legs() -> Array:
 	var p: Variant = _played
-	var fossil: Callable = p._flag(_kit.EVENT_GOT_DOME_FOSSIL[_session.data.id])
+	var fossil: Callable = p._flag(RomRegistry.pick(_kit.EVENT_GOT_DOME_FOSSIL, _session.data.id))
 	return [
 		["gym_out", p._warp_to(_kit.PEWTER_CITY), p._on_map(_kit.PEWTER_CITY)],
 		["pewter_to_route_3", p._cross(Vector2i.RIGHT, _kit.ROUTE_3), p._on_map(_kit.ROUTE_3)],
