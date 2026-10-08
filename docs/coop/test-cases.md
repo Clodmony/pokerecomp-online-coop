@@ -76,7 +76,7 @@ Red (or Blue) cartridge, the same one.
 | W38 | The partner walks onto the map during the scene | Held from its first stop, never mid-step, under the same line | `test_a_window_arriving_during_a_rival_scene_waits_from_its_first_rest_point` | rival_scene | |
 | W39 | The player in the rival scene closes the window, loses the link, or whites out | The partner is let go at once; after a close or lost link the rival still waits and that player meets him again from the start | `test_a_window_dropped_in_its_rival_scene_lets_the_partner_go_and_meets_the_rival_again`, `test_a_scene_is_claimed_only_on_a_rival_map_and_given_back_when_its_driver_leaves_the_map` | rival_scene_killed | |
 | W40 | Both step onto the rival's trigger at the same moment | Both see the scene; one battle both fight; the rival is beaten once for the campaign | `test_two_windows_meeting_the_rival_at_once_both_play_the_scene_and_fight_one_battle` | | |
-| W41 | Both players buy a drink and walk into a Saffron gate | Each guard takes the walker's own drink; each player needs one | | playthrough_sabrina | |
+| W41 | One player buys a FRESH WATER and hands it to Route 7's gate guard while the partner stands in the gate with none | The partner walks through where they stand; all four Saffron gates let both through; only the giver's bag and money change | `test_one_players_drink_lets_both_through_saffrons_gates_and_the_other_status_bits_stay_each_players` | playthrough_sabrina | |
 | W42 | One player picks up Silph Co.'s CARD KEY | Both hold it; the partner opens doors and skips the 5F detour | the D52 tests | playthrough_sabrina | |
 | W43 | Both players talk to Silph Co. 7F's LAPRAS worker | Each gets their own LAPRAS, with their own uid on the host | | playthrough_sabrina | |
 | W44 | One player gets the MASTER BALL from Silph Co.'s president | Each holds exactly one, in the window and on the host | the D52 tests | playthrough_sabrina | |
@@ -101,6 +101,7 @@ Red (or Blue) cartridge, the same one.
 | W63 | One player reaches Route 23 or the Indigo Plateau lobby while the other is still in Victory Road | The one inside keeps their walls open, falling from 3F to 2F included, until they leave | `test_a_partner_resetting_victory_roads_switches_leaves_them_open_for_the_player_still_inside` | | |
 | W64 | Both players fight GIOVANNI in Viridian Gym | EARTHBADGE for the campaign and one TM27 each, in the window and on the host; with a full bag "no space" is shown and TM27 comes on a later visit | | playthrough_victory | |
 | W65 | Route 22's second rival | The first player in drives the scene, the partner waits and joins from SELECT; Route 23's badge guards let both through | | playthrough_victory | |
+| W66 | A campaign saved before D92 in which one player gave the gate drink is reopened | The drink moves to the campaign; the partner walks through without one; STRENGTH and the surf check stay each player's | `test_the_teams_gate_drink_is_saved_with_the_campaign_and_a_drink_a_player_kept_moves_to_it` | | |
 
 ## Battles
 

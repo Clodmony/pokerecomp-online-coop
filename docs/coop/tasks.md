@@ -29,11 +29,11 @@ keep the snapshot below current.
   - `coop/autoplay-elite` merged (D87 provisional, D88): the Elite Four, the
     Champion and each player's Hall of Fame.
   - Owner's answers (D91): Saffron's gate drink and the Elite Four are the
-    team's, not each player's; being built on `coop/saffron-drink` and
-    `coop/elite-team`.
+    team's, not each player's: the drink is merged (D92); the Elite Four is
+    being built on `coop/elite-team`.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D92 (D72 to D91 are recorded).
+- **Next free decision number:** D93 (D72 to D92 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
   project. Export templates are installed.
