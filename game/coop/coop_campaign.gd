@@ -14,6 +14,9 @@ var game_id: StringName = &""
 var rom_sha1: String = ""
 var flags: Dictionary = {}
 var badges: int = 0
+## The shared keys of the world state other than event flags and badges, which
+## [member flags] and [member badges] hold. See [PokeCoopOwnership].
+var world: Dictionary = {}
 var revision: int = 0
 var next_battle_serial: int = 1
 var next_player_serial: int = 1
@@ -51,6 +54,40 @@ func commit(commit_id: String, changes: Dictionary) -> bool:
 	for encounter: Variant in changes.get("defeated", []) as Array:
 		_encounters[String(encounter)] = {"state": ENCOUNTER_DONE, "battle": ""}
 	_commits[commit_id] = true
+	revision += 1
+	return true
+
+
+## The campaign's half of a world state: [member world] with the event flags and
+## the badges as the engine flags in [param badge_flags].
+func world_part(badge_flags: Array[int]) -> Dictionary:
+	var out: Dictionary = world.duplicate(true)
+	out["event_flags"] = flags.duplicate()
+	var engine: Dictionary = {}
+	for bit: int in badge_flags.size():
+		if has_badge(bit):
+			engine[badge_flags[bit]] = true
+	out["engine_flags"] = engine
+	return out
+
+
+func apply_world_patch(changes: Dictionary, badge_flags: Array[int]) -> bool:
+	var current: Dictionary = world_part(badge_flags)
+	var before: Dictionary = current.duplicate(true)
+	PokeCoopOwnership.apply_patch(current, changes)
+	if current == before:
+		return false
+	flags = {}
+	for flag: Variant in current["event_flags"] as Dictionary:
+		if bool((current["event_flags"] as Dictionary)[flag]):
+			flags[int(flag)] = true
+	badges = 0
+	for bit: int in badge_flags.size():
+		if bool((current["engine_flags"] as Dictionary).get(badge_flags[bit], false)):
+			badges |= 1 << bit
+	current.erase("event_flags")
+	current.erase("engine_flags")
+	world = current
 	revision += 1
 	return true
 
@@ -111,7 +148,7 @@ func to_dict() -> Dictionary:
 	return {
 		"campaign_id": campaign_id, "game_id": String(game_id), "rom_sha1": rom_sha1,
 		"flags": _sorted_flags(), "badges": badges, "revision": revision,
-		"defeated": done, "commits": commits,
+		"defeated": done, "commits": commits, "world": world.duplicate(true),
 		"next_battle_serial": next_battle_serial, "next_player_serial": next_player_serial,
 	}
 
@@ -133,6 +170,9 @@ static func from_dict(raw: Variant) -> PokeCoopCampaign:
 	for commit_id: Variant in source.get("commits", []) as Array:
 		out._commits[String(commit_id)] = true
 	out.badges = int(source.get("badges", 0))
+	var raw_world: Variant = source.get("world", {})
+	if raw_world is Dictionary:
+		out.world = PokeCoopOwnership.canonical(raw_world, PokeCoopOwnership.CAMPAIGN)
 	out.revision = int(source.get("revision", 0))
 	out.next_battle_serial = maxi(int(source.get("next_battle_serial", 1)), 1)
 	out.next_player_serial = maxi(int(source.get("next_player_serial", 1)), 1)
