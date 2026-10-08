@@ -31,6 +31,7 @@ Red (or Blue) cartridge, the same one.
 | S15 | Host a campaign again while a player stands inside a building | That window opens inside it on the campaign's story and leaves by the building's own door; a coord script already done (the Cerulean thief) does not run again | `test_a_window_opened_again_inside_a_building_leaves_by_its_own_door`, `test_a_window_opens_its_world_on_the_campaigns_story_and_its_own_place` | | |
 | S16 | Host a campaign `tools/coop_seed.gd` wrote at a later point of the story | Both players open where the story left them, side by side, each with the story's party, bag and money; the story's badges and flags apply | `test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of_the_save` | story_seed (`SEED=<seed dir>`) | |
 | S17 | A world reopened after the Hall of Fame's reset | It shows no earlier battle's result on the panel | `test_coop_session` (continued world test) | playthrough_elite | |
+| S18 | `tools/coop_seed.gd -- red <leg> <dir> party=6` | Each player opens with six of their own Pokémon on the host (p1:1 to p1:6); the files are identical each time | `test_coop_state` (seed party test) | | |
 
 ## Exploration and story
 
