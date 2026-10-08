@@ -730,6 +730,7 @@ var _joining: String = ""
 var _fluted: bool = false
 var _safari_team: int = -1
 var _safari_caught: bool = false
+var _safari_retried: bool = false
 
 
 func _koga_legs() -> Array:
@@ -879,8 +880,15 @@ func _caught_on_host(_world: Gen2WorldAPI) -> bool:
 
 
 func _walk_grass(world: Gen2WorldAPI) -> int:
+	if not world.gen1_safari_active():
+		if not _safari_retried:
+			_safari_retried = true
+			print("coop autoplay: %s Safari Game over with no catch, paying again" % _player_id)
+		return _played._walk(SAFARI_GATE_OFFER).call(world) if world.map_id() == KOGA_MAPS.safari_gate \
+			else _played._warp_to(KOGA_MAPS.safari_gate).call(world)
+	_safari_retried = false
 	var here: Vector2i = world.player_cell
-	return _played._step_toward(world, func(at: Vector2i) -> bool: return at != here and world.in_grass(at))
+	return _played._step_toward(world, func(at: Vector2i) -> bool: return at != here and world.can_encounter_wild_mon_at(at))
 
 
 func _safari_button(battle: Gen2BattleScreen) -> int:
