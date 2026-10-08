@@ -4,24 +4,36 @@ The resume point for the next session. Read [playbook.md](playbook.md) for the
 why; this is the what, in order. Tick a box in the same commit as the work, and
 keep the snapshot below current.
 
-## Snapshot (2026-10-07, second session, resumed)
+## Snapshot (2026-10-08, second session, halted at the usage limit)
 
 - **Branches and pull requests** (all drafts, stacked, merge in this order):
   #58 `coop/slice-1`, #79 `coop/m1-state-sync`, #80 `coop/launcher`, #81
   `coop/owner-rules`, #83 `coop/playthrough` (now with `coop/autoplay-surge`
   merged, #87).
 - **Owner decisions:** all six answered (D72); none waiting.
-- **Agents resumed after the halt** (pushed, not merged):
-  - `erika` (D83), `tower` (D82) and `koga` (D81) are merged and chained after
-    `surge`; `playthrough_koga` runs them all from a new campaign. After every
-    merge of `tools/coop_autoplay.gd`, run one seeded window: GUT never loads it.
-  - `sabrina` (D85) merged after `koga`. Agents on `coop/autoplay-blaine`
-    (Cinnabar, BLAINE) and `coop/autoplay-victory` (GIOVANNI, Route 22's
-    second rival, Victory Road); the Elite Four stretch is not started.
-  - Question for the owner: should Saffron's gate guards (the drink) be the
-    campaign's? Today each player hands over their own drink (D85). One fix found: `19ad0cfd` names a DISABLED or NO PP move on the
-    panel. Check each worktree, finish or restart the stretch from its story
-    seed (`tools/coop_seed.gd`), merge one by one.
+- **Halted mid-round** (all pushed; the agents' git worktrees keep their
+  scratch files):
+  - Merged into `coop/playthrough` and chained in ROUTES: `erika` (D83),
+    `tower` (D82), `koga` (D81), `sabrina` (D85); #24 (D84, protocol 5);
+    D80 (a checkpoint only on a real SAVE).
+  - **First:** the chained `playthrough_koga` from a new campaign stalled at the
+    tower stretch's first leg: both windows in the Rocket Hideout elevator
+    (map 203), one window's `gen1_elevator_shake` wait never ending while it
+    stood on the panel cell (1,2). Not yet diagnosed; run logs under
+    `/tmp/claude-1000/lead/runs/koga_full` (lost on reboot).
+  - `coop/autoplay-blaine` (6 commits, last "the BLAINE stretch ends outside the
+    gym"): Cinnabar and BLAINE, agent stopped while merging `coop/playthrough`;
+    check its last run, merge `coop/playthrough` (chain after `sabrina`), merge.
+  - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
+    Victory Road; unfinished.
+  - `coop/autoplay-elite` (WIP commit, includes an unfinished
+    `coop_world_link.gd` change): Elite Four and Hall of Fame; unfinished.
+  - Questions for the owner: should Saffron's gate guards be the campaign's
+    (today each player hands over their own drink, D85)? How should a shared
+    Elite Four run work (both together; the Hall of Fame resets the Elite
+    Four's flags for everyone)?
+  - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
+    with `tools/coop_seed.gd`.
 - **Next free decision number:** D86 (D72 to D85 are recorded).
 - **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
   into the session scratchpad; the system `godot` is 4.7 and cannot open the
