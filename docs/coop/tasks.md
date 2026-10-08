@@ -16,11 +16,9 @@ keep the snapshot below current.
   - Merged into `coop/playthrough` and chained in ROUTES: `erika` (D83),
     `tower` (D82), `koga` (D81), `sabrina` (D85); #24 (D84, protocol 5);
     D80 (a checkpoint only on a real SAVE).
-  - **First:** the chained `playthrough_koga` from a new campaign stalled at the
-    tower stretch's first leg: both windows in the Rocket Hideout elevator
-    (map 203), one window's `gen1_elevator_shake` wait never ending while it
-    stood on the panel cell (1,2). Not yet diagnosed; run logs under
-    `/tmp/claude-1000/lead/runs/koga_full` (lost on reboot).
+  - The chained run's Rocket Hideout car stall was the autopilot choosing the
+    wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
+    The chained run from a new campaign is to be re-run.
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
