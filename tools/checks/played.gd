@@ -489,6 +489,10 @@ func _warp_press(world: Gen2WorldAPI, cell: Vector2i) -> int:
 		if not world.can_walk_to(cell + direction, direction) \
 			and bool(world.call(&"_gen1_extra_warp_check", cell, direction)):
 			return _direction_button(direction)
+	for direction: Vector2i in [Vector2i.DOWN, Vector2i.UP, Vector2i.LEFT, Vector2i.RIGHT]:
+		if world.player_cell == cell and world.can_walk_to(cell + direction, direction) \
+			and world.warp_at(cell + direction).is_empty():
+			return _direction_button(direction)
 	return PokeButton.NONE
 
 
