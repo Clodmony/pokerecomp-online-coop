@@ -19,7 +19,7 @@ keep the snapshot below current.
   - The chained run's Rocket Hideout car stall was the autopilot choosing the
     wrong floor and blocking the car's door path (`coop/elevator-stall`, merged).
     The chained run then stalled on Pokémon Tower 7F for a partner arriving
-    after Mr. Fuji's rescue (`coop/tower-7f-late`, in progress).
+    after Mr. Fuji's rescue (`coop/tower-7f-late`, merged); a third chained run is under way.
   - `coop/autoplay-blaine` merged (D86): Cinnabar and BLAINE, chained after
     `sabrina`; two seeded runs pass.
   - `coop/autoplay-victory` (WIP commit): GIOVANNI, Route 22's second rival,
