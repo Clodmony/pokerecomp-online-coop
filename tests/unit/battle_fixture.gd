@@ -309,6 +309,8 @@ const HAPPINESS_CHANGES: Array = [
 ## The highest item number this table fills. The SQUIRTBOTTLE at $AF is the
 ## last row anything reads, so the run stops there rather than at 255.
 const MAX_ITEM: int = 175
+## Oak's Parcel and the Dome Fossil, the two key items the co-op tests take away.
+const KEY_ITEMS: Array[int] = [0x46, 0x29]
 ## The Smoke Ball and its held effect, both the cartridge's own numbers
 ## (constants/item_constants.asm, constants/item_data_constants.asm). It is the
 ## one item running reads.
@@ -932,6 +934,8 @@ static func _items() -> Array:
 		}
 		if BATTLE_ITEMS.has(number):
 			entry.merge(BATTLE_ITEMS[number] as Dictionary, true)
+		if KEY_ITEMS.has(number):
+			entry["permissions"] = Gen2WorldPack.CANT_TOSS
 		out.append(entry)
 	return out
 

@@ -13,6 +13,7 @@ extends Control
 signal finished(save: Gen2SaveData)
 ## Carries why the run could not be written, having written nothing.
 signal failed(message: String)
+signal spoken(player_name: String, rival_name: String)
 
 const WORLD_SCENE: String = "res://game/world/world_screen.tscn"
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
@@ -30,6 +31,9 @@ var _label: String = ""
 var _challenge: StringName = Gen2Rules.CHALLENGE_VANILLA
 var _gender: int = Gen2SaveData.GENDER_MALE
 var _standalone: bool = true
+## False for a driver that keeps its own save, such as a co-op window.
+var writes_save: bool = true
+var preset_names: Dictionary = {}
 
 var _splash: Gen2SplashScreen = null
 var _gender_screen: Gen2GenderScreen = null
@@ -273,6 +277,7 @@ func _start_speech() -> void:
 		_speech = null
 		_fail("This cartridge cache carries no intro text.")
 		return
+	_speech.preset_names = preset_names
 	_speech.finished.connect(_on_speech_finished)
 	_show_sub_screen(_speech)
 
@@ -280,6 +285,9 @@ func _start_speech() -> void:
 ## `InitializeWorld`'s place in `NewGame`: the save is built and written here,
 ## once, with the name the keyboard produced and the gender the menu chose.
 func _on_speech_finished(player_name: String) -> void:
+	if not writes_save:
+		spoken.emit(player_name, _speech.rival_name())
+		return
 	var created: Gen2SaveData = Gen2SaveStore.create_new_game(_data, _slot, player_name)
 	if created == null:
 		_fail("The intro produced a name this save cannot hold.")

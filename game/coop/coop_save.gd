@@ -6,6 +6,7 @@ extends RefCounted
 
 const KIND: String = "pokerecomp-coop-campaign"
 const FORMAT_VERSION: int = 1
+const BACKUP_SUFFIX: String = ".bak"
 
 
 static func to_dict(campaign: PokeCoopCampaign, players: Array) -> Dictionary:
@@ -49,8 +50,13 @@ static func write(path: String, campaign: PokeCoopCampaign, players: Array) -> E
 	var file: FileAccess = FileAccess.open(staging, FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(JSON.stringify(to_dict(campaign, players), "\t"))
+	var stored: bool = file.store_string(JSON.stringify(to_dict(campaign, players), "\t"))
 	file.close()
+	if not stored or read(staging).is_empty():
+		DirAccess.remove_absolute(staging)
+		return ERR_FILE_CANT_WRITE
+	if not read(path).is_empty():
+		DirAccess.copy_absolute(target, target + BACKUP_SUFFIX)
 	return DirAccess.rename_absolute(staging, target)
 
 
@@ -58,4 +64,7 @@ static func read(path: String) -> Dictionary:
 	var target: String = ProjectSettings.globalize_path(path)
 	if not FileAccess.file_exists(target):
 		return {}
-	return from_dict(JSON.parse_string(FileAccess.get_file_as_string(target)))
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(target)) != OK:
+		return {}
+	return from_dict(json.data)

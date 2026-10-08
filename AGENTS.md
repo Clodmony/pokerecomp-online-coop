@@ -15,15 +15,17 @@ Read before working:
 - [docs/coop/architecture.md](docs/coop/architecture.md): what exists and what changes next.
 - [docs/coop/progress.md](docs/coop/progress.md): implemented, verified, incomplete, blocked.
 - [docs/coop/decisions.md](docs/coop/decisions.md): decisions and trade-offs.
+- [docs/coop/playing.md](docs/coop/playing.md): how players host, join, battle and trade.
+- [docs/coop/readiness.md](docs/coop/readiness.md): what to check before a private build.
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): upstream's rules, which still apply
   (file budget, comment budget, test rules, style, no cartridge data).
 
 ## Hard rules
 
-- **GitHub is paused.** Until the owner says otherwise: no `git push`, no `gh`,
-  no issues, pull requests, comments, CI runs or settings changes. Commit on
-  local branches and verify with a local Godot 4.8-dev4. The `origin` push URL
-  is disabled locally to enforce this.
+- **GitHub, private repository only.** GitHub use resumed on 2026-10-07 after a
+  pause: push feature branches to `origin`, open draft pull requests, and keep
+  the issues current. Verify locally with Godot 4.8-dev4 before pushing; CI
+  runs the same steps on pull requests.
 - The repository stays **private**. Never publish releases, Pages sites,
   packages, store builds or artifacts. The release and export-template
   workflows are guarded to run only in `Decryptu/pokerecomp` and are disabled
@@ -72,9 +74,21 @@ godot --headless --path . -s res://addons/gut/gut_cmdln.gd \
 # Co-op slice over real localhost ENet sockets (exits non-zero on failure).
 godot --headless --path . -s res://tools/coop_session.gd -- demo
 
+# The same slice as three processes (host, p1, p2); exits non-zero if any fails or hangs.
+GODOT=godot tools/coop_two_process.sh 24690
+
+# Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
+# (replay needs the cartridge imported); demo and check write logs only with `logs`.
+godot --headless --path . -s res://tools/coop_log.gd -- merge user://coop_logs out=/tmp/merged.jsonl
+godot --headless --path . -s res://tools/coop_log.gd -- summary user://coop_logs
+godot --headless --path . -s res://tools/coop_log.gd -- replay <host log>.jsonl
+
 # Two processes: a host, then one client per player in other terminals.
 godot --headless --path . -s res://tools/coop_session.gd -- host 24680
 godot --headless --path . -s res://tools/coop_session.gd -- client 127.0.0.1 24680 p1
+
+# The real game from the launcher: the Co-op tab hosts or joins (Red or Blue imported).
+godot --path .
 
 # The real game with a locally imported Red dump (never committed):
 godot --headless --path . -s res://tools/import_rom.gd -- "/path/to/Pokemon Red.gb"
@@ -92,8 +106,8 @@ godot --headless --path . --quit-after 30
 ```
 
 The fork's CI (`ci.yml`) runs the import, the whole suite, the boot smoke test
-and the co-op ENet demo on every pull request. While GitHub is paused, run the
-same steps locally instead.
+and the co-op ENet demo on every pull request. Run the same steps locally
+before pushing.
 
 ## Where co-op code lives
 
@@ -112,12 +126,21 @@ same steps locally instead.
 | `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
 | `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu and co-op battle overlay over the world screen |
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
-| `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state and party kept in step with the host |
+| `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |
+| `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the cartridge's battle field |
+| `game/coop/coop_battle_stage.gd` | `PokeCoopBattleStage`: the field's tilemap, faints, recalls, send-outs and per-side panels |
+| `game/coop/coop_trades.gd` | `PokeCoopTrades`: Cable Club trades between players, swapped on the host |
+| `game/coop/coop_link_transport.gd` | `PokeCoopLinkTransport`: the Cable Club's cable to the partner the host names |
 | `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |
-| `tools/coop_session.gd` | `demo`, `host [port] [game]` and `client` runners |
+| `game/coop/coop_session.gd` | `PokeCoopSession`: one device's co-op run, held by `Gen2GameRuntime.coop` |
+| `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab |
+| `game/coop/coop_log.gd` | `PokeCoopLog`: a device's session log, its debug-stream batches and the setting that shares them |
+| `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
+| `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game]` and `client` runners |
+| `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/coop_play.gd` | one player's window on the real world screen |
-| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/integration/test_coop_session.gd` | co-op tests |
-| `docs/coop/tracking.md` | issue status kept locally while GitHub is paused |
+| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
+| `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 
 ## Conventions specific to the fork
 

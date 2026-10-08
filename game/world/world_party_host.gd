@@ -2582,6 +2582,15 @@ static func contest_mon_from(wild: Gen2BattleMon) -> Dictionary:
 ## roll, the way a MASTER_BALL does. [param thrower] is the player's active
 ## battler, which LEVEL_BALL reads a level off and LOVE_BALL a species and a
 ## gender; a caller with none passes null and both rows answer with no boost.
+## The throw alone, with no save to file it in: what a co-op host rolls when a
+## ball is thrown in a battle it runs.
+static func roll_capture(
+	data: GameData, wild: Gen2BattleMon, ball: int, random: RandomNumberGenerator,
+	battle_type: int = Gen2Battle.BATTLETYPE_NORMAL, thrower: Gen2BattleMon = null
+) -> Dictionary:
+	return _capture_outcome(data, wild, ball, random, battle_type, thrower)
+
+
 static func _capture_outcome(
 	data: GameData,
 	wild: Gen2BattleMon,

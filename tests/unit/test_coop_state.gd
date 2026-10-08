@@ -20,8 +20,9 @@ func before_each() -> void:
 
 func after_each() -> void:
 	RomCache.clear(_directory)
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _saved(species: int, level: int) -> Gen2SaveMon:
@@ -54,6 +55,14 @@ func test_a_unique_encounter_has_one_active_instance_per_campaign() -> void:
 	assert_true(campaign.claim_encounter("trainer:brock", "b3"), "free again after a loss")
 	campaign.commit("victory:trainer:brock", {"defeated": ["trainer:brock"]})
 	assert_false(campaign.claim_encounter("trainer:brock", "b4"), "beaten for good")
+
+
+func test_a_fresh_campaign_begins_after_oaks_intro() -> void:
+	var campaign := PokeCoopCampaign.create("c1", &"red", "sha")
+	PokeCoopPolicy.start_campaign(campaign)
+
+	assert_true(campaign.has_flag(0x00), "EVENT_FOLLOWED_OAK_INTO_LAB: the north exit stays open")
+	assert_true(campaign.has_flag(0x22), "EVENT_GOT_STARTER: the lab hands out no second one")
 
 
 func test_a_team_holds_six_and_a_uid_is_never_handed_out_twice() -> void:
@@ -101,6 +110,8 @@ func test_a_campaign_save_brings_back_both_players_and_the_shared_progress() -> 
 	var blue := PokeCoopPlayer.create("p2", "BLUE", 200)
 	blue.add_mon(_saved(Fixture.BULBASAUR, 7))
 	blue.place(ROUTE_1, Vector2i(9, 3), 1)
+	blue.current_box = 4
+	blue.store_mon(_saved(Fixture.PIKACHU, 3))
 
 	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [blue, red]), OK)
 	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
@@ -112,6 +123,23 @@ func test_a_campaign_save_brings_back_both_players_and_the_shared_progress() -> 
 	)
 
 
+func test_the_checkpoint_before_the_last_is_kept_and_never_replaced_by_a_damaged_one() -> void:
+	var backup: String = SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	var first := PokeCoopCampaign.create("first", _data.id, _data.sha1)
+	assert_eq(PokeCoopSave.write(SAVE_PATH, first, [red]), OK)
+	assert_false(FileAccess.file_exists(backup), "nothing before the first")
+	assert_eq(PokeCoopSave.write(SAVE_PATH, PokeCoopCampaign.create("second", _data.id, _data.sha1), [red]), OK)
+	assert_eq((PokeCoopSave.read(backup)["campaign"] as PokeCoopCampaign).campaign_id, "first")
+
+	var damaged: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	damaged.store_string("{\"kind\": \"pokerecomp-coop-campaign\", \"campa")
+	damaged.close()
+	assert_eq(PokeCoopSave.write(SAVE_PATH, PokeCoopCampaign.create("third", _data.id, _data.sha1), [red]), OK)
+	assert_eq((PokeCoopSave.read(backup)["campaign"] as PokeCoopCampaign).campaign_id, "first", "the damaged file is not kept")
+	assert_eq((PokeCoopSave.read(SAVE_PATH)["campaign"] as PokeCoopCampaign).campaign_id, "third")
+
+
 func test_a_save_from_a_newer_format_or_another_program_is_refused() -> void:
 	var campaign := PokeCoopCampaign.create("c1", &"testgame", "sha")
 	var newer: Dictionary = PokeCoopSave.to_dict(campaign, [])
@@ -121,3 +149,93 @@ func test_a_save_from_a_newer_format_or_another_program_is_refused() -> void:
 
 	assert_true(PokeCoopSave.from_dict(newer).is_empty())
 	assert_true(PokeCoopSave.from_dict(foreign).is_empty())
+
+
+func test_a_pc_fills_the_current_box_then_the_next_with_room() -> void:
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	red.current_box = PokeCoopPlayer.BOXES - 1
+	for _mon: int in PokeCoopPlayer.BOX_CAPACITY + 1:
+		red.store_mon(_saved(Fixture.PIKACHU, 3))
+	assert_eq(int(red.box[0]["box"]), PokeCoopPlayer.BOXES - 1)
+	assert_eq(int(red.box[-1]["box"]), 0, "a full current box sends the next one to the first with room")
+
+	var older: Dictionary = red.to_dict()
+	for row: Dictionary in older["box"]:
+		row.erase("box")
+	older["current_box"] = 2
+	var loaded: PokeCoopPlayer = PokeCoopPlayer.from_dict(older)
+	assert_eq(int(loaded.box[0]["box"]), 2, "a save from before boxes puts its PC in the current box")
+	assert_eq(int(loaded.box[-1]["box"]), 3, "and spills what does not fit")
+
+
+func test_pokemon_that_share_a_fingerprint_keep_their_own_uids_through_a_deposit() -> void:
+	var blue := PokeCoopPlayer.create("p2", "BLUE", 200)
+	var first: Gen2SaveMon = _saved(Fixture.CHARMANDER, 12)
+	var second: Gen2SaveMon = _saved(Fixture.PIKACHU, 9)
+	second.dvs = first.dvs
+	assert_eq(PokeCoopPlayer.fingerprint(first), PokeCoopPlayer.fingerprint(second))
+	var first_uid: String = blue.add_mon(first)
+	var second_uid: String = blue.add_mon(second)
+
+	var taken: StringName = blue.replace_holdings(
+		[{"uid": first_uid, "mon": second.to_dict()}],
+		[{"uid": "", "mon": first.to_dict(), "box": 0}], 0, blue.holdings_rev
+	)
+
+	assert_eq(taken, &"")
+	assert_eq(String(blue.team[0]["uid"]), second_uid, "a stale hint does not move a uid onto another Pokémon")
+	assert_eq(String(blue.box[0]["uid"]), first_uid)
+
+
+func test_a_trainer_brought_from_a_save_stands_where_they_saved() -> void:
+	var save := Gen2SaveData.new()
+	save.world = Gen2WorldSnapshot.new()
+	save.world.map_id = ROUTE_1
+	save.world.player_cell = Vector2i(4, 9)
+	save.world.player_facing = Gen2WorldSprite.FACING_UP
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+
+	PokeCoopPolicy.import_save(save, red, null, [])
+
+	assert_eq([red.map, red.cell, red.facing], [ROUTE_1, Vector2i(4, 9), Gen2WorldSprite.FACING_UP])
+	assert_eq(red.team.size(), 1)
+
+
+func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() -> void:
+	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	campaign.title = "WITH BLUE"
+	campaign.rival_name = "GARY"
+	var red := PokeCoopPlayer.create("p1", "RED", 100)
+	PokeCoopPolicy.set_up_opening_player(_data, red)
+	(red.opening["world"]["event_flags"] as Dictionary)[0x20] = true
+
+	assert_eq(PokeCoopSave.write(SAVE_PATH, campaign, [red]), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+
+	assert_eq(PokeCoopSave.to_dict(loaded["campaign"], loaded["players"]), PokeCoopSave.to_dict(campaign, [red]))
+	var back: PokeCoopPlayer = loaded["players"][0]
+	assert_true((back.opening["world"]["event_flags"] as Dictionary).has(0x20), "the flag keeps its number")
+	assert_eq([back.opening["stage"], back.money, (loaded["campaign"] as PokeCoopCampaign).rival_name],
+		[PokeCoopPolicy.OPENING_SPEECH, PokeCoopPolicy.NEW_PLAYER_MONEY, "GARY"])
+
+
+func test_a_campaign_begun_after_the_intro_has_the_intros_world_and_an_older_one_is_settled() -> void:
+	var fresh := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
+	PokeCoopPolicy.start_campaign(fresh)
+	assert_true(fresh.has_flag(0x27), "Oak has appeared in Pallet Town")
+	assert_eq([int(fresh.world["gen1_map_scripts"][0]), int(fresh.world["gen1_map_scripts"][1])], [18, 5])
+	assert_true(bool(fresh.world["toggled_objects"][0x2B]), "the rival has left the lab")
+
+	var older := PokeCoopCampaign.create("c2", _data.id, _data.sha1)
+	older.commit("intro:starters_given", {"flags": [0x00, 0x20, 0x21, 0x22, 0x23], "badges": 3})
+	older.world["gen1_map_scripts"] = {0: 20}
+	PokeCoopHost.create(_data, older, PokeCoopTransport.new())
+	assert_true(older.has_flag(0x27), "a campaign from an earlier build is settled when hosted")
+	assert_eq([int(older.world["gen1_map_scripts"][0]), int(older.world["gen1_map_scripts"][1])], [20, 5],
+		"a script step the campaign already moved on is kept")
+	assert_eq(older.badges, 3)
+
+	var blank := PokeCoopCampaign.create("c3", _data.id, _data.sha1)
+	PokeCoopHost.create(_data, blank, PokeCoopTransport.new())
+	assert_false(blank.has_flag(0x27), "a campaign that has not begun is left alone")

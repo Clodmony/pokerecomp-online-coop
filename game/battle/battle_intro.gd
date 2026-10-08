@@ -47,18 +47,25 @@ const SPRITE_FIRST_Y: int = 8 * PokeTiles.TILE_HEIGHT
 const SPRITE_PIC_ROWS: int = Gen2BattleScreenMap.PLAYER_SIDE
 ## `dec [hl]` twice per sprite.
 const SPRITE_STEP: int = 2
+## Red and Blue's `LoadPlayerBackPic`: seven columns of three from $A0, $38, down the
+## seven-row picture; their slide is the one Gold and Silver kept.
+const GEN1_SPRITE_COLUMNS: int = 7
+const GEN1_SPRITE_FIRST_X: int = 0xA0
+const GEN1_SPRITE_FIRST_Y: int = 0x38
 
 var _crystal: bool = true
+var _gen1: bool = false
 var _frame: int = 0
 
 
 static func for_data(data: GameData) -> Gen2BattleIntro:
-	return create(Gen2WorldState.is_crystal_profile(data))
+	return create(Gen2WorldState.is_crystal_profile(data), data != null and data.generation == RomRegistry.GEN1)
 
 
-static func create(crystal: bool) -> Gen2BattleIntro:
+static func create(crystal: bool, gen1: bool = false) -> Gen2BattleIntro:
 	var intro := Gen2BattleIntro.new()
-	intro._crystal = crystal
+	intro._crystal = crystal and not gen1
+	intro._gen1 = gen1
 	return intro
 
 
@@ -93,12 +100,15 @@ func sprites() -> Array:
 	# lead frame before the loop and then step on all 72 of its passes, with no
 	# such test. Both walks are 72 steps long and the frame index is the count.
 	var walked: int = _frame
-	for column: int in SPRITE_COLUMNS:
+	var pic_rows: int = Gen2BattleScreenMap.GEN1_PLAYER_SIDE if _gen1 else SPRITE_PIC_ROWS
+	var first: Vector2i = Vector2i(GEN1_SPRITE_FIRST_X, GEN1_SPRITE_FIRST_Y) if _gen1 \
+		else Vector2i(SPRITE_FIRST_X, SPRITE_FIRST_Y)
+	for column: int in GEN1_SPRITE_COLUMNS if _gen1 else SPRITE_COLUMNS:
 		for row: int in SPRITE_ROWS:
 			out.append({
-				"tile": column * SPRITE_PIC_ROWS + row,
-				"x": SPRITE_FIRST_X + column * PokeTiles.TILE_WIDTH - walked * SPRITE_STEP,
-				"y": SPRITE_FIRST_Y + row * PokeTiles.TILE_HEIGHT,
+				"tile": column * pic_rows + row,
+				"x": first.x + column * PokeTiles.TILE_WIDTH - walked * SPRITE_STEP,
+				"y": first.y + row * PokeTiles.TILE_HEIGHT,
 			})
 	return out
 
