@@ -8,7 +8,15 @@ const PARTY_CHECK_FRAMES: int = 30
 const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
-const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
+const CINNABAR_GYM := Vector2i(0, 166)
+const EVENT_CINNABAR_GYM_GATE1_UNLOCKED: int = 681
+const CINNABAR_GATES_REDRAWN: Array = [CINNABAR_GYM, Gen1Layout.MAP_LOADED_1_BIT]
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {
+	Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT],
+	EVENT_CINNABAR_GYM_GATE1_UNLOCKED: CINNABAR_GATES_REDRAWN, EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 1: CINNABAR_GATES_REDRAWN,
+	EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 2: CINNABAR_GATES_REDRAWN, EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 3: CINNABAR_GATES_REDRAWN,
+	EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 4: CINNABAR_GATES_REDRAWN, EVENT_CINNABAR_GYM_GATE1_UNLOCKED + 5: CINNABAR_GATES_REDRAWN,
+}
 const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
@@ -320,9 +328,17 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.run_rules = Gen2Rules.new()
 	_fill(out, me, session.box.get("rows", []))
 	var world: Gen2WorldSnapshot = continued_world(session)
-	if data.world_map(world.map_id.x, world.map_id.y) != null:
+	var map: Gen2WorldMap = data.world_map(world.map_id.x, world.map_id.y)
+	if map != null:
+		if data.generation == RomRegistry.GEN1 and afloat(data.world_tileset(map.tileset), map, world.player_cell):
+			world.movement_mode = Gen2WorldAPI.MOVEMENT_SURF
+			world.player_sprite_number = Gen2WorldSprite.SPRITE_SURF
 		out.world = world
 	return out
+
+
+static func afloat(tileset: Gen2WorldTileset, map: Gen2WorldMap, cell: Vector2i) -> bool:
+	return Gen2WorldCollision.gen1_permission(tileset, map.collision_at(cell.x, cell.y)) == Gen2WorldCollision.WATER_TILE
 
 
 static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:

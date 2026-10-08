@@ -81,6 +81,12 @@ Red (or Blue) cartridge, the same one.
 | W44 | One player gets the MASTER BALL from Silph Co.'s president | Each holds exactly one, in the window and on the host | the D52 tests | playthrough_sabrina | |
 | W45 | One player steps onto GIOVANNI's cell on Silph Co. 11F | The partner joins with SELECT > JOIN; both are participants | | playthrough_sabrina | |
 | W46 | A partner on the same Silph Co. floor when a card-key door opens | The door stays drawn shut in the partner's window until the partner opens it with the shared CARD KEY (left as it is) | | playthrough_sabrina | |
+| W47 | One player turns on a Pokémon Mansion switch while the partner stands on Cinnabar Island | The player's doors stay as they set them; the partner's switch is unchanged; the partner's press never moves the player's doors | `test_the_mansion_switch_and_the_fossil_lab_are_each_players_own` | playthrough_blaine | |
+| W48 | Both players give a fossil to Cinnabar Lab | Each gets their own revived Pokémon (own uid on the host); a player who gave nothing is not told one is ready | `test_the_mansion_switch_and_the_fossil_lab_are_each_players_own` | playthrough_blaine | |
+| W49 | One player answers a Cinnabar Gym quiz while the partner is in the gym | The gate opens in both windows at once; the partner walks through without answering | `test_a_partners_quiz_answer_opens_cinnabar_gyms_gate_in_this_window_too` | playthrough_blaine | |
+| W50 | One player talks to BLAINE with the partner in the gym | The partner joins with SELECT > JOIN; one battle; VOLCANOBADGE for the campaign; exactly one TM38 each, in the window and on the host | | playthrough_blaine | |
+| W51 | A player who left (or lost the link) while surfing rejoins | They reopen surfing on the water and can move | `test_a_player_back_on_the_water_surfs_as_a_continue_puts_them` | | |
+| W52 | One player drops Seafoam's STRENGTH boulders while the partner waits | The calm water on B3F reaches the partner, who surfs across without pushing anything | | playthrough_blaine | |
 
 ## Battles
 
