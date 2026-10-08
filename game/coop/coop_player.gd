@@ -233,8 +233,7 @@ func replace_team(rows: Array) -> bool:
 	return true
 
 
-## A window's team and, unless [param stored] is null, its PC. Taken only on the
-## latest [member holdings_rev]: whoever is missing was released there.
+## A window's team and, unless [param stored] is null, its PC, taken only on the latest [member holdings_rev]: the missing were released.
 func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: int) -> StringName:
 	if based_on != holdings_rev:
 		return &"outdated"

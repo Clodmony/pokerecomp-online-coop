@@ -1,8 +1,7 @@
 class_name PokeCoopBattleField
 extends Control
 
-## The panel's battle drawn as the cartridge draws one, through [Gen2BattleRenderer]
-## and the game's text box, from the host's view alone.
+## The panel's battle drawn as the cartridge draws one, through [Gen2BattleRenderer] and the text box, from the host's view alone.
 
 const HOLD_FRAMES: int = 50
 const BOX_COLUMNS: int = 18
@@ -556,8 +555,7 @@ static func toss_steps(event: Dictionary) -> Array:
 	})
 
 
-## What the animation's last frame asked to hear: `GetMoveSound`'s row, a
-## `IsCryMove` being the attacker's own cry with the row's offsets.
+## What the animation's last frame asked to hear: `GetMoveSound`'s row, an `IsCryMove` being the attacker's cry at the row's offsets.
 func _play_sounds() -> void:
 	if audio == null or _anim == null:
 		return
