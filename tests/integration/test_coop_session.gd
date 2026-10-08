@@ -738,6 +738,7 @@ func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -
 
 	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 	assert_true(_host.battles.is_empty())
+	assert_true(PokeCoopBattlePanel.REFUSALS.has(_blue.last_rejection()), "the panel says it counts as won, not refused")
 
 
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:

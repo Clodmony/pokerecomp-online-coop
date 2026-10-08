@@ -16,7 +16,7 @@ const REFUSALS: Dictionary = {
 	&"already_in_battle": "You are already in a battle.", &"roster_full": "No room for more POKéMON in that battle.",
 	&"encounter_taken": "Someone is already fighting that.", &"battle_over": "That battle is over.",
 	&"item_has_no_effect": "It won't have any effect.", &"no_fit_pokemon": "None of your POKéMON can fight.",
-	&"save_failed": "The campaign could not be saved.",
+	&"save_failed": "The campaign could not be saved.", &"encounter_done": "Beaten already in this campaign: it counts as won.",
 	&"attached": "Your own world started this battle: you stay in it.",
 	&"in_battle": "Your POKéMON are still in a battle.", &"invalid_move": "That move can't be used now.",
 	&"scene_taken": "A partner met the rival first: the battle is one for both.",
