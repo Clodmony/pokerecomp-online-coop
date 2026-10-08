@@ -271,19 +271,19 @@ func _open(view: Dictionary) -> void:
 	_board.open(int(view.get("trainer_class", 0)))
 	_messages.append({"stage": PokeCoopBattleStage.INTRO, "side": Gen2Battle.ENEMY})
 	if bool(view.get("trainer", false)):
-		_messages.append({"text": "%s wants\nto fight!" % _trainer_name(view)})
+		_messages.append({"text": _de(data, "%s wants\nto fight!") % _trainer_name(view)})
 		_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.ENEMY})
-		_messages.append({"text": "%s sent\nout %s!" % [_trainer_name(view), _species_name(data, enemy)]})
+		_messages.append({"text": _de(data, "%s sent\nout %s!") % [_trainer_name(view), _species_name(data, enemy)]})
 		_messages.append_array(send_out_steps(Gen2Battle.ENEMY))
 		_messages.append({"cry": enemy})
 	else:
 		_messages.append({"cry": enemy})
-		_messages.append({"text": "Wild %s\nappeared!" % _species_name(data, enemy)})
+		_messages.append({"text": _de(data, "Wild %s\nappeared!") % _species_name(data, enemy)})
 		_messages.append({"stage": PokeCoopBattleStage.PANEL, "side": Gen2Battle.ENEMY})
 	var ally: int = int(opening[Gen2Battle.PLAYER])
 	_messages.append({"hold": Gen2BattleScreen.PLAYER_ENTRANCE_FRAMES})
 	_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.PLAYER})
-	_messages.append({"text": "Go! %s!" % _species_name(data, ally)})
+	_messages.append({"text": _de(data, "Go! %s!") % _species_name(data, ally)})
 	_messages.append_array(send_out_steps(Gen2Battle.PLAYER))
 	_messages.append({"cry": ally})
 
