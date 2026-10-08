@@ -1275,3 +1275,24 @@ panel drops finished battles. A reset in a co-op window continues the same way
 instead of dropping to the saves page. Costs: both players land on the same
 Pallet Town cell; play time comes back from the host; the reset writes one
 extra checkpoint.
+
+## D89. Victory Road's switches are the campaign's; boulders are each window's (#88, 2026-10-08)
+
+A switch flag set in one window opens that floor's wall in every window
+standing on it, through a map load the window owes (`MAP_LOADS_OWED_BY_FLAG`),
+as for Vermilion's door and Cinnabar's gates (D86). The cartridge resets the
+puzzle in three places (Victory Road 2F clears the 1F switch, leaving Victory
+Road clears the 2F and 3F ones, the Indigo Plateau lobby clears the 1F one),
+and those resets stay the campaign's, but a window still on any Victory Road
+floor keeps the switches it holds open until it leaves, so a partner who gets
+out first never walls in the one still inside. Boulder positions are each
+window's: a window that never saw the switch set pushes its own boulder, as on
+the cartridge.
+
+## D90. A Generation 1 wild battle re-enters the map (#88, 2026-10-08)
+
+`gen1_end_of_battle` sets both map-load bits, as pokered's `.battleOccurred`
+does before `EnterMap`, so the reload after a wild fight runs the map's load
+callback and redraws the blocks a switch or script replaced. Before, a wild
+battle on a Victory Road floor closed the wall its switch had opened, also in
+single-player. A two-line upstream change, listed in `architecture.md`.
