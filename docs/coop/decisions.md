@@ -164,3 +164,35 @@ The slice shows a shared battle as a text panel over the frozen world: roster
 with owners, who decides, the partner's suggestion marked on the list. Driving
 `Gen2BattleScreen` from session events is #26. The panel takes the eight
 buttons through `PokeButton`, so keyboard, pad and touch all reach it.
+
+## D23. Windows and host trade world-state patches, not copies (2026-10-06)
+
+Every field of the world state, snapshot, save and runtime has an owner in
+`PokeCoopOwnership`; engine flags are split so badges are the campaign's. A
+window sends the patch between its last-sent and current state; it applies the
+patch between the last host state it saw and the new one. A stale copy can
+therefore never overwrite a newer change on either side, dictionaries merge
+entry by entry, and a window opened late takes the campaign instead of
+pushing its blank state. The host trusts the patches until it simulates the
+world (#22). Party rows are matched to uids by hint and fingerprint (original
+trainer, DVs, catch data), and nobody missing from a window's party is lost.
+
+## D24. A window's own battles go to the host through the takeover seam (2026-10-06)
+
+Upstream's battle-takeover seam hands a mod every wild and trainer battle the
+world opens, keeping the trigger, script branches, party commit and whiteout.
+`PokeCoopBattleTakeover` claims them and asks the host for a session with the
+exact enemies the world prepared, so tall grass and scripted trainers produce
+joinable co-op battles and encounters no longer need to be off. To avoid paying
+or charging twice the world's prize is zeroed (the host pays its split) and the
+host does not charge the initiator a blackout (their world whites them out).
+A trainer fought this way is the encounter `trainer:<class>:<index>`: a second
+window walking into it joins the running fight, and once beaten it answers as
+beaten without a fight.
+
+## D25. The Red demo host marks Oak's intro done (2026-10-06)
+
+`tools/coop_session.gd -- host <port> red` hands out starters itself, so a
+fresh campaign sets EVENT_FOLLOWED_OAK_INTO_LAB, its second flag,
+OAK_ASKED_TO_CHOOSE_MON, GOT_STARTER and BATTLED_RIVAL_IN_OAKS_LAB (from the
+pinned pokered). Starting a campaign from the real intro is #34.

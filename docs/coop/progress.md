@@ -54,6 +54,26 @@ graphics).
    SCRATCH PP spent, BLUE's Squirtle at 1005 exp and 2 TACKLE PP spent, both
    benches untouched. A restarted `host red` reloads it and a client rejoins.
 
+## M1 state sync (local branch `coop/m1-state-sync`, 2026-10-06)
+
+Not on GitHub yet; see `tracking.md`.
+
+| Run | Result |
+|---|---|
+| Local x86_64, whole suite | 4855/4855 (188 scripts, 135696 asserts, 193 s); boot smoke passed |
+| Local x86_64, co-op suites | 43/43 (`test_coop_session` 21, `test_coop_battle` 10, `test_coop_ownership` 6, `test_coop_state` 6); ENet demo 16/16 |
+| Screens (scripted), Red: joint Brock fight | RED starts Brock from the menu, BLUE joins, RED hands over to BLUE's Squirtle, Bubble wins. Both windows' own trainer cards then show the Boulder Badge and 3693 money each (3000 plus half of 1386); BLUE's own party menu shows Squirtle at L13 with its battle damage |
+| Screens (scripted), Red: Route 1 grass | RED's world rolls a wild Pidgey in Route 1's tall grass; the takeover makes it a host battle; BLUE joins from its menu; RED wins and the world resumes with "Battle finished: won" |
+
+What the tests add beyond the screens: a story flag set in one window reaches
+the other; flags set in both windows at once both survive; a window opened
+late takes the campaign without erasing it; a bag change stays with its
+player; a badge won in battle reaches both windows; battle results come back
+into a window's party; a heal and a deposit made in a window reach the host
+(the deposited Pokémon keeps its uid in the box); a battle the world opens is
+fought on the host with the world's prize zeroed; a lost window battle is not
+charged twice; the world's SAVE writes the campaign.
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -87,11 +107,11 @@ has **played** it by hand yet.
 
 ## Incomplete
 
-- A window's world runs on a save built at launch: its party, bag and money
-  menus do not follow co-op results until it restarts, and its story flags are
-  not the campaign's (#17, #18).
-- The host does not check collision and trusts reported warps (#22); encounters
-  are a fixed offer from the host tool, not generated from walking (#25).
+- Co-op still starts from `tools/coop_play.gd`, not from the game's launcher (#18, #42).
+- The host does not check collision and trusts reported warps, world patches
+  and the enemies a window's world prepared (#22, #25).
+- A world SAVE the host refuses (a battle is running) still says "saved" in the
+  window (L2).
 - The battle is a text panel, not the battle screen (#26). The panel offers
   moves, switches, run, send-out, learn and Mimic; items work over the protocol
   but are not offered in the panel.
@@ -106,7 +126,6 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-Play a session by hand in two windows (commands in `AGENTS.md`) and file what
-feels wrong. Then start #16 and #17: classify the world state fields and run the
-window's world against a projection of the campaign and its player, so menus
-and story flags follow the host.
+Play a session by hand in two windows (commands in `AGENTS.md`) and note what
+feels wrong in `tracking.md`. Then L1 (claim trainers fought from a window) and
+#18 with #42: start co-op from the game's own launcher.

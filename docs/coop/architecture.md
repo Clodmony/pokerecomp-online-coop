@@ -63,7 +63,12 @@ Further findings that shape the design:
    `<player id>:<serial>` and never reused.
 3. **World simulation**: not yet shared. Each window runs the unchanged world
    on its own save; the host keeps positions, checks step length and trusts
-   reported warps (D20). #22 moves `Gen2WorldApi` to per-player actors.
+   reported warps (D20). `PokeCoopOwnership` classifies every world, snapshot,
+   save and runtime field; the campaign keeps the shared world-state keys and
+   each player their own (D23). `PokeCoopWorldLink` keeps a window's world state
+   and party in step with the host by patches, and `PokeCoopBattleTakeover`
+   sends the window's own battles to the host (D24). #22 moves `Gen2WorldApi` to
+   per-player actors.
 4. **Battle sessions** (`PokeCoopBattleSession`): wraps one `Gen2Battle` with
    its own seeded generator and a revision that advances on every accepted
    decision. The controller is derived, never stored: the owner of the active
@@ -105,11 +110,14 @@ Peer 1 is the host.
 | `suggest` | `seq`, `battle`, `suggestion` (`type`, `value`) |
 | `join` | `seq`, `battle` |
 | `save` | `seq` |
+| `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
+| `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order) |
+| `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
 
 | Host to client | Fields |
 |---|---|
 | `welcome` | `protocol`, `player_id`, `last_seq` |
-| `state` | `campaign` summary, `players` (public views), `you` (private view, with the player's own `party` rows), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views), `you` (private view, with the player's own `party` rows and `world` keys), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome; a final view adds `evolvable` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
@@ -142,11 +150,8 @@ Kept small so upstream merges stay cheap (#14):
 
 In order of the backlog:
 
-1. Classify every `Gen2WorldState`, `Gen2WorldSnapshot`, `Gen2SaveData` and
-   `Gen2GameRuntime` field (#16), then run the existing world logic against a
-   campaign-plus-player projection whose writes split back to their owners
-   (#17), and give `Gen2GameRuntime` a co-op mode (#18), so a window's menus
-   follow its player's host record.
+1. Give `Gen2GameRuntime` a co-op mode and launch co-op from the game's own
+   launcher instead of `tools/coop_play.gd` (#18, #42).
 2. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
 3. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,

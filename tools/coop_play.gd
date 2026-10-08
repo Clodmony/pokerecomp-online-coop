@@ -10,6 +10,7 @@ extends SceneTree
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
 const LOCAL_ACTOR: StringName = &"coop_players"
+const LOCAL_TAKEOVER: StringName = &"coop_battles"
 const KEYS: Dictionary = {
 	"U": PokeButton.UP, "D": PokeButton.DOWN, "L": PokeButton.LEFT, "R": PokeButton.RIGHT,
 	"A": PokeButton.A, "B": PokeButton.B, "START": PokeButton.START, "SELECT": PokeButton.SELECT,
@@ -20,6 +21,7 @@ var _client: PokeCoopClient = null
 var _data: GameData = null
 var _screen: Gen2WorldScreen = null
 var _panel: PokeCoopBattlePanel = null
+var _link: PokeCoopWorldLink = null
 var _player_id: String = ""
 var _keys: Array = []
 var _captures: Array = []
@@ -69,6 +71,8 @@ func _process(_delta: float) -> bool:
 	if _client == null:
 		return false
 	_client.poll()
+	if _link != null:
+		_link.advance()
 	if not _client.ended_reason.is_empty():
 		print("coop play: session ended (%s)" % _client.ended_reason)
 		quit(0)
@@ -97,6 +101,9 @@ func _launch() -> void:
 	var view: Dictionary = (_client.state.get("players", {}) as Dictionary).get(_player_id, {})
 	var save: Gen2SaveData = _local_save(_client.me())
 	Gen2ModHost.instance().register_world_actor(LOCAL_ACTOR, PokeCoopRemoteActor.over(_client))
+	Gen2ModHost.instance().register_battle_takeover(
+		LOCAL_TAKEOVER, PokeCoopBattleTakeover.over(_client, _data)
+	)
 	_screen = (load("res://game/world/world_screen.tscn") as PackedScene).instantiate() as Gen2WorldScreen
 	var map: Vector2i = view.get("map", Vector2i.ZERO)
 	_screen.map_group = map.x
@@ -110,8 +117,7 @@ func _launch() -> void:
 	current_scene = _screen
 	var world: Gen2WorldAPI = _screen.get("_world")
 	if world != null:
-		world.state.set_wild_encounters_off(true)
-		world.state.set_trainer_sightings_off(true)
+		_link = PokeCoopWorldLink.over(_client, world.state, save, _data)
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	root.add_child(layer)
@@ -121,7 +127,7 @@ func _launch() -> void:
 
 
 ## The world screen explores on a save of its own, built from this player's
-## record; the host's copy stays the one that counts.
+## record and kept in step with it by [PokeCoopWorldLink].
 func _local_save(me: Dictionary) -> Gen2SaveData:
 	var save := Gen2SaveData.new()
 	save.game_id = _data.id
