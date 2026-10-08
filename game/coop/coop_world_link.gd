@@ -8,12 +8,8 @@ const PARTY_CHECK_FRAMES: int = 30
 const REST_FRAMES: int = 3
 const VERMILION_CITY := Vector2i(0, 5)
 const VERMILION_GYM := Vector2i(0, 92)
-## A partner's flag redraws what a map load draws from it: Vermilion Gym's door, the exits past LORELEI, BRUNO, AGATHA.
-const MAP_LOADS_OWED_BY_FLAG: Dictionary = {
-	Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT],
-	0x8E1: [Vector2i(0, 245), Gen1Layout.MAP_LOADED_1_BIT], 0x8E9: [Vector2i(0, 246), Gen1Layout.MAP_LOADED_1_BIT],
-	0x8F1: [Vector2i(0, 247), Gen1Layout.MAP_LOADED_1_BIT],
-}
+const HALL_OF_FAME := Vector2i(0, 0x76)
+const MAP_LOADS_OWED_BY_FLAG: Dictionary = {Gen1Layout.LOCK_2ND_EVENT: [VERMILION_GYM, Gen1Layout.MAP_LOADED_2_BIT]}
 const NO_SCENE := Vector2i(-1, -1)
 
 var client: PokeCoopClient = null
@@ -99,11 +95,21 @@ func advance() -> void:
 	var written: bool = _save_written
 	_save_written = false
 	if _world_saved() or written:
-		if asked:
+		if asked or written:
 			_push_world()
 		push_party()
 		if written:
 			save_seq = client.request_save()
+
+
+## Before the world goes (#88): a SAVE it just made leaves with its scene; answers the sequence number the host must reach.
+func flush() -> int:
+	if _save_written:
+		_save_written = false
+		_push_world()
+		push_party()
+		save_seq = client.request_save()
+	return client.sent()
 
 
 ## Why [param screen]'s world is not where the cartridge could save: a script, map load, forced walk, battle or overlay.
@@ -325,6 +331,7 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.run_rules = Gen2Rules.new()
 	_fill(out, me, session.box.get("rows", []))
 	var world: Gen2WorldSnapshot = continued_world(session)
+	after_the_credits(world, data.gen1_fly_warp(PokeCoopPolicy.START_MAP.y) if data.generation == RomRegistry.GEN1 else {})
 	if data.world_map(world.map_id.x, world.map_id.y) != null:
 		out.world = world
 	return out
@@ -341,6 +348,15 @@ static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
 	out.gen1_last_map = int(places.get("gen1_last_map", out.gen1_last_map))
 	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
 	return out
+
+
+## `MainMenu`'s CONTINUE where the credits left a player, in the Hall of Fame: a fly warp to Pallet Town's [param landing].
+static func after_the_credits(world: Gen2WorldSnapshot, landing: Dictionary) -> void:
+	if world.map_id != HALL_OF_FAME or world.world_state == null or not world.world_state.hall_of_fame() or landing.is_empty():
+		return
+	world.map_id = PokeCoopPolicy.START_MAP
+	world.player_cell = Vector2i(int(landing["x"]), int(landing["y"]))
+	world.player_facing = Gen2WorldSprite.FACING_DOWN
 
 
 static func _fill(into: Gen2SaveData, me: Dictionary, stored: Array) -> void:
