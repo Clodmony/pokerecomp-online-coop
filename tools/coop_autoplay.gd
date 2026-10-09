@@ -537,7 +537,7 @@ func _car_bound_for(map: Vector2i) -> Callable:
 func _car_panel(map: Vector2i) -> Callable:
 	return func(world: Gen2WorldAPI) -> int:
 		_car_floor = map.y
-		if _order() > 0 and bool(_partner_near(world.map_id(), CAR_PANEL_FRONT, 0).call(world)):
+		if (world.player_cell != CAR_PANEL_FRONT or _order() > 0) and bool(_partner_near(world.map_id(), CAR_PANEL_FRONT, 0).call(world)):
 			return _played._walk(CAR_ASIDE).call(world)
 		return _played._talk(CAR_PANEL_FRONT, UP).call(world)
 
