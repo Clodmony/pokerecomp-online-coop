@@ -153,8 +153,11 @@ func act(battle_id: String, command: Dictionary) -> int:
 	return send({"type": "command", "battle": battle_id, "command": sent})
 
 
-func suggest(battle_id: String, kind: String, value: int) -> int:
-	return send({"type": "suggest", "battle": battle_id, "suggestion": {"type": kind, "value": value}})
+func suggest(battle_id: String, kind: String, value: int, recipient: String = "") -> int:
+	var said: Dictionary = {"type": kind, "value": value}
+	if not recipient.is_empty():
+		said["recipient"] = recipient
+	return send({"type": "suggest", "battle": battle_id, "suggestion": said})
 
 
 func join_battle(battle_id: String) -> int:

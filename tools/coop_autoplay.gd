@@ -215,7 +215,7 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	if panel.busy.is_valid() and bool(panel.busy.call()):
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
-		return _paced(PokeButton.A)
+		return PokeButton.NONE
 	if String(view.get("encounter", "")).begins_with("trainer:") and panel._controls(view) and not _filmed.has(view["battle"]):
 		_filmed[view["battle"]] = true
 		_shot("battle_%s_%s" % [view["battle"], String(view.get("trainer_name", "")).to_lower().validate_filename()])
@@ -226,7 +226,7 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 		target = _target_row(view, panel._rows)
 	if target < 0:
 		return PokeButton.NONE
-	return _paced(PokeButton.DOWN if panel._cursor != target else PokeButton.A)
+	return _paced(panel.menu.button_toward(target))
 
 
 func _target_row(view: Dictionary, rows: Array) -> int:
@@ -2013,10 +2013,8 @@ func _dump_texts() -> void:
 	var lines: Dictionary = {"world": _box_lines(screen.get("_text_box"))}
 	var battle: Gen2BattleScreen = screen.get("_battle_host")
 	lines["battle"] = String(battle.battle_snapshot().get("message", "")) if battle != null else ""
-	if _session.panel != null and _session.panel.get_parent() != null:
-		for node: Node in _session.panel.get_parent().get_children():
-			if node is PokeCoopBattleField:
-				lines["field"] = _box_lines(node.get("_box"))
+	if _session.field != null:
+		lines["field"] = _box_lines(_session.field.get("_box"))
 	var leg: String = String(_legs[_leg][0]) if _leg < _legs.size() and _legs[_leg] is Array else ""
 	for where: String in lines:
 		var text: String = String(lines[where]).replace("\n", " / ")

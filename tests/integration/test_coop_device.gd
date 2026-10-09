@@ -290,9 +290,16 @@ func test_a_world_held_under_the_panel_keeps_its_audio_playing() -> void:
 	var world: Node = add_child_autofree(Node.new())
 	var audio := Node.new()
 	world.add_child(audio)
+	var frame := Node.new()
+	frame.name = "Frame"
+	world.add_child(frame)
+	var pad := Node.new()
+	pad.name = "TouchPad"
+	frame.add_child(pad)
 
 	PokeCoopSession.hold_world(world, audio, true)
 	assert_eq([world.can_process(), audio.can_process()], [false, true], "the battle's music goes on")
+	assert_true(pad.can_process(), "and the touch pad under the battle still presses its buttons")
 	PokeCoopSession.hold_world(world, audio, false)
 	assert_eq([world.can_process(), audio.can_process()], [true, true])
 	assert_eq(audio.process_mode, Node.PROCESS_MODE_INHERIT, "a paused game pauses it again")

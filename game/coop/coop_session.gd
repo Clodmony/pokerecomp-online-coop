@@ -39,6 +39,7 @@ var host: PokeCoopHost = null
 var screen: Gen2WorldScreen = null
 var opening_screen: Gen2IntroScreen = null
 var panel: PokeCoopBattlePanel = null
+var field: PokeCoopBattleField = null
 var link: PokeCoopWorldLink = null
 var cable: PokeCoopLinkTransport = null
 var journal: PokeCoopLog = PokeCoopLog.new()
@@ -305,11 +306,12 @@ func _tend_world() -> void:
 		_evolving = []
 
 
-## A held world's audio player goes on: the battle's music and sounds play through it.
+## A held world's audio player goes on, the battle's music and sounds playing through it, and so does its touch pad.
 static func hold_world(world: Node, audio: Node, frozen: bool) -> void:
 	world.process_mode = Node.PROCESS_MODE_DISABLED if frozen else Node.PROCESS_MODE_INHERIT
-	if audio != null:
-		audio.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
+	for kept: Node in [audio, world.get_node_or_null(^"Frame/TouchPad")]:
+		if kept != null:
+			kept.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
 
 
 ## A dropped link: redial as the same player until the host takes them back, waiting out `already_connected`.
@@ -586,6 +588,7 @@ func _continue_world() -> void:
 	_continuing = CONTINUED
 	screen = null
 	panel = null
+	field = null
 	link = null
 	tree.change_scene_to_node(open_world())
 
@@ -631,11 +634,16 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 		_continuing = -1
 		panel.dismiss_finished()
 	panel.leave_requested.connect(leave)
-	var field: PokeCoopBattleField = PokeCoopBattleField.over(panel, data)
+	field = PokeCoopBattleField.over(panel, data)
 	field.audio = screen.get("_audio_player")
 	field.restore_music = Callable(screen, &"_play_current_map_music")
 	panel.busy = field.is_playing
-	layer.add_child(field)
+	panel.say = field.say
+	var hardware: Gen2Screen = screen.get("_screen")
+	if hardware != null:
+		hardware.display(field)
+	else:
+		layer.add_child(field)
 	layer.add_child(panel)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE + 1)

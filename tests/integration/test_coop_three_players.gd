@@ -132,32 +132,12 @@ func _row(panel: PokeCoopBattlePanel, kind: String, key: String, value: int) -> 
 	return -1
 
 
-func _line(panel: PokeCoopBattlePanel, client: PokeCoopClient, battle_id: String, row: int) -> String:
-	for line: String in panel._row_lines(client.battle(battle_id)):
-		if line.begins_with("[url=%d]" % row):
-			return line
-	return ""
-
-
 func _team_of(client: PokeCoopClient) -> Array:
 	return (_host.player(client.player_id).team as Array).map(
 		func(entry: Dictionary) -> Dictionary: return {"uid": entry["uid"], "mon": (entry["mon"] as Gen2SaveMon).to_dict()})
 
 
-func test_two_players_keep_the_one_partners_mark_as_it_was() -> void:
-	_send(func() -> void: _red.start_battle("wild:stall"))
-	var battle_id: String = _battle_of(_red)
-	_send(func() -> void: _blue.join_battle(battle_id))
-	_send(func() -> void: _blue.suggest(battle_id, "switch", 2))
-
-	var panel: PokeCoopBattlePanel = _panel(_red)
-	var row: int = _row(panel, "switch", "index", 2)
-	assert_gt(row, 0)
-	assert_eq(_line(panel, _red, battle_id, row), "[url=%d]   %s[/url]   ◀ %s" % [
-		row, String(panel._rows[row]["label"]), panel._name_bb(_blue.player_id)])
-
-
-func test_every_partners_suggestion_reaches_the_controller_in_their_colour() -> void:
+func test_every_partner_has_their_own_mark_and_line_on_the_controllers_menus() -> void:
 	var battle_id: String = _three_way()
 	assert_eq((_red.battle(battle_id)["participants"] as Array).size(), 3)
 	assert_eq(String(_red.battle(battle_id)["controller"]), _red.player_id)
@@ -168,27 +148,32 @@ func test_every_partners_suggestion_reaches_the_controller_in_their_colour() -> 
 	assert_eq(int(suggestions[_blue.player_id]["value"]), 2, "Blue's is kept")
 	assert_eq(int(suggestions[_green.player_id]["value"]), 1, "and Green's beside it")
 	var panel: PokeCoopBattlePanel = _panel(_red)
-	var blue_tag: String = panel._name_bb(_blue.player_id)
-	var green_tag: String = panel._name_bb(_green.player_id)
-	assert_string_contains(green_tag, PokeCoopRemoteActor.colors_of(_red.state, _green.player_id)[1].to_html(false))
-	assert_ne(blue_tag, green_tag, "each partner in their own colour")
-	var switch: int = _row(panel, "switch", "index", 2)
-	var growl: int = _row(panel, "move", "slot", 1)
-	assert_true(_line(panel, _red, battle_id, switch).ends_with("   ◀ %s" % blue_tag))
-	assert_true(_line(panel, _red, battle_id, growl).ends_with("   ◀ %s" % green_tag))
+	var menu: PokeCoopBattleMenu = panel.menu
+	assert_eq(menu.marks(), {PokeCoopBattleMenu.PKMN: [_blue.player_id], PokeCoopBattleMenu.FIGHT: [_green.player_id]})
+	var blue: String = String(_red.state["players"][_blue.player_id]["name"])
+	var green: String = String(_red.state["players"][_green.player_id]["name"])
+	assert_eq(menu.spelled().map(func(line: Array) -> String: return line[0]), ["%s suggests" % blue, "%s suggests" % green],
+		"each partner spelled out by name, in the order they joined")
+	assert_eq([menu._glyph([_blue.player_id]), menu._glyph([_green.player_id])], [blue.left(1), green.left(1)],
+		"each partner's own initial where only they point")
+	menu.press(PokeButton.A)
+	assert_eq(menu.marks(), {1: [_green.player_id]}, "Green's move inside FIGHT")
 
 	_send(func() -> void: _green.suggest(battle_id, "switch", 2))
 	panel._process(0.0)
-	assert_true(_line(panel, _red, battle_id, switch).ends_with("   ◀ %s, %s" % [blue_tag, green_tag]),
-		"one row, both partners, in the order they joined")
-	assert_false(_line(panel, _red, battle_id, growl).contains("◀"), "Green's pointer moved on")
+	menu.press(PokeButton.B)
+	menu.press(PokeButton.RIGHT)
+	menu.press(PokeButton.A)
+	var at: int = (_red.battle(battle_id)["allies"] as Array).find_custom(func(ally: Dictionary) -> bool: return int(ally["index"]) == 2)
+	assert_eq(menu.marks(), {at: [_blue.player_id, _green.player_id]}, "one row, both partners")
+	assert_eq(menu._glyph(menu.marks()[at]), PokeCoopBattleMenu.HOLLOW, "and the shared ▷")
 
 	var blue_panel: PokeCoopBattlePanel = _panel(_blue)
-	assert_true(_line(blue_panel, _blue, battle_id, _row(blue_panel, "switch", "index", 2)).ends_with("   ◀ %s" % green_tag),
+	assert_eq(blue_panel.menu.marks(), {PokeCoopBattleMenu.PKMN: [_green.player_id]},
 		"a partner sees the other partner's pointer, not their own")
 	assert_eq(panel._names_bb([_red.player_id, _blue.player_id, _green.player_id]),
-		"%s, %s and %s" % [panel._name_bb(_red.player_id), blue_tag, green_tag], "a fourth player's JOIN row")
-	assert_eq(panel._names_bb([_red.player_id, _blue.player_id]), "%s and %s" % [panel._name_bb(_red.player_id), blue_tag])
+		"%s, %s and %s" % [panel._name_bb(_red.player_id), panel._name_bb(_blue.player_id), panel._name_bb(_green.player_id)],
+		"a fourth player's JOIN row")
 
 
 func test_the_cable_joins_the_two_players_in_the_trade_center() -> void:
