@@ -4,7 +4,8 @@ What is implemented, what has been verified and how, what is incomplete and
 what is blocked. Verification levels are kept apart on purpose:
 
 - **static**: written and read, not executed;
-- **tests**: GUT suites passing on Godot 4.8-dev4 (CI or local);
+- **tests**: GUT suites passing on the pinned Godot (4.8-dev4 until the
+  0.1.75 merge, 4.8-dev7 since; CI or local);
 - **socket**: the ENet demo or separate processes over localhost;
 - **screens (scripted)**: two real game windows on the owner's imported Red
   cartridge, driven by scripted button presses and checked from screenshots;

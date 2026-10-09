@@ -7,7 +7,9 @@ specified in [design.md](design.md); status is in [progress.md](progress.md).
 
 Baseline: `Decryptu/pokerecomp` at
 `696d1c9a1d345ae08fd7febac8aa320aed6608b5` (0.1.72, Godot 4.8-dev4). The
-review leads in the brief were checked against that checkout:
+review leads in the brief were checked against that checkout. The fork has
+since merged upstream `v0.1.75` (`17c8da8`, Godot 4.8-dev7, D97); see
+[Merging upstream](#merging-upstream).
 
 | Lead | Finding at `696d1c9` |
 |---|---|
@@ -194,10 +196,32 @@ Kept small so upstream merges stay cheap (#14):
 | `game/gen1/gen1_importer.gd` | the language switch, per-language name checks and font runs, pinned facility slots, the alphabet stride, empty German dex rating, metric dex entries, base-game fallbacks (#50) |
 | `game/gen1/gen1_text.gd`, `game/data/game_data.gd` | the German charmap, chosen by the cache's game (#50) |
 | `game/render/font.gd`, `pokedex_page.gd`, `naming_screen_page.gd`, `game/save/save_prompt.gd`, `game/battle/battle_screen.gd` | German Generation 1 lines from `Gen1LayoutDe.UI`; the Pokédex in metres and kilograms (#50) |
-| `game/world/gen1_movie.gd`, `world_effects.gd`, `world_screen.gd`, `game/launcher/cartridge.gd`, `launcher_theme.gd`, `title_backdrop.gd`, `tools/checks/played.gd`, `tools/preview_world_story.gd` | tables and art fall back to the base game for the German ids (#50) |
+| `game/world/gen1_movie.gd`, `world_effects.gd`, `world_screen.gd`, `game/launcher/cartridge.gd`, `launcher_theme.gd`, `tools/checks/played.gd`, `tools/preview_world_story.gd` | tables and art fall back to the base game for the German ids (#50) |
 | `tests/unit/test_gen1_layout.gd`, `test_gen1_text.gd`, `test_rom_verifier.gd`, `test_gen1_sram.gd` | German layout, charmap, registry and save-start cases (#50) |
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
 | `README.md` | AI-authorship notice at the top |
+
+## Merging upstream
+
+Upstream is merged by release tag, never by its `main` (#14, D97):
+
+1. `git fetch upstream 'refs/tags/v<x>:refs/tags/v<x>'` (the remote is
+   fetch-only, see `AGENTS.md`), then on `coop/upstream-sync` from `main`:
+   `git merge --no-ff v<x>`.
+2. Conflicts so far, all kept both sides: `rom_registry.gd`'s `ORDER`,
+   `docs/REFERENCES.md` and `references.lock` (new references on each side),
+   `test_rom_verifier.gd`, and `test_source_budget.gd`'s ceiling, which takes
+   both raises added together. A file in the table above that upstream
+   rewrote takes upstream's version when it already covers the fork's case.
+3. Upstream code keyed by game id does not know `red_de` and `blue_de`: grep
+   the merged diff for new tables keyed by `RomRegistry.RED`/`BLUE` and route
+   them through `RomRegistry.pick`.
+4. A new Godot pin moves `AGENTS.md`, `readiness.md` and the runner usage lines
+   with it; a dev build's import rewrites `.import` files with new default
+   keys, which upstream does not commit either.
+5. Import, the whole suite, the boot smoke test, the ENet demo and the
+   three-process check on the new pin; then the owner's cartridge checks
+   (`playthrough_brock`, `cable_club_trade`) before the pull request merges.
 
 ## Planned changes
 

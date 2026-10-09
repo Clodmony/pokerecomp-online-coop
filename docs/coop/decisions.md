@@ -101,7 +101,8 @@ running battles as fled (D37). Story changes between checkpoints are journaled (
 
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
 new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
-of the real-screen slice and to 41342 with the battle stage (D39). Co-op code keeps upstream's comment style: only facts
+of the real-screen slice, to 41342 with the battle stage (D39), and to
+41343 with upstream's own +1 in 0.1.75 (D97). Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -1395,3 +1396,22 @@ not a memory image: the game is recompiled, and the host's campaign plus the
 leg is what a window reopens from. Cost: one tool-only message type the host
 ignores for game state; the autopilot's in-between steps before a resumed leg
 are skipped, as with `FROM`.
+
+## D97. Upstream 0.1.75 merged; the fork moves to Godot 4.8-dev7 (owner's request, #14, 2026-10-09)
+
+The owner asked for upstream's latest release in the fork, with nothing pushed
+upstream. D61 had named 0.1.74; 0.1.75 is the latest release, so the merge is
+the `v0.1.75` tag (`17c8da8`), not upstream's `main`, whose later commits are
+unreleased Generation 3 import work. Upstream moved to Godot 4.8-dev7 in
+0.1.73, so the fork's pin follows: CI, `AGENTS.md`, the readiness checklist and
+the runner usage lines say dev7, and local runs and private builds need the
+dev7 editor and its stock export templates. `upstream` is a fetch-only remote
+with its push URL disabled. Conflicts kept both sides; the title backdrop takes
+upstream's lettering rectangles, which already treat `red_de` and `blue_de` as
+non-Yellow Generation 1, so the fork no longer changes that file. The
+Generation 3 cartridges stay behind upstream's dev setting and never reach the
+Co-op tab, whose game list is Red and Blue in English and German. Upstream's
+cache format went from 163 to 170, so every imported cartridge, English and
+German, is imported again; the co-op campaign format and upstream's saves are
+unchanged. Cost: the owner's dev4 editor and templates are replaced; checks
+that need a cartridge were not run in the merging session.

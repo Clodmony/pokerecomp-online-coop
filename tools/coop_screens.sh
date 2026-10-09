@@ -3,7 +3,7 @@
 # captured to PNGs, with a private user folder: the owner's campaigns, identity
 # and logs are never touched, and runs side by side do not meet.
 #
-#   GODOT=<4.8-dev4 binary> tools/coop_screens.sh <scenario> [out dir]
+#   GODOT=<4.8-dev7 binary> tools/coop_screens.sh <scenario> [out dir]
 #
 # A scenario (tools/coop_screens/<name>.sh) is sourced and calls, with seconds
 # counted from the moment that window's world opens (60 frames a second):
@@ -31,7 +31,7 @@ scenario="${1:?usage: GODOT=<binary> tools/coop_screens.sh <scenario> [out dir]}
 [[ -f "$scenario" ]] || scenario="$root/tools/coop_screens/$scenario.sh"
 name="$(basename "$scenario" .sh)"
 out="$(realpath -m "${2:-/tmp/coop_screens/$name}")"
-godot="${GODOT:?set GODOT to the Godot 4.8-dev4 binary}"
+godot="${GODOT:?set GODOT to the Godot 4.8-dev7 binary}"
 real_user="${REAL_USER_DIR:-$HOME/.local/share/godot/app_userdata/pokerecomp}"
 case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&2; exit 2 ;; esac
 
