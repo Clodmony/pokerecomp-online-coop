@@ -477,7 +477,8 @@ func suggest(player_id: String, suggestion: Dictionary) -> StringName:
 	var kind: String = PokeCoopTransport.text(suggestion.get("type"))
 	if not SUGGESTION_TYPES.has(kind):
 		return &"invalid_suggestion"
-	suggestions[player_id] = {"type": kind, "value": PokeCoopTransport.number(suggestion.get("value"), -1), "revision": revision}
+	suggestions[player_id] = {"type": kind, "value": PokeCoopTransport.number(suggestion.get("value"), -1), "revision": revision,
+		"recipient": PokeCoopTransport.text(suggestion.get("recipient")).left(32)}
 	return &""
 
 
@@ -542,7 +543,7 @@ static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 	return {
 		"species": member.species, "level": member.level, "hp": member.hp,
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
-		"pp": member.pp.duplicate(), "disabled": member.disabled_slot,
+		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
 	}
 
 

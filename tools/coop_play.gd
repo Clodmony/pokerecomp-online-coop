@@ -3,7 +3,7 @@ extends SceneTree
 ## One co-op player's window on the real world screen, the Co-op tab's session, against `tools/coop_session.gd -- host [port] <game>`:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
 ## SELECT opens the session menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
-## picks the panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
+## walks the battle's menus to the panel's first matching row, then A); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
@@ -111,7 +111,7 @@ func _point_at_row(pattern: String) -> bool:
 	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(
 		func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null)
 	if index >= 0:
-		panel._set_cursor(index)
+		panel.point_at(index)
 	return index >= 0
 
 
