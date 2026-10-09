@@ -18,18 +18,32 @@ checkouts the fetch and status scripts manage.
 | Yellow | [pret/pokeyellow](https://github.com/pret/pokeyellow) | `e89ead154b9968aa50eed9328ff2b38b6c194382` | The same for Yellow, which moved most tables and retuned every palette |
 | Crystal | [pret/pokecrystal](https://github.com/pret/pokecrystal) | `8e8f7e20052a596371a77022f0392c285e51bbf1` | Maps, scripts, events, data, battle behavior |
 | Gold and Silver | [pret/pokegold](https://github.com/pret/pokegold) | `a0dad0957ac8a9ffa67e950ee3ab6715a212ded5` | Maps, scripts, events, data, battle behavior |
+| Ruby and Sapphire | [pret/pokeruby](https://github.com/pret/pokeruby) | `5784633ce4ef7ade1a7f2d2d0c288e3d5e6cdd7f` | Generation 3 source for Ruby and Sapphire; the registry's dumps are its `ruby_rev2` and `sapphire_rev2` builds |
+| FireRed and LeafGreen | [pret/pokefirered](https://github.com/pret/pokefirered) | `037335f4c725d7c9aecdac87066f2002b4bd7e14` | The same for FireRed and LeafGreen, from its `firered_rev1` and `leafgreen_rev1` builds |
+| Emerald | [pret/pokeemerald](https://github.com/pret/pokeemerald) | `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` | The same for Emerald |
 | German Red and Blue | [einstein95/pokered-de](https://github.com/einstein95/pokered-de) | `f6a2c0cdc557e4c8c1886743629341848ff5bc40`, symbols `7987804c2bea3204d1f5593c74e174e3c51b6e5e` | Rote and Blaue Edition, built byte for byte. The repository carries no license: read it for addresses and constants only, as `Gen1LayoutDe` does, and never copy its asm, text, graphics or symbol files into the project. Its `symbols` branch holds `pokered.sym` and `pokeblue.sym`. |
 | Crystal, C port | [DanZC/suiCune](https://github.com/DanZC/suiCune) | `201d70028249b3297c441be195489e579bbf231a` | Secondary reference only: a C99 rewrite of pokecrystal, useful for how a routine reads once the GameBoy hardware assumptions are removed. Behavior is settled against pret, never against this port. |
 
 The lock file is the source of truth. The branch name recorded there is the
 upstream branch the revision was pinned from, never a substitute for the hash.
 
-Each of these builds a ROM that is byte for byte the retail cartridge: the
-hashes in a checkout's `roms.sha1` are the ones [`RomRegistry`](../game/rom/rom_registry.gd)
-matches a dump against. A `.sym` file from such a build is where every offset in
-`Gen1Layout` and `Gen2Layout` comes from, which is stronger evidence than
-searching a dump for known bytes. Building one needs `rgbds` and writes into the
+Each pret checkout builds a ROM that is byte for byte the retail cartridge:
+the hashes in a checkout's `roms.sha1` (Generation 3: one `<build>.sha1` per
+build) are the ones [`RomRegistry`](../game/rom/rom_registry.gd) matches a dump
+against. A `.sym` file from such a build (Generation 3: the `.map` file)
+gives symbol addresses for `Gen1Layout`, `Gen2Layout` and `Gen3Layout`, which
+is stronger evidence than searching a dump for independently known bytes.
+Building one needs `rgbds` (Generation 3: `agbcc` and an ARM binutils) and writes into the
 checkout, so build a copy outside `.references/` and leave the checkout clean.
+
+A Generation 3 `.map` omits `static` tables; `arm-none-eabi-nm -S` on the
+build's `.elf` lists them, with every symbol's size. `agbcc` is
+[pret/agbcc](https://github.com/pret/agbcc)'s `build.sh`, then its `install.sh`
+with the checkout's path. Without `arm-none-eabi-cpp`, `make CPP="cc -E"
+compare_firered_rev1` (and `compare` for Emerald) builds with the host
+preprocessor. `pokeruby` pipes into its preprocessor and into `agbcc` with no
+file name, so it needs a `CPP` wrapper that runs `cc -E -x c` with `-` when no
+file is named, and a `-` after `$(CC1)`'s output file in its C rule.
 
 ## Local checkout workflow
 
