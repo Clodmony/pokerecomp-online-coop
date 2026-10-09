@@ -372,8 +372,15 @@ const WORDS: Dictionary = {
 }
 
 const SCROLL: String = Gen2TextStream.SCROLL_BREAK
+const STAT_MODS: Dictionary = {
+	"ATTACK": "ANGR", "DEFENSE": "VERT", "SPEED": "INIT", "SPECIAL": "SPEZ", "ACCURACY": "GENA", "EVADE": "FLU",
+}
 
 const UI: Dictionary = {
+	"%s defeated\n%s!": "%s besiegt\n%s!", "%s got ¥%d\nfor winning!": "%s\ngewinnt ¥%d!",
+	"%s picked up\n¥%d!": "%s sammelt\n¥%d auf!", "%s joined\nthe battle!": "%s kämpft\njetzt mit!",
+	"All right!\n%s was%scaught!": "Wunderbar!\n%s wurde%sgefangen!",
+	"You missed the\n#MON!": "Du hast das\n#MON verfehlt!", "Darn! The #MON\nbroke free!": "Mist! Das #MON\nhat sich befreit!",
 	"FIGHT": "KMPF", "RUN": "FLUCHT", "BAIT": "KÖDER", "THROW ROCK": "STEIN",
 	"SAVE": "SICHERN", "EXIT": "ZURÜCK", "CANCEL": "ZURÜCK", "SWITCH": "TAUSCH",
 	"STATS": "STATUS", "YES": "JA", "NO": "NEIN", "BUY": "KAUF", "SELL": "VERKAUF",
