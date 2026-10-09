@@ -1,7 +1,7 @@
 class_name PokeCoopSession
 extends RefCounted
 
-## One co-op run on this device, driven each frame by [Gen2GameRuntime]: client, host when hosting, world and panel.
+## One co-op run on this device, driven each frame by [Gen2GameRuntime]: client, host when hosting, world, menu and panel.
 
 const ACTOR_ID: StringName = &"coop_players"
 const TAKEOVER_ID: StringName = &"coop_battles"
@@ -20,6 +20,7 @@ const LEFT_BATTLE_ENDED: Dictionary = {
 	"caught": "The battle you left ended in a catch.",
 }
 const INTRO_SCENE: String = "res://game/world/intro_screen.tscn"
+const SELECT_OWNERS: Array[StringName] = [&"_start_menu_host", &"_battle_host", &"_party_host"]
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
 const CAMPAIGNS_DIR: String = "user://coop_campaigns"
@@ -39,6 +40,8 @@ var host: PokeCoopHost = null
 var screen: Gen2WorldScreen = null
 var opening_screen: Gen2IntroScreen = null
 var panel: PokeCoopBattlePanel = null
+var menu: PokeCoopMenu = null
+var gestures: PokeCoopTouchGestures = null
 var link: PokeCoopWorldLink = null
 var cable: PokeCoopLinkTransport = null
 var journal: PokeCoopLog = PokeCoopLog.new()
@@ -223,7 +226,6 @@ func is_ready() -> bool:
 	return not _closed and not client.me().is_empty()
 
 
-## Why the session ended or was refused, or empty while it runs.
 func ended_reason() -> String:
 	return client.ended_reason
 
@@ -272,7 +274,7 @@ func _advance_links() -> void:
 	if link != null:
 		var shown: bool = screen != null and is_instance_valid(screen) and screen.world() != null
 		link.hold_holdings = shown and screen.get("_link_host") != null
-		var waiting: bool = not link.scene_driver.is_empty() and panel != null and not panel.is_open()
+		var waiting: bool = not link.scene_driver.is_empty() and panel != null and not overlay_open()
 		link.busy = PokeCoopWorldLink.unrest(screen) if shown and not waiting else &""
 		link.advance()
 	if cable != null and not is_same(client.state, _cable_state):
@@ -280,11 +282,11 @@ func _advance_links() -> void:
 		cable.refresh()
 
 
-## The world stands still under the panel or for a partner's rival scene on its map, and settles its player after.
+## The world stands still under the menu, the panel or a partner's rival scene on its map, and settles its player after.
 func _tend_world() -> void:
 	if _takeover != null and not _takeover.waiting_on.is_empty():
 		panel.recall(_takeover.waiting_on)
-	var frozen: bool = panel.is_open() or (link != null and not link.scene_driver.is_empty()) or _continuing >= 0
+	var frozen: bool = overlay_open() or (link != null and not link.scene_driver.is_empty()) or _continuing >= 0
 	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != frozen:
 		hold_world(screen, screen.get("_audio_player"), frozen)
 	var world: Gen2WorldAPI = screen.get("_world")
@@ -303,6 +305,10 @@ func _tend_world() -> void:
 		journal.add(PokeCoopLog.WORLD, "evolve", {"party_indices": _evolving}, client.player_id)
 		screen.evolve_after_battle(_evolving)
 		_evolving = []
+
+
+func overlay_open() -> bool:
+	return (panel != null and panel.is_open()) or (menu != null and is_instance_valid(menu) and menu.is_open())
 
 
 ## A held world's audio player goes on for the battle's sounds, and its on-screen controller for a phone's A.
@@ -456,7 +462,7 @@ static func partner_news(before: Dictionary, now: Dictionary, session: PokeCoopC
 		var battle: String = String(is_now["battle"])
 		if not battle.is_empty() and battle != String(was.get("battle", "")) and battle != mine and mine.is_empty():
 			return "%s is in a battle%s.%s" % [is_now["name"], _against(session, battle, game),
-				"" if _is_private(session, battle) else " SELECT to join."]
+				"" if _is_private(session, battle) else " START > CO-OP to join."]
 	return ""
 
 
@@ -478,7 +484,7 @@ static func _against(session: PokeCoopClient, battle_id: String, game: GameData)
 func _tell_scene() -> void:
 	var driver: String = link.scene_driver if link != null else ""
 	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(driver, {})
-	var line: String = "%s is facing the rival here. Wait, or join the battle with SELECT." % String(view.get("name", driver))
+	var line: String = "%s is facing the rival here. Wait, or join from START > CO-OP." % String(view.get("name", driver))
 	if driver != _scene_told and not driver.is_empty():
 		say(line)
 	elif not driver.is_empty() and _notice != null and Time.get_ticks_msec() >= _notice_until:
@@ -588,6 +594,7 @@ func _continue_world() -> void:
 	_continuing = CONTINUED
 	screen = null
 	panel = null
+	menu = null
 	link = null
 	tree.change_scene_to_node(open_world())
 
@@ -632,13 +639,13 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	if _continuing == CONTINUED:
 		_continuing = -1
 		panel.dismiss_finished()
-	panel.leave_requested.connect(leave)
 	var field: PokeCoopBattleField = PokeCoopBattleField.over(panel, data)
 	field.audio = screen.get("_audio_player")
 	field.restore_music = Callable(screen, &"_play_current_map_music")
 	panel.busy = field.is_playing
 	layer.add_child(field)
 	layer.add_child(panel)
+	_add_menu(layer)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", PokeCoopBattlePanel.FONT_SIZE + 1)
 	var backdrop := StyleBoxFlat.new()
@@ -651,7 +658,28 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	layer.add_child(_notice)
 
 
+func _add_menu(layer: CanvasLayer) -> void:
+	var hardware: Gen2Screen = screen.get("_screen")
+	menu = PokeCoopMenu.over(client, data)
+	menu.hardware = hardware
+	menu.blocked = panel.is_open
+	menu.select_allowed = func() -> bool: return SELECT_OWNERS.all(func(host: StringName) -> bool: return screen.get(host) == null)
+	menu.leave_requested.connect(leave)
+	menu.acted.connect(_close_start_menu)
+	layer.add_child(menu)
+	gestures = PokeCoopTouchGestures.over(hardware, overlay_open)
+	gestures.ignores = func(point: Vector2) -> bool: return panel.visible and panel.get_global_rect().has_point(point)
+	layer.add_child(gestures)
+
+
+func _close_start_menu() -> void:
+	var start: Gen2StartMenuScreen = screen.get("_start_menu_host") if screen != null and is_instance_valid(screen) else null
+	if start != null:
+		start.closed.emit()
+
+
 func _claim_seams() -> void:
+	PokeCoopMenu.claim_start_entry()
 	if _actor == null:
 		_actor = PokeCoopRemoteActor.new()
 		_takeover = PokeCoopBattleTakeover.new()
