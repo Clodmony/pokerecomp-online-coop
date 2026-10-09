@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -102,6 +102,8 @@ var _from: String = ""
 var _speed: float = 1.0
 var _ball: int = 0
 var _shots: String = ""
+var _texts: FileAccess = null
+var _last_text: Dictionary = {}
 var _legs: Array = []
 var _leg: int = 0
 var _leg_started: int = 0
@@ -157,6 +159,7 @@ func _process(delta: float) -> bool:
 	_played._frames = _frames
 	_apply(_choose())
 	_watch_progress()
+	_dump_texts()
 	return false
 
 
@@ -1997,6 +2000,41 @@ func _watch_progress() -> void:
 		_still_since = Time.get_ticks_msec()
 	elif _seconds_since(_still_since) > STILL_SECONDS:
 		_fail("nothing moved for %d s: %s" % [STILL_SECONDS, _played._where() if world != null else now])
+
+
+func _dump_texts() -> void:
+	var screen: Gen2WorldScreen = _played._screen
+	if _shots.is_empty() or _frames % 6 != 0 or screen == null or not is_instance_valid(screen) or screen.world() == null:
+		return
+	if _texts == null:
+		_texts = FileAccess.open("%s/%s_texts.tsv" % [_shots, _player_id], FileAccess.WRITE)
+		if _texts == null:
+			return
+	var lines: Dictionary = {"world": _box_lines(screen.get("_text_box"))}
+	var battle: Gen2BattleScreen = screen.get("_battle_host")
+	lines["battle"] = String(battle.battle_snapshot().get("message", "")) if battle != null else ""
+	if _session.panel != null and _session.panel.get_parent() != null:
+		for node: Node in _session.panel.get_parent().get_children():
+			if node is PokeCoopBattleField:
+				lines["field"] = _box_lines(node.get("_box"))
+	var leg: String = String(_legs[_leg][0]) if _leg < _legs.size() and _legs[_leg] is Array else ""
+	for where: String in lines:
+		var text: String = String(lines[where]).replace("\n", " / ")
+		if text.is_empty() or text == _last_text.get(where, ""):
+			continue
+		_last_text[where] = text
+		_texts.store_line("%s\t%d\t%s\t%s" % [where, screen.world().map_id().y, leg, text])
+		_texts.flush()
+
+
+func _box_lines(box: Gen2TextBox) -> String:
+	if box == null or not is_instance_valid(box) or not box.visible or box.is_revealing():
+		return ""
+	var shown: PackedStringArray = []
+	for line: String in box.text_lines():
+		if shown.is_empty() or shown[-1] != line:
+			shown.append(line)
+	return "\n".join(shown)
 
 
 func _finish_route() -> void:
