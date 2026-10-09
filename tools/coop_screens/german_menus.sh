@@ -9,7 +9,7 @@ press p1 6 D D D A
 shot p1 8.5 save_question
 press p1 10 B B B
 press p2 3 SELECT
-shot p2 4.5 session_menu
+shot p2 4.5 coop_menu
 press p2 6 @FIGHT
 shot p2 12 battle_send_out
 press p2 18 A

@@ -2,8 +2,8 @@ extends SceneTree
 
 ## One co-op player's window on the real world screen, the Co-op tab's session, against `tools/coop_session.gd -- host [port] <game>`:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## SELECT opens the session menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
-## picks the panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
+## SELECT opens the CO-OP menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
+## picks the menu's or panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
@@ -106,10 +106,17 @@ func _drive_keys() -> void:
 
 
 func _point_at_row(pattern: String) -> bool:
-	var panel: PokeCoopBattlePanel = _session.panel
 	var matcher := RegEx.create_from_string(pattern)
-	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(
-		func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null)
+	var matches: Callable = func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null
+	var session: PokeCoopSession = _session if _session != null else Gen2GameRuntime.instance().coop
+	var menu: PokeCoopMenu = session.menu
+	if menu != null and menu.is_open():
+		var row: int = menu._rows.find_custom(matches)
+		if row >= 0:
+			menu._set_cursor(row)
+		return row >= 0
+	var panel: PokeCoopBattlePanel = session.panel
+	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(matches)
 	if index >= 0:
 		panel._set_cursor(index)
 	return index >= 0

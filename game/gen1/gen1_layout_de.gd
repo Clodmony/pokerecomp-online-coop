@@ -478,6 +478,10 @@ const UI: Dictionary = {
 	"%s enough!\nCome back!": "%s genug!\nKomm zurück!", "%s\nCome back!": "%s\nKomm zurück!",
 	"%s OK!\nCome back!": "%s OK!\nKomm zurück!", "%s good!\nCome back!": "%s super!\nKomm zurück!",
 	"%s learned\n%s!": "%s lernt\n%s!", "%s is\ntrying to learn\n%s!": "%s\nversucht,\n%s zu" + SCROLL + "erlernen!",
+	"JOIN %s": "HILF %s", "VS %s": "GEGEN %s", "REJOIN": "WIEDER HELFEN", "LEAVE SESSION": "SITZUNG VERLASSEN",
+	"Leave the co-op": "Die Sitzung", "session?": "verlassen?", "IN A BATTLE": "IM KAMPF", "IN THE OPENING": "AM ANFANG",
+	"NO PARTNER YET": "NOCH ALLEIN", "NOT SAVED YET": "NICHT GESICHERT", "SAVED JUST NOW": "GERADE GESICHERT",
+	"SAVED %d SEC. AGO": "GESICHERT: %d SEK.", "SAVED %d MIN. AGO": "GESICHERT: %d MIN.",
 }
 
 static var _red: Dictionary = {}
