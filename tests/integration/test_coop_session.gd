@@ -297,13 +297,13 @@ func test_a_message_delivered_twice_is_applied_once() -> void:
 func test_a_save_from_either_menu_is_confirmed_to_everyone() -> void:
 	var red_seen: int = int(_red.state["saved"]["count"])
 	var blue_seen: int = int(_blue.state["saved"]["count"])
-	assert_eq(PokeCoopBattlePanel.last_saved(_red).begins_with("Saved") or PokeCoopBattlePanel.last_saved(_red) == "Not saved yet.", true)
+	assert_eq(PokeCoopMenu.last_saved(_red).begins_with("SAVED") or PokeCoopMenu.last_saved(_red) == "NOT SAVED YET", true)
 	_send(func() -> void: _blue.request_save())
 
 	assert_eq(PokeCoopSession.save_news(blue_seen, _blue), "Campaign saved.")
 	var blue: String = String(_red.state["players"][_blue.player_id]["name"])
 	assert_eq(PokeCoopSession.save_news(red_seen, _red), "%s saved the campaign." % blue)
-	assert_eq(PokeCoopBattlePanel.last_saved(_red), "Saved just now.")
+	assert_eq(PokeCoopMenu.last_saved(_red), "SAVED JUST NOW")
 	assert_eq(PokeCoopSession.save_news(int(_red.state["saved"]["count"]), _red), "", "said once")
 
 
@@ -1013,7 +1013,7 @@ func test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle() ->
 	var blue: String = String(_red.state["players"][_blue.player_id]["name"])
 	var geodude: String = String(_data.species(Fixture.GEODUDE)["name"])
 	assert_eq(PokeCoopSession.partner_news(before, PokeCoopSession.partner_states(_red), _red, _data),
-		"%s is in a battle against wild %s. SELECT to join." % [blue, geodude])
+		"%s is in a battle against wild %s. START > CO-OP to join." % [blue, geodude])
 
 	var gone: Dictionary = {_blue.player_id: {"name": blue, "connected": false, "battle": ""}}
 	var back: Dictionary = {_blue.player_id: {"name": blue, "connected": true, "battle": ""}}
@@ -1715,15 +1715,95 @@ func test_a_player_who_plays_the_opening_has_a_story_of_their_own_until_oaks_lab
 
 func test_the_session_menu_says_a_partner_is_in_the_opening_rather_than_where_they_stand() -> void:
 	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
-	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
+	var menu: PokeCoopMenu = autofree(PokeCoopMenu.over(_red, _data))
 
-	var menu: String = panel._menu_text()
-	assert_string_contains(menu, "GREEN[/color] (in the opening)", "nobody sees GREEN where the host places them")
-	assert_eq(menu.count("(in the opening)"), 1, "BLUE is out exploring")
+	var header: String = "\n".join(menu._header())
+	assert_string_contains(header, "GREEN\n IN THE OPENING", "nobody sees GREEN where the host places them")
+	assert_eq(header.count("IN THE OPENING"), 1, "BLUE is out exploring")
 	_host.player(green_client.player_id).opening = {}
 	_host.broadcast()
 	_pump()
-	assert_false(panel._menu_text().contains("(in the opening)"))
+	assert_false("\n".join(menu._header()).contains("IN THE OPENING"))
+
+
+func _menu_row(menu: PokeCoopMenu, text: String) -> int:
+	return menu._rows.find_custom(func(row: Dictionary) -> bool: return String(row["text"]).begins_with(text))
+
+
+func test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving() -> void:
+	var red: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_red, _data))
+	var blue: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_blue, _data))
+	watch_signals(red)
+	red.open()
+	assert_eq(red._rows.map(func(row: Dictionary) -> String: return row["action"]),
+		["fight", "fight", "fight", "leave", "cancel"], "the offers, then the way out; SAVE is START's")
+	red._set_cursor(_menu_row(red, "FIGHT wild:stall"))
+	red.press(PokeButton.A)
+	_pump()
+	var battle_id: String = _battle_of(_red)
+	assert_false(battle_id.is_empty())
+	assert_false(red.is_open())
+	assert_signal_emitted(red, "acted", "the START menu behind it closes")
+
+	blue.open()
+	var join: Dictionary = blue._rows[_menu_row(blue, "JOIN")]
+	assert_eq([join["label"], join["detail"]], ["JOIN RED", "VS %s" % _data.species(Fixture.GEODUDE)["name"]])
+	blue._set_cursor(_menu_row(blue, "JOIN"))
+	blue.press(PokeButton.A)
+	_pump()
+	assert_true((_blue.battle(battle_id)["participants"] as Array).has(_blue.player_id))
+	blue.blocked = func() -> bool: return true
+	blue.open()
+	assert_false(blue.is_open(), "a co-op battle owns the buttons")
+	blue.blocked = Callable()
+	blue.open()
+	watch_signals(blue)
+	blue._set_cursor(_menu_row(blue, "LEAVE SESSION"))
+	for answer: Array in [[PokeButton.A, PokeButton.B], [PokeButton.A, PokeButton.DOWN, PokeButton.A]]:
+		for button: int in answer:
+			blue.press(button)
+		assert_true(blue.is_open() and not blue._asking, "NO, and B, go back to the rows")
+	assert_signal_not_emitted(blue, "leave_requested")
+	blue.press(PokeButton.A)
+	blue.press(PokeButton.A)
+	assert_signal_emitted(blue, "leave_requested")
+	assert_false(blue.is_open())
+
+
+func test_select_opens_the_co_op_menu_only_where_the_world_does_not_read_it() -> void:
+	var menu: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_red, _data))
+	var select := InputEventAction.new()
+	select.action = PokeButton.action(PokeButton.SELECT)
+	select.pressed = true
+	menu.select_allowed = func() -> bool: return false
+	menu._input(select)
+	assert_false(menu.is_open(), "the pack's SELECT swaps its rows")
+	menu.select_allowed = Callable()
+	menu._input(select)
+	assert_true(menu.is_open())
+	menu._input(select)
+	assert_false(menu.is_open(), "SELECT again closes it")
+
+
+func test_start_lists_co_op_only_while_a_co_op_world_is_up() -> void:
+	PokeCoopMenu.claim_start_entry()
+	PokeCoopMenu.claim_start_entry()
+	var rows: Callable = func() -> Array:
+		return Gen2WorldStartMenu.build(1, false, false, 0, "RED", false, false, RomRegistry.GEN1).items()
+	var runtime: Gen2GameRuntime = Gen2GameRuntime.instance()
+	var was: PokeCoopSession = runtime.coop
+	runtime.coop = null
+	var solo: Array = rows.call()
+	var session := PokeCoopSession.new()
+	session.menu = add_child_autofree(PokeCoopMenu.over(_red, _data))
+	runtime.coop = session
+	var listed: Array = (rows.call() as Array).filter(func(row: Dictionary) -> bool: return row["label"] == PokeCoopMenu.LABEL)
+	if listed.size() == 1:
+		((listed[0] as Dictionary)["handler"] as Callable).call()
+	runtime.coop = was
+	assert_false(solo.any(func(row: Dictionary) -> bool: return row["label"] == PokeCoopMenu.LABEL), "a solo game has no CO-OP")
+	assert_eq(listed.size(), 1, "once, however often a world claims it")
+	assert_true(session.menu.is_open(), "START > CO-OP opens the menu")
 
 
 func test_the_rival_fight_of_an_opening_is_the_players_own() -> void:
@@ -1904,12 +1984,14 @@ func test_a_player_who_left_rejoins_from_the_session_menu() -> void:
 	panel._process(0.0)
 	assert_false(panel.is_open(), "YES to the question left the battle")
 	_send(func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0))
-	panel._menu_open = true
-	panel._process(0.0)
-	panel._cursor = panel._rows.find_custom(func(row: Dictionary) -> bool: return String(row["text"]) == "REJOIN %s" % battle_id)
-	assert_gt(panel._cursor, -1, "the session menu offers the way back in")
+	var menu: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_blue, _data))
+	menu.open()
+	var rejoin: int = menu._rows.find_custom(func(row: Dictionary) -> bool: return String(row["text"]) == "REJOIN %s" % battle_id)
+	assert_gt(rejoin, -1, "the session menu offers the way back in")
+	assert_eq(String(menu._rows[rejoin]["label"]), "REJOIN")
 
-	panel._choose()
+	menu._set_cursor(rejoin)
+	menu.press(PokeButton.A)
 	_pump()
 	var view: Dictionary = _blue.battle(battle_id)
 	assert_eq([view["left"], (view["participants"] as Array).count(_blue.player_id)], [[], 1], "back in, once")

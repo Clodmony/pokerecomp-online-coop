@@ -136,6 +136,7 @@ Red (or Blue) cartridge, the same one.
 | B17 | A wild battle in the tower without the SILPH SCOPE | The window's own GHOST battle; no host battle, no join offered; RUN escapes | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
 | B18 | DISABLE hits a move; a move runs out of PP | The panel marks it (DISABLED) or (NO PP); choosing either says "That move can't be used now." | `test_the_panel_names_a_move_that_is_disabled_or_out_of_pp` | playthrough_erika | |
 | B19 | One player fights ERIKA; the partner in the gym joins with SELECT | One battle; the badge and TM21 reach both, once each; the partner's window does not play ERIKA's lines | `test_brock_beaten_in_one_window_hands_each_player_one_tm34` (the same gym rule) | playthrough_erika | |
+| B20 | A battle with nothing usable in the bag | BAG is still listed, "Nothing in the bag to use here" | `test_a_finished_battle_closes_with_a_tap_and_an_empty_bag_is_still_listed` | | |
 | B20 | A joined battle won by the partner while the initiator's whole team fainted | The initiator is not blacked out and keeps their place, flag and money | `test_coop_session` (won side test) | playthrough_elite | |
 
 ## Trades
@@ -155,6 +156,7 @@ Red (or Blue) cartridge, the same one.
 | P02 | Tap or click panel rows | First tap moves the cursor, the second chooses | `test_a_tap_on_a_row_moves_the_cursor...` | | |
 | P03 | A tall (portrait) window in a battle | The panel sits under the battle field | | | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |
+| P05 | A phone in a co-op battle and in the SELECT menu; win or run, then close the result | The on-screen pad still presses A and B; the result has a CLOSE a finger can tap | `test_a_world_held_under_the_panel_keeps_its_touch_controls`, `test_a_finished_battle_closes_with_a_tap...` | catch_for_partner | |
 | G01 | A German campaign and an English window, or the reverse | The host refuses the join ("same game file"); campaigns, caches and saves stay apart by id (D95) | `test_coop_session` (stranger test) | | |
 | G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
 | G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |

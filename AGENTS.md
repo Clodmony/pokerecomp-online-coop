@@ -141,7 +141,9 @@ before pushing.
 | `game/coop/coop_enet_transport.gd` | `PokeCoopEnetTransport`: LAN/direct-IP over ENet |
 | `game/coop/coop_save.gd` | `PokeCoopSave`: versioned campaign file |
 | `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
-| `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu, and a battle's rows, presses, refusals and closing |
+| `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: a battle's rows, presses, refusals and closing |
+| `game/coop/coop_menu.gd` | `PokeCoopMenu`: START > CO-OP, the session menu on the world's own screen |
+| `game/coop/coop_touch_gestures.gd` | `PokeCoopTouchGestures`: swipes and taps over the screen while a co-op menu or battle is up |
 | `game/coop/coop_battle_menu.gd` | `PokeCoopBattleMenu`: a battle's rows as the cartridge's FIGHT/PKMN/ITEM/RUN, move, party and bag lists and YES/NO boxes, with partners' marks |
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
 | `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |

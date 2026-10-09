@@ -1,14 +1,9 @@
 class_name PokeCoopBattlePanel
-extends PanelContainer
+extends Node
 
-## The session menu on SELECT and a shared battle's rows, walked by [PokeCoopBattleMenu]; it decides nothing.
+## A shared battle's rows, walked by [PokeCoopBattleMenu] on the world's screen; it decides nothing. The session menu is [PokeCoopMenu].
 
-signal leave_requested
-
-const WIDTH: int = 420
 const FONT_SIZE: int = 15
-const MUTED: String = "#8a93b8"
-const REFUSAL_MSEC: int = 4000
 const REFUSALS: Dictionary = {
 	&"not_controller": "It is not your turn.", &"stale_revision": "The battle moved on; try again.",
 	&"paused": "The battle is waiting for a player to come back.", &"box_full": "No room left for a catch.",
@@ -28,17 +23,12 @@ var data: GameData = null
 var busy: Callable = Callable()
 var say: Callable = Callable()
 var menu: PokeCoopBattleMenu = null
-var _label: RichTextLabel = null
 var _rows: Array = []
 var _cursor: int = 0
-var _menu_open: bool = false
 var _dismissed: Dictionary = {}
 var _recalled: Dictionary = {}
 var _kept_waiting: Dictionary = {}
-var _shown: String = ""
 var _turn_key: String = ""
-var _refusals_seen: int = 0
-var _refused_until: int = 0
 var _said: int = 0
 
 
@@ -50,32 +40,8 @@ static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattle
 	return out
 
 
-func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.07, 0.12, 0.92)
-	style.set_content_margin_all(12)
-	style.set_corner_radius_all(6)
-	add_theme_stylebox_override("panel", style)
-	set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	custom_minimum_size = Vector2(WIDTH, 0)
-	position.x -= WIDTH + 16
-	position.y += 16
-	_label = RichTextLabel.new()
-	_label.bbcode_enabled = true
-	_label.fit_content = true
-	_label.scroll_active = false
-	for font_size: String in ["normal_font_size", "bold_font_size"]:
-		_label.add_theme_font_size_override(font_size, FONT_SIZE)
-	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.custom_minimum_size = Vector2(WIDTH - 24, 0)
-	_label.meta_underlined = false
-	_label.meta_clicked.connect(_on_row_clicked)
-	add_child(_label)
-	visible = false
-
-
 func is_open() -> bool:
-	return _menu_open or not battle_view().is_empty()
+	return not battle_view().is_empty()
 
 
 ## The battle this player is in, or the last one until its lines have played; one they left only when recalled.
@@ -115,22 +81,13 @@ func _process(_delta: float) -> void:
 	if client == null:
 		return
 	var view: Dictionary = battle_view()
-	if not view.is_empty():
-		_menu_open = false
 	var turn_key: String = "%s/%s" % [view.get("battle", ""), view.get("controller", "")]
 	if turn_key != _turn_key:
 		_turn_key = turn_key
 		_cursor = 0
-	_rows = _battle_rows(view) if not view.is_empty() else (_menu_rows() if _menu_open else [])
+	_rows = _battle_rows(view) if not view.is_empty() else []
 	_cursor = clampi(_cursor, 0, maxi(_rows.size() - 1, 0))
 	_follow_battle(view)
-	var text: String = _menu_text() if _menu_open else ""
-	visible = not text.is_empty()
-	if visible:
-		position = Vector2(get_viewport_rect().size.x - size.x - 16, 16)
-	if text != _shown:
-		_shown = text
-		_label.text = text
 
 
 func _follow_battle(view: Dictionary) -> void:
@@ -156,31 +113,15 @@ func _say(line: String) -> void:
 
 func _input(event: InputEvent) -> void:
 	var button: int = PokeButton.pressed_in(event)
-	if button == PokeButton.NONE or client == null:
-		return
-	if not is_open():
-		if button == PokeButton.SELECT:
-			_menu_open = true
-			_cursor = 0
-			get_viewport().set_input_as_handled()
+	if button == PokeButton.NONE or client == null or not is_open():
 		return
 	_press(button)
 	get_viewport().set_input_as_handled()
 
 
 func _press(button: int) -> void:
-	if not battle_view().is_empty():
-		if not busy.is_valid() or not bool(busy.call()):
-			_take(menu.press(button))
-		return
-	match button:
-		PokeButton.UP, PokeButton.DOWN:
-			_move_cursor(-1 if button == PokeButton.UP else 1)
-		PokeButton.A:
-			if battle_view().is_empty() or not busy.is_valid() or not bool(busy.call()):
-				_choose()
-		PokeButton.B, PokeButton.SELECT:
-			_menu_open = false
+	if not battle_view().is_empty() and (not busy.is_valid() or not bool(busy.call())):
+		_take(menu.press(button))
 
 
 func _take(picked: Dictionary) -> void:
@@ -194,23 +135,8 @@ func _take(picked: Dictionary) -> void:
 
 
 func point_at(index: int) -> void:
-	if battle_view().is_empty() or menu.point_at(index):
+	if not battle_view().is_empty() and menu.point_at(index):
 		_set_cursor(index)
-
-
-func _move_cursor(by: int) -> void:
-	if not _rows.is_empty():
-		_set_cursor(posmod(_cursor + by, _rows.size()))
-
-
-func _on_row_clicked(meta: Variant) -> void:
-	var index: int = int(String(meta))
-	if index < 0 or index >= _rows.size():
-		return
-	if index != _cursor:
-		_set_cursor(index)
-	else:
-		_press(PokeButton.A)
 
 
 func _set_cursor(index: int) -> void:
@@ -229,10 +155,10 @@ func _choose() -> void:
 	if _rows.is_empty():
 		return
 	var row: Dictionary = _rows[_cursor]
-	if not view.is_empty() and row.has("session"):
+	if view.is_empty():
+		return
+	if row.has("session"):
 		_run_battle_row(String(view["battle"]), String(row["session"]))
-	elif view.is_empty():
-		_run_menu_row(row)
 	elif _controls(view) and row.has("command"):
 		client.act(String(view["battle"]), row["command"])
 	elif row.has("suggest"):
@@ -258,83 +184,6 @@ func _run_battle_row(battle_id: String, kind: String) -> void:
 			client.stand_in(battle_id)
 		"wait":
 			_kept_waiting[battle_id] = true
-
-
-func _run_menu_row(row: Dictionary) -> void:
-	match String(row.get("action", "")):
-		"fight":
-			client.start_battle(String(row["id"]))
-		"join":
-			client.join_battle(String(row["id"]))
-		"save":
-			client.request_save()
-		"leave":
-			leave_requested.emit()
-	_menu_open = false
-
-
-func _menu_rows() -> Array:
-	var rows: Array = []
-	for offer: Dictionary in client.state.get("encounters", []):
-		rows.append({"text": "FIGHT %s" % offer["label"], "label": "Fight %s" % offer["label"], "action": "fight", "id": offer["id"]})
-	for running: Dictionary in client.state.get("battles", []):
-		if (running.get("left", []) as Array).has(client.player_id):
-			rows.append({"text": "REJOIN %s" % running["battle"], "label": "Rejoin the battle against %s" % _foe(running),
-				"action": "join", "id": running["battle"]})
-		elif not (running["participants"] as Array).has(client.player_id) and not bool(running.get("private", false)):
-			rows.append({
-				"text": "JOIN %s (%s)" % [running["battle"], _names(running["participants"])],
-				"label": "Join %s against %s" % [_names_bb(running["participants"]), _foe(running)],
-				"action": "join", "id": running["battle"],
-			})
-	rows.append({"text": "SAVE CAMPAIGN", "label": "Save the campaign (same as START > SAVE)", "action": "save", "section": " "})
-	rows.append({"text": "LEAVE SESSION", "label": "Leave the session", "action": "leave"})
-	rows.append({"text": "CLOSE", "label": "Close", "action": "close"})
-	return rows
-
-
-static func last_saved(session: PokeCoopClient) -> String:
-	var ago: float = float((session.state.get("saved", {}) as Dictionary).get("ago", -1.0))
-	if ago < 0.0:
-		return "Not saved yet."
-	var seconds: int = int(ago) + (Time.get_ticks_msec() - session.state_at) / 1000
-	if seconds < 60:
-		return "Saved %d seconds ago." % seconds if seconds > 1 else "Saved just now."
-	return "Saved %d minutes ago." % (seconds / 60) if seconds >= 120 else "Saved a minute ago."
-
-
-func _foe(running: Dictionary) -> String:
-	var trainer: int = int(running.get("trainer_class", 0))
-	var species: String = _species_name(int(running.get("enemy", 0)))
-	return data.trainer_name(trainer) if trainer > 0 and data != null else "wild %s" % species
-
-
-func _place(map: Variant) -> String:
-	if not map is Vector2i or data == null or data.generation != RomRegistry.GEN1:
-		return ""
-	return data.landmark_name(data.area_landmark((map as Vector2i).y)).strip_edges()
-
-
-func _menu_text() -> String:
-	var title: String = PokeCoopTransport.text((client.state.get("campaign", {}) as Dictionary).get("title")).left(24)
-	var lines: PackedStringArray = ["[b]CO-OP SESSION[/b]%s   you are %s" % [
-		"  " + _escaped(title) if not title.is_empty() else "", _name_bb(client.player_id)]]
-	var others: PackedStringArray = []
-	var everyone: Dictionary = client.state.get("players", {})
-	for player_id: String in everyone:
-		var view: Dictionary = everyone[player_id]
-		if player_id != client.player_id and bool(view.get("connected", true)):
-			var place: String = _place(view.get("map"))
-			others.append(_name_bb(player_id) + (" (in a battle)" if not String(view.get("battle", "")).is_empty() \
-				else " (in the opening)" if view.get("opening") == true \
-				else (" (%s)" % _escaped(place) if not place.is_empty() else "")))
-	lines.append("[color=%s]With %s[/color]" % [MUTED, ", ".join(others) if not others.is_empty() else "nobody yet"])
-	lines.append("[color=%s]%s It also saves itself after battles and every thirty seconds of changes.[/color]" % [
-		MUTED, last_saved(client)])
-	lines.append("")
-	lines.append_array(_row_lines({}))
-	lines.append(_status_line())
-	return "\n".join(lines)
 
 
 func _battle_rows(view: Dictionary) -> Array:
@@ -486,44 +335,6 @@ func _mimic_rows(view: Dictionary) -> Array:
 	return rows
 
 
-func _row_lines(view: Dictionary) -> PackedStringArray:
-	var lines: PackedStringArray = []
-	var suggested: Dictionary = _suggesters(view)
-	var section: String = ""
-	for index: int in _rows.size():
-		var row: Dictionary = _rows[index]
-		var heading: String = String(row.get("section", ""))
-		if heading != section and not heading.is_empty():
-			lines.append("[color=%s]%s[/color]" % [MUTED, _escaped(heading.strip_edges())])
-		section = heading
-		var by: Array = suggested.get("%s:%d" % [row["suggest"], int(row["value"])], []) if row.has("suggest") else []
-		var mark: String = "   ◀ %s" % ", ".join(PackedStringArray(by.map(_name_bb))) if not by.is_empty() else ""
-		var label: String = String(row.get("label", _escaped(String(row["text"]))))
-		lines.append("[url=%d]%s[/url]%s" % [index, ("[b]> %s[/b]" if index == _cursor else "   %s") % label, mark])
-	return lines
-
-
-func _suggesters(view: Dictionary) -> Dictionary:
-	var suggestions: Dictionary = view.get("suggestions", {})
-	var out: Dictionary = {}
-	for player_id: Variant in view.get("participants", []):
-		var suggestion: Dictionary = suggestions.get(String(player_id), {})
-		if String(player_id) != client.player_id and not suggestion.is_empty():
-			var row: String = "%s:%d" % [suggestion.get("type", ""), int(suggestion.get("value", -1))]
-			(out.get_or_add(row, []) as Array).append(String(player_id))
-	return out
-
-
-func _status_line() -> String:
-	if client.rejections.size() != _refusals_seen:
-		_refusals_seen = client.rejections.size()
-		_refused_until = Time.get_ticks_msec() + REFUSAL_MSEC
-	var refused: StringName = client.last_rejection()
-	if refused == &"" or Time.get_ticks_msec() > _refused_until or refused == &"duplicate":
-		return ""
-	return "\n[color=#f0a070]%s[/color]" % REFUSALS.get(refused, "Refused: %s" % refused)
-
-
 func _mon_line(mon: Dictionary) -> String:
 	return "%s L%d" % [_species_name(int(mon.get("species", 0))), int(mon.get("level", 0))]
 
@@ -544,13 +355,6 @@ func _name(player_id: Variant) -> String:
 func _name_bb(player_id: Variant) -> String:
 	var shade: Color = PokeCoopRemoteActor.colors_of(client.state, String(player_id))[1]
 	return "[color=#%s]%s[/color]" % [shade.to_html(false), _escaped(_name(player_id))]
-
-
-func _names(player_ids: Variant) -> String:
-	var out: PackedStringArray = []
-	for player_id: Variant in player_ids as Array:
-		out.append(_name(player_id))
-	return ", ".join(out)
 
 
 func _names_bb(player_ids: Variant) -> String:
