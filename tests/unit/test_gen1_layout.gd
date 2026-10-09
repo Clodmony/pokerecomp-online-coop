@@ -619,3 +619,10 @@ func test_the_german_vending_menu_ends_on_its_own_cancel_word() -> void:
 	assert_eq(Gen1LayoutDe.word(&"red_de", Gen1Layout.VENDING_CANCEL), "ZURÜCK")
 	assert_eq(Gen1LayoutDe.word(&"blue_de", Gen1Layout.VENDING_CANCEL), "ZURÜCK")
 	assert_eq(Gen1LayoutDe.word(&"red", Gen1Layout.VENDING_CANCEL), "CANCEL")
+
+
+func test_german_battle_lines_and_stat_names_come_from_the_cartridges_words() -> void:
+	assert_eq(Gen1LayoutDe.ui(&"red_de", "%s defeated\n%s!") % ["ROT", "ROCKO"], "ROT besiegt\nROCKO!")
+	assert_eq(Gen1LayoutDe.ui(&"red_de", "Wild %s\nappeared!") % "TAUBSI", "Ein wildes\nTAUBSI!")
+	assert_eq(Gen1LayoutDe.STAT_MODS["DEFENSE"], "VERT")
+	assert_eq(Gen1LayoutDe.ui(&"red", "%s defeated\n%s!"), "%s defeated\n%s!")
