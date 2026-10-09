@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Godot-4.8.dev4-478CBF?style=flat-square&logo=godotengine&logoColor=white" alt="Godot 4.8.dev4">
+  <img src="https://img.shields.io/badge/Godot-4.8.dev7-478CBF?style=flat-square&logo=godotengine&logoColor=white" alt="Godot 4.8.dev7">
   <img src="https://img.shields.io/badge/GDScript-355570?style=flat-square&logo=godotengine&logoColor=white" alt="GDScript">
   <img src="https://img.shields.io/badge/platforms-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Android%20%C2%B7%20iOS%20%C2%B7%20Switch-8f8c98?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/status-alpha-e0a138?style=flat-square" alt="Status: alpha">
@@ -104,6 +104,25 @@ over a one-pocket bag.
 | Silver (USA/Europe) | `49b163f7e57702bc939d642a18f591de55d92dae` |
 | Crystal (USA/Europe Rev 1) | `f2f52230b536214ef7c9924f483392993e226cfb` |
 
+Generation 3 is starting. Settings > Advanced > Dev cartridges puts these on
+the shelf. An import reads their species with Pokédex entries, moves, types,
+matchup chart, items, abilities, trainers, map headers, layouts, tilesets and
+events, map script entry points and reachable bytecode, wild encounters and
+front/back pictures with normal and shiny palettes. Picture frames and all 28 Unown forms are retained; none of these
+cartridges is playable.
+`tools/import_rom.gd` skips them unless given `--dev`. Static map previews use
+`godot --headless --path . -s res://tools/preview_world.gd -- emerald 0 9 /tmp/littleroot.png`;
+Script bytecode is decoded and cached; script execution and tileset animation
+await the GBA world model.
+
+| Game | SHA-1 |
+|---|---|
+| Ruby (USA Rev 2) | `5b64eacf892920518db4ec664e62a086dd5f5bc8` |
+| Sapphire (USA Rev 2) | `89b45fb172e6b55d51fc0e61989775187f6fe63c` |
+| FireRed (USA Rev 1) | `dd5945db9b930750cb39d00c84da8571feebf417` |
+| LeafGreen (USA Rev 1) | `7862c67bdecbe21d1d69ce082ce34327e1c6ed5e` |
+| Emerald (USA) | `f3ae088181bf583e55daf962a92bb46f4f1d07b7` |
+
 ## Importing
 
 ```bash
@@ -118,7 +137,7 @@ one. The shelf marks that cartridge "Update needed", and pressing it says why an
 opens the picker: import the same dump again. Saves live under their own root and
 are not touched.
 
-The same sheet, behind the three dots above the shelf, also swaps a cartridge's
+The same sheet, behind the shelf's Options button, also swaps a cartridge's
 picture for one of your own: any PNG, WebP or JPEG, scaled to fit the shell
 whatever shape it is, with a way back to the shipped art. It is kept under
 `user://` beside the saves, so an update does not ask for it again.
@@ -151,11 +170,12 @@ rendering needs no duplicate images.
 godot --headless --path . --quit-after 30
 ```
 
-The launcher is a shelf of six cartridges. An unimported bay is drawn in the
+The launcher is a shelf of six cartridges, and five more with the dev setting
+on. An unimported bay is drawn in the
 cartridge's own outline: drop a dump on it, or click to browse. Behind the
 seated cartridge its own title screen plays, with the lettering taken off and
-its music under the interface. Mods, settings and about are in the dock
-underneath. Light and dark, and the same layout works
+its music under the interface. Mods, settings and about are in the tabs across
+the top. Light and dark, and the same layout works
 on a phone. The clock and the charge across the top are the machine's own; a
 device whose charge cannot be read shows none rather than a full cell.
 
@@ -389,6 +409,7 @@ or a group, or `all`; with no argument it lists them.
 | `art` | Both intro movies, the credits of all six cartridges, the region map, all 278 battle animations, the map name sign |
 | `tables` | TM/HM, naming, world scripts, the opening lane |
 | `trainers` | The Route 30 trainer on each profile |
+| `gen3` | Ruby, Sapphire, FireRed, LeafGreen and Emerald's content tables, individual trainer parties, map headers, layouts, tilesets and events, script entry points and bytecode, wild encounters and all imported Pokémon and trainer pictures |
 | `gen1` | Red, Blue and Yellow's species, move, type, item and trainer tables, the key-item and usable-item tables behind the bag, every picture their sprite codec decodes, all 226 or 227 maps with their tilesets, the text box, shop inventory and wild encounter a map reads, every trainer and standing wild an object stands on, all 202 or 203 battle animations, the Hall of Fame's own pages, the opening from the copyright screen to the title on all three, the Cable Club from its receptionist through a trade and a Colosseum fight against another save of the same cartridge, every sound a script row plays and the rival's own theme, Yellow's follower: its emotion table, its faces, its 42 voice clips and the spawn every warp leaves it, and a new game played on the real screens from the copyright screen to the first badge on all three, every button through `press_button` and the sound driver clocked a frame a frame |
 
 The rest are previews and dumps, each driving a real screen or table:
@@ -396,7 +417,7 @@ The rest are previews and dumps, each driving a real screen or table:
 | Tool | Does |
 |---|---|
 | `dump_tables.gd <game> <table>` | Prints a decoded table: `species`, `moves`, `items`, `types`, `matchups`, `trainers`, `learnsets`, `egg_moves`, `evolutions`, `growth` or `all` |
-| `preview_pics.gd <game> <png> [kind]` | Contact sheet of `front`, `back`, `trainers`, `player_back`, `font` or `frames`, in either generation |
+| `preview_pics.gd <game> <png> [kind]` | Contact sheet of `front`, `back`, `trainers`, `player_back`, `font` or `frames`, from the imported cache |
 | `preview_*.gd` | One per screen: the intro, title, credits, Hall of Fame, region map, party, marts, mail, fishing, battle switch and animations, overworld sprites and collision |
 | `preview_world_story.gd` | Map entry callbacks, event-flag visibility, facing interactions and the whole story route, in either generation |
 | `replay_world.gd [game ...] [frames]` | Records `(frame, button)` from a real run and replays it into a fresh world; the same seed and log must reach the same snapshot, party and battle outcome byte for byte, at 30 fps and at 144. One route fights: a wild battle is spent from the world's own pump and steered through its own funnel |
@@ -420,9 +441,9 @@ real cartridge, so they run anywhere.
 godot --headless -s res://addons/gut/gut_cmdln.gd -gexit
 ```
 
-That is the unit tier, and the default: more than 3,300 tests in about a
-minute. The scene integration tier drives real screens and is slower, so it is
-asked for explicitly, which is how CI runs both:
+That is the unit tier and the default; it runs in about a minute. The scene
+integration tier drives real screens and is slower, so it is asked for
+explicitly, which is how CI runs both:
 
 ```bash
 godot --headless -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit

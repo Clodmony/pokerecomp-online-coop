@@ -4,7 +4,8 @@ What is implemented, what has been verified and how, what is incomplete and
 what is blocked. Verification levels are kept apart on purpose:
 
 - **static**: written and read, not executed;
-- **tests**: GUT suites passing on Godot 4.8-dev4 (CI or local);
+- **tests**: GUT suites passing on the pinned Godot (4.8-dev4 until the
+  0.1.75 merge, 4.8-dev7 since; CI or local);
 - **socket**: the ENet demo or separate processes over localhost;
 - **screens (scripted)**: two real game windows on the owner's imported Red
   cartridge, driven by scripted button presses and checked from screenshots;
@@ -246,6 +247,20 @@ The owner settled the open questions (D72); the work follows `tasks.md`.
 | #85 (D77), Vermilion Gym's first lock kept while a partner is near | two GUT tests; two windows, `vermilion_locks` from an edited after-Surge seed: BLUE walks from the Pokémon Center into the city twice while RED searches, BLUE's window rolls 6 (10 in another run) and keeps 4, RED finds the first switch in can 4 and opens the first lock; three passing runs. Control run with the change off: BLUE's entry sends lock 10 and RED finds only trash in can 4 |
 | Campaign seeds (D78) | `tools/coop_seed.gd` writes a two-player campaign at any of upstream's 30 Gen 1 story legs in 5 to 7 s, byte for byte the same each time; ten seeds, one per later stretch start, each opened in two windows (`story_seed`): both players where the story left them, side by side, the party right, 0 script errors; the autopilot finished `from=lt_surge` at once on the Vermilion seed. Against the real run's campaign after LT. SURGE the story seed has the same badges and 62 of its 66 story flags (three trainers the story's path skipped, and `EVENT_WALKED_OUT_OF_DOCK`), and no host `defeated` encounters or gift commits |
 
+## Upstream 0.1.75 (branch `coop/upstream-sync`, 2026-10-09)
+
+Upstream `v0.1.75` merged into `main` at `d1087a8` (D97, #14); Godot 4.8-dev7.
+A cloud session with no cartridge: everything below runs on the synthetic cache.
+
+| Run | Result |
+|---|---|
+| Local x86_64, dev7: import | passed, no script errors; the import rewrites 26 `.import` files with new default keys, which are not committed (upstream does not either) |
+| Local x86_64, dev7: whole suite | 5078/5078 (196 scripts, 150885 asserts, 450 s) |
+| Local x86_64, dev7: co-op suites | 223/223; ENet demo 16/16; three processes: host 4/4, p1 7/7, p2 8/8; boot smoke passed |
+| Local x86_64, dev4: `main` before the merge, for comparison | whole suite 5030/5047: the 17 failures were all `test_coop_device`, whose fixed port 24791 a parallel run held; its co-op suites alone 223/223 |
+| Engine-free gates | version 0.1.75 everywhere, comments 41343 of 41343 |
+| Screens (scripted), Red | not run: no cartridge in the merging session; `playthrough_brock` and `cable_club_trade` are the owner's checks before the merge (P05) |
+
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |
@@ -345,8 +360,9 @@ has **played** it by hand yet.
 - Per-walk event flags such as `EVENT_IN_SAFARI_ZONE` are still the
   campaign's (D79). A gift two windows hand out at once is kept once (D62), but a race
   that also moves new story, or one that gives coins, is not caught.
-- Upstream's `tools/dump_tables.gd -- red trainers` stops on a missing
-  `palette` key for Generation 1 trainers (#59); see also L6.
+- Upstream's `tools/dump_tables.gd -- red trainers` stopped on a missing
+  `palette` key for Generation 1 trainers (#59); upstream 0.1.75 prints such a
+  row as `monochrome` (static only, not yet run on a cartridge); see also L6.
 - The autoplayed runs heal and cure their party between steps and grind with
   the save editor, as upstream's own check does, so they prove the co-op flow,
   not the difficulty; a whiteout ends a run rather than being retried.
