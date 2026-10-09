@@ -613,3 +613,9 @@ func test_german_blue_shifts_its_pinned_slots_with_their_run() -> void:
 			Gen1Layout.facility_text_offset(red, "vending_text", Gen1Layout.VENDING_TEXT_AT, slot) + 1,
 			slot,
 		)
+
+
+func test_the_german_vending_menu_ends_on_its_own_cancel_word() -> void:
+	assert_eq(Gen1LayoutDe.word(&"red_de", Gen1Layout.VENDING_CANCEL), "ZURÜCK")
+	assert_eq(Gen1LayoutDe.word(&"blue_de", Gen1Layout.VENDING_CANCEL), "ZURÜCK")
+	assert_eq(Gen1LayoutDe.word(&"red", Gen1Layout.VENDING_CANCEL), "CANCEL")
