@@ -6,6 +6,12 @@ keep the snapshot below current.
 
 ## Snapshot (2026-10-08, third session, after the merge)
 
+- **Upstream 0.1.75 (2026-10-09, #14, D97):** merged on `coop/upstream-sync`
+  (draft pull request). The fork now pins Godot **4.8-dev7**: install the dev7
+  editor and its stock export templates before the next local run or build, and
+  import every cartridge again (cache format 163 to 170). Before it merges, run
+  `playthrough_brock` and `cable_club_trade` on the owner's Red import; the
+  merging session had no cartridge.
 - **Branches and pull requests:** everything is merged into `main` (#58, #79,
   #80, #81, #83, #89 on 2026-10-08, with the owner's approval). New work
   branches from `main`.
@@ -46,10 +52,11 @@ keep the snapshot below current.
     are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D99 (D72 to D98 are recorded).
-- **Godot 4.8-dev4:** `~/Downloads/Godot_v4.8-dev4_linux.x86_64.zip`, unzip it
-  into the session scratchpad; the system `godot` is 4.7 and cannot open the
-  project. Export templates are installed.
+- **Next free decision number:** D100 (D72 to D99 are recorded).
+- **Godot 4.8-dev7** since the 0.1.75 merge (D97; dev4 before it):
+  `Godot_v4.8-dev7_linux.x86_64.zip` from godot-builds, unzipped into the
+  session scratchpad; the system `godot` is 4.7 and cannot open the project.
+  The installed export templates are dev4's; dev7's are needed for builds.
 - **Cartridge:** the owner's Red import is `rom_cache/red_ea9bcae6` in the user
   folder; the scenario runner links it read-only into a private one.
 - **Snapshots (D96):** every autoplayed run writes `<out>/snapshots/`;
@@ -98,8 +105,8 @@ keep the snapshot below current.
 11. [ ] **#45** Android, deferred by the owner until after #44 (D72); **#50**
     German as games of its own (D95) on `coop/german` (its own draft PR):
     both dumps import, Rote plays to BROCK in two windows; the engine's own
-    English lines and a Blaue playthrough remain; **#14** upstream merge after the
-    pull requests merge.
+    English lines and a Blaue playthrough remain; **#14** upstream 0.1.75 merged
+    on `coop/upstream-sync` (D97), waiting on the owner's cartridge checks.
 
 ## Every task ends with
 

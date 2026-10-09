@@ -27,7 +27,7 @@ Read before working:
 
 - **GitHub, private repository only.** GitHub use resumed on 2026-10-07 after a
   pause: push feature branches to `origin`, open draft pull requests, and keep
-  the issues current. Verify locally with Godot 4.8-dev4 before pushing; CI
+  the issues current. Verify locally with Godot 4.8-dev7 before pushing; CI
   runs the same steps on pull requests.
 - The repository stays **private**. Never publish releases, Pages sites,
   packages, store builds or artifacts. The release and export-template
@@ -51,16 +51,19 @@ Read before working:
 
 ```bash
 git config core.hooksPath .githooks   # ROM guard on commit, release gates on push
+git remote add upstream https://github.com/Decryptu/pokerecomp.git
+git remote set-url --push upstream DISABLED   # fetch only; merges follow architecture.md
 ```
 
-Godot **4.8-dev4** is required (the CI pin in `.github/workflows/ci.yml`);
+Godot **4.8-dev7** is required (the CI pin in `.github/workflows/ci.yml`);
 distribution packages of 4.7 do not open this project. The official build is
-`Godot_v4.8-dev4_linux.x86_64.zip` from
-<https://github.com/godotengine/godot-builds/releases/tag/4.8-dev4>.
+`Godot_v4.8-dev7_linux.x86_64.zip` from
+<https://github.com/godotengine/godot-builds/releases/tag/4.8-dev7>. Upstream moved
+to it in 0.1.73; the fork followed with the 0.1.75 merge (D97).
 
 ## Verification commands
 
-Run from the repository root with `godot` being the 4.8-dev4 binary:
+Run from the repository root with `godot` being the 4.8-dev7 binary:
 
 ```bash
 # Import and class scan; required after adding a script with class_name.

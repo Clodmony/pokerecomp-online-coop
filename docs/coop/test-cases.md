@@ -3,7 +3,7 @@
 What to try by hand on real devices, one case per row, and what already
 covers it automatically. Every new feature adds its cases here in the same
 pull request, and a scenario under `tools/coop_screens/` when it shows on
-screen (`GODOT=<4.8-dev4> tools/coop_screens.sh <scenario>`, captures outside
+screen (`GODOT=<4.8-dev7> tools/coop_screens.sh <scenario>`, captures outside
 the repository). The **Hand** column stays empty until the owner has played
 the case; record the date and devices there.
 
@@ -162,8 +162,9 @@ Red (or Blue) cartridge, the same one.
 | P02 | Swipe and tap over the game screen in a co-op battle or the CO-OP menu | A swipe moves the cursor one row per row of travel, a tap is A | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | |
 | P03 | A tall (portrait) window in a battle | The battle fills the game screen at the top; the on-screen pad below stays visible | | 540x1170 scratch run | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |
-| P05 | A phone in a co-op battle and in START > CO-OP; win, lose or run | The on-screen pad still presses A and B; the battle returns to the world by itself | `test_a_world_held_under_the_panel_keeps_its_touch_controls`, `test_a_finished_battle_closes_itself...` | catch_for_partner, lose_and_white_out | |
-| P06 | A phone over the CO-OP menu or a co-op battle: swipe up, down, left, right, tap; then two fingers, a thumb on the pad, and walking on the map | One cursor step per row of travel, a tap is A; two fingers and pad touches do nothing extra; the map is untouched | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | not yet played on a phone |
+| P05 | After an upstream merge (0.1.75, Godot 4.8-dev7), with every cartridge imported again: host, join, a trainer battle, a Cable Club trade, a SAVE | As before the merge; a cache from before the merge shows "Update needed" until the same dump is imported again | the whole suite, the ENet demo and the three-process check on dev7 (D97) | `playthrough_brock`, `cable_club_trade`: not yet run on the merge | |
+| P06 | A phone in a co-op battle and in START > CO-OP; win, lose or run | The on-screen pad still presses A and B; the battle returns to the world by itself | `test_a_world_held_under_the_panel_keeps_its_touch_controls`, `test_a_finished_battle_closes_itself...` | catch_for_partner, lose_and_white_out | |
+| P07 | A phone over the CO-OP menu or a co-op battle: swipe up, down, left, right, tap; then two fingers, a thumb on the pad, and walking on the map | One cursor step per row of travel, a tap is A; two fingers and pad touches do nothing extra; the map is untouched | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | not yet played on a phone |
 | G01 | A German campaign and an English window, or the reverse | The host refuses the join ("same game file"); campaigns, caches and saves stay apart by id (D95) | `test_coop_session` (stranger test) | | |
 | G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
 | G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |

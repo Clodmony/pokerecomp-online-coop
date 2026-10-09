@@ -125,6 +125,6 @@ session.
   with a private `XDG_DATA_HOME`, never touch the owner's user folder, commit
   without pushing, and leave `docs/` to the lead, who merges, writes the
   D-entries in order and runs the scenarios again on the merged branch.
-- The comment-line ceiling (41342) is at its limit: every change is net zero.
-- Two-window checks: `GODOT=<4.8-dev4> tools/coop_screens.sh <scenario> <out
+- The comment-line ceiling (41343 since the 0.1.75 merge) is at its limit: every change is net zero.
+- Two-window checks: `GODOT=<4.8-dev7> tools/coop_screens.sh <scenario> <out
   outside the repo>`; windows run at 60 frames a second; captures stay local.
