@@ -3764,7 +3764,7 @@ func complete_capture(result: Dictionary) -> Dictionary:
 	_capture_terminal = bool(result.get("ends_battle", false))
 	if caught:
 		_caught_line = (
-			GEN1_CAUGHT_TEXT % [_name_of(_caught_species()), Gen2TextStream.SCROLL_BREAK]
+			_de(GEN1_CAUGHT_TEXT) % [_name_of(_caught_species()), Gen2TextStream.SCROLL_BREAK]
 			+ Gen2TextStream.sound_token(Gen1Sfx.SFX_CAUGHT_MON)
 			if _generation() == RomRegistry.GEN1 else CAUGHT_TEXT % _name_of(_caught_species())
 			+ Gen2TextStream.sound_token(Gen2Sfx.SFX_CAUGHT_MON)
@@ -3776,7 +3776,7 @@ func complete_capture(result: Dictionary) -> Dictionary:
 		_box_queue.append(GEN1_DODGED_TEXT)
 	else:
 		_box_queue.append(
-			GEN1_BREAK_FREE_TEXT[wobbles] if _generation() == RomRegistry.GEN1
+			_de(GEN1_BREAK_FREE_TEXT[wobbles]) if _generation() == RomRegistry.GEN1
 			else BREAK_FREE_TEXT[wobbles]
 		)
 	_begin_capture_animation(result_ball, wobbles, caught, bool(result.get("dodged", false)))
@@ -3977,7 +3977,7 @@ func _item_used_text(item: int) -> String:
 	if _generation() == RomRegistry.GEN1:
 		## `_ItemUseText001`, `text_low`, `_ItemUseText002`: no "the", the item on
 		## the bottom row and an exclamation where Crystal has a stop.
-		return "%s used\n%s!" % [_player_label(), _item_name(item)]
+		return _de("%s used\n%s!") % [_player_label(), _item_name(item)]
 	return "%s used the\n%s." % [_player_label(), _item_name(item)]
 
 
@@ -7161,6 +7161,8 @@ func _stat_changed_text(event: Dictionary) -> String:
 	var scroll: String = Gen2TextStream.PAUSE_MARK + Gen2TextStream.SCROLL_NOWAIT_BREAK
 	if _generation() == RomRegistry.GEN1:
 		stat_name = GEN1_STAT_NAMES.get(event["stat"], stat_name)
+		if Gen1LayoutDe.is_german(_data.id if _data != null else &""):
+			return "%ss\n%s%s" % [who, Gen1LayoutDe.STAT_MODS.get(stat_name, stat_name), " nimmt zu!" if by > 0 else " sinkt!"]
 		var verb: String = " rose!" if by > 0 else " fell!"
 		return "%s's\n%s%s" % [who, stat_name, (scroll + "greatly" + verb) if absi(by) >= 2 else verb]
 	if by > 0:
@@ -7792,4 +7794,4 @@ func _announce() -> void:
 		Gen2Battle.BATTLETYPE_TREE:
 			show_message("%s fell\nout of the tree!" % wild)
 		_:
-			show_message("Wild %s\nappeared!" % wild)
+			show_message(_de("Wild %s\nappeared!") % wild)

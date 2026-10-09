@@ -368,9 +368,9 @@ func _queue_victory(view: Dictionary) -> void:
 	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
 	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
 		or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
-	var lines: Array = ["%s defeated\n%s!" % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
+	var lines: Array = [_de(data, "%s defeated\n%s!") % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
 	if prize > 0:
-		lines.append(("%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
+		lines.append(_de(data, "%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
 	for line: int in lines.size():
 		for page: String in pages(lines[line]):
 			_messages.append({"text": page})
@@ -699,7 +699,7 @@ static func message(
 		Gen2Battle.MOVE_OFFERED:
 			return _de(game, "%s is\ntrying to learn\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		PokeCoopBattleSession.JOINED:
-			return "%s joined\nthe battle!" % who_acted
+			return _de(game, "%s joined\nthe battle!") % who_acted
 		PokeCoopBattleSession.ITEM_USED:
 			return _de(game, "%s used\n%s!") % [who_acted, game.item_name(int(event.get("item", 0)))]
 		PokeCoopBattleSession.BALL_THROWN:
