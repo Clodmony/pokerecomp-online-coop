@@ -1395,3 +1395,43 @@ not a memory image: the game is recompiled, and the host's campaign plus the
 leg is what a window reopens from. Cost: one tool-only message type the host
 ignores for game state; the autopilot's in-between steps before a resumed leg
 are skipped, as with `FROM`.
+
+## D97. A co-op battle uses the cartridge's own menus on the world's screen (owner's request, #99, 2026-10-10)
+
+Replaces the overlay of D22 and the side panel of D32. On an iPhone the panel
+covered the on-screen controller, its rows were too small to hit, and a
+finished battle could not be closed by touch (#98). A co-op battle is now drawn
+inside the world screen's own 160x144 `Gen2Screen` with the cartridge's
+menus: FIGHT/PKMN/ITEM/RUN, the move list with TYPE/PP, the party list six
+rows at a time over every player's Pokémon (the text box names the owner of
+the row under the cursor), the Gen 1 bag list, YES/NO boxes, and a name list
+for whom a ball catches for. The panel keeps the flat list of choices as the
+model; `PokeCoopBattleMenu` turns presses into those choices, so the
+autopilot and scripted `@ROW` keys still pick rows. A partner's suggestion is
+a hollow ▷ at every level (on FIGHT, PKMN, ITEM or RUN, and on the exact
+row), a partner's initial with three or more players, and an idle
+controller's text box spells it out ("BLUE suggests / SQUIRTLE") in turns
+with the menu. The other player walks the same menus; resting the cursor on a
+row suggests it, and A sends it again rather than acting. RUN flees for the
+player whose world started the fight and asks everyone else whether to leave
+(their team stays); take over and rejoin are YES/NO questions. A finished
+battle closes once its last line has played. Trade-offs: marks are
+monochrome rather than in player colours, nicknames are not shown (the view
+has species only), items are used on the Pokémon that is out, and the bag
+lists only items usable in a battle.
+
+## D98. The session menu is START > CO-OP on the cartridge's screen, with swipes and taps (owner's request, #99, 2026-10-10)
+
+The session menu is a CO-OP row in the cartridge's START menu, registered
+through upstream's mod seam (`MENU_START`, visible only while a co-op world is
+up), drawn on the world's 160x144 screen with the cartridge's font, boxes and
+cursor: FIGHT offers, JOIN <partners> / VS <foe>, REJOIN, LEAVE SESSION
+(asked YES/NO) and CANCEL, under a box with each partner, where they are and
+the last save. SAVE stays START > SAVE (D80). SELECT on the map still opens
+it; it does not where the world reads SELECT itself (the START menu and bag, a
+world battle, the party). While the CO-OP menu or a co-op battle is open, a
+swipe over the game screen is one d-pad press per 16 hardware pixels and a
+tap is A, fed as ordinary button presses; touches on the on-screen pad and
+two-finger touches are left alone, and walking on the map is untouched. No
+new size setting: the menus are drawn at the game screen's scale, upstream's
+zoom is keyboard and wheel only, and the pad has its own SIZE.

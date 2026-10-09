@@ -85,11 +85,13 @@ Further findings that shape the design:
    `PokeCoopRemoteActor` is registered as a world actor (D19): it draws the
    other connected players on the current map, eased between cells, in a fixed
    colour each, with the "!" emote while they battle, and reports this player's
-   position. `PokeCoopBattlePanel` is a `PanelContainer` on a `CanvasLayer` over
-   the world: SELECT opens the session menu (fight an offered encounter, join a
-   running battle, save), and a shared battle shows the roster with owners, who
-   decides and the partner's suggestion (D22). Under it `PokeCoopBattleField`
-   draws the same battle on the cartridge's battle field (D32), its pictures
+   position. `PokeCoopMenu` is the session menu, START > CO-OP or SELECT on the
+   map (fight an offered encounter, join or rejoin a running battle, leave),
+   drawn on the world's own screen (D98). In a shared battle
+   `PokeCoopBattlePanel` holds the choices, who decides and the partners'
+   suggestions, `PokeCoopBattleMenu` shows them as the cartridge's
+   FIGHT/PKMN/ITEM/RUN menus, and `PokeCoopBattleField` draws the battle inside
+   the world's 160x144 screen (D97), its pictures
    kept in a `PokeCoopBattleStage` tilemap (D39), and
    `PokeCoopLinkTransport` is the Cable Club's cable to the partner (D31).
    `tools/coop_play.gd` assembles a
@@ -205,6 +207,6 @@ In order of the backlog:
 
 1. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
-2. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,
+2. Drive `Gen2BattleScreen` from session events (#26) in place of the field's replay,
    and share the enemy AI choice between the screen and sessions (#27).
 3. Route map-script flags and badges through campaign commits (#32).
