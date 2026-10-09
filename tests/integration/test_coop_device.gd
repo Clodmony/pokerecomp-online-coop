@@ -298,6 +298,17 @@ func test_a_world_held_under_the_panel_keeps_its_audio_playing() -> void:
 	assert_eq(audio.process_mode, Node.PROCESS_MODE_INHERIT, "a paused game pauses it again")
 
 
+func test_a_world_held_under_the_panel_keeps_its_touch_controls() -> void:
+	var world: Node = add_child_autofree(Node.new())
+	var pad: Gen2TouchPad = Gen2TouchPad.new()
+	world.add_child(pad)
+
+	PokeCoopSession.hold_world(world, null, true)
+	assert_true(pad.can_process(), "a phone's A still reaches the panel")
+	PokeCoopSession.hold_world(world, null, false)
+	assert_eq(pad.process_mode, Node.PROCESS_MODE_INHERIT)
+
+
 func _close_all() -> void:
 	for session: PokeCoopSession in _sessions:
 		session.close()
