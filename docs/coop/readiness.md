@@ -39,8 +39,8 @@ The full list, with what already covers each case, is in
 ## Before giving out a build
 
 - [ ] Export templates for the pinned engine are installed locally
-      (`~/.local/share/godot/export_templates/4.8.dev4/`, the stock
-      `Godot_v4.8-dev4_export_templates.tpz` checked against the release's
+      (`~/.local/share/godot/export_templates/4.8.dev7/`, the stock
+      `Godot_v4.8-dev7_export_templates.tpz` checked against the release's
       `SHA512-SUMS.txt`); the build stays private.
 - [ ] Both builds come from one commit, so the co-op protocol matches:
       `godot --headless --path . --export-release "Windows Desktop" builds/windows/pokerecomp.exe`

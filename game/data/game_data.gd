@@ -42,6 +42,7 @@ var _dex_orders: Dictionary = {}
 var _items: Array = []
 var _world_trades: Array = []
 var _types: Array = []
+var _abilities: Array = []
 var _trainers: Array = []
 ## The matchup chart, folded into a lookup on load: attacker * TYPE_COUNT +
 ## defender to the multiplier in tenths. The chart is 110 rows of exceptions, so
@@ -111,6 +112,7 @@ var _prizes: Array = []
 var _battle_object_palettes: Dictionary = {}
 var _indices: Dictionary = {}
 var _world_maps: Array = []
+var _world_headers: Dictionary = {}
 ## Group and number to the map's position in [member _world_maps]. Warps,
 ## connections and every script warp validation ask for a map by its cartridge
 ## identity, and walking 388 records to answer costs more than the lookup it is
@@ -300,6 +302,7 @@ func _read_cache(path: String) -> void:
 	_items = _read_array(RomCache.items_path(path))
 	_world_trades = _read_array(RomCache.world_trades_path(path))
 	_types = _read_array(RomCache.types_path(path))
+	_abilities = _read_array(RomCache.abilities_path(path))
 	_trainers = _read_array(RomCache.trainers_path(path))
 	_build_matchups(_read_array(RomCache.matchups_path(path)))
 
@@ -330,7 +333,70 @@ func species_count() -> int:
 
 
 func map_count() -> int:
-	return _maps().size()
+	return _headers().size() if generation == RomRegistry.GEN3 else _maps().size()
+
+
+func world_map_header(group: int, number: int) -> Dictionary:
+	return _coerce_service_dictionary(_headers().get("%d:%d" % [group, number], {}))
+
+
+func world_map_headers() -> Array:
+	return _coerce_service_value(_headers().values(), PackedByteArray())
+
+
+func world_map_events(group: int, number: int) -> Dictionary:
+	return world_map_header(group, number).get("events", {})
+
+
+func world_map_script_entries(group: int, number: int) -> Array:
+	return world_map_header(group, number).get("map_scripts", [])
+
+
+func world_script_offsets() -> Array[int]:
+	var out: Array[int] = []
+	if generation != RomRegistry.GEN3:
+		return out
+	for key: String in _scripts().get("instructions", {}):
+		out.append(int(key))
+	out.sort()
+	return out
+
+
+func world_script_instruction(offset: int) -> Dictionary:
+	if generation != RomRegistry.GEN3 or offset < 0:
+		return {}
+	return _coerce_service_dictionary(_scripts().get("instructions", {}).get(str(offset), {}), _blob("scripts"))
+
+
+func world_standard_script_offset(index: int) -> int:
+	if generation != RomRegistry.GEN3 or index < 0:
+		return -1
+	var offsets: Array = _scripts().get("standard", [])
+	return int(offsets[index]) if index < offsets.size() else -1
+
+
+func world_map_layout(group: int, number: int) -> Dictionary:
+	var header: Dictionary = world_map_header(group, number)
+	return _gba_graphics_record("layouts", int(header.get("layout_offset", -1)))
+
+
+func world_map_tileset(group: int, number: int, secondary: bool = false) -> Dictionary:
+	var header: Dictionary = world_map_header(group, number)
+	var field: String = "secondary_tileset_offset" if secondary else "primary_tileset_offset"
+	return _gba_graphics_record("tilesets", int(header.get(field, -1)))
+
+
+func world_metatile(group: int, number: int, metatile_id: int) -> Dictionary:
+	var split: int = Gen3World.primary_tile_count(id)
+	return Gen3World.metatile(world_map_tileset(group, number, metatile_id >= split), metatile_id)
+
+
+func _gba_graphics_record(table: String, offset: int) -> Dictionary:
+	if generation != RomRegistry.GEN3 or offset < 0:
+		return {}
+	if _claim_section("gba_graphics"):
+		_world_tilesets = _read_section(RomCache.world_tilesets_path(directory), false)
+	return _coerce_service_dictionary(_world_tilesets.get(table, {}).get(str(offset), {}), _blob("tilesets"))
 
 
 func world_map(group: int, number: int) -> Gen2WorldMap:
@@ -370,6 +436,8 @@ func gen1_toggle_on(index: int) -> bool:
 ## the scripts, but they are `db item, quantity` and the like rather than
 ## commands, and a corpus walk that decoded them read item counts as opcodes.
 func world_script_keys() -> Array:
+	if generation == RomRegistry.GEN3:
+		return []
 	var data_only: Dictionary = _script_data_pointers()
 	var out: Array = []
 	for key: Variant in _scripts():
@@ -796,18 +864,29 @@ func world_tileset_count() -> int:
 ## One normal encounter record by method and map group/number. The runtime
 ## names the water method "surf" while the cache keeps the cartridge table's
 ## "water" name.
-func world_encounter(method: StringName, group: int, number: int) -> Dictionary:
+func world_encounter(method: StringName, group: int, number: int, variant: int = 0) -> Dictionary:
 	var table_name: String = "water" if method == &"surf" else String(method)
 	var table: Variant = _encounters().get(table_name, {})
 	if not table is Dictionary:
 		return {}
 	var value: Variant = (table as Dictionary).get("%d:%d" % [group, number], {})
+	if generation == RomRegistry.GEN3:
+		return _service_row(value, variant)
+	if variant != 0:
+		return {}
 	var row: Dictionary = value.duplicate(true) if value is Dictionary else {}
 	return _overlaid(
 		Gen2ContentOverlay.KIND_ENCOUNTER,
 		Gen2ContentOverlay.encounter_number(method, group, number),
 		row
 	)
+
+
+## GBA's Altering Cave holds nine sets under one map identity.
+func world_encounter_variant_count(method: StringName, group: int, number: int) -> int:
+	var table: Dictionary = _encounters().get("water" if method == &"surf" else String(method), {})
+	var value: Variant = table.get("%d:%d" % [group, number], {})
+	return _service_rows_count(value) if generation == RomRegistry.GEN3 else (0 if value.is_empty() else 1)
 
 
 ## One region's normal encounter table, in the cartridge's own row order, which
@@ -1540,8 +1619,8 @@ func egg_moves(number: int) -> Array[int]:
 ## Dictionary if there is no such number.
 ## [code]height[/code] and [code]weight[/code] are the cartridge's own numbers,
 ## not measurements: see [method RomImporter.read_dex_entry]. [code]pages[/code]
-## is the two description pages, in order. It goes through [method species] so a
-## mod that replaces a species replaces its dex entry with it.
+## is the pages in order, one on FireRed, LeafGreen and Emerald. It goes through
+## [method species] so a mod that replaces a species replaces its dex entry too.
 func dex_entry(number: int) -> Dictionary:
 	var entry: Variant = species(number).get("dex", {})
 	if not entry is Dictionary or (entry as Dictionary).is_empty():
@@ -1814,6 +1893,15 @@ func _type_row(number: int) -> Dictionary:
 	return {}
 
 
+## A Generation 3 ability from `ABILITY_NONE` as { number, name, description }.
+func ability(number: int) -> Dictionary:
+	return _entry(_abilities, number)
+
+
+func ability_count() -> int:
+	return _abilities.size()
+
+
 ## Which stat pair a type attacks and defends with. The cartridge's answer is
 ## [method Gen2Damage.is_physical]'s number comparison; a mod type carries the
 ## choice on its own row, since Generation II has no per-move category.
@@ -1929,8 +2017,8 @@ func _build_matchups(rows: Array) -> void:
 			_foresight_matchups[key] = true
 
 
-## The four colours a species is drawn with, in index order.
-func palette(number: int, shiny: bool = false) -> PackedColorArray:
+## A species palette in index order; Generation 3 forms select a sixteen-colour row.
+func palette(number: int, shiny: bool = false, form: int = 0) -> PackedColorArray:
 	var entry: Dictionary = species(number)
 	var entry_palette: Dictionary = entry.get("palette", {})
 	if entry_palette.is_empty():
@@ -1945,6 +2033,13 @@ func palette(number: int, shiny: bool = false) -> PackedColorArray:
 		return _gen1_shiny_row(number, colors) if shiny else colors
 
 	var stored: Array = entry_palette["shiny" if shiny else "normal"]
+	if generation == RomRegistry.GEN3:
+		if form < 0 or (form + 1) * 16 > stored.size():
+			return PackedColorArray()
+		var colors := PackedColorArray()
+		for packed: Variant in stored.slice(form * 16, (form + 1) * 16):
+			colors.append(PokePalette.from_packed(int(packed)))
+		return colors
 	return PokePalette.pic_palette(PackedColorArray([
 		PokePalette.from_packed(int(stored[0])),
 		PokePalette.from_packed(int(stored[1])),
@@ -3192,9 +3287,8 @@ func trainer_count() -> int:
 	return _trainers.size()
 
 
-## One trainer class by number, counting from Falkner at 1. Class 0 is the
-## player, who is a class in the cartridge's tables and has no pic, so the cache
-## does not carry an entry for them.
+## A trainer class in Generations 1 and 2, or an individual trainer ID in
+## Generation 3. Zero is reserved and has no cached entry.
 func trainer(number: int) -> Dictionary:
 	return _content(Gen2ContentOverlay.KIND_TRAINER, _trainers, number)
 
@@ -3203,33 +3297,38 @@ func trainer_name(number: int) -> String:
 	return String(trainer(number).get("name", ""))
 
 
-## The four colours a trainer class is drawn with. A class has one palette and
-## no shiny counterpart: only a Pokémon can be shiny.
+## A trainer palette in index order: four colours on GB, sixteen on GBA.
 func trainer_palette(number: int) -> PackedColorArray:
 	var entry: Dictionary = trainer(number)
 	if entry.is_empty():
 		return PokePalette.pic_palette(PackedColorArray([Color.WHITE, Color.BLACK]))
 
-	var stored: Array = entry["palette"]
+	var stored: Array = entry.get("palette", [])
+	if generation == RomRegistry.GEN3:
+		var colors := PackedColorArray()
+		for packed: Variant in stored:
+			colors.append(PokePalette.from_packed(int(packed)))
+		return colors
+	if stored.size() < 2:
+		return PokePalette.monochrome()
 	return PokePalette.pic_palette(PackedColorArray([
 		PokePalette.from_packed(int(stored[0])),
 		PokePalette.from_packed(int(stored[1])),
 	]))
 
 
-## How many individual trainers trainer class [param number] carries. One class
-## in every game carries none: see [constant Gen2Layout.EMPTY_TRAINER_CLASS].
+## Individual trainers within a GB class, or one for a stored GBA trainer ID.
 func trainer_party_count(number: int) -> int:
+	if generation == RomRegistry.GEN3:
+		return 0 if trainer(number).is_empty() else 1
 	return (trainer(number).get("trainers", []) as Array).size()
 
 
-## One of a trainer class's individual trainers, as { name, type, party }, where
-## `party` is that trainer's Pokemon in the cartridge's own order, each
-## { level, species, item, moves }. Empty for a class or an index this class does
-## not have. `type` is one of the `Gen2Layout.TRAINER_MON_*` constants and decides
-## whether a member knows what its level teaches or the moves stored with it, and
-## whether it holds an item. See [Gen2TrainerParty].
-func trainer_party(number: int, index: int) -> Dictionary:
+## A GB class member or a GBA individual (index zero). Party fields are integers;
+## GBA rows also retain IV bytes and the trainer's own flags and attributes.
+func trainer_party(number: int, index: int = 0) -> Dictionary:
+	if generation == RomRegistry.GEN3:
+		return _gen3_trainer_party(number) if index == 0 else {}
 	var trainers: Array = trainer(number).get("trainers", [])
 	if index < 0 or index >= trainers.size():
 		return {}
@@ -3256,10 +3355,33 @@ func trainer_party(number: int, index: int) -> Dictionary:
 	}
 
 
-## A trainer class's own attributes: the two items its trainers may use, the
-## base money reward, and the two AI flag words [Gen2BattleAI] scores moves
-## against. Empty for a class the cache does not carry.
+## Restore Generation 3's scalar and array numbers without dropping its IV byte
+## or individual attributes, which the older class-party schema cannot express.
+func _gen3_trainer_party(number: int) -> Dictionary:
+	var entry: Dictionary = trainer(number).duplicate(true)
+	if entry.is_empty():
+		return {}
+	for key: String in ["number", "class", "type", "picture", "encounter_music", "ai_flags", "base_money", "pic_size"]:
+		entry[key] = int(entry[key])
+	for key: String in ["items", "palette"]:
+		entry[key] = (entry[key] as Array).map(func(value: Variant) -> int: return int(value))
+	for key: String in ["size", "y_offset"]:
+		entry["pic_coordinates"][key] = int(entry["pic_coordinates"][key])
+	for mon: Dictionary in entry["party"]:
+		for key: String in ["species", "level", "iv", "item"]:
+			mon[key] = int(mon[key])
+		mon["moves"] = (mon["moves"] as Array).map(func(move_number: Variant) -> int: return int(move_number))
+	return entry
+
+
+## A GB class's AI and reward, or a GBA individual's items, AI and battle flags.
 func trainer_attributes(number: int) -> Dictionary:
+	if generation == RomRegistry.GEN3:
+		var individual: Dictionary = _gen3_trainer_party(number)
+		if individual.is_empty():
+			return {}
+		return {"items": individual["items"], "ai_flags": individual["ai_flags"],
+			"base_money": individual["base_money"], "double_battle": individual["double_battle"]}
 	var entry: Dictionary = trainer(number)
 	if entry.is_empty():
 		return {}
@@ -3283,8 +3405,10 @@ func trainer_attributes(number: int) -> Dictionary:
 
 ## A trainer class's own DVs as [method Gen2BattleMon.create]'s [code]dv_word[/code],
 ## [constant Gen2BattleMon.PERFECT_DVS] for a class the cache does not carry.
-## Generation 1 has no table: `LoadEnemyMon` writes one word for every class.
+## Generation 1 writes one word for every class; Generation 3 has IVs, not DVs.
 func trainer_dvs(number: int) -> int:
+	if generation == RomRegistry.GEN3:
+		return 0
 	if generation == RomRegistry.GEN1:
 		return Gen1Layout.TRAINER_DVS
 	var entry: Dictionary = trainer(number)
@@ -3293,8 +3417,10 @@ func trainer_dvs(number: int) -> int:
 	return int(entry.get("dvs", Gen2BattleMon.PERFECT_DVS))
 
 
-## `TrainerEncounterMusic`'s or `PlayTrainerMusic`'s piece; empty keeps the map's.
+## A GB encounter track; GBA encounter categories await its music engine.
 func trainer_encounter_music(number: int) -> Dictionary:
+	if generation == RomRegistry.GEN3:
+		return {}
 	var track: int = int(trainer(number).get("encounter_music", -1))
 	if track <= 0:
 		return {}
@@ -3407,7 +3533,7 @@ func player_frontpic(slot: int = 0) -> Dictionary:
 	return {"atlas": "player_front", "slot": slot, "width": cell, "height": cell}
 
 
-## Where a class sits in the trainer atlas; every trainer fills its cell.
+## GB classes index atlas cells; GBA individuals carry a shared picture ID.
 func trainer_pic(number: int) -> Dictionary:
 	var entry: Dictionary = trainer(number)
 	if entry.is_empty():
@@ -3420,7 +3546,8 @@ func trainer_pic(number: int) -> Dictionary:
 	var cell: int = int(atlas("trainers").get("cell", 0))
 	if cell <= 0:
 		return {}
-	return {"atlas": "trainers", "slot": number - 1, "width": cell, "height": cell}
+	var slot: int = int(entry["picture"]) if generation == RomRegistry.GEN3 else number - 1
+	return {"atlas": "trainers", "slot": slot, "width": cell, "height": cell}
 
 
 func atlas(name: String) -> Dictionary:
@@ -3464,13 +3591,11 @@ func tile_indices(name: String) -> PackedByteArray:
 	return indices
 
 
-## Where a species sits in its atlas, and how much of that cell it fills.
-## Cells are the size of the largest pic of their kind so a slot can be found by
-## arithmetic; a smaller pic sits in the top-left of its cell and the rest is
-## blank. Returns { atlas, slot, width, height } in pixels, or an empty
-## Dictionary for a species that is not in the cache. A mod species carries its
-## own pixels instead of a cell; see [method _supplied_pic].
-func species_pic(number: int, back: bool = false) -> Dictionary:
+## Where a species sits in an atlas: { atlas, slot, width, height } in pixels.
+## Smaller Game Boy pics occupy the top-left of a cell. Generation 3 frame -1
+## selects the cartridge's native picture; nonnegative frames select stored data.
+## Mod pictures carry their own pixels; see [method _supplied_pic].
+func species_pic(number: int, back: bool = false, frame: int = -1) -> Dictionary:
 	var entry: Dictionary = species(number)
 	if entry.is_empty():
 		return {}
@@ -3481,10 +3606,18 @@ func species_pic(number: int, back: bool = false) -> Dictionary:
 	if not supplied.is_empty():
 		return supplied
 
-	# Unown's main-table slot holds form A. Its other 25 forms are in an atlas
-	# of their own and are asked for by form, not by species.
+	# Unown's main slot is form A; the other forms have their own atlases.
 	var name: String = "back" if back else "front"
+	if generation == RomRegistry.GEN3:
+		var selected: int = frame
+		if selected < 0:
+			selected = int(entry.get("pic_default_frames", {}).get(name, 0))
+		if selected >= int(entry.get("pic_frames", {}).get(name, 0)):
+			return {}
+		name = name if selected == 0 else "%s_%d" % [name, selected]
 	var cell: int = int(atlas(name).get("cell", 0))
+	if cell <= 0:
+		return {}
 	if back:
 		return {"atlas": name, "slot": number - 1, "width": cell, "height": cell}
 
@@ -3654,16 +3787,21 @@ func _pic_anims() -> Dictionary:
 	return _pic_anims_section
 
 
-## One of Unown's 26 letter forms, which live outside the species tables.
-func unown_pic(form: int, back: bool = false) -> Dictionary:
-	if form < 0 or form >= Gen2Layout.UNOWN_FORMS:
+## One of Unown's forms, which live outside the species tables.
+func unown_pic(form: int, back: bool = false, frame: int = -1) -> Dictionary:
+	var forms: int = Gen3Layout.UNOWN_FORMS if generation == RomRegistry.GEN3 else Gen2Layout.UNOWN_FORMS
+	if form < 0 or form >= forms:
 		return {}
 
-	var pic: Dictionary = species_pic(Gen2Layout.UNOWN_SPECIES, back)
+	var pic: Dictionary = species_pic(Gen2Layout.UNOWN_SPECIES, back, frame)
 	if pic.is_empty():
 		return {}
 
 	pic["atlas"] = "unown_back" if back else "unown_front"
+	if generation == RomRegistry.GEN3 and frame > 0:
+		pic["atlas"] = "%s_%d" % [pic["atlas"], frame]
+	if atlas(pic["atlas"]).is_empty():
+		return {}
 	pic["slot"] = form
 	return pic
 
@@ -3703,6 +3841,8 @@ func _blob(section: String) -> PackedByteArray:
 
 func _section_json_path(section: String) -> String:
 	match section:
+		"tilesets":
+			return RomCache.world_tilesets_path(directory)
 		"scripts":
 			return RomCache.world_scripts_path(directory)
 		"standard_scripts":
@@ -3726,7 +3866,17 @@ func _section_json_path(section: String) -> String:
 	return ""
 
 
+func _headers() -> Dictionary:
+	if generation != RomRegistry.GEN3:
+		return {}
+	if _claim_section("headers"):
+		_world_headers = _read_section(RomCache.world_maps_path(directory), false)
+	return _world_headers
+
+
 func _maps() -> Array:
+	if generation == RomRegistry.GEN3:
+		return []
 	if _claim_section("maps"):
 		for value: Dictionary in _read_section(RomCache.world_maps_path(directory), true):
 			var map: Gen2WorldMap = Gen2WorldMap.from_cache(value)
@@ -3779,6 +3929,8 @@ func _command_queues() -> Dictionary:
 
 
 func _tilesets() -> Dictionary:
+	if generation == RomRegistry.GEN3:
+		return {}
 	if _claim_section("tilesets"):
 		for value: Dictionary in _read_section(RomCache.world_tilesets_path(directory), true):
 			var tileset: Gen2WorldTileset = Gen2WorldTileset.from_cache(value)

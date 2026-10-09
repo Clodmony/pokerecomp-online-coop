@@ -23,13 +23,14 @@ every row marked done below was closed then. Work after that branches from
 | `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to LT. SURGE and a Cable Club trade, the launcher check, campaign seeds, #39, #66, #82, #85, #86, D67 to D78 | merged into `main` (#83, 2026-10-08) |
 | `coop/german` | `coop/playthrough` | German Red and Blue (D95) | merged into `main` (#89, 2026-10-08) |
 | `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
+| `coop/upstream-sync` | `main` | upstream `v0.1.75` merged, the pin moved to Godot 4.8-dev7 (D97) | merged into `main` (#97, 2026-10-10) |
 
 ## Issues
 
 | # | Title | Local status | Where | On GitHub |
 |---|---|---|---|---|
 | 1 to 13 | Slice 1 | done | `coop/slice-1` | closed by PR #58 when merged |
-| 14 | Upstream sync procedure and conflict hotspots | partial: every upstream file the fork changes is listed in `architecture.md`; no written merge procedure, no upstream merge tried yet | | keep open; merge 0.1.74 after #58, #79, #80 (D61) |
+| 14 | Upstream sync procedure and conflict hotspots | done (D97): upstream `v0.1.75` merged on `coop/upstream-sync` (six conflicts, both sides kept); the procedure and hotspots are in `architecture.md` ("Merging upstream"); the owner's cartridge checks on the merge are still to run | `coop/upstream-sync` | close when the pull request merges |
 | 15 | Private CI: cost, caching and required checks | partial: `ci.yml` runs import, suite, boot and the ENet demo; paused with GitHub, the same steps run locally | | keep open |
 | 16 | Classify every world, save and runtime field | done | `coop/m1-state-sync` (`9efac512`) | close when the branch merges |
 | 17 | Run the world logic against a campaign plus player projection | done (each window runs its own world, synced by patches) | `coop/m1-state-sync` (`a151f505`) | close when the branch merges |
@@ -73,7 +74,7 @@ every row marked done below was closed then. Work after that branches from
 | 55 | Provenance audit of upstream-tracked files and co-op asset rules | open | | keep open |
 | 56 | Investigate iOS App Store feasibility | open | | keep open |
 | 57 | Decide when and how to publish the fork | open: the owner's decision; the repository stays private until a stable release | | keep open; private, no plan yet (D61) |
-| 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | open | | |
+| 59 | Upstream: dump_tables.gd trainers stops on Generation 1 data | fixed upstream in 0.1.75 (a row with no palette prints `monochrome`); static only, not run on a cartridge | `coop/upstream-sync` | close when the pull request merges and a Red dump confirms |
 | 82 | The host drops every gen1_bytes change, so those bytes are not kept between sessions | done: owned byte by byte, the Vermilion locks the campaign's (D63) | `coop/playthrough` (`eb387271`) | close when the branch merges |
 | 84 | World sharing: share the campaign at rest points, never mid-scene | done (D72, D79): rest points, per-player gym bytes, owed steps, `world_pull` logs the hold | `coop/playthrough` (`f3fe5d45`) | close when the branch merges |
 | 85 | Vermilion Gym's trash-can locks stay put while someone is in the city or gym | done (D77): a window entering keeps the first lock while a partner is near | `coop/playthrough` (`209ba387`) | close when the branch merges |

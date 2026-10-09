@@ -2,7 +2,7 @@
 # Reruns a tools/coop_screens.sh run from a snapshot its host wrote, each autoplayed
 # window from the leg it was on then, through coop_screens.sh itself:
 #
-#   GODOT=<4.8-dev4 binary> tools/coop_resume.sh <run dir> [<n> | -<seconds>] [out dir]
+#   GODOT=<4.8-dev7 binary> tools/coop_resume.sh <run dir> [<n> | -<seconds>] [out dir]
 #
 # With no choice, the last snapshot; <n> takes <run dir>/snapshots/<n>; -<seconds> the
 # last one written at least that long before the run ended (its newest log or snapshot). A

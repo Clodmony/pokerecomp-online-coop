@@ -101,7 +101,8 @@ running battles as fled (D37). Story changes between checkpoints are journaled (
 
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
 new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
-of the real-screen slice and to 41342 with the battle stage (D39). Co-op code keeps upstream's comment style: only facts
+of the real-screen slice, to 41342 with the battle stage (D39), and to
+41343 with upstream's own +1 in 0.1.75 (D97). Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -1396,7 +1397,26 @@ leg is what a window reopens from. Cost: one tool-only message type the host
 ignores for game state; the autopilot's in-between steps before a resumed leg
 are skipped, as with `FROM`.
 
-## D97. A co-op battle uses the cartridge's own menus on the world's screen (owner's request, #99, 2026-10-10)
+## D97. Upstream 0.1.75 merged; the fork moves to Godot 4.8-dev7 (owner's request, #14, 2026-10-09)
+
+The owner asked for upstream's latest release in the fork, with nothing pushed
+upstream. D61 had named 0.1.74; 0.1.75 is the latest release, so the merge is
+the `v0.1.75` tag (`17c8da8`), not upstream's `main`, whose later commits are
+unreleased Generation 3 import work. Upstream moved to Godot 4.8-dev7 in
+0.1.73, so the fork's pin follows: CI, `AGENTS.md`, the readiness checklist and
+the runner usage lines say dev7, and local runs and private builds need the
+dev7 editor and its stock export templates. `upstream` is a fetch-only remote
+with its push URL disabled. Conflicts kept both sides; the title backdrop takes
+upstream's lettering rectangles, which already treat `red_de` and `blue_de` as
+non-Yellow Generation 1, so the fork no longer changes that file. The
+Generation 3 cartridges stay behind upstream's dev setting and never reach the
+Co-op tab, whose game list is Red and Blue in English and German. Upstream's
+cache format went from 163 to 170, so every imported cartridge, English and
+German, is imported again; the co-op campaign format and upstream's saves are
+unchanged. Cost: the owner's dev4 editor and templates are replaced; checks
+that need a cartridge were not run in the merging session.
+
+## D98. A co-op battle uses the cartridge's own menus on the world's screen (owner's request, #99, 2026-10-10)
 
 Replaces the overlay of D22 and the side panel of D32. On an iPhone the panel
 covered the on-screen controller, its rows were too small to hit, and a
@@ -1420,7 +1440,7 @@ monochrome rather than in player colours, nicknames are not shown (the view
 has species only), items are used on the Pokémon that is out, and the bag
 lists only items usable in a battle.
 
-## D98. The session menu is START > CO-OP on the cartridge's screen, with swipes and taps (owner's request, #99, 2026-10-10)
+## D99. The session menu is START > CO-OP on the cartridge's screen, with swipes and taps (owner's request, #99, 2026-10-10)
 
 The session menu is a CO-OP row in the cartridge's START menu, registered
 through upstream's mod seam (`MENU_START`, visible only while a co-op world is

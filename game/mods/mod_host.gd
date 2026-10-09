@@ -324,10 +324,27 @@ static func instance() -> Gen2ModHost:
 ## Discards every loaded mod and returns to the built-in renderers. For tests and
 ## for a launcher that reloads the mod list.
 static func reset() -> void:
+	if _instance != null:
+		_instance._release()
 	_instance = null
 	Gen2ContentOverlay.reset()
 	Gen2TextOverlay.reset()
 	Gen2MoveEffect.reset_registry()
+
+
+## A mod's callable can hold the host that holds it; dropping the instance leaks both.
+func _release() -> void:
+	for sig: Dictionary in get_signal_list():
+		for connection: Dictionary in get_signal_connection_list(sig["name"]):
+			disconnect(sig["name"], connection["callable"])
+	for property: Dictionary in get_property_list():
+		if not int(property["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			continue
+		var value: Variant = get(property["name"])
+		if value is Dictionary or value is Array:
+			value.clear()
+		elif value is Callable:
+			set(property["name"], Callable())
 
 
 ## Registers a world renderer under [param id].
@@ -717,9 +734,7 @@ func field_move_source_ids() -> Array:
 
 
 ## Whether any registered provider allows [param move] to come from its HM.
-## Static and null-safe on the instance for the reason [method publish] is: this
-## sits on the path every field move takes, and a game with no mods must not
-## build a host to answer no.
+## Static and null-safe, as [method publish] is: every field move asks it.
 static func allows_item_field_move(move: int) -> bool:
 	if _instance == null:
 		return false
