@@ -1,12 +1,9 @@
 class_name RomCache
 extends RefCounted
 
-## Where decoded cartridge data lives between runs: under `user://`, never inside
-## the project, the runtime half of the rule .gitignore and the pre-commit hook
-## enforce at build time. One directory per dump, named by game and hash, so two
-## revisions never share a cache and a re-import cannot half-overwrite the last.
-## Pixel data is raw colour indices rather than images, which is what the renderer
-## wants and avoids a decode round-trip whose exactness would have to be trusted.
+## Decoded cartridge data under `user://`, never inside the project. One directory
+## per dump, named by game and hash, so two revisions never share a cache. Pixel
+## data is raw colour indices, which the renderer wants, rather than images.
 
 const ROOT: String = "user://rom_cache"
 const MANIFEST: String = "manifest.json"
@@ -22,6 +19,7 @@ const ITEMS: String = "items.json"
 const WORLD_TRADES: String = "world_trades.json"
 const TYPES: String = "types.json"
 const MATCHUPS: String = "matchups.json"
+const ABILITIES: String = "abilities.json"
 const TRAINERS: String = "trainers.json"
 const PICS_DIR: String = "pics"
 const TILES_DIR: String = "tiles"
@@ -62,26 +60,19 @@ const PIC_ANIMS: String = "pic_anims.json"
 const BATTLE_TOWER: String = "battle_tower.json"
 const BATTLE_ANIM_GFX_DIR: String = "battle_anim_gfx"
 
-## The key a payload span is stored under, and how many numbers it holds. A
-## cartridge byte run written inline as JSON decimals costs about four bytes on
-## disk and about twenty-six resident once parsed into an Array of Variants.
-## Scripts, text and audio are almost entirely such runs, so they live in a
-## binary blob beside the JSON and the JSON keeps only [offset, length].
+## A byte run as JSON decimals costs about twenty-six resident bytes per byte, so
+## scripts, text and audio live in a blob beside the JSON, which keeps only the
+## [offset, length] span under [constant PAYLOAD_KEY].
 const PAYLOAD_KEY: String = "payload"
 const PAYLOAD_SPAN: int = 2
 const BYTES_KEY: String = "bytes"
 
-## Bumped whenever the on-disk shape changes. A cache written by an older
-## importer is discarded rather than migrated: every byte in it is derived from
-## a dump the owner still has, so re-importing costs a few seconds and a
-## migration would have to carry every past shape forever. Nothing but the cache
-## is thrown away, since saves live under their own root.
-const FORMAT_VERSION: int = 163
+## Bumped whenever the on-disk shape changes. An older cache is discarded rather
+## than migrated, since re-importing the owner's dump costs seconds.
+const FORMAT_VERSION: int = 170
 
-## What [method state] answers. A stale cache is told from a missing one because
-## they need different things said to whoever is looking at it: one is a
-## cartridge that was never imported, the other one imported by an older build
-## and needing the same dump again.
+## What [method state] answers. Stale is told from missing because an older
+## build's import needs the same dump again, not a first import.
 const STATE_MISSING: StringName = &"missing"
 const STATE_STALE: StringName = &"stale"
 const STATE_INCOMPLETE: StringName = &"incomplete"
@@ -127,15 +118,18 @@ static func intro_text_path(directory: String) -> String:
 	return "%s/%s" % [directory, INTRO_TEXT]
 
 
-## The two Pokedex orderings, kept apart from the species records because an
-## order is asked for by dex mode, not by species: the same reason the type
-## matchups are not stored on the types.
+## The two Pokedex orderings, apart from the species records because an order
+## is asked for by dex mode, not by species.
 static func dex_orders_path(directory: String) -> String:
 	return "%s/%s" % [directory, DEX_ORDERS]
 
 
 static func items_path(directory: String) -> String:
 	return "%s/%s" % [directory, ITEMS]
+
+
+static func abilities_path(directory: String) -> String:
+	return "%s/%s" % [directory, ABILITIES]
 
 
 static func world_trades_path(directory: String) -> String:
@@ -146,9 +140,7 @@ static func types_path(directory: String) -> String:
 	return "%s/%s" % [directory, TYPES]
 
 
-## The type matchup chart, kept apart from the type names because the two are
-## different questions: a name is asked for by type number, and a matchup by a
-## pair of them.
+## The type matchup chart, apart from the names: a matchup is asked for by a pair.
 static func matchups_path(directory: String) -> String:
 	return "%s/%s" % [directory, MATCHUPS]
 
@@ -255,22 +247,19 @@ static func battle_anims_path(directory: String) -> String:
 	return "%s/%s" % [directory, BATTLE_ANIMS]
 
 
-## One decompressed `AnimObjGFX` sheet, by its own table index. Kept out of the
-## JSON for the reason every other tile strip is: it is pixels, not records.
+## One decompressed `AnimObjGFX` sheet, by its own table index.
 static func battle_anim_gfx_path(directory: String, number: int) -> String:
 	return "%s/%s/%02d.idx" % [directory, BATTLE_ANIM_GFX_DIR, number]
 
 
-## The Battle Tower's trainers, its ten level groups of party-mon structs, the
-## two per-class tables and every string its menus print. Absent for Gold and
-## Silver, which ship no tower at all.
+## The Battle Tower's trainers, level groups, per-class tables and menu strings.
+## Absent for Gold and Silver, which ship no tower.
 static func battle_tower_path(directory: String) -> String:
 	return "%s/%s" % [directory, BATTLE_TOWER]
 
 
-## `AnimateFrontpic`'s scripts, bitmasks and frames, one record per species and
-## per Unown letter; see [Gen2PicAnimation]. Absent for Gold and Silver, which
-## have no pic animation at all.
+## `AnimateFrontpic`'s scripts, bitmasks and frames per species and Unown letter
+## ([Gen2PicAnimation]). Absent for Gold and Silver, which have none.
 static func pic_anims_path(directory: String) -> String:
 	return "%s/%s" % [directory, PIC_ANIMS]
 
@@ -279,10 +268,8 @@ static func pic_path(directory: String, name: String) -> String:
 	return "%s/%s/%s.idx" % [directory, PICS_DIR, name]
 
 
-## Fixed tile sheets: the font, the text box borders and the battle HUD's
-## graphics. Kept apart from the pics because they are addressed by a tile number
-## rather than by species, and because a sheet has no palette of its own, so the
-## two never want the same accessor.
+## Fixed tile sheets (font, text box, battle HUD), apart from the pics: they are
+## addressed by tile number rather than species and carry no palette.
 static func tile_path(directory: String, name: String) -> String:
 	return "%s/%s/%s.idx" % [directory, TILES_DIR, name]
 
@@ -299,8 +286,7 @@ static func overworld_icon_path(directory: String, number: int) -> String:
 	return "%s/%s/%02d.idx" % [directory, OVERWORLD_ICONS_DIR, number]
 
 
-## `MonMenuIcons`: which of the icons above each species is drawn with. One byte
-## per species, so it is an index run rather than JSON like the tables beside it.
+## `MonMenuIcons`, one byte per species naming the icon it is drawn with.
 static func mon_menu_icons_path(directory: String) -> String:
 	return "%s/%s/%s" % [directory, OVERWORLD_ICONS_DIR, MON_MENU_ICONS]
 
@@ -331,9 +317,8 @@ static func is_usable(directory: String) -> bool:
 	return state(directory) == STATE_USABLE
 
 
-## Why a cache cannot be read, for a caller that has to say so. An import writes
-## the manifest last and marks it complete last, so a run that was interrupted
-## leaves the directory behind and reads as incomplete rather than as stale.
+## Why a cache cannot be read. An import writes its manifest last, so an
+## interrupted run reads as incomplete rather than as stale.
 static func state(directory: String) -> StringName:
 	var manifest: Dictionary = read_manifest(directory)
 	if manifest.is_empty():
@@ -352,7 +337,7 @@ static func write_json(path: String, value: Variant) -> bool:
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify(value, "\t"))
+	file.store_string(JSON.stringify(value, "\t", false))
 	file.close()
 	return true
 
@@ -366,11 +351,8 @@ static func read_json(path: String) -> Variant:
 	return JSON.parse_string(text)
 
 
-## One cached grid of cartridge bytes, packed on the way out of JSON: a JSON number
-## returns as a float, and an Array of them costs about twenty-six resident bytes per
-## cartridge byte. Map block, collision and tileset tables are read once per drawn
-## tile and resident for every map, so they are unboxed here rather than at each
-## lookup. A non-array answers empty, which the record's bounds checks report as absent.
+## A cached grid of cartridge bytes, packed once because map, collision and
+## tileset tables are read per drawn tile. A non-array answers empty.
 static func packed_bytes(value: Variant) -> PackedByteArray:
 	if value is PackedByteArray:
 		return value
@@ -384,9 +366,8 @@ static func packed_bytes(value: Variant) -> PackedByteArray:
 	return out
 
 
-## Writes a pointer map of raw cartridge byte runs: scripts, text and movements,
-## all of which are [code]{ "bank:address": [bytes] }[/code]. Every value is a
-## run, so each becomes a [constant PAYLOAD_KEY] span into the blob.
+## Writes a [code]{ "bank:address": [bytes] }[/code] map of scripts, text or
+## movements, each run becoming a [constant PAYLOAD_KEY] span into the blob.
 static func write_payload_map(
 	json_path: String, payload_blob_path: String, entries: Dictionary
 ) -> bool:
@@ -401,11 +382,8 @@ static func write_payload_map(
 	return write_indices(payload_blob_path, blob)
 
 
-## Writes a section whose byte runs are named fields rather than whole values,
-## as the audio records and the standard-script table are.
-## Only a [code]bytes[/code] field holding an array is moved. Nothing else is
-## touched: plenty of cached arrays are small numbers without being cartridge
-## payloads, and a mart list or an encounter rate must stay an array.
+## Writes a section whose byte runs are [code]bytes[/code] fields, as the audio
+## records are. Only those move: a mart list or an encounter rate stays an array.
 static func write_section(json_path: String, payload_blob_path: String, value: Variant) -> bool:
 	var blob := PackedByteArray()
 	var stripped: Variant = _extract_payloads(value, blob)
@@ -448,8 +426,7 @@ static func _append_payload(run: Array, blob: PackedByteArray) -> Array:
 	return [at, run.size()]
 
 
-## Index buffers are mostly runs of the same value, so they compress hard,
-## roughly ten to one for a pic atlas.
+## Index buffers compress about ten to one for a pic atlas.
 static func write_indices(path: String, data: PackedByteArray) -> bool:
 	var file: FileAccess = FileAccess.open_compressed(
 		path, FileAccess.WRITE, FileAccess.COMPRESSION_ZSTD

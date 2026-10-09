@@ -3,7 +3,7 @@
 What to try by hand on real devices, one case per row, and what already
 covers it automatically. Every new feature adds its cases here in the same
 pull request, and a scenario under `tools/coop_screens/` when it shows on
-screen (`GODOT=<4.8-dev4> tools/coop_screens.sh <scenario>`, captures outside
+screen (`GODOT=<4.8-dev7> tools/coop_screens.sh <scenario>`, captures outside
 the repository). The **Hand** column stays empty until the owner has played
 the case; record the date and devices there.
 
@@ -155,6 +155,7 @@ Red (or Blue) cartridge, the same one.
 | P02 | Tap or click panel rows | First tap moves the cursor, the second chooses | `test_a_tap_on_a_row_moves_the_cursor...` | | |
 | P03 | A tall (portrait) window in a battle | The panel sits under the battle field | | | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |
+| P05 | After an upstream merge (0.1.75, Godot 4.8-dev7), with every cartridge imported again: host, join, a trainer battle, a Cable Club trade, a SAVE | As before the merge; a cache from before the merge shows "Update needed" until the same dump is imported again | the whole suite, the ENet demo and the three-process check on dev7 (D97) | `playthrough_brock`, `cable_club_trade`: not yet run on the merge | |
 | G01 | A German campaign and an English window, or the reverse | The host refuses the join ("same game file"); campaigns, caches and saves stay apart by id (D95) | `test_coop_session` (stranger test) | | |
 | G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
 | G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |
