@@ -305,11 +305,13 @@ func _tend_world() -> void:
 		_evolving = []
 
 
-## A held world's audio player goes on: the battle's music and sounds play through it.
+## A held world's audio player goes on for the battle's sounds, and its on-screen controller for a phone's A.
 static func hold_world(world: Node, audio: Node, frozen: bool) -> void:
 	world.process_mode = Node.PROCESS_MODE_DISABLED if frozen else Node.PROCESS_MODE_INHERIT
-	if audio != null:
-		audio.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
+	var pad: Control = Gen2InputRuntime.instance().active_touch_pad()
+	for kept: Node in [audio, pad if pad != null and world.is_ancestor_of(pad) else null]:
+		if kept != null:
+			kept.process_mode = Node.PROCESS_MODE_ALWAYS if frozen else Node.PROCESS_MODE_INHERIT
 
 
 ## A dropped link: redial as the same player until the host takes them back, waiting out `already_connected`.

@@ -1039,6 +1039,24 @@ func test_a_tap_on_a_row_moves_the_cursor_and_a_second_tap_chooses_it() -> void:
 	assert_eq(int(_red.battle(battle_id)["revision"]), revision + 1, "the second tap chooses the move")
 
 
+func test_a_finished_battle_closes_with_a_tap_and_an_empty_bag_is_still_listed() -> void:
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	panel._process(0.0)
+	var bag: Array = panel._rows.filter(func(row: Dictionary) -> bool: return String(row.get("section", "")) == "BAG")
+	assert_eq(bag.size(), 1, "the bag has a row with nothing in it")
+	assert_false((bag[0] as Dictionary).has("command"))
+
+	_send(func() -> void: _red.act(battle_id, {"type": "run"}))
+	_pump()
+	panel._process(0.0)
+	assert_false(panel.battle_view().is_empty(), "the result stays up")
+	assert_string_contains(panel._battle_text(panel.battle_view()), "[url=0]", "a phone can tap it shut")
+	panel._on_row_clicked("0")
+	assert_true(panel.battle_view().is_empty(), "closed with no A button")
+
+
 func test_review_fixes_for_the_field_and_the_client() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))

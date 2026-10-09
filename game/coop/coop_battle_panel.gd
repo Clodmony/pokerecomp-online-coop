@@ -287,6 +287,8 @@ func _menu_text() -> String:
 
 
 func _battle_rows(view: Dictionary) -> Array:
+	if not String(view.get("outcome", "")).is_empty():
+		return [{"text": "CLOSE", "label": "Close"}]
 	if _has_left(view):
 		return [{"text": "REJOIN", "label": "Rejoin the battle", "session": "rejoin"}]
 	if bool(view.get("stand_in_due", false)) and (view.get("participants", []) as Array).has(client.player_id):
@@ -384,6 +386,9 @@ func _item_rows(view: Dictionary) -> Array:
 				"command": {"type": "item", "item": int(item), "target": int(view["active"])},
 				"suggest": "item", "value": int(item),
 			})
+	if rows.is_empty():
+		rows.append({"text": "BAG (nothing to use)", "label": "[color=%s]Nothing in the bag to use here[/color]" % MUTED,
+			"section": "BAG"})
 	return rows
 
 
@@ -456,7 +461,7 @@ func _battle_text(view: Dictionary) -> String:
 
 
 func _outcome_line(view: Dictionary) -> String:
-	var closing: String = "   [color=%s](A to close)[/color]" % MUTED
+	var closing: String = "   [url=0][b]> CLOSE[/b][/url] [color=%s](A)[/color]" % MUTED
 	if not String(view.get("caught_for", "")).is_empty():
 		return "Caught for %s!%s" % [_name_bb(view["caught_for"]), closing]
 	match String(view["outcome"]):
