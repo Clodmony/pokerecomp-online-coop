@@ -721,3 +721,85 @@ func test_player_water_query_reads_each_engines_source_of_water() -> void:
 		avatar.object().previous_elevation = 3
 		grid.set_metatile_entry(13, 12, 0x1013)
 		assert_false(avatar.facing_fishable_water())
+
+
+## ARM-handler traces protect destination reservation, slow-walk cadence,
+## midpoint jumps and locked facings. Endpoint-only checks miss frame drift;
+## substituting a generic tween or Hoenn action ids on FRLG changes this stream.
+func test_held_movement_frames_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "e8850179d6a0660a9626b59748eaa14ca69baea6",
+		RomRegistry.SAPPHIRE: "e8850179d6a0660a9626b59748eaa14ca69baea6",
+		RomRegistry.FIRERED: "85fba961aa128c1324bfa0bd89b9113b4352b4f3",
+		RomRegistry.LEAFGREEN: "85fba961aa128c1324bfa0bd89b9113b4352b4f3",
+		RomRegistry.EMERALD: "d4f9c758c075bdc96e396c4456d3fa937a8722ea",
+	}
+	for id: StringName in digests:
+		assert_eq(_held_movement_trace(id).sha1_text(), digests[id], str(id))
+
+
+func _held_movement_trace(id: StringName) -> String:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	var lines := PackedStringArray()
+	for action: int in 256:
+		for locked: int in 2:
+			var object := Gen3ObjectEvents.ObjectEvent.new()
+			object.active = true
+			object.current = Vector2i(12, 12)
+			object.previous = Vector2i(11, 12)
+			object.pixel_position = object.current * 16
+			object.facing = 4
+			object.movement_direction = 4
+			object.facing_locked = locked != 0
+			object.frozen = true
+			objects.objects[0] = object
+			if objects.set_held_movement(object, action):
+				continue
+			for frame: int in range(1, 41):
+				objects.step_movements()
+				var pixels: Vector2i = object.pixel_position - Vector2i(192, 192)
+				lines.append(",".join([action, locked, frame, object.current.x, object.current.y,
+					object.previous.x, object.previous.y, pixels.x, pixels.y, object.jump_y,
+					object.facing, object.movement_direction, object.previous_movement_direction,
+					int(object.facing_locked), int(object.held_movement_finished)]))
+	return "\n".join(lines) + "\n"
+
+
+## The collision host must reserve both endpoints until arrival and release
+## only the departure cell then. No importer or stationary collision check
+## exercises occupancy while a held action is progressing or awaiting clearing.
+func test_held_movement_occupancy_ground_reads_and_explicit_clearing() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	var player: Gen3ObjectEvents.ObjectEvent = avatar.object()
+	var grid: Gen3MapGrid = objects.camera.grid
+	grid.set_metatile_entry(12, 12, 0x3001)
+	grid.set_metatile_entry(13, 12, 0x4002)
+	player.frozen = true
+	assert_eq(Gen3ObjectEvents.held_movement_status(player), 16)
+	assert_false(objects.set_held_movement(player, 0x0B))
+	assert_false(player.frozen)
+	assert_true(objects.set_held_movement(player, 0))
+	assert_eq(objects.step_movements(), [{"kind": "spawn", "object_id": 0},
+		{"kind": "begin_step", "object_id": 0}])
+	assert_eq(player.current, Vector2i(13, 12))
+	assert_eq(player.previous, Vector2i(12, 12))
+	assert_eq(player.pixel_position, Vector2i(193, 192))
+	assert_eq([player.current_behavior, player.previous_behavior, player.current_elevation], [2, 1, 4])
+	var probe := Gen3ObjectEvents.ObjectEvent.new()
+	assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+	assert_eq(objects.collision_at(probe, 13, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 0)
+	for frame: int in 14:
+		assert_eq(objects.step_movements(), [])
+	assert_eq(objects.step_movements(), [{"kind": "finish_step", "object_id": 0}])
+	assert_eq(player.previous, player.current)
+	assert_eq(player.pixel_position, Vector2i(208, 192))
+	assert_eq([player.current_behavior, player.previous_behavior], [2, 2])
+	assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.NONE)
+	assert_eq(Gen3ObjectEvents.held_movement_status(player), 1)
+	assert_true(objects.set_held_movement(player, 0))
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 1)
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 16)
+	assert_true(objects.set_held_movement(player, 0xFE))
+	assert_false(player.held_movement_active)

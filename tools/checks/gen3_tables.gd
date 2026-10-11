@@ -84,6 +84,7 @@ func _one_game() -> void:
 	_field_camera()
 	_object_events()
 	_player_avatars()
+	_held_movements()
 	_world_scripts()
 	_world_script_data()
 	_wild_encounters()
@@ -844,6 +845,71 @@ func _player_avatars() -> void:
 		lines.append("%d:%d|%s|%s" % [group, number, "\n".join(initial).sha1_text(),
 			_graphics_hash({"bytes": _avatar_sweep(avatar)})])
 	_r.digest_matches("gen3_player_avatars", lines, AVATAR_DIGESTS[data.id])
+
+
+## ARM held-dispatcher traces over cached lists on a uniform synthetic grid.
+## Reset at unsupported actions; this checks supported runs, not execution.
+const MOVEMENT_ORIGIN := Vector2i(256, 256)
+const MOVEMENT_DIGESTS: Dictionary = {
+	&"ruby": "8dc4e9953bd5e1a5a5c2987d39abb26d6b065166",
+	&"sapphire": "73518982f9957f5f972446deab039f2d987126f3",
+	&"firered": "53ea9deff74607824cfede02c82b973e439da8f1",
+	&"leafgreen": "2c87fd40ac2344a6bff127ab2c7ef634f1cee794",
+	&"emerald": "319266b3d42053f151280a710b1089cde2457df3",
+}
+
+
+func _held_movements() -> void:
+	var data: GameData = _r.data
+	var camera := Gen3FieldCamera.new()
+	camera.data = data
+	camera.grid = Gen3MapGrid.new()
+	camera.grid.width = 512
+	camera.grid.height = 512
+	camera.grid.blocks.resize(512 * 512)
+	camera.grid.blocks.fill(0x3000)
+	camera.grid._behaviors.resize(1024)
+	var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+	var lines := PackedStringArray(["object movements"])
+	for offset: int in data.world_script_offsets("movements"):
+		_reset_mover(objects)
+		var bytes: PackedByteArray = data.world_script_data("movements", offset)["bytes"]
+		for index: int in bytes.size():
+			lines.append_array(_held_action_trace(objects, bytes[index], offset, index))
+	_r.digest_matches("gen3_object_movements", lines, MOVEMENT_DIGESTS[data.id])
+
+
+func _held_action_trace(objects: Gen3ObjectEvents, action: int, offset: int, index: int) -> PackedStringArray:
+	var object: Gen3ObjectEvents.ObjectEvent = objects.objects[0]
+	var lines := PackedStringArray()
+	if objects.set_held_movement(object, action):
+		_reset_mover(objects)
+		return lines
+	for frame: int in range(1, 41):
+		objects.step_movements()
+		var pixels: Vector2i = object.pixel_position - (MOVEMENT_ORIGIN + Vector2i(12, 12)) * 16
+		var current: Vector2i = object.current - MOVEMENT_ORIGIN
+		var previous: Vector2i = object.previous - MOVEMENT_ORIGIN
+		lines.append(",".join([offset, index, frame, current.x, current.y,
+			previous.x, previous.y, pixels.x, pixels.y, object.jump_y,
+			object.facing, object.movement_direction, object.previous_movement_direction,
+			int(object.facing_locked), int(object.held_movement_finished)]))
+		if object.held_movement_finished:
+			break
+	Gen3ObjectEvents.clear_held_movement(object)
+	return lines
+
+
+static func _reset_mover(objects: Gen3ObjectEvents) -> void:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.current = MOVEMENT_ORIGIN + Vector2i(12, 12)
+	object.previous = MOVEMENT_ORIGIN + Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = Gen3ObjectEvents.Direction.EAST
+	object.movement_direction = object.facing
+	object.frozen = true
+	objects.objects[0] = object
 
 
 func _avatar_states(avatar: Gen3PlayerAvatar) -> String:

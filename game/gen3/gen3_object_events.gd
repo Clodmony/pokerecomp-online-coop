@@ -1,11 +1,8 @@
 class_name Gen3ObjectEvents
 extends RefCounted
 
-## `gObjectEvents` and the save block's object templates (`event_object_movement.c`):
-## spawning the templates in view, removing objects that leave it, following the
-## camera across a map connection, and `GetCollisionAtCoords`. Coordinates are
-## the backup map's. Sprites and movement are not modeled, nor
-## are the templates the Battle Pyramid and Trainer Hill write over a floor's.
+## `event_object_movement.c`, in backup coordinates. Sprites, autonomous
+## movement and Battle Pyramid/Trainer Hill floor templates remain unmodeled.
 
 const COUNT: int = 16
 const TEMPLATES_COUNT: int = 64
@@ -33,6 +30,27 @@ const EMPTY_TEMPLATE: Dictionary = {
 
 enum Collision { NONE, OUTSIDE_RANGE, IMPASSABLE, ELEVATION_MISMATCH, OBJECT_EVENT }
 enum Direction { NONE, SOUTH, NORTH, WEST, EAST }
+enum Motion { FACE, WALK, IN_PLACE, JUMP, DELAY, LOCK, UNLOCK }
+enum Jump { FAR, SPECIAL, NORMAL, IN_PLACE, TURN }
+enum Pace { SLOW, NORMAL, FAST, CURRENT, FASTER, SLIDE, FRLG_SLOW }
+const STEP_PIXELS: Array = [[1, 0], [1], [2], [2, 3, 3, 2, 3, 3], [4], [8], [1, 1, 0]]
+const STEP_FRAMES: Array[int] = [31, 16, 8, 6, 4, 2, 23]
+const JUMP_Y: Array = [
+	[-4, -6, -8, -10, -11, -12, -12, -12, -11, -10, -9, -8, -6, -4, 0, 0],
+	[-2, -4, -6, -8, -9, -10, -10, -10, -9, -8, -6, -5, -3, -2, 0, 0],
+]
+## `MOVEMENT_ACTION_*`: [Hoenn id, FRLG id, motion, parameter].
+const MOTION_FAMILIES: Array = [
+	[0x00, 0x00, Motion.FACE, 0], [0x04, 0x0C, Motion.WALK, Pace.SLOW],
+	[0x08, 0x10, Motion.WALK, Pace.NORMAL], [0x0C, 0x14, Motion.JUMP, Jump.FAR],
+	[0x15, 0x1D, Motion.WALK, Pace.FAST], [0x19, 0x21, Motion.IN_PLACE, 32],
+	[0x1D, 0x25, Motion.IN_PLACE, 16], [0x21, 0x29, Motion.IN_PLACE, 8],
+	[0x25, 0x2D, Motion.IN_PLACE, 4], [0x29, 0x31, Motion.WALK, Pace.CURRENT],
+	[0x2D, 0x35, Motion.WALK, Pace.FASTER], [0x31, 0x39, Motion.WALK, Pace.SLIDE],
+	[0x35, 0x3D, Motion.WALK, Pace.FAST], [0x3A, 0x46, Motion.JUMP, Jump.SPECIAL],
+	[0x42, 0x4E, Motion.JUMP, Jump.NORMAL], [0x46, 0x52, Motion.JUMP, Jump.IN_PLACE],
+	[0x4A, 0x56, Motion.JUMP, Jump.TURN],
+]
 
 ## `MetatileBehavior_Is*Blocked` by the side each blocks. Ruby, Sapphire and
 ## Emerald add the two-sided rows and the secret base's breakable door.
@@ -82,6 +100,15 @@ class ObjectEvent:
 			previous_behavior = value & 0xFF
 	var previous_movement_direction: int = 0
 	var facing_locked: bool = false
+	var frozen: bool = false
+	var single_movement_active: bool = false
+	var held_movement_active: bool = false
+	var held_movement_finished: bool = false
+	var movement_action: int = -1
+	var movement_frame: int = 0
+	var pixel_position := Vector2i.ZERO
+	var jump_y: int = 0
+	var ground_on_spawn: bool = true
 
 
 var camera: Gen3FieldCamera
@@ -93,6 +120,7 @@ var _frlg: bool = false
 var _ranged := PackedByteArray()
 var _facing := PackedByteArray()
 var _blocked: Dictionary = {}
+var _motions: Dictionary = {}
 
 
 func _init(field_camera: Gen3FieldCamera, event_data: Gen3EventData) -> void:
@@ -108,6 +136,7 @@ func _init(field_camera: Gen3FieldCamera, event_data: Gen3EventData) -> void:
 		_facing.append(int(row["facing"]))
 	for side: int in BLOCKED_SIDES:
 		_blocked[side] = BLOCKED_SIDES[side] + ([] if _frlg else HOENN_BLOCKED_SIDES[side])
+	_build_motions()
 	for slot: int in COUNT:
 		objects.append(ObjectEvent.new())
 	load_templates()
@@ -145,6 +174,7 @@ func follow_camera() -> void:
 				object.initial -= camera.shift
 				object.current -= camera.shift
 				object.previous -= camera.shift
+				object.pixel_position -= camera.shift * 16
 	spawn_in_view()
 	remove_outside_view()
 
@@ -209,6 +239,7 @@ func spawn(template: Dictionary, number: int, group: int) -> int:
 	object.initial = at + Vector2i.ONE * Gen3MapGrid.MAP_OFFSET
 	object.current = object.initial
 	object.previous = object.initial
+	object.pixel_position = object.current * 16
 	object.current_elevation = int(template["elevation"]) & 0xF
 	object.previous_elevation = object.current_elevation
 	object.movement_range = Vector2i(int(template["movement_range_x"]), int(template["movement_range_y"]))
@@ -223,8 +254,6 @@ func spawn(template: Dictionary, number: int, group: int) -> int:
 	return slot
 
 
-## `GetAvailableObjectEventId`: the first free slot, unless one already holds
-## this object. A match is only looked for among active slots.
 func _available_slot(local_id: int, number: int, group: int) -> int:
 	var free: int = -1
 	for slot: int in COUNT:
@@ -343,3 +372,149 @@ func update_elevation(object: ObjectEvent) -> void:
 	object.current_elevation = elevation
 	if elevation != 0:
 		object.previous_elevation = elevation
+
+
+func _build_motions() -> void:
+	for row: Array in MOTION_FAMILIES:
+		var base: int = int(row[1 if _frlg else 0])
+		var parameter: int = int(row[3])
+		if _frlg and int(row[2]) == Motion.WALK and parameter == Pace.SLOW:
+			parameter = Pace.FRLG_SLOW
+		for direction: int in range(1, 5):
+			_motions[base + direction - 1] = [int(row[2]), direction, parameter]
+	for delay: int in 5:
+		_motions[(0x18 if _frlg else 0x10) + delay] = [Motion.DELAY, 0, 1 << delay]
+	_motions[0x4C if _frlg else 0x40] = [Motion.LOCK, 0, 0]
+	_motions[0x4D if _frlg else 0x41] = [Motion.UNLOCK, 0, 0]
+	if _frlg:
+		for direction: int in range(1, 5):
+			_motions[0x08 + direction - 1] = [Motion.WALK, direction, 0]
+	elif camera.data.id == RomRegistry.EMERALD:
+		for index: int in 4:
+			_motions[0x8C + index] = [Motion.WALK, [7, 8, 5, 6][index], 1]
+			_motions[0x90 + index] = [Motion.WALK, [7, 8, 5, 6][index], 0]
+
+
+## `ObjectEventSetHeldMovement`: true refuses; completion does not clear the hold.
+func set_held_movement(object: ObjectEvent, action: int) -> bool:
+	if not object.active or object.single_movement_active or object.held_movement_active or not _motions.has(action):
+		return true
+	object.frozen = false
+	object.movement_action = action
+	object.held_movement_active = true
+	object.held_movement_finished = false
+	object.movement_frame = 0
+	return false
+
+
+static func held_movement_status(object: ObjectEvent) -> int:
+	return int(object.held_movement_finished) if object.held_movement_active else 16
+
+
+static func clear_held_movement(object: ObjectEvent) -> void:
+	object.movement_action = -1
+	object.held_movement_active = false
+	object.held_movement_finished = false
+	object.movement_frame = 0
+
+
+static func clear_held_movement_if_finished(object: ObjectEvent) -> int:
+	var status: int = held_movement_status(object)
+	if status == 1:
+		clear_held_movement(object)
+	return status
+
+
+## `UpdateObjectEventCurrentMovement`: held actions bypass freezing/collision.
+func step_movements() -> Array:
+	var requests: Array = []
+	for slot: int in COUNT:
+		var object: ObjectEvent = objects[slot]
+		if not object.active:
+			continue
+		if object.ground_on_spawn:
+			_ground(object, slot, "spawn", requests)
+			object.ground_on_spawn = false
+		if object.held_movement_active and not object.held_movement_finished:
+			_advance_motion(object, slot, requests)
+	return requests
+
+
+func _advance_motion(object: ObjectEvent, slot: int, requests: Array) -> void:
+	var row: Array = _motions[object.movement_action]
+	var motion: int = int(row[0])
+	var direction: int = int(row[1])
+	var parameter: int = int(row[2])
+	if object.movement_frame == 0:
+		_start_motion(object, motion, direction, parameter, slot, requests)
+	match motion:
+		Motion.WALK:
+			var pixels: Array = STEP_PIXELS[parameter]
+			object.pixel_position += Gen3FieldCamera.DIRECTIONS[direction] * int(pixels[object.movement_frame % pixels.size()])
+			object.movement_frame += 1
+			if object.movement_frame == STEP_FRAMES[parameter]:
+				_finish_motion(object, slot, requests)
+		Motion.JUMP:
+			_advance_jump(object, parameter, slot, requests)
+		Motion.IN_PLACE, Motion.DELAY:
+			object.movement_frame += 1
+			object.held_movement_finished = object.movement_frame == parameter
+		_:
+			object.held_movement_finished = true
+
+
+func _start_motion(object: ObjectEvent, motion: int, direction: int, parameter: int,
+		slot: int, requests: Array) -> void:
+	if direction != 0:
+		set_direction(object, direction)
+	match motion:
+		Motion.FACE:
+			_shift_coords(object, object.current)
+		Motion.WALK:
+			_shift_coords(object, object.current + Gen3FieldCamera.DIRECTIONS[direction])
+			_ground(object, slot, "begin_step", requests)
+		Motion.JUMP:
+			var displacement: int = 1 if parameter in [Jump.FAR, Jump.SPECIAL, Jump.NORMAL] else 0
+			_shift_coords(object, object.current + Gen3FieldCamera.DIRECTIONS[direction] * displacement)
+			_ground(object, slot, "begin_step", requests)
+		Motion.LOCK:
+			object.facing_locked = true
+		Motion.UNLOCK:
+			object.facing_locked = false
+
+
+func _advance_jump(object: ObjectEvent, parameter: int, slot: int, requests: Array) -> void:
+	var special: bool = parameter == Jump.SPECIAL
+	var duration: int = 32 if parameter == Jump.FAR or special else 16
+	var shift: int = 1 if parameter == Jump.FAR or special else 0
+	if parameter in [Jump.FAR, Jump.SPECIAL, Jump.NORMAL] and (not special or object.movement_frame % 2 == 0):
+		object.pixel_position += Gen3FieldCamera.DIRECTIONS[object.movement_direction]
+	object.jump_y = int(JUMP_Y[1 if parameter in [Jump.NORMAL, Jump.TURN] else 0][object.movement_frame >> shift])
+	object.movement_frame += 1
+	if object.movement_frame == duration / 2:
+		if parameter == Jump.FAR:
+			_shift_coords(object, object.current + Gen3FieldCamera.DIRECTIONS[object.movement_direction])
+			_ground(object, slot, "begin_step", requests)
+		elif parameter == Jump.TURN:
+			set_direction(object, OPPOSITE[object.movement_direction])
+	if object.movement_frame == duration:
+		object.jump_y = 0
+		_finish_motion(object, slot, requests)
+
+
+func _finish_motion(object: ObjectEvent, slot: int, requests: Array) -> void:
+	_shift_coords(object, object.current)
+	object.held_movement_finished = true
+	_ground(object, slot, "finish_step", requests)
+
+
+static func _shift_coords(object: ObjectEvent, at: Vector2i) -> void:
+	object.previous = object.current
+	object.current = Vector2i(wrapi(at.x, -32768, 32768), wrapi(at.y, -32768, 32768))
+
+
+func _ground(object: ObjectEvent, slot: int, kind: String, requests: Array) -> void:
+	update_elevation(object)
+	object.current_behavior = camera.grid.behavior_at(object.current.x, object.current.y)
+	object.previous_behavior = camera.grid.behavior_at(object.previous.x, object.previous.y)
+	requests.append({"kind": kind, "object_id": slot})
