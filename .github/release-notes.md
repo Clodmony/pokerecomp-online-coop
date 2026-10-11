@@ -3,16 +3,13 @@ the release changes is standing guidance with a {VERSION} placeholder. -->
 
 ## Added
 
-- Generation 3 dev cartridges import the texts, braille, movement lists and mart stock their scripts name.
-- Generation 3 dev cartridges import their tileset animations (water, flowers, fountains, flags and lights) with the cartridge's timing.
-- Generation 3 maps load with the neighbouring maps' edges, the border, collision, elevation and tile behavior. Map previews show them.
-- Generation 3 maps cross into the next map at a connection, carrying the tiles on screen over.
-- Generation 3 maps place their people and objects as they come into view, remove them as they leave, hide those whose event flag is set, and block a step on walls, one-way edges, height changes and other objects.
-- Generation 3 cartridges remain unplayable.
+- Generation 3's field model now initializes the player avatar and checks its steps against terrain, objects and special field interactions.
+- Generation 3's field model now runs basic scripted object movements, including walking, turning, delays and jumps, with cartridge timing.
+- Generation 3 cartridges remain unplayable while field integration continues.
 
 ## Updating this release
 
-- Reimport cartridges to rebuild their caches. Saves are preserved.
+- No cartridge reimport is required. Saves are preserved.
 
 ## Which file
 
