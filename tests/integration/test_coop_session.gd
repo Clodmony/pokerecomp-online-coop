@@ -2484,6 +2484,19 @@ func test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist_as_th
 	assert_eq(PokeCoopWorldLink.continued_world(_red).player_cell, Vector2i(11, 4))
 
 
+func test_a_campaign_saved_in_a_cable_club_room_before_its_entry_was_kept_continues_where_a_whiteout_would() -> void:
+	var saved := Gen2WorldSnapshot.new()
+	saved.map_id = Vector2i(0, Gen1Layout.TRADE_CENTER)
+	saved.player_cell = Vector2i(3, 3)
+	saved.gen1_last_blackout_map = 2
+
+	PokeCoopWorldLink.out_of_a_link_room(saved, {"x": 13, "y": 26})
+	assert_eq([saved.map_id, saved.player_cell, saved.player_facing, saved.gen1_last_map],
+		[Vector2i(0, 2), Vector2i(13, 26), Gen2WorldSprite.FACING_DOWN, 2], "in front of the last center used, not in the room")
+	PokeCoopWorldLink.out_of_a_link_room(saved, {"x": 1, "y": 1})
+	assert_eq(saved.player_cell, Vector2i(13, 26), "anywhere else it is left alone")
+
+
 func test_a_player_the_credits_left_in_the_hall_of_fame_continues_in_pallet_town() -> void:
 	var landing: Dictionary = {"x": 5, "y": 6}
 	var saved := Gen2WorldSnapshot.new()

@@ -154,6 +154,7 @@ Red (or Blue) cartridge, the same one.
 | T03 | Cancel the trade on either side | Nobody's party changes | `test_a_trade_either_side_cancels_moves_nobody` | cable_club_trade | |
 | T04 | Fight in the Colosseum | The cartridge's link battle against the partner's team (not yet tried) | | | |
 | T05 | In the Trade Center or Colosseum, reset the window, or close and host the campaign again | Like the cartridge (whose only way out is a reset), the player continues at the Cable Club receptionist, and the center's door leads back to the city | `test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist...` | | played 2026-10-11 (stuck before the fix) |
+| T06 | Host a campaign saved in a Cable Club room before this fix | Each player in the room opens in front of the Pokémon Center they last used, where a whiteout would put them | `test_a_campaign_saved_in_a_cable_club_room_before_its_entry_was_kept...` | | |
 
 ## Platforms and input
 
