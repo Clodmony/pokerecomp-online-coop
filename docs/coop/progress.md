@@ -265,7 +265,7 @@ A cloud session with no cartridge: everything below runs on the synthetic cache.
 | Local x86_64, dev4: `main` before the merge, for comparison | whole suite 5030/5047: the 17 failures were all `test_coop_device`, whose fixed port 24791 a parallel run held; its co-op suites alone 223/223 |
 | Engine-free gates | version 0.1.75 everywhere, comments 41343 of 41343 |
 | Screens (scripted), Red | not run: no cartridge in the merging session; `playthrough_brock` and `cable_club_trade` are the owner's checks before the merge (P05) |
-
+| Stuck in the Trade Center (2026-10-11, played: Linux host, Windows partner) | Generation 1's Cable Club rooms have no exit; the cartridge leaves them by a reset that continues at the receptionist, where the save before the link put the player. A co-op continue used the player's last reported cell, in the room, so a reset and a new host both opened inside it again. The host now keeps the cell the room was entered from (and the last map the center's door leads to) and a continue and the campaign file use it. GUT: co-op suites 232/232; not yet played again |
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |

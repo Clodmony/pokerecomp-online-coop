@@ -153,6 +153,7 @@ Red (or Blue) cartridge, the same one.
 | T02 | Trade a MACHOKE, KADABRA, HAUNTER or GRAVELER | The trade movie shows it as sent (MACHOKE), then it evolves and arrives evolved | `test_a_pokemon_that_evolves_by_trade_arrives_evolved`, `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved` | cable_club_trade | |
 | T03 | Cancel the trade on either side | Nobody's party changes | `test_a_trade_either_side_cancels_moves_nobody` | cable_club_trade | |
 | T04 | Fight in the Colosseum | The cartridge's link battle against the partner's team (not yet tried) | | | |
+| T05 | In the Trade Center or Colosseum, reset the window, or close and host the campaign again | Like the cartridge (whose only way out is a reset), the player continues at the Cable Club receptionist, and the center's door leads back to the city | `test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist...` | | played 2026-10-11 (stuck before the fix) |
 
 ## Platforms and input
 
