@@ -145,6 +145,10 @@ Red (or Blue) cartridge, the same one.
 | B22 | ITEM, a ball, in a two-player wild battle | "Who gets PIDGEY?" with both names; the catch is that player's | `test_every_battle_row_is_reached_through_the_cartridges_own_menus` | catch_for_partner | |
 | B23 | Every command from the cartridge menus: a move, a switch to the partner's Pokémon, an item, a ball, RUN, a send-out after a faint, forgetting a move, MIMIC | Each reaches the host as the old list's row did | `test_every_battle_row_is_reached...`, `test_a_move_to_forget_and_a_move_to_mimic...` | switch_and_suggest, catch_for_partner | |
 
+| B24 | Talk to a partner, BATTLE / TRADE / CANCEL; or START > CO-OP, BATTLE name | YES/NO at a rest point; B, NO or 30 s declines; busy/offline partners cannot start; both players see their own team and choose their own replacements | `test_friend_menu_invites_only_free_partners...`, `test_versus_waits_for_both_choices...`, `test_friend_talking_opens_the_partner_menu...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
+| B25 | Finish or forfeit a friend battle; both Pokémon participated; one benched | Full HP/PP/status for both teams in place, no whiteout or money, full unsplit EXP per foe faced, owner answers learning | `test_versus_heals_both_parties...`, `test_each_versus_participant...`, `test_versus_forced_turns...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
+| B26 | Disconnect during a friend battle; attempt ITEM, another invitation or JOIN | No opponent takeover or item use; two-minute grace releases the fight and heals both; stale/future commands rejected | `test_a_versus_disconnect...`, `test_invitation_timeout...` | | |
+
 ## Trades
 
 | ID | Case | Expected | Automated | Two windows | Hand |
@@ -155,6 +159,8 @@ Red (or Blue) cartridge, the same one.
 | T04 | Fight in the Colosseum | The cartridge's link battle against the partner's team (not yet tried) | | | |
 | T05 | In the Trade Center or Colosseum, reset the window, or close and host the campaign again | Like the cartridge (whose only way out is a reset), the player continues at the Cable Club receptionist, and the center's door leads back to the city | `test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist...` | | played 2026-10-11 (stuck before the fix) |
 | T06 | Host a campaign saved in a Cable Club room before this fix | Each player in the room opens in front of the Pokémon Center they last used, where a whiteout would put them | `test_a_campaign_saved_in_a_cable_club_room_before_its_entry_was_kept...` | | |
+
+| T07 | Invite a remote friend to TRADE, accept, swap, then choose CANCEL | Native trade movie, each UID swaps once; cancelling leaves both worlds in place and available for another invitation | `test_direct_trade_uses_the_existing_cable...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
 
 ## Platforms and input
 

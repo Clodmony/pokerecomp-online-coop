@@ -123,6 +123,8 @@ func _press_main(button: int) -> Dictionary:
 			PKMN:
 				return _go(PARTY, 0)
 			ITEM:
+				if bool(_view.get("versus", false)):
+					return {"say": _de("Items cannot be\nused here.")}
 				return _go(BAG, 0)
 		return _run()
 	if not PokeButton.is_direction(button):

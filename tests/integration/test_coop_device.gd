@@ -40,8 +40,8 @@ func after_each() -> void:
 		_window_size = Vector2i.ZERO
 	var folder: String = PokeCoopSession.campaign_path(_data).get_base_dir()
 	var paths: Array = [IDENTITY, OTHER_DEVICE, LEGACY, TAB]
-	for name: String in DirAccess.get_files_at(folder):
-		paths.append("%s/%s" % [folder, name])
+	for file_name: String in DirAccess.get_files_at(folder):
+		paths.append("%s/%s" % [folder, file_name])
 	for path: String in paths:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -319,7 +319,11 @@ class Heard:
 
 
 func _finger(gestures: PokeCoopTouchGestures, index: int, at: Vector2, pressed: Variant = null) -> void:
-	var event: InputEvent = InputEventScreenDrag.new() if pressed == null else InputEventScreenTouch.new()
+	var event: InputEvent
+	if pressed == null:
+		event = InputEventScreenDrag.new()
+	else:
+		event = InputEventScreenTouch.new()
 	event.set("index", index)
 	event.set("position", at)
 	if pressed != null:
@@ -328,6 +332,15 @@ func _finger(gestures: PokeCoopTouchGestures, index: int, at: Vector2, pressed: 
 
 
 func test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a() -> void:
+	var input: Gen2InputRuntime = Gen2InputRuntime.instance()
+	for button: int in PokeButton.ALL:
+		input.release(button)
+	for action: StringName in PokeButton.UI_ACTIONS.values():
+		Input.action_release(action)
+	input.stall(0)
+	input._held_back.clear()
+	Input.flush_buffered_events()
+	await wait_process_frames(2)
 	var options := Gen2Options.new()
 	options.touch_mode = Gen2Options.TOUCH_ALWAYS
 	Gen2InputRuntime.instance().apply_options(options)

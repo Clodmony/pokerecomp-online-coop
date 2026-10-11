@@ -76,6 +76,8 @@ var _quit_at: int = -1
 var quit_app: Callable = Callable()
 var _paused_at: int = 0
 var _continuing: int = -1
+var _direct_trade: int = 0
+var _direct_open: bool = false
 
 
 static func campaign_path(game: GameData, id: String = "") -> String:
@@ -254,6 +256,7 @@ func process() -> void:
 	_note_opening()
 	_follow_session_end()
 	_advance_links()
+	_tend_direct_trade()
 	if _continuing >= 0 and int(client.state.get("last_seq", 0)) >= _continuing:
 		_continue_world()
 	if not client.player_id.is_empty() and (client.player_id != _identity_saved or client.campaign_id != _campaign_saved):
@@ -537,7 +540,7 @@ func _collect_evolutions() -> void:
 			say(LEFT_BATTLE_ENDED.get(String(view["outcome"]), "The battle you left is over."))
 		if _takeover != null and _takeover.claimed.has(battle_id):
 			continue
-		if String(view["outcome"]) == "lost":
+		if String(view["outcome"]) == "lost" and not bool(view.get("versus", false)):
 			_whiteout_due = true
 		var uids: Array = link.uids()
 		for uid: Variant in view.get("evolvable", []) as Array:
@@ -584,7 +587,10 @@ func rival_name() -> String:
 func continue_after_reset() -> bool:
 	if _closed or link == null or screen == null or not is_instance_valid(screen):
 		return false
-	journal.add(PokeCoopLog.WORLD, "world_reset", {"map": link.world.map_id() if link.world != null else null}, client.player_id)
+	var reported_map: Variant = null
+	if link.world != null:
+		reported_map = link.world.map_id()
+	journal.add(PokeCoopLog.WORLD, "world_reset", {"map": reported_map}, client.player_id)
 	hold_world(screen, screen.get("_audio_player"), true)
 	_continuing = link.flush()
 	return true
@@ -670,12 +676,48 @@ func _add_menu(layer: CanvasLayer) -> void:
 	menu = PokeCoopMenu.over(client, data)
 	menu.hardware = hardware
 	menu.blocked = panel.is_open
-	menu.select_allowed = func() -> bool: return SELECT_OWNERS.all(func(host: StringName) -> bool: return screen.get(host) == null)
+	menu.select_allowed = func() -> bool: return SELECT_OWNERS.all(func(owner_key: StringName) -> bool: return screen.get(owner_key) == null) and _ready_to_meet()
+	menu.ready_to_meet = _ready_to_meet
+	if link != null:
+		menu.before_meet = link.push_party
+	menu.notice.connect(say)
+	_actor.meet = menu.open_partner
 	menu.leave_requested.connect(leave)
 	menu.acted.connect(_close_start_menu)
 	layer.add_child(menu)
 	gestures = PokeCoopTouchGestures.over(hardware, overlay_open)
 	layer.add_child(gestures)
+
+
+func _ready_to_meet() -> bool:
+	return screen != null and is_instance_valid(screen) and screen.world() != null and not overlay_open() \
+		and PokeCoopWorldLink.unrest(screen) == &"" and String(client.me().get("battle", "")).is_empty()
+
+
+func _tend_direct_trade() -> void:
+	if screen == null or not is_instance_valid(screen):
+		return
+	var direct: Dictionary = (client.me().get("trade", {}) as Dictionary).get("direct", {})
+	var trade_screen: Gen2LinkScreen = screen.get("_link_host")
+	if _direct_open:
+		if trade_screen == null:
+			_direct_open = false
+			client.send({"type": "trade", "end": 1})
+		elif direct.is_empty():
+			trade_screen.closed.emit()
+		return
+	if direct.is_empty():
+		_direct_trade = 0
+		return
+	var serial: int = int(direct.get("serial", 0))
+	if serial <= _direct_trade or not _ready_to_meet():
+		return
+	_direct_trade = serial
+	if cable != null:
+		cable.refresh()
+	_direct_open = bool(screen.call(&"_open_link_screen", Gen2LinkScreen.MODE_TRADE))
+	if not _direct_open:
+		client.send({"type": "trade", "end": 1})
 
 
 func _close_start_menu() -> void:

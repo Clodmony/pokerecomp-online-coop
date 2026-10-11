@@ -14,6 +14,8 @@ var swaps: int = 0
 var _offers: Dictionary = {}
 var _rounds: Dictionary = {}
 var _mates: Dictionary = {}
+var _direct: Dictionary = {}
+var _direct_serial: int = 0
 
 
 static func create(game: GameData) -> PokeCoopTrades:
@@ -27,9 +29,17 @@ func handle(sender: PokeCoopPlayer, message: Dictionary, players: Dictionary) ->
 	if PokeCoopTransport.number(message.get("leave")) == 1:
 		leave(sender.player_id, players)
 		return &""
+	if PokeCoopTransport.number(message.get("end")) == 1:
+		leave(sender.player_id, players)
+		unpair(sender.player_id)
+		return &""
 	var partner: PokeCoopPlayer = players.get(PokeCoopTransport.text(message.get("partner")), null)
+	if is_direct(sender.player_id) and String(_direct[sender.player_id]["mate"]) != PokeCoopTransport.text(message.get("partner")):
+		return &"invalid_trade"
 	if partner == null or partner == sender:
 		return &"unknown_player"
+	if is_direct(partner.player_id) and String(_direct[partner.player_id]["mate"]) != sender.player_id:
+		return &"invalid_trade"
 	if message.has("slot"):
 		var slot: int = PokeCoopTransport.number(message["slot"], -1)
 		if not sender.is_free() or slot < 0 or slot >= sender.team.size():
@@ -69,8 +79,8 @@ func leave(player_id: String, players: Dictionary) -> void:
 func _close(player_ids: Array, traded: bool) -> void:
 	for player_id: String in player_ids:
 		_offers.erase(player_id)
-		var round: Dictionary = _rounds.get(player_id, {"serial": 0})
-		_rounds[player_id] = {"serial": int(round["serial"]) + 1, "outcome": TRADED if traded else CANCELED}
+		var trade_round: Dictionary = _rounds.get(player_id, {"serial": 0})
+		_rounds[player_id] = {"serial": int(trade_round["serial"]) + 1, "outcome": TRADED if traded else CANCELED}
 
 
 func _swap(first: PokeCoopPlayer, first_slot: int, second: PokeCoopPlayer, second_slot: int) -> bool:
@@ -97,14 +107,33 @@ func _arrived(mon: Gen2SaveMon) -> Gen2SaveMon:
 	return mon
 
 
+func pair(first: PokeCoopPlayer, second: PokeCoopPlayer) -> void:
+	unpair(first.player_id)
+	unpair(second.player_id)
+	_direct_serial += 1
+	_direct[first.player_id] = {"mate": second.player_id, "serial": _direct_serial}
+	_direct[second.player_id] = {"mate": first.player_id, "serial": _direct_serial}
+
+
+func is_direct(player_id: String) -> bool:
+	return _direct.has(player_id)
+
+
+func unpair(player_id: String) -> void:
+	var mine: Dictionary = _direct.get(player_id, {})
+	_direct.erase(player_id)
+	_direct.erase(String(mine.get("mate", "")))
+
+
 ## What [param viewer]'s window waits on: its round and the partner's offer.
 func view(viewer: String) -> Dictionary:
 	var mine: Dictionary = _offers.get(viewer, {})
 	var theirs: Dictionary = _offers.get(String(mine.get("partner", "")), {})
-	var round: Dictionary = _rounds.get(viewer, {"serial": 0, "outcome": ""})
+	var trade_round: Dictionary = _rounds.get(viewer, {"serial": 0, "outcome": ""})
 	return {
-		"serial": int(round["serial"]), "outcome": String(round.get("outcome", "")),
+		"serial": int(trade_round["serial"]), "outcome": String(trade_round.get("outcome", "")),
 		"partner_slot": int(theirs["slot"]) if String(theirs.get("partner", "")) == viewer else -1,
+		"direct": (_direct.get(viewer, {}) as Dictionary).duplicate(),
 	}
 
 
@@ -116,13 +145,15 @@ func partner_for(viewer: PokeCoopPlayer, players: Dictionary) -> PokeCoopPlayer:
 	var offered: String = _offer_partner(viewer.player_id, ids)
 	if not offered.is_empty():
 		return players[offered]
+	if players.has(String((_direct.get(viewer.player_id, {}) as Dictionary).get("mate", ""))):
+		return players[_direct[viewer.player_id]["mate"]]
 	_pair_rooms(players, ids)
 	if _mates.has(viewer.player_id):
 		return players[_mates[viewer.player_id]]
 	var first: PokeCoopPlayer = null
 	for player_id: String in ids:
 		var other: PokeCoopPlayer = players[player_id]
-		if other == viewer or not other.connected or not other.is_free() or _mates.has(player_id) \
+		if other == viewer or not other.connected or not other.is_free() or _mates.has(player_id) or _direct.has(player_id) \
 				or not _offer_partner(player_id, ids).is_empty():
 			continue
 		if _in_room(other) and not _in_room(viewer):
@@ -150,7 +181,7 @@ func _pair_rooms(players: Dictionary, ids: Array) -> void:
 	var waiting: Dictionary = {}
 	for player_id: String in ids:
 		var member: PokeCoopPlayer = players[player_id]
-		if _mates.has(player_id) or not _in_room(member) or not _offer_partner(player_id, ids).is_empty():
+		if _mates.has(player_id) or is_direct(player_id) or not _in_room(member) or not _offer_partner(player_id, ids).is_empty():
 			continue
 		if waiting.has(member.map):
 			_mates[player_id] = waiting[member.map]

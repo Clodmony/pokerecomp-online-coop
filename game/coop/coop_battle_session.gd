@@ -128,6 +128,10 @@ func phase() -> StringName:
 
 
 ## The active Pokémon's owner, or while they are away whoever stands in for them (D61).
+func advance() -> bool:
+	return false
+
+
 func controller() -> String:
 	var owner: String = owner_deciding()
 	if is_present(owner):
@@ -537,6 +541,10 @@ func view() -> Dictionary:
 		"trainer_name": String(encounter.get("trainer_name", "")), "win_text": String(encounter.get("win_text", "")),
 		"gym": bool(encounter.get("gym", false)),
 	}
+
+
+func view_for(_viewer: String) -> Dictionary:
+	return view()
 
 
 static func _battler_view(member: Gen2BattleMon) -> Dictionary:

@@ -190,8 +190,8 @@ func _battle_rows(view: Dictionary) -> Array:
 	if _has_left(view):
 		return [{"text": "REJOIN", "label": "Rejoin the battle", "session": "rejoin"}]
 	if bool(view.get("stand_in_due", false)) and (view.get("participants", []) as Array).has(client.player_id):
-		var owner: String = String(view.get("owner", ""))
-		var rows: Array = [{"text": "TAKE OVER for %s" % _name(owner), "label": "Take over for %s" % _name_bb(owner), "session": "stand_in"}]
+		var owner_id: String = String(view.get("owner", ""))
+		var rows: Array = [{"text": "TAKE OVER for %s" % _name(owner_id), "label": "Take over for %s" % _name_bb(owner_id), "session": "stand_in"}]
 		if not _kept_waiting.has(String(view["battle"])):
 			rows.append({"text": "KEEP WAITING", "label": "Keep waiting", "session": "wait"})
 		return rows + _leave_rows(view)
@@ -268,6 +268,8 @@ func _switch_rows(view: Dictionary, kind: String) -> Array:
 ## This player's bag: a ball once per participant it could be caught for, which
 ## is how a catch names its recipient, and anything else usable on the one out.
 func _item_rows(view: Dictionary) -> Array:
+	if bool(view.get("versus", false)):
+		return []
 	var rows: Array = []
 	var bag: Dictionary = client.me().get("items", {})
 	var numbers: Array = bag.keys()
