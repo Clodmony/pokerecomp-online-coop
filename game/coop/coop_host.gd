@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 5
+const PROTOCOL: int = 6
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -55,6 +55,9 @@ var _logged_revision: int = -1
 var _logged_views: Dictionary = {}
 var _league_cleared: bool = false
 var notes: Dictionary = {}
+var challenges: Dictionary = {}
+var _challenge_serial: int = 0
+var _challenge_told: Dictionary = {}
 
 
 static func create(
@@ -116,7 +119,9 @@ func poll() -> void:
 		else:
 			journal.add(PokeCoopLog.HOST, "ignored" if kind == PokeCoopTransport.MESSAGE else String(kind), {"peer": peer})
 	_drop_refused()
+	_advance_forced()
 	_end_abandoned()
+	_expire_challenges()
 	_announce_stand_ins()
 	_autosave()
 	_keep_story()
@@ -273,17 +278,23 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return refused
 		"opening":
 			return finish_speech(sender, PokeCoopTransport.text(message.get("rival")))
+		"challenge":
+			return challenge(sender, message)
 		"scene":
 			return claim_scene(sender, _vector(message.get("map")), message.get("on") is bool and bool(message.get("on")))
 		"trade":
-			var swaps: int = trades.swaps
-			var answer: StringName = trades.handle(sender, message, players)
-			if trades.swaps != swaps:
-				journal.add(PokeCoopLog.HOST, "trade_swap", {"swaps": trades.swaps}, sender.player_id)
-			if trades.swaps != swaps and battles.is_empty():
-				_write_campaign("trade")
-			return answer
+			return _trade(sender, message)
 	return &"unknown_message"
+
+
+func _trade(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
+	var swaps: int = trades.swaps
+	var answer: StringName = trades.handle(sender, message, players)
+	if trades.swaps != swaps:
+		journal.add(PokeCoopLog.HOST, "trade_swap", {"swaps": trades.swaps}, sender.player_id)
+		if battles.is_empty():
+			_write_campaign("trade")
+	return answer
 
 
 func _hello(peer: int, message: Dictionary) -> StringName:
@@ -397,6 +408,15 @@ func _autosave() -> void:
 		_changed = false
 
 
+func _advance_forced() -> void:
+	for session: PokeCoopBattleSession in battles.values():
+		if session.advance():
+			journal.add(PokeCoopLog.HOST, "battle_advance", {"battle": session.id})
+			if session.phase() == PokeCoopBattleSession.OVER:
+				_finish(session)
+			broadcast()
+
+
 ## A battle nobody has been in for as long as a window redials ends as fled, holding up no save.
 func _end_abandoned() -> void:
 	for session: PokeCoopBattleSession in battles.values():
@@ -442,6 +462,10 @@ func _on_disconnected(peer: int) -> void:
 	leaving.connected = false
 	_release_scenes(leaving.player_id)
 	trades.leave(leaving.player_id, players)
+	trades.unpair(leaving.player_id)
+	for asked: Dictionary in challenges.values():
+		if leaving.player_id in [asked["from"], asked["to"]]:
+			_settle_challenge(asked, "left")
 	for session: PokeCoopBattleSession in battles.values():
 		if session.involves(leaving.player_id):
 			session.set_absent(leaving.player_id, true)
@@ -580,11 +604,83 @@ func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 	)
 
 
+func challenge(sender: PokeCoopPlayer, message: Dictionary, now: int = Time.get_ticks_msec()) -> StringName:
+	if message.has("answer"):
+		var asked: Dictionary = challenges.get(PokeCoopTransport.text(message.get("id")), {})
+		if asked.is_empty() or String(asked["to"]) != sender.player_id:
+			return &"no_challenge"
+		var met: StringName = _meet(asked) if PokeCoopTransport.number(message.get("answer")) == 1 else &"declined"
+		_settle_challenge(asked, "accepted" if met == &"" else String(met))
+		return &""
+	var partner: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("partner")))
+	var kind: String = PokeCoopTransport.text(message.get("kind"))
+	if partner == null or partner == sender or not kind in [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE]:
+		return &"invalid_challenge"
+	if not free_to_meet(sender) or not free_to_meet(partner):
+		return &"partner_busy"
+	if challenges.values().any(func(open: Dictionary) -> bool:
+			return [open["from"], open["to"]].any(func(member_id: String) -> bool: return member_id in [sender.player_id, partner.player_id])):
+		return &"challenge_pending"
+	_challenge_serial += 1
+	var id: String = str(_challenge_serial)
+	challenges[id] = {"id": id, "from": sender.player_id, "to": partner.player_id, "kind": kind, "at": now}
+	journal.add(PokeCoopLog.HOST, "challenge", challenges[id], sender.player_id)
+	return &""
+
+
+func free_to_meet(member: PokeCoopPlayer) -> bool:
+	return member != null and member.connected and member.is_free() and member.opening.is_empty() and not trades.is_direct(member.player_id)
+
+
+func _meet(asked: Dictionary) -> StringName:
+	var first: PokeCoopPlayer = player(String(asked["from"]))
+	var second: PokeCoopPlayer = player(String(asked["to"]))
+	if not free_to_meet(first) or not free_to_meet(second):
+		return &"partner_busy"
+	if String(asked["kind"]) == PokeCoopPolicy.CHALLENGE_TRADE:
+		trades.pair(first, second)
+		return &""
+	var battle_id: String = campaign.take_battle_id()
+	var session: PokeCoopVersus = PokeCoopVersus.pit(data, battle_id, seeds.randi(), first, second)
+	if session == null:
+		return &"no_fit_pokemon"
+	battles[battle_id] = session
+	_log_battle_start(session)
+	return &""
+
+
+func _settle_challenge(asked: Dictionary, answer: String) -> void:
+	challenges.erase(String(asked["id"]))
+	var told: Dictionary = _challenge_told.get(String(asked["from"]), {"serial": 0})
+	_challenge_told[String(asked["from"])] = {"serial": int(told["serial"]) + 1, "kind": asked["kind"], "partner": asked["to"], "answer": answer}
+	journal.add(PokeCoopLog.HOST, "challenge_answer", {"id": asked["id"], "answer": answer}, String(asked["to"]))
+
+
+func _expire_challenges(now: int = Time.get_ticks_msec()) -> void:
+	var expired: Array = challenges.values().filter(func(asked: Dictionary) -> bool:
+		return now - int(asked["at"]) >= PokeCoopPolicy.CHALLENGE_EXPIRE_MSEC)
+	for asked: Dictionary in expired:
+		_settle_challenge(asked, "timeout")
+	if not expired.is_empty() and _closing_at < 0:
+		broadcast()
+
+
+func _challenge_view(viewer: String) -> Dictionary:
+	var out: Dictionary = {"answered": _challenge_told.get(viewer, {})}
+	for asked: Dictionary in challenges.values():
+		var seen: Dictionary = {"id": asked["id"], "kind": asked["kind"], "from": asked["from"], "to": asked["to"]}
+		if String(asked["to"]) == viewer:
+			out["incoming"] = seen
+		elif String(asked["from"]) == viewer:
+			out["outgoing"] = seen
+	return out
+
+
 func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName:
 	var descriptor: Dictionary = encounters.get(encounter_id, {})
 	if descriptor.is_empty():
 		return &"unknown_encounter"
-	if not initiator.is_free():
+	if not initiator.is_free() or trades.is_direct(initiator.player_id):
 		return &"already_in_battle"
 	var battle_id: String = campaign.take_battle_id()
 	var unique: bool = _is_unique(descriptor)
@@ -606,7 +702,7 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 
 ## A battle the player's own world opened, its enemies trusted: a second window joins, a beaten trainer stays beaten.
 func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> StringName:
-	if not initiator.is_free():
+	if not initiator.is_free() or trades.is_direct(initiator.player_id):
 		return &"already_in_battle"
 	var enemies: Array = []
 	var rows: Variant = message.get("enemy", [])
@@ -728,6 +824,8 @@ func _membership(sender: PokeCoopPlayer, kind: String, battle_id: String) -> Str
 
 func join_battle(joiner: PokeCoopPlayer, battle_id: String) -> StringName:
 	var session: PokeCoopBattleSession = battles.get(battle_id, null)
+	if trades.is_direct(joiner.player_id):
+		return &"partner_busy"
 	if session != null and bool(session.encounter.get("private", false)):
 		return &"private_battle"
 	return &"unknown_battle" if session == null else session.request_join(data, joiner)
@@ -768,14 +866,14 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		journal.add(PokeCoopLog.HOST, "commit", {"id": "victory:" + encounter_id, "changes": changes, "applied": applied})
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
-	var final_view: Dictionary = session.view()
-	final_view["evolvable"] = session.evolvable_uids()
-	final_view["prizes"] = prizes
+	var final_view: Dictionary = session.view().merged({"evolvable": session.evolvable_uids(), "prizes": prizes}, true)
 	for player_id: String in session.participants + session.pending_players():
 		var participant: PokeCoopPlayer = player(player_id)
 		participant.battle_id = ""
 		participant.resume_exploration()
-		(_finished.get_or_add(player_id, []) as Array).append(final_view)
+		var seen: Dictionary = session.view_for(player_id)
+		seen.merge({"evolvable": session.evolvable_uids(), "prizes": prizes}, true)
+		(_finished.get_or_add(player_id, []) as Array).append(seen)
 	battles.erase(session.id)
 	_logged_views.erase(session.id)
 	journal.add(PokeCoopLog.HOST, "battle_end", {
@@ -897,7 +995,7 @@ func shutdown(reason: String = "host_shutdown", grace_msec: int = SHUTDOWN_GRACE
 func broadcast() -> void:
 	var everyone: Dictionary = {}
 	for player_id: String in players:
-		everyone[player_id] = player(player_id).public_view()
+		everyone[player_id] = player(player_id).public_view().merged({"meeting": trades.is_direct(player_id)})
 	for map: Vector2i in scenes:
 		(everyone[scenes[map]] as Dictionary)["scene"] = map
 	var running: Array = []
@@ -909,6 +1007,7 @@ func broadcast() -> void:
 			"left": session.participants.filter(session.has_left),
 			"enemy": session.battle.mon(Gen2Battle.ENEMY).species, "trainer_class": int(session.encounter.get("trainer_class", 0)),
 			"private": bool(session.encounter.get("private", false)),
+			"versus": session.participants.duplicate() if session is PokeCoopVersus else [],
 		})
 	var offered: Array = []
 	for encounter_id: String in encounters:
@@ -936,7 +1035,7 @@ func broadcast() -> void:
 		})
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):
-				transport.send(peer, {"type": "battle", "view": session.view()})
+				transport.send(peer, {"type": "battle", "view": session.view_for(viewer.player_id)})
 		for final_view: Dictionary in _finished.get(viewer.player_id, []):
 			transport.send(peer, {"type": "battle", "view": final_view})
 		_finished.erase(viewer.player_id)
@@ -946,6 +1045,7 @@ func broadcast() -> void:
 func _private_view(viewer: PokeCoopPlayer) -> Dictionary:
 	var out: Dictionary = viewer.private_view()
 	out["trade"] = trades.view(viewer.player_id)
+	out["challenge"] = _challenge_view(viewer.player_id)
 	var partner: PokeCoopPlayer = trades.partner_for(viewer, players)
 	if partner != null:
 		out["trade_partner"] = {

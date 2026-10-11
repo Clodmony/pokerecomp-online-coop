@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Friend menu continuation (#104, D100, 2026-10-11–12)
+
+Claude left an uncommitted `coop/pvp-battle` worktree on the native menus and
+Cable Club continue branch. `coop/friend-menu` keeps that worktree intact and
+completes its friend battles, invitations and trades; dependencies are draft
+#101 and #103. BATTLE / TRADE / CANCEL is available by talking to the partner,
+and named BATTLE / TRADE rows are in START > CO-OP (also SELECT).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Co-op suites 243/243, 1217 assertions. Friend invitations, both choices/replacements, mirrored views, full unsplit EXP for winner/loser, healing without money/warp/whiteout, simultaneous learning, forced turns, timeout/busy/disconnect, direct trade swap/cancellation and log replay. The existing gesture test now releases held actions and clears a previous menu's input stall before counting presses. |
+| Editor | Godot 4.8-dev7 import/class scan; analyser: 0 warnings across all 18 changed scripts; Debugger dump: 0 entries |
+| Whole suite and boot | 5098/5098 tests, 151074 assertions, 214.4 s through the bounded CI runner on 2026-10-12; editor import and boot smoke pass |
+| Source gates | `test_source_budget` 4/4; engine-free gates pass, comments 41343/41343 |
+| Localhost sockets | ENet demo 16/16 on port 24581; three-process host/p1/p2 check passes on 24582 |
+| Screens | `friend_menu`: English Red and German Rote Edition, 21 captures each, all inspected: own teams on both battle fields, natural finish, healed parties (Blue's RATTATA level 9 to 10), trade invitations, the complete native trade movie, swapped parties and CANCEL back at both original cells. The saved campaign keeps 3000 money each and every UID once. A short German invitation run also checks the widened JA/NEIN box. Captures and imports stay under `/tmp`, outside commits |
+| Platforms | Linux game windows exercised. Local Linux and Windows exports both boot: Linux directly, Windows under Wine in a fresh temporary prefix. No hand-played Windows or phone session for this continuation. |
+
 ## Baseline
 
 | Check | Result | Where |

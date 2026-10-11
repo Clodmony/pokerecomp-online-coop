@@ -13,6 +13,7 @@ const PLAYER_COLORS: Array = [
 ]
 
 var client: PokeCoopClient = null
+var meet: Callable = Callable()
 var _world: Gen2WorldAPI = null
 var _reported: Dictionary = {}
 var _walks: Dictionary = {}
@@ -104,6 +105,16 @@ func sprites() -> Array:
 			entry["emote"] = Gen2WorldActors.EMOTE_SHOCK
 		out.append(entry)
 	return out
+
+
+func interact(cell: Vector2i, _facing: int) -> bool:
+	if not meet.is_valid():
+		return false
+	for id: String in _visible():
+		if _view(id).get("cell") == cell:
+			meet.call(id)
+			return true
+	return false
 
 
 func _colors(player_id: String) -> PackedColorArray:

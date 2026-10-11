@@ -147,10 +147,10 @@ func start_battle(encounter_id: String) -> int:
 
 ## [param command] at the battle's last known revision unless it names one.
 func act(battle_id: String, command: Dictionary) -> int:
-	var sent: Dictionary = command.duplicate()
-	if not sent.has("revision"):
-		sent["revision"] = int(battle(battle_id).get("revision", -1))
-	return send({"type": "command", "battle": battle_id, "command": sent})
+	var command_out: Dictionary = command.duplicate()
+	if not command_out.has("revision"):
+		command_out["revision"] = int(battle(battle_id).get("revision", -1))
+	return send({"type": "command", "battle": battle_id, "command": command_out})
 
 
 func suggest(battle_id: String, kind: String, value: int, recipient: String = "") -> int:
@@ -170,6 +170,14 @@ func leave_battle(battle_id: String) -> int:
 
 func stand_in(battle_id: String) -> int:
 	return send({"type": "stand_in", "battle": battle_id})
+
+
+func challenge(partner: String, kind: String) -> int:
+	return send({"type": "challenge", "partner": partner, "kind": kind})
+
+
+func answer_challenge(id: String, yes: bool) -> int:
+	return send({"type": "challenge", "id": id, "answer": 1 if yes else 0})
 
 
 func request_save() -> int:

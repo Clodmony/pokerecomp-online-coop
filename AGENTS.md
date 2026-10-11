@@ -137,6 +137,7 @@ before pushing.
 | `game/coop/coop_player.gd` | `PokeCoopPlayer`: one player's team (uids), box, bag, money, position |
 | `game/coop/coop_roster.gd` | `PokeCoopRoster`: owner and uid of every allied battle index |
 | `game/coop/coop_battle_session.gd` | `PokeCoopBattleSession`: one battle, turn authority, suggestions, joins, results |
+| `game/coop/coop_versus.gd` | `PokeCoopVersus`: friend battle, both human sides, mirrored views and post-fight healing/experience |
 | `game/coop/coop_policy.gd` | `PokeCoopPolicy`: provisional rules kept out of the simulation |
 | `game/coop/coop_host.gd` | `PokeCoopHost`: authoritative validation, protocol, save checkpoints, lifecycle |
 | `game/coop/coop_client.gd` | `PokeCoopClient`: intentions out, authoritative state in |

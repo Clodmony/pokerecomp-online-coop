@@ -137,7 +137,24 @@ or one after another:
   be had once by each player.
 - Evolutions and the whiteout after a loss happen in each owner's own world.
 
+## Battle a friend
+
+Talk to the other player and choose BATTLE, or open START > CO-OP and choose
+BATTLE followed by their name (SELECT also opens it). They receive a YES/NO
+invitation when their current scene ends; B or no answer for 30 seconds
+means NO. Both players choose their own moves, switches and replacements.
+RUN forfeits; items are unavailable. Afterwards both teams recover full HP,
+PP and status at their original positions, with experience for the opponents
+each Pokémon faced. No prize or whiteout occurs.
+
 ## Trading
+
+Talk to the partner and choose TRADE, or choose TRADE and their name from
+START > CO-OP. After they accept, both see the normal trade screen wherever
+they are. Select a Pokémon, select TRADE, advance the text and confirm TRADE.
+To leave, move below your party to CANCEL and press A; both return to their
+worlds in place. A disconnected player also ends the direct pairing.
+
 
 Both players go to a Pokémon Center's Cable Club receptionist, enter the Trade
 Center, sit at the table facing right and press A. The trade screen shows the

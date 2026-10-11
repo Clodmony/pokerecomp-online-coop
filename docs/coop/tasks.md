@@ -52,7 +52,7 @@ keep the snapshot below current.
     are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D100 (D72 to D99 are recorded).
+- **Next free decision number:** D101 (D72 to D100 are recorded).
 - **Godot 4.8-dev7** since the 0.1.75 merge (D97; dev4 before it):
   `Godot_v4.8-dev7_linux.x86_64.zip` from godot-builds, unzipped into the
   session scratchpad; the system `godot` is 4.7 and cannot open the project.
@@ -68,6 +68,14 @@ keep the snapshot below current.
 - **Not in git (lost on reboot):** run captures, logs, seeds and the agents'
   scratch scripts; the agents' git worktrees can be removed once their
   branches are merged.
+
+## Current continuation (2026-10-11)
+
+`coop/friend-menu` continues Claude's uncommitted PvP work, on the native menu
+and Cable Club continue fixes (`coop/link-room-continue`, draft #103, which
+follows #101). #104 implements consenting friend battles and direct trades
+from START > CO-OP or by talking to the partner (D100). See `progress.md` for
+its exact verification; the broader campaign tasks below remain outstanding.
 
 ## Next tasks
 

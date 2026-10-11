@@ -598,9 +598,9 @@ func _play_cue(cue: Dictionary) -> void:
 	if audio == null:
 		return
 	if cue.has("cry") or cue.has("sound"):
-		var record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
-		if not record.is_empty():
-			audio.play_record(record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
+		var cue_record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
+		if not cue_record.is_empty():
+			audio.play_record(cue_record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
 		return
 	var music: int = Gen1Layout.MUSIC_DEFEATED_GYM_LEADER if bool(cue.get("gym", false)) else \
 		(Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON)
@@ -665,7 +665,7 @@ func _waiting_text(view: Dictionary) -> String:
 	var controller: String = String(view.get("controller", ""))
 	var allies: Array = view.get("allies", [])
 	var active: int = int(view.get("active", 0))
-	var out_now: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
+	var species_name: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
 		if active >= 0 and active < allies.size() else ""
 	if bool(view.get("paused", false)):
 		return _de(data, "%s is away.\nWaiting...") % _player_name(controller)
@@ -675,7 +675,7 @@ func _waiting_text(view: Dictionary) -> String:
 				return _de(data, "Bring out which\nPOKéMON?")
 			PokeCoopBattleSession.AWAITING_LEARN:
 				return _de(data, "Which move should\nbe forgotten?")
-		return _de(data, "What will\n%s do?") % out_now
+		return _de(data, "What will\n%s do?") % species_name
 	return _de(data, "%s is\ndeciding...") % _player_name(controller)
 
 

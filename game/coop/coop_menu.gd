@@ -3,6 +3,7 @@ extends Node
 
 signal leave_requested
 signal acted
+signal notice(text: String)
 
 const MENU_ID: StringName = &"coop_menu"
 const LABEL: String = "CO-OP"
@@ -17,6 +18,12 @@ var data: GameData = null
 var hardware: Gen2Screen = null
 var blocked: Callable = Callable()
 var select_allowed: Callable = Callable()
+var ready_to_meet: Callable = Callable()
+var before_meet: Callable = Callable()
+var _partner: String = ""
+var _incoming: Dictionary = {}
+var _asked_at: int = 0
+var _answer_seen: int = 0
 var _rows: Array = []
 var _cursor: int = 0
 var _scroll: int = 0
@@ -66,6 +73,7 @@ func open() -> void:
 	if _open or client == null or (blocked.is_valid() and bool(blocked.call())):
 		return
 	_open = true
+	_partner = ""
 	_asking = false
 	_cursor = 0
 	_scroll = 0
@@ -81,6 +89,8 @@ func open() -> void:
 
 
 func close() -> void:
+	_incoming = {}
+	_partner = ""
 	_open = false
 	_asking = false
 	Gen2Screen.drop(_picture)
@@ -94,6 +104,7 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
+	_poll_challenges()
 	if not _open:
 		return
 	if blocked.is_valid() and bool(blocked.call()):
@@ -153,6 +164,11 @@ func _choose() -> void:
 			client.start_battle(String(row["id"]))
 		"join":
 			client.join_battle(String(row["id"]))
+		"battle", "trade":
+			if before_meet.is_valid():
+				before_meet.call()
+			client.challenge(String(row["id"]), String(row["action"]))
+			notice.emit(_ui("Invitation sent."))
 		"leave":
 			_asking = true
 			_no = false
@@ -164,6 +180,13 @@ func _choose() -> void:
 
 
 func _answer(yes: bool) -> void:
+	if not _incoming.is_empty():
+		if yes and before_meet.is_valid():
+			before_meet.call()
+		client.answer_challenge(String(_incoming["id"]), yes)
+		acted.emit()
+		close()
+		return
 	_asking = false
 	if not yes:
 		return
@@ -172,8 +195,62 @@ func _answer(yes: bool) -> void:
 	leave_requested.emit()
 
 
+func open_partner(player_id: String) -> void:
+	open()
+	if not _open:
+		return
+	_partner = player_id
+	_refresh()
+
+
+func _poll_challenges() -> void:
+	var status: Dictionary = client.me().get("challenge", {})
+	var answered: Dictionary = status.get("answered", {})
+	if answered.is_empty():
+		_answer_seen = 0
+	if int(answered.get("serial", 0)) > _answer_seen:
+		_answer_seen = int(answered["serial"])
+		notice.emit(_ui("Invitation: %s") % _ui(String(answered.get("answer", "")).replace("_", " ")))
+	var incoming: Dictionary = status.get("incoming", {})
+	if not _incoming.is_empty():
+		if incoming.is_empty():
+			close()
+		elif Time.get_ticks_msec() - _asked_at >= PokeCoopPolicy.CHALLENGE_ANSWER_MSEC:
+			_answer(false)
+		return
+	if incoming.is_empty() or _open or (ready_to_meet.is_valid() and not bool(ready_to_meet.call())):
+		return
+	open()
+	if _open:
+		_incoming = incoming
+		_asking = true
+		_no = false
+		_asked_at = Time.get_ticks_msec()
+
+
+func _partner_rows() -> Array:
+	var out: Array = []
+	if not String(client.me().get("battle", "")).is_empty() or not (client.me().get("opening", {}) as Dictionary).is_empty() \
+			or not (client.me().get("trade", {}).get("direct", {}) as Dictionary).is_empty():
+		return out
+	var everyone: Dictionary = client.state.get("players", {})
+	for id: String in everyone:
+		var member: Dictionary = everyone[id]
+		if id == client.player_id or bool(member.get("meeting", false)) or not bool(member.get("connected", false)) or member.get("opening") == true \
+				or not String(member.get("battle", "")).is_empty() or (not _partner.is_empty() and id != _partner):
+			continue
+		for kind: String in [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE]:
+			var label: String = _ui(kind.to_upper())
+			var member_name: String = String(member.get("name", id))
+			out.append({"text": "%s %s" % [kind.to_upper(), member_name], "label": label if not _partner.is_empty() else label + " " + member_name,
+				"action": kind, "id": id})
+	return out
+
+
 func rows() -> Array:
 	var out: Array = []
+	if not _partner.is_empty():
+		return _partner_rows() + [{"text": "CANCEL", "label": _ui("CANCEL"), "action": "cancel"}]
 	for offer: Dictionary in client.state.get("encounters", []):
 		out.append({"text": "FIGHT %s" % offer["label"], "label": _ui("FIGHT"), "detail": String(offer["label"]),
 			"action": "fight", "id": offer["id"]})
@@ -186,6 +263,7 @@ func rows() -> Array:
 			var names: String = ", ".join(PackedStringArray((running["participants"] as Array).map(_name)))
 			out.append({"text": "JOIN %s (%s)" % [running["battle"], names], "label": _ui("JOIN %s") % names,
 				"detail": against, "action": "join", "id": running["battle"]})
+	out.append_array(_partner_rows())
 	out.append({"text": "LEAVE SESSION", "label": _ui("LEAVE SESSION"), "action": "leave"})
 	out.append({"text": "CANCEL", "label": _ui("CANCEL"), "action": "cancel"})
 	return out
@@ -200,13 +278,13 @@ func _header() -> PackedStringArray:
 		var view: Dictionary = everyone[player_id]
 		if player_id == client.player_id or not bool(view.get("connected", true)):
 			continue
-		var name: String = String(view.get("name", player_id))
+		var member_name: String = String(view.get("name", player_id))
 		var where: String = _ui("IN A BATTLE") if not String(view.get("battle", "")).is_empty() \
 			else _ui("IN THE OPENING") if view.get("opening") == true else _place(view.get("map"))
-		if ("%s %s" % [name, where]).length() <= COLUMNS - 2:
-			lines.append(("%s %s" % [name, where]).strip_edges())
+		if ("%s %s" % [member_name, where]).length() <= COLUMNS - 2:
+			lines.append(("%s %s" % [member_name, where]).strip_edges())
 		else:
-			lines.append_array([name, " " + where])
+			lines.append_array([member_name, " " + where])
 	if lines.size() == titled:
 		lines.append(_ui("NO PARTNER YET"))
 	lines = lines.slice(0, HEADER_LINES - 1)
@@ -231,7 +309,7 @@ func _refresh() -> void:
 	_cursor = clampi(_cursor, 0, maxi(_rows.size() - 1, 0))
 	var header: PackedStringArray = _header()
 	var key: String = "%s|%s|%d|%d|%s|%s" % [header, _rows.map(func(row: Dictionary) -> String: return row["text"]),
-		_cursor, _scroll, _asking, _no]
+		_cursor, _scroll, str(_asking) + str(_incoming), _no]
 	if key == _shown or _picture == null or _page == null:
 		return
 	_shown = key
@@ -244,14 +322,23 @@ func _refresh() -> void:
 	_page.draw(info, [], -1, indices, Gen2Screen.WIDTH, LABEL, 1, extras)
 	if _asking:
 		_page.draw(Gen2MenuBox.from_coords(0, QUESTION_TOP, COLUMNS - 1, ROWS - 1, 0), [], -1, indices, Gen2Screen.WIDTH, "", 0, [
-			{"text": _ui("Leave the co-op"), "at": Vector2i(1, QUESTION_TOP + 2)},
-			{"text": _ui("session?"), "at": Vector2i(1, QUESTION_TOP + 4)},
+			{"text": _question_lines()[0], "at": Vector2i(1, QUESTION_TOP + 2)},
+			{"text": _question_lines()[1], "at": Vector2i(1, QUESTION_TOP + 4)},
 		])
-		_page.draw(Gen2MenuBox.yes_no(), [_ui("YES"), _ui("NO")], 1 if _no else 0, indices, Gen2Screen.WIDTH)
+		var answers: Array = [_ui("YES"), _ui("NO")]
+		var choice: Gen2MenuBox = Gen2MenuBox.yes_no()
+		choice.left = mini(choice.left, COLUMNS - 3 - int(answers.map(func(answer: String) -> int: return answer.length()).max()))
+		_page.draw(choice, answers, 1 if _no else 0, indices, Gen2Screen.WIDTH)
 	else:
 		_draw_rows(indices, header.size() + 2)
 	Gen2PicImage.show(_picture, Gen2PicImage.from_indices(indices, Gen2Screen.WIDTH, Gen2Screen.HEIGHT,
 		PokePalette.pic_palette(PackedColorArray([Color.WHITE, Color.BLACK]))))
+
+
+func _question_lines() -> Array:
+	if _incoming.is_empty():
+		return [_ui("Leave the co-op"), _ui("session?")]
+	return [_name(String(_incoming["from"])), _ui("wants to battle!" if _incoming["kind"] == "battle" else "wants to trade!")]
 
 
 func _draw_rows(indices: PackedByteArray, top: int) -> void:

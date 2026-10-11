@@ -270,6 +270,16 @@ static func _replay_line(host: PokeCoopHost, line: Dictionary, out: Dictionary) 
 			if session != null:
 				session.abandon()
 				host._finish(session)
+		"battle_advance":
+			var forced: PokeCoopBattleSession = host.battles.get(str(data.get("battle")))
+			if forced is PokeCoopVersus:
+				forced.set("_forced_at", Time.get_ticks_msec() - 200)
+				if forced.advance() and forced.phase() == PokeCoopBattleSession.OVER:
+					host._finish(forced)
+		"challenge_answer":
+			var expired: Dictionary = host.challenges.get(str(data.get("id")), {})
+			if data.get("answer") == "timeout" and not expired.is_empty():
+				host._settle_challenge(expired, "timeout")
 		"encounter":
 			host.register_encounter(str(data.get("id")), restored(data.get("descriptor", {})))
 		"shutdown":

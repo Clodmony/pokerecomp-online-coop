@@ -1455,3 +1455,33 @@ tap is A, fed as ordinary button presses; touches on the on-screen pad and
 two-finger touches are left alone, and walking on the map is untouched. No
 new size setting: the menus are drawn at the game screen's scale, upstream's
 zoom is keyboard and wheel only, and the pad has its own SIZE.
+
+
+## D100. Friends battle and trade from their current locations (#104, 2026-10-11)
+
+The owner's request, begun by Claude and continued by Codex: talking to the
+partner opens BATTLE / TRADE / CANCEL; START > CO-OP also lists each free
+partner. An invitation needs the recipient's YES, displayed at a rest point.
+NO, B or 30 seconds unanswered declines it; the host expires a pending
+invitation after 60 seconds and rechecks availability on acceptance.
+
+`PokeCoopVersus` extends the existing battle session because both sides now
+need human commands, replacements, private mirrored views and learning prompts.
+The campaign host remains authoritative and uses the existing battle engine.
+Choices from both players may use the same round revision; learning answers
+have a separate minimum revision per side. Forced turns continue on the host.
+A dropped opponent pauses human choices and is allowed the existing two-minute
+reconnection grace; the other player cannot stand in for them.
+
+At the end both parties recover HP, PP and status where they stood, without
+money, story rewards or whiteout. Each Pokémon receives the full trainer EXP
+and stat EXP for every distinct opposing Pokémon it faced, whether its player
+won or lost; teammates do not split that award. Normal traded-Pokémon boosts,
+level growth, learning and evolution still belong to the existing engine.
+RUN forfeits. Items are unavailable in this friend battle.
+
+A trade pairs the two consenting players in `PokeCoopTrades`, opens the
+existing native trade screen in each world, and uses the existing cable and
+exactly-once swap. Cancellation or disconnection releases both players without
+moving them. Ordinary Cable Club trading continues to use its room pairing.
+Protocol 6 carries invitations and these private views; both builds must match.
