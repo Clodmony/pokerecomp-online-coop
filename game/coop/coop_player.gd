@@ -27,6 +27,8 @@ var map: Vector2i = Vector2i(-1, -1)
 var cell: Vector2i = Vector2i.ZERO
 var facing: int = 0
 var return_point: Dictionary = {}
+## The cell a Cable Club room was entered from, which the cartridge's save holds and a continue opens on.
+var link_origin: Dictionary = {}
 var places: Dictionary = {}
 var battle_id: String = ""
 var connected: bool = false
@@ -294,6 +296,10 @@ func add_money(amount: int) -> void:
 
 
 func place(at_map: Vector2i, at_cell: Vector2i, toward: int) -> void:
+	if not PokeCoopTrades.LINK_ROOMS.has(at_map):
+		link_origin = {}
+	elif link_origin.is_empty() and not PokeCoopTrades.LINK_ROOMS.has(map):
+		link_origin = {"map": map, "cell": cell, "facing": facing, "last_map": int(places.get("gen1_last_map", -1))}
 	map = at_map
 	cell = at_cell
 	facing = toward
@@ -318,10 +324,13 @@ func resume_exploration() -> void:
 
 
 func public_view() -> Dictionary:
-	return {
+	var out: Dictionary = {
 		"player_id": player_id, "name": name, "map": map, "cell": cell, "facing": facing,
 		"battle": battle_id, "connected": connected, "opening": is_hidden(),
 	}
+	if not link_origin.is_empty():
+		out["rest"] = link_origin.duplicate()
+	return out
 
 
 func private_view() -> Dictionary:
@@ -342,6 +351,7 @@ func private_view() -> Dictionary:
 
 
 func to_dict() -> Dictionary:
+	var rest: Dictionary = link_origin if not link_origin.is_empty() else {"map": map, "cell": cell, "facing": facing}
 	var item_rows: Array = []
 	var numbers: Array = items.keys()
 	numbers.sort()
@@ -351,10 +361,17 @@ func to_dict() -> Dictionary:
 		"player_id": player_id, "name": name, "trainer_id": trainer_id,
 		"team": _rows_to_dicts(team), "box": _rows_to_dicts(box),
 		"items": item_rows, "money": money,
-		"map": [map.x, map.y], "cell": [cell.x, cell.y], "facing": facing,
+		"map": [rest["map"].x, rest["map"].y], "cell": [rest["cell"].x, rest["cell"].y], "facing": int(rest["facing"]),
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
-		"current_box": current_box, "opening": opening.duplicate(true), "places": places.duplicate(),
+		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(),
 	}
+
+
+func _resting_places() -> Dictionary:
+	var out: Dictionary = places.duplicate()
+	if int(link_origin.get("last_map", -1)) >= 0:
+		out["gen1_last_map"] = int(link_origin["last_map"])
+	return out
 
 
 static func _rows_to_dicts(rows: Array) -> Array:

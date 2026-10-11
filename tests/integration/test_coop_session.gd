@@ -2464,6 +2464,26 @@ func test_a_world_continued_after_a_reset_shows_no_closed_battle_again() -> void
 	assert_true(panel.battle_view().is_empty(), "the world the reset reopened starts with none")
 
 
+func test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist_as_the_cartridges_save_does() -> void:
+	var center := Vector2i(0, 0x3A)
+	var trade_center := Vector2i(0, Gen1Layout.TRADE_CENTER)
+	_send(func() -> void: _red.step(center, Vector2i(11, 3), Gen2WorldSprite.FACING_UP, true, {"gen1_last_map": 2}))
+	_send(func() -> void: _red.step(trade_center, Vector2i(3, 4), Gen2WorldSprite.FACING_DOWN, true, {"gen1_last_map": 0}))
+	_send(func() -> void: _red.step(trade_center, Vector2i(3, 3), Gen2WorldSprite.FACING_UP))
+
+	var world: Gen2WorldSnapshot = PokeCoopWorldLink.continued_world(_red)
+	assert_eq([world.map_id, world.player_cell, world.player_facing], [center, Vector2i(11, 3), Gen2WorldSprite.FACING_UP],
+		"a reset in the room has no way out but the cartridge's own: the save's cell")
+	assert_eq(world.gen1_last_map, 2, "and the center's door leads back to the city, not to PALLET TOWN")
+	var saved: Dictionary = _host.player(_red.player_id).to_dict()
+	assert_eq([saved["map"], saved["cell"], int(saved["places"]["gen1_last_map"])], [[0, 0x3A], [11, 3], 2],
+		"and a campaign hosted again opens there too")
+
+	_send(func() -> void: _red.step(center, Vector2i(11, 4), Gen2WorldSprite.FACING_DOWN, true))
+	assert_false((_red.state["players"][_red.player_id] as Dictionary).has("rest"), "out of the room, a continue is where they stand")
+	assert_eq(PokeCoopWorldLink.continued_world(_red).player_cell, Vector2i(11, 4))
+
+
 func test_a_player_the_credits_left_in_the_hall_of_fame_continues_in_pallet_town() -> void:
 	var landing: Dictionary = {"x": 5, "y": 6}
 	var saved := Gen2WorldSnapshot.new()

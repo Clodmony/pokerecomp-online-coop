@@ -434,13 +434,14 @@ static func afloat(tileset: Gen2WorldTileset, map: Gen2WorldMap, cell: Vector2i)
 
 static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
 	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(session.player_id, {})
+	view = view.get("rest", view)
 	var places: Dictionary = session.me().get("places", {})
 	var out := Gen2WorldSnapshot.new()
 	out.map_id = view.get("map", PokeCoopPolicy.START_MAP)
 	out.player_cell = view.get("cell", Vector2i.ZERO)
 	out.player_facing = int(view.get("facing", Gen2WorldSprite.FACING_DOWN))
 	out.world_state = Gen2WorldState.from_dict(_host_world(session))
-	out.gen1_last_map = int(places.get("gen1_last_map", out.gen1_last_map))
+	out.gen1_last_map = int(view.get("last_map", places.get("gen1_last_map", out.gen1_last_map)))
 	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
 	return out
 
