@@ -594,6 +594,38 @@ func test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder(
 	RomCache.clear(blaue_cache)
 
 
+func test_wild_pokemon_from_both_versions_is_a_campaign_switch_off_until_turned_on() -> void:
+	var cache: String = RomCache.directory_for(&"coopdevicerote", "")
+	var rote: GameData = Fixture.build(cache, String(RomRegistry.RED_DE), RomRegistry.GEN1)
+	rote.sha1 = RomRegistry.sha1_for(RomRegistry.RED_DE)
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return rote if id == RomRegistry.RED_DE else null
+	PokeCoopPage.forget()
+	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	_press(page, "HOST")
+	_press(page, "+ New campaign")
+	_type(page, "title", "plain")
+	_press(page, "Create and host")
+	_sessions.append(Gen2GameRuntime.instance().coop)
+	_close_all()
+	var plain: Dictionary = PokeCoopSession.campaigns(rote, PORT)[0]
+	assert_false(bool(plain["both_versions"]), "off unless turned on")
+
+	page = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	_press(page, "HOST")
+	(page as PokeCoopPage)._open_edit(0)
+	assert_true(_press(page, "Wild Pokémon from both versions"), "an existing campaign can take it")
+	assert_true(_press(page, "Save"))
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(rote, PORT, "ROT", 0, null, String(plain["id"]))
+	_sessions.append(hosting)
+	assert_true(hosting.host.campaign.both_versions)
+	assert_eq(hosting.host.wild_tables_missing(), [RomRegistry.RED_DE, RomRegistry.BLUE_DE], "until each version's device sends its slots")
+	_close_all()
+	for path: String in DirAccess.get_files_at(PokeCoopSession.campaign_path(rote).get_base_dir()):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(PokeCoopSession.campaign_path(rote).get_base_dir().path_join(path)))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PokeCoopSession.campaign_path(rote).get_base_dir()))
+	RomCache.clear(cache)
+
+
 func test_a_device_asks_the_host_first_and_says_hello_on_the_same_link() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "", "WITH BLUE")
 	_sessions.append(hosting)

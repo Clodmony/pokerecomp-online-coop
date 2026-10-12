@@ -141,6 +141,16 @@ or one after another:
   VOUCHER, the GOLD TEETH) is taken from everyone; fossils are not, so each of
   you revives your own. What you buy, trade for or use stays yours. Hidden
   items are each player's own to find.
+- **Wild Pokémon from both versions** (a switch in New campaign and Edit
+  campaign, off by default): where the other version has a Pokémon in the same
+  place and slot that your version never has in the wild (such as MAUZI or
+  KNOFENSA in Rote, MENKI or MYRAPLA in Blaue), half the wild Pokémon met in
+  that slot are that one, at the slot's level. Everything both versions have
+  keeps your cartridge's odds. It needs a player of each version in the session, since
+  each device only knows its own cartridge's tables; until one joins, the
+  Hosting screen says which version it waits for and everyone meets their own.
+  Fishing, the Game Corner's prizes and the in-game trades stay your own
+  version's.
 - **Saving**: START > SAVE saves the whole campaign, everyone in it. You see
   "Campaign saved." and the others see "BLUE saved the campaign."; a save
   refused during a battle says so. The host also saves by itself after

@@ -2826,7 +2826,7 @@ func _substitute_wild(
 		"method": method, "source": resolved.get("source", &""),
 		"map_group": current_map.group, "map_number": current_map.number,
 		"species": int(resolved["pokemon"]), "level": int(resolved["level"]),
-		"generation": data.generation,
+		"generation": data.generation, "slot": int(resolved.get("slot", -1)),
 		"roll": random.randi_range(0, 255) if random != null else 0,
 	})
 	if answer.is_empty():

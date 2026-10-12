@@ -72,6 +72,10 @@ const RIVAL_SCENES: Dictionary = {
 
 
 const VERSION_PAIRS: Array = [[RomRegistry.RED, RomRegistry.BLUE], [RomRegistry.RED_DE, RomRegistry.BLUE_DE]]
+## A wild met in the grass or the water is, half the time, the other version's Pokémon from the same map and slot (D104).
+const WILD_TABLES: Dictionary = {"grass": Gen2WorldEncounter.METHOD_GRASS, "water": Gen2WorldEncounter.METHOD_SURF}
+const WILD_SLOTS: int = 10
+const OTHER_VERSION_TAG: StringName = &"other_version"
 const CHALLENGE_BATTLE: String = "battle"
 const CHALLENGE_TRADE: String = "trade"
 const CHALLENGE_ANSWER_MSEC: int = 30000
@@ -97,6 +101,70 @@ static func versus_experience(award: Gen2Battle, faced: Dictionary, foes: Array)
 ## Prize money with Pay Day's: every participant is paid all of it (D61).
 static func same_story(game: StringName, other: StringName) -> bool:
 	return game == other or VERSION_PAIRS.any(func(pair: Array) -> bool: return pair.has(game) and pair.has(other))
+
+
+static func other_version(game: StringName) -> StringName:
+	for pair: Array in VERSION_PAIRS:
+		if pair.has(game):
+			return pair[1] if pair[0] == game else pair[0]
+	return &""
+
+
+## This cartridge's Generation 1 wild slots, `{"grass"|"water": {map number: [[species, level], ...]}}`.
+static func wild_tables(data: GameData) -> Dictionary:
+	var out: Dictionary = {}
+	for table: String in WILD_TABLES:
+		var maps: Dictionary = {}
+		for number: int in (256 if data != null and data.generation == RomRegistry.GEN1 else 0):
+			var slots: Variant = data.world_encounter(WILD_TABLES[table], 0, number).get("slots", [])
+			if slots is Array and not (slots as Array).is_empty():
+				maps[str(number)] = (slots as Array).map(func(slot: Dictionary) -> Array: return [int(slot["species"]), int(slot["level"])])
+		out[table] = maps
+	return out
+
+
+static func sane_wild_tables(raw: Variant) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var out: Dictionary = {}
+	for table: String in WILD_TABLES:
+		var maps: Variant = (raw as Dictionary).get(table, {})
+		if not maps is Dictionary or (maps as Dictionary).size() > 256:
+			return {}
+		out[table] = {}
+		for number: Variant in maps:
+			var slots: Variant = maps[number]
+			if not String(number).is_valid_int() or not slots is Array or (slots as Array).size() > WILD_SLOTS \
+					or not (slots as Array).all(func(slot: Variant) -> bool: return _sane_slot(slot)):
+				return {}
+			out[table][str(int(String(number)))] = (slots as Array).map(func(slot: Array) -> Array: return [int(slot[0]), int(slot[1])])
+	return out
+
+
+static func _sane_slot(slot: Variant) -> bool:
+	return slot is Array and (slot as Array).size() == 2 and Gen2WorldEncounter.valid_mon(int(slot[0]), int(slot[1]), true)
+
+
+## A [method Gen2ModHost.substitute_wild] answer: on the upper half of `roll`, the other version's slot when it holds a Pokémon [param own] never has.
+static func other_wild(context: Dictionary, tables: Dictionary, own: Dictionary) -> Dictionary:
+	var table: String = "water" if StringName(context.get("method", &"")) == Gen2WorldEncounter.METHOD_SURF else "grass"
+	var slots: Array = (tables.get(table, {}) as Dictionary).get(str(int(context.get("map_number", -1))), [])
+	var slot: int = int(context.get("slot", -1))
+	if int(context.get("roll", 0)) < 128 or int(context.get("map_group", -1)) != 0 or slot < 0 or slot >= slots.size():
+		return {}
+	var other: Array = slots[slot]
+	if own.has(int(other[0])):
+		return {}
+	return {"species": int(other[0]), "level": int(other[1]), "tag": OTHER_VERSION_TAG}
+
+
+static func wild_species(tables: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for maps: Dictionary in tables.values():
+		for slots: Array in maps.values():
+			for slot: Array in slots:
+				out[int(slot[0])] = true
+	return out
 
 
 static func plays_with(game: StringName, sha1: String, campaign_game: StringName, campaign_sha1: String) -> bool:
