@@ -111,8 +111,8 @@ const DEX_ENTRY_DESCRIPTION: int = 0x10
 ## Padding follows the last word, so the four start ten bytes from the end.
 const DEX_ENTRY_SCALES_FROM_END: int = 10
 
-## The longest pointed-to text is a dex page of 170 bytes.
-const TEXT_LIMIT: int = 512
+## The longest pointed-to text is one of Ruby's script texts, 825 bytes.
+const TEXT_LIMIT: int = 1024
 
 const LEARNSET_END: int = 0xFFFF
 const LEARNSET_MOVE_MASK: int = 0x01FF
@@ -146,7 +146,10 @@ const EMERALD_MAP_GROUP_SIZES: Array[int] = [
 
 ## gStdScripts and BattleSetup_ConfigureTrainerBattle's five helper entry points
 ## come from nm on the matching pret builds, including Sapphire's shifted scripts.
+## `gInitialMovementTypeFacingDirections` follows `gRangedMovementTypes` directly.
 const RUBY: Dictionary = {
+	"movement_types": 0x36DBD4,
+	"movement_type_count": 77,
 	"standard_scripts": 0x14B70C,
 	"standard_script_count": 8,
 	"trainer_battle_scripts": [0x19F838, 0x19F860, 0x19F898, 0x19F8A7, 0x19F8CE],
@@ -191,6 +194,8 @@ const RUBY: Dictionary = {
 }
 
 const SAPPHIRE: Dictionary = {
+	"movement_types": 0x36DB64,
+	"movement_type_count": 77,
 	"standard_scripts": 0x14B70C,
 	"standard_script_count": 8,
 	"trainer_battle_scripts": [0x19F7C8, 0x19F7F0, 0x19F828, 0x19F837, 0x19F85E],
@@ -235,6 +240,8 @@ const SAPPHIRE: Dictionary = {
 }
 
 const FIRERED: Dictionary = {
+	"movement_types": 0x39FD7C,
+	"movement_type_count": 81,
 	"standard_scripts": 0x1604C8,
 	"standard_script_count": 10,
 	"trainer_battle_scripts": [0x1A4F39, 0x1A4F61, 0x1A4F99, 0x1A4FB6, 0x1A4FEB],
@@ -279,6 +286,8 @@ const FIRERED: Dictionary = {
 }
 
 const LEAFGREEN: Dictionary = {
+	"movement_types": 0x39FD5C,
+	"movement_type_count": 81,
 	"standard_scripts": 0x1604A4,
 	"standard_script_count": 10,
 	"trainer_battle_scripts": [0x1A4F15, 0x1A4F3D, 0x1A4F75, 0x1A4F92, 0x1A4FC7],
@@ -323,6 +332,8 @@ const LEAFGREEN: Dictionary = {
 }
 
 const EMERALD: Dictionary = {
+	"movement_types": 0x50557C,
+	"movement_type_count": 81,
 	"standard_scripts": 0x1DC2A0,
 	"standard_script_count": 11,
 	"trainer_battle_scripts": [0x271362, 0x27138A, 0x2713C2, 0x2713D1, 0x2713F8],
