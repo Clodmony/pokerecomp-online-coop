@@ -1,14 +1,14 @@
 # Every screen of the Co-op tab, photographed by the windows themselves in the light and the dark
 # theme, wide (1152x648) and upright (390x844 with a notch and a home indicator): <screen>_<theme>_<shape>.png.
-# Rote hosts a new CAMPAIGN 1 with the rival BLAU; Blaue finds it nearby, first fails to reach an
-# address nobody hosts, then joins as a new player. Rote stops hosting (asked first), shows its
-# campaign card, its edit and delete sheets, then hosts it again; Blaue, sent back, shows its Host
-# screen with Rote's campaign on it, then joins again as the trainer the host knows. Run with
-# GAME=red_de P2_GAME=blue_de (test cases K01 to K13).
+# Rote hosts a new CAMPAIGN 1 with the rival BLAU and wild Pokémon from both versions; Blaue finds it
+# nearby, first fails to reach an address nobody hosts, then joins as a new player. Rote stops hosting
+# (asked first), shows its campaign card, its edit and delete sheets, then hosts it again; Blaue, sent
+# back, shows its Host screen with Rote's campaign on it, then joins again as the trainer the host
+# knows. Run with GAME=red_de P2_GAME=blue_de (test cases K01 to K15, V01, V02).
 HOST_TOOL=none
 P1_TOOL=coop_launcher_play
 P2_TOOL=coop_launcher_play
-P1_ARGS="host name=RED starter=1 rival_name=BLAU round=60:CAMPAIGN_1 tour=$out"
+P1_ARGS="host name=RED starter=1 rival_name=BLAU both_versions round=60:CAMPAIGN_1 tour=$out"
 P2_ARGS="join name=BLUE starter=2 round=60 tour=$out"
 DURATION=150
 

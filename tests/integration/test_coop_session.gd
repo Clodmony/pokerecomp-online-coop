@@ -408,6 +408,45 @@ func test_blue_joins_a_red_campaign_of_its_own_language_and_nothing_else_does() 
 	german_host.transport.close()
 
 
+func test_with_both_versions_each_version_gets_the_others_wild_slots_for_half_its_wilds() -> void:
+	var campaign := PokeCoopCampaign.create("c4", RomRegistry.RED, RomRegistry.sha1_for(RomRegistry.RED))
+	campaign.both_versions = true
+	var host: PokeCoopHost = PokeCoopHost.create(_data, campaign, PokeCoopTransport.new())
+	var joined: Dictionary = {}
+	for row: Array in [[RomRegistry.RED, 3], [RomRegistry.BLUE, 4]]:
+		var link := PokeCoopTransport.new()
+		PokeCoopTransport.link(host.transport, link, row[1])
+		joined[row[0]] = PokeCoopClient.over(link)
+		(joined[row[0]] as PokeCoopClient).greet("", row[0], RomRegistry.sha1_for(row[0]),
+			host.add_player(String(row[0]).to_upper(), row[1]).player_id)
+	var pump: Callable = func() -> void:
+		for _round: int in 3:
+			host.poll()
+			for client: PokeCoopClient in joined.values():
+				client.poll()
+	pump.call()
+	assert_eq(host.wild_tables_missing(), [RomRegistry.RED, RomRegistry.BLUE])
+
+	(joined[RomRegistry.RED] as PokeCoopClient).send_wild_tables({"grass": {"12": [[16, 3], [19, 3]]}, "water": {}})
+	pump.call()
+	assert_eq(host.wild_tables_missing(), [RomRegistry.BLUE], "waiting for a player with Blue")
+	assert_eq([(joined[RomRegistry.RED] as PokeCoopClient).other_wild, (joined[RomRegistry.BLUE] as PokeCoopClient).other_wild["game_id"]],
+		[{}, "red"], "Blue already meets Red's; Red waits")
+	(joined[RomRegistry.BLUE] as PokeCoopClient).send_wild_tables({"grass": {"12": [[16, 3], [21, 3]]}, "water": {}})
+	pump.call()
+
+	var tables: Dictionary = (joined[RomRegistry.RED] as PokeCoopClient).other_wild["tables"]
+	var met: Dictionary = {"method": Gen2WorldEncounter.METHOD_GRASS, "map_group": 0, "map_number": 12, "slot": 1, "species": 19, "level": 3}
+	assert_eq(host.wild_tables_missing(), [])
+	assert_eq(PokeCoopPolicy.other_wild(met.merged({"roll": 127}), tables), {}, "the lower half of the roll keeps Red's own")
+	assert_eq(PokeCoopPolicy.other_wild(met.merged({"roll": 128}), tables),
+		{"species": 21, "level": 3, "tag": PokeCoopPolicy.OTHER_VERSION_TAG}, "the upper half takes Blue's from the same slot")
+	assert_eq(PokeCoopPolicy.other_wild(met.merged({"roll": 200, "slot": 0, "species": 16}, true), tables), {}, "a slot both share stays")
+	assert_eq(PokeCoopPolicy.other_wild(met.merged({"roll": 200, "map_number": 13}, true), tables), {}, "a map Blue has no grass on")
+	assert_eq(PokeCoopPolicy.sane_wild_tables({"grass": {"12": [[999, 3]]}, "water": {}}), {}, "a damaged table is refused")
+	host.transport.close()
+
+
 func test_a_probe_says_who_the_device_is_and_what_differs_and_hands_out_nobody() -> void:
 	_host.allow_new_players = true
 	_host.host_player_id = _red.player_id

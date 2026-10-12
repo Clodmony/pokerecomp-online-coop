@@ -1,8 +1,9 @@
 extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
-##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>]
-## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=; p1 imports it, p2 a copy.
+##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both]
+## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=; p1 imports it, p2 a copy;
+## `both` turns on wild Pokémon from both versions (D104).
 
 const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
@@ -31,10 +32,10 @@ func _initialize() -> void:
 		for key: String in options:
 			if arg.begins_with(key):
 				options[key] = int(arg.trim_prefix(key))
-	quit(_seed(data, args[1], args[2], options["level="], options["party="]))
+	quit(_seed(data, args[1], args[2], options["level="], options["party="], args.has("both")))
 
 
-func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0) -> int:
+func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0, both: bool = false) -> int:
 	var story: Dictionary = _gen1_story_start(data)
 	if not story.has("world"):
 		push_error("coop seed: %s" % story.get("reason", ""))
@@ -58,7 +59,7 @@ func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party:
 	fill_party(data, save, party)
 	if level > 0:
 		_raise(data, save, level)
-	var written: Error = write_seed(data, save, out_dir, _beside(world))
+	var written: Error = write_seed(data, save, out_dir, _beside(world), both)
 	print("coop seed: %s on %s %s, badges %d, party %d, %s" % [
 		last, world.map_id(), world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
 	return 0 if written == OK else 1
@@ -107,9 +108,10 @@ static func _beside(world: Gen2WorldAPI) -> Vector2i:
 	return world.player_cell
 
 
-static func write_seed(data: GameData, save: Gen2SaveData, out_dir: String, partner_cell: Vector2i) -> Error:
+static func write_seed(data: GameData, save: Gen2SaveData, out_dir: String, partner_cell: Vector2i, both: bool = false) -> Error:
 	var campaign := PokeCoopCampaign.create(String(data.id), data.id, data.sha1)
 	PokeCoopPolicy.start_campaign(campaign)
+	campaign.both_versions = both
 	campaign.rival_name = save.world.rival_name
 	var players: Array = []
 	for trainer: int in [save.player_id, save.player_id % 0xFFFF + 1]:
