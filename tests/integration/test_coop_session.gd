@@ -577,14 +577,31 @@ func test_a_gym_leaders_tm_reaches_the_player_who_was_not_there() -> void:
 	assert_eq(red.state.item_quantity(TM34), 1)
 
 
+func test_a_window_takes_a_twenty_first_item_out_of_its_pc_and_the_host_keeps_it() -> void:
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var bag: Dictionary = {}
+	for item: int in range(100, 100 + Gen1Layout.BAG_ITEM_CAPACITY):
+		bag[item] = 1
+	blue.state.apply_changes({}, {}, {"items": bag, "pc_items": {Fixture.POTION: 1}})
+	_pump()
+	blue.state.apply_changes({}, {}, {"items": {Fixture.POTION: 1}, "pc_items": {Fixture.POTION: 0}})
+	_pump()
+
+	var host: PokeCoopPlayer = _host.player(_blue.player_id)
+	assert_eq(host.items.size(), Gen1Layout.BAG_ITEM_CAPACITY + 1, "the host keeps a twenty-first row")
+	assert_eq([host.item_count(Fixture.POTION), (host.world["pc_items"] as Dictionary).size()], [1, 0])
+	assert_eq(blue.state.items().size(), Gen1Layout.BAG_ITEM_CAPACITY + 1, "and gives the window nothing back")
+
+
 func test_a_late_joiner_is_handed_the_gifts_given_before_and_a_full_bag_spills_to_the_pc() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	red.state.apply_changes({}, {}, {"items": {HM01: 1}})
 	_pump()
 	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
-	for item: int in range(10, 10 + Gen1Layout.BAG_ITEM_CAPACITY):
+	for item: int in range(10, 10 + PokeCoopPolicy.BAG_CAPACITY):
 		blue.give_item(item)
 	blue.items.erase(HM01)
+	assert_gt(blue.items.size(), Gen1Layout.BAG_ITEM_CAPACITY, "a co-op bag holds more than the cartridge's twenty")
 	red.state.set_event_flag(EVENT_GOT_TM34)
 	_pump()
 	assert_eq(int((blue.world["pc_items"] as Dictionary).get(TM34, 0)), 1, "a full bag sends the gift to the PC")

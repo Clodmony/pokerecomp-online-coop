@@ -85,6 +85,16 @@ func test_a_device_hosts_and_another_joins_with_their_own_starters() -> void:
 	assert_true(hosting.host.campaign.has_flag(0x22), "a new campaign starts after Oak's intro")
 
 
+func test_closing_a_session_gives_a_solo_game_back_the_cartridges_bag() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	Gen2WorldPack.gen1_bag_capacity = PokeCoopPolicy.BAG_CAPACITY
+	hosting.close()
+	_sessions.erase(hosting)
+	assert_eq(Gen2WorldPack.gen1_bag_capacity, Gen1Layout.BAG_ITEM_CAPACITY)
+
+
 func test_a_reset_with_no_world_open_is_left_to_the_game() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
 	_sessions.append(hosting)

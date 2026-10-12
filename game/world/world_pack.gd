@@ -20,6 +20,7 @@ const MAX_KEY_ITEMS: int = 25
 ## takes anything the bag can hold and sorts it by nothing.
 const MAX_PC_ITEMS: int = 50
 const MAX_ITEM_STACK: int = 99
+static var gen1_bag_capacity: int = Gen1Layout.BAG_ITEM_CAPACITY  ## Generation 1's one bag list; a co-op run raises it.
 
 ## `engine/items/pack.asm`'s own left/right pocket cycle
 ## (`.ItemsPocketMenu` -> `.BallsPocketMenu` -> `.KeyItemsPocketMenu` ->
@@ -519,7 +520,7 @@ static func receive_check(
 		return {"ok": false, "reason": &"item_stack_full", "available": MAX_ITEM_STACK - current}
 	var pocket: int = pocket_for(data, item)
 	var capacity: int = pocket_capacity(pocket) if data.generation != RomRegistry.GEN1 \
-		else Gen1Layout.BAG_ITEM_CAPACITY
+		else gen1_bag_capacity
 	if current == 0 and capacity > 0 and _pocket_entries(data, owned, pocket) >= capacity:
 		return {"ok": false, "reason": &"pocket_full", "pocket": pocket}
 	return {"ok": true, "quantity": current + quantity}
