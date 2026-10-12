@@ -1602,3 +1602,19 @@ mod seam (`Gen2ModHost`, `Gen2TownMapScreen`), under the player's own icon,
 on the map and the fly map but not the dex's AREA. Rejected: a minimap
 (a second picture of the world over a 160x144 screen), and arrows through
 menus. The comment ceiling rose by three for the search and the seam (D13).
+
+## D107. A trainer the team is fighting or has beaten spots nobody else (#118, owner's report, 2026-10-12)
+
+The owner was fighting a trainer on the S.S. Anne when the partner walked past
+it, and the trainer spotted the partner too. Trainer sight is each window's own
+(design.md), and until now a window spotted by a trainer the partner was
+fighting joined that fight (L1, #60): on purpose, but not what players expect.
+The world now asks a `sight_gate` (an upstream `Gen2WorldAPI` field, empty in
+a solo game) before a trainer looks; a co-op window refuses every trainer the
+host names as running in a battle or as beaten for the campaign. The second
+covers the seconds between the host's win and the beaten flag reaching the
+partner's world after the trainer's last line. A lost or fled fight releases
+the trainer, so it spots again. Talking to the trainer, or SELECT > JOIN, still
+joins the running fight. Left open: a partner spotted during the first
+player's walk-up and before-battle text, before the host knows of the fight,
+still joins it. The comment ceiling rose by four for the gate and the locked-in turn (D13).

@@ -38,6 +38,7 @@ var _stand_ins: Dictionary = {}
 var _attached: Dictionary = {}
 var _abandoned: bool = false
 var _members: Dictionary = {}
+var _last_slot: int = 0
 
 
 static func start(
@@ -127,11 +128,17 @@ func phase() -> StringName:
 	return AWAITING_ACTION
 
 
-## The active Pokémon's owner, or while they are away whoever stands in for them (D61).
+## `CheckPlayerLockedIn`: a charged, recharging, rampaging or raging Pokémon takes its turn with no command.
 func advance() -> bool:
-	return false
+	if phase() != AWAITING_ACTION or is_paused() or not battle.player_menu_skipped():
+		return false
+	var events: Array = battle.take_actions(Gen2Battle.use_move(_last_slot), _enemy_action())
+	_settle(events)
+	_advance(events)
+	return true
 
 
+## The active Pokémon's owner, or while they are away whoever stands in for them (D61).
 func controller() -> String:
 	var owner: String = owner_deciding()
 	if is_present(owner):
@@ -294,6 +301,7 @@ func _act(player: PokeCoopPlayer, kind: String, command: Dictionary) -> Dictiona
 			var slot: int = PokeCoopTransport.number(command.get("slot"), -1)
 			if not _move_allowed(slot):
 				return _refused(&"invalid_move")
+			_last_slot = slot
 			return _done(battle.take_actions(Gen2Battle.use_move(slot), _enemy_action()))
 		"switch":
 			var index: int = PokeCoopTransport.number(command.get("index"), -1)

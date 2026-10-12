@@ -11,6 +11,40 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Owner's play-test fixes: a busy trainer, DIG, battle menus (#118, #119, #120, D107, 2026-10-12)
+
+The owner's German session on the S.S. Anne turned up three faults, each
+traced in the host log (`2026-10-12_22-44-51_host_CLOEDL.jsonl`):
+
+- A trainer fighting one player spotted the partner who walked past (GÖRE,
+  `trainer:3:10`). Sight is each window's own and only the host knew of the
+  fight. A trainer the host names as running in a battle or beaten for the
+  campaign now spots nobody else (D107); talking to it still joins.
+- DIG needed a second press: the session never took a locked-in turn on its
+  own (`advance()` was empty), so every charged, recharging, rampaging or
+  raging turn waited for a command the cartridge never asks for. The host now
+  takes it with the last chosen slot, as `CheckPlayerLockedIn` does.
+- DIG drew the Pokémon twice: upstream's `SE_SLIDE_MON_UP` slid the picture
+  from home up by 56 pixels instead of up into its box from below, leaving a
+  copy on the screen's top rows when the field stamped it back home. The
+  slide now rises into the box and ends home, and Gen 1 slides keep to their
+  box's rows, as the cartridge's `CopyPicTiles` does (the slide down had
+  written over the text box's rows too).
+- A battle menu fell back to FIGHT/PKMN/ITEM/RUN when the partner locked in
+  their choice in a friend battle: the menu asked again on every new revision,
+  and a lock-in moves the revision on with no events. It now asks again only
+  on a turn that carries events, or when the phase, controller, pause or the
+  session's own rows change (a bag growing by one row no longer counts).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Five new: `test_a_trainer_the_partner_is_fighting_or_beat_spots_nobody_else`, `test_a_partners_lock_in_leaves_the_other_players_open_list_open` (integration), `test_a_locked_in_turn_is_taken_with_no_second_command`, `test_a_sight_gate_skips_the_trainers_it_refuses`, `test_a_generation_1_slide_up_rises_into_its_box_and_ends_home` (unit) |
+| Whole suite | 5143/5143 on 4.8-dev7 under bwrap, 152107 asserts |
+| Gates, sockets | `tools/release.sh --gates` pass, comments 41354/41354 (ceiling raised by four, D107); ENet demo 16/16 on port 24641 |
+| Every Gen 1 animation | Headless on the German Rot import, both sides: DIG (91) ends with one picture at home and no animation writes below a picture's box; the others that end shifted are the hiding slides (151, 192), as before |
+| Screens | `trainer_busy` on the Red import (a `pewter_gym` seed moved onto ROUTE 3, RED's lead a DIGLETT knowing only DIG): RED walks into the LASS's sight and fights her; BLUE steps next to her meanwhile and is not spotted (no takeover in the host log); DIG digs, comes up and hits with one command for the two turns (host log: two commands, two `battle_advance`), DIGLETT drawn once at home. `versus_lock_in` (the `pewter_gym` seed): RED locks in while BLUE's move list is open on GROWL; it stays open on GROWL until BLUE chooses, then the turn plays. All captures looked at, no script errors |
+| Not run | A partner spotted during the other player's walk-up (left open, D107); FLY, SOLARBEAM, THRASH and HYPER BEAM on screen (the unit test covers recharge); no hand-played session |
+
 ## Finding the partner, and a friend battle under a menu's white (D106, 2026-10-12)
 
 The owner found the partner easy to lose and asked for an arrow or a map

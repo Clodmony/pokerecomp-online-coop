@@ -873,7 +873,7 @@ func _gen1_draw_battler(player_side: bool, visible: bool) -> void:
 		_background.battler_shift[player_side] = Vector2.ZERO
 		Gen2BattleScreenMap.stamp(
 			_background.bg_map, player_side, RomRegistry.GEN1,
-			_gen1_shift_tiles(player_side)
+			_gen1_shift_tiles(player_side), true
 		)
 
 
@@ -884,7 +884,7 @@ func _gen1_move_battler(player_side: bool, shift: Vector2) -> void:
 	if visible:
 		Gen2BattleScreenMap.stamp(
 			_background.bg_map, player_side, RomRegistry.GEN1,
-			_gen1_shift_tiles(player_side)
+			_gen1_shift_tiles(player_side), true
 		)
 
 
@@ -892,7 +892,7 @@ func _gen1_clear_battler(player_side: bool) -> void:
 	if bool(_background.battler_visible[player_side]):
 		Gen2BattleScreenMap.clear_battler(
 			_background.bg_map, player_side, RomRegistry.GEN1,
-			_gen1_shift_tiles(player_side)
+			_gen1_shift_tiles(player_side), true
 		)
 
 
@@ -940,7 +940,7 @@ const GEN1_EFFECT_BGP: Dictionary = {
 ## The routines that walk a picture off its square, as
 ## [code][steps, pixels, frames, horizontal, hide][/code]. A horizontal slide
 ## goes towards the edge the picture stands against; `_AnimationSlideMonUp`
-## scrolls its box upwards, which is the one negative row.
+## feeds its box a picture row from below, so the one negative row rises home.
 const GEN1_EFFECT_SLIDES: Dictionary = {
 	0xF7: [7, -8, 2, false, false],  # SE_SLIDE_MON_UP
 	GEN1_SE_SLIDE_MON_DOWN: [7, 8, 3, false, true],
@@ -1263,13 +1263,17 @@ func _gen1_edge(flipped: bool) -> float:
 func _gen1_slide_steps(slide: Array, flipped: bool) -> Array:
 	var horizontal: bool = bool(slide[3])
 	var step: float = float(int(slide[1])) * (_gen1_edge(flipped) if horizontal else 1.0)
+	var rising: bool = not horizontal and step < 0.0
+	var start: float = -step * float(int(slide[0])) if rising else 0.0
 	var out: Array = []
 	for index: int in int(slide[0]):
-		var moved: float = step * float(index + 1)
+		var moved: float = start + step * float(index + 1)
 		out.append({
 			&"frames": int(slide[2]),
 			&"shift": [flipped, Vector2(moved, 0.0) if horizontal else Vector2(0.0, moved)],
 		})
+	if rising:
+		out[0][&"visible"] = [flipped, true]
 	if bool(slide[4]):
 		out.append({&"visible": [flipped, false]})
 	return out
