@@ -128,6 +128,30 @@ func test_a_command_for_an_old_revision_is_refused() -> void:
 	assert_eq(_snapshot(session), before)
 
 
+func test_a_locked_in_turn_is_taken_with_no_second_command() -> void:
+	var red: PokeCoopPlayer = _player("red", RED_ID, [_saved(Fixture.PIKACHU, 20, [Fixture.TACKLE, Fixture.DIG], RED_ID)])
+	var session: PokeCoopBattleSession = _start(red, _enemy())
+	assert_false(session.advance(), "a free turn waits for its command")
+	assert_true(bool(_act(session, red, {"type": "move", "slot": 1})["ok"]))
+	assert_true(session.battle.player_menu_skipped(), "dug in")
+	var pp: int = session.battle.mon(Gen2Battle.PLAYER).pp[1]
+	var revision: int = session.revision
+	session.set_absent(red.player_id, true)
+	assert_false(session.advance(), "nobody fights a paused battle")
+	session.set_absent(red.player_id, false)
+	assert_true(session.advance())
+	assert_eq(session.revision, revision + 1)
+	assert_eq(session.battle.mon(Gen2Battle.PLAYER).charged_move, 0, "DIG came up and hit")
+	assert_eq(session.battle.mon(Gen2Battle.PLAYER).pp[1], pp, "the second turn spends no PP")
+	assert_false(session.advance(), "and the next turn is asked again")
+
+	var hyper: PokeCoopPlayer = _player("blue", BLUE_ID, [_saved(Fixture.PIKACHU, 20, [Fixture.HYPER_BEAM], BLUE_ID)])
+	var recharging: PokeCoopBattleSession = _start(hyper, _enemy(), 1, "b2")
+	assert_true(bool(_act(recharging, hyper, {"type": "move", "slot": 0})["ok"]))
+	assert_true(recharging.advance(), "HYPER BEAM's recharge takes its turn")
+	assert_false(recharging.advance())
+
+
 func test_a_suggestion_never_acts_and_is_gone_after_the_next_command() -> void:
 	var red: PokeCoopPlayer = _red()
 	var blue: PokeCoopPlayer = _blue()

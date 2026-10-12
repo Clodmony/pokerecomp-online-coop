@@ -146,36 +146,38 @@ static func clear_intro_box(map: PackedByteArray) -> void:
 
 ## `PlaceGraphic` over one battler's box: a tile is
 ## [code]base + column * side + row[/code], the column-major order `.BGSquares`
-## indexes and `AppearUser` restores.
+## indexes and `AppearUser` restores; [param boxed] keeps a slid picture in its box's rows.
 static func stamp(
 	map: PackedByteArray, player_side: bool, generation: int = RomRegistry.GEN2,
-	shift: Vector2i = Vector2i.ZERO
+	shift: Vector2i = Vector2i.ZERO, boxed: bool = false
 ) -> void:
 	if map.size() != COLUMNS * ROWS:
 		return
-	var at: Vector2i = (player_box_at(generation) if player_side else ENEMY_AT) + shift
+	var home: Vector2i = player_box_at(generation) if player_side else ENEMY_AT
+	var at: Vector2i = home + shift
 	var side: int = player_box_side(generation) if player_side else ENEMY_SIDE
 	var base: int = PLAYER_BASE_TILE if player_side else ENEMY_BASE_TILE
 	for column: int in side:
 		for row: int in side:
-			_write(
-				map, at + Vector2i(column, row), base + column * side + row
-			)
+			if not boxed or (at.y + row >= home.y and at.y + row < home.y + side):
+				_write(map, at + Vector2i(column, row), base + column * side + row)
 
 
 ## `ClearMonPicFromTileMap`: the seven by seven box, wherever the picture was
 ## last drawn.
 static func clear_battler(
 	map: PackedByteArray, player_side: bool, generation: int,
-	shift: Vector2i = Vector2i.ZERO
+	shift: Vector2i = Vector2i.ZERO, boxed: bool = false
 ) -> void:
 	if map.size() != COLUMNS * ROWS:
 		return
-	var at: Vector2i = (player_box_at(generation) if player_side else ENEMY_AT) + shift
+	var home: Vector2i = player_box_at(generation) if player_side else ENEMY_AT
+	var at: Vector2i = home + shift
 	var side: int = player_box_side(generation) if player_side else ENEMY_SIDE
 	for column: int in side:
 		for row: int in side:
-			_write(map, at + Vector2i(column, row), BLANK_TILE)
+			if not boxed or (at.y + row >= home.y and at.y + row < home.y + side):
+				_write(map, at + Vector2i(column, row), BLANK_TILE)
 
 
 static func copy_battler(
