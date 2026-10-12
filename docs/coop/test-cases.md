@@ -156,7 +156,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | W79 | Open a menu, a text box, the PC or a Mart while the partner is away | No arrow over any of them | | partner_tracker (the TOWN MAP) | |
 | W80 | START > CO-OP > TOWN MAP (also without the TOWN MAP item), and the TOWN MAP item | The region map with the partner's icon in their colour where they are, under your own | `test_the_session_menu_opens_the_town_map_where_the_partner_stands` | partner_tracker | |
 | W81 | The partner walks off the map's edge onto the next route or town while you stay near that edge | You keep seeing them walk on the next map, in their colour (you can walk through them there); the arrow takes over once they are out of sight | `test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost` | partner_tracker | |## Battles
-
+| W82 | The partner goes into one of several doors that lead into the same map (the S.S. Anne's cabins, which are one map of six rooms) | The arrow stands over the door they took; inside a cabin, over that cabin's own door | `test_of_two_doors_into_one_map_of_rooms_the_arrow_takes_the_partners_room` | partner_tracker_cabins | |
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
 | B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock, catch_for_partner | |

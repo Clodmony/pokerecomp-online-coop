@@ -2153,6 +2153,20 @@ func test_a_partner_inside_a_building_on_a_connected_map_is_found_at_its_door() 
 	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(68, 4), Vector2i.UP], "straight up to the door two maps north")
 
 
+func test_of_two_doors_into_one_map_of_rooms_the_arrow_takes_the_partners_room() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 4), [{"x": 2, "y": 1, "map_group": 0, "map_number": 3, "destination": 0},
+		{"x": 12, "y": 1, "map_group": 0, "map_number": 3, "destination": 1}])
+	_room(atlas, 3, Vector2i(10, 4), [{"x": 1, "y": 7, "map_group": 0, "map_number": 1, "destination": 0},
+		{"x": 15, "y": 7, "map_group": 0, "map_number": 1, "destination": 1}])
+
+	(atlas.maps[Vector2i(0, 1)] as Gen2WorldMap).generation = RomRegistry.GEN1
+
+	var marks: Array = _tracker(atlas, 1, Vector2i(3, 3), 3, Vector2i(14, 4)).partner_marks()
+
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(148, 46), Vector2i.RIGHT], "the far door, into the room they are in")
+
+
 func test_inside_a_building_the_arrow_stands_over_the_door_out_to_the_partner() -> void:
 	var atlas := Atlas.new()
 	_room(atlas, 1, Vector2i(10, 10))
