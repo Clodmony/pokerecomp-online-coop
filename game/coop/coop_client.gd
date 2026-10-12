@@ -29,6 +29,7 @@ var streams_log: bool = true
 var _streamed_at: int = 0
 var _welcomed: bool = false
 var _close_at: int = -1
+var other_wild: Dictionary = {}
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -123,6 +124,9 @@ func _receive(message: Dictionary) -> void:
 			journal.add(PokeCoopLog.CLIENT, "box", {"rev": box["rev"], "rows": (box["rows"] as Array).size()}, player_id)
 		"log":
 			journal.take_relayed(message.get("lines"), "host", "", journal.share)
+		"wild_tables":
+			other_wild = {"game_id": PokeCoopTransport.text(message.get("game_id")), "tables": PokeCoopPolicy.sane_wild_tables(message.get("tables"))}
+			journal.add(PokeCoopLog.CLIENT, "wild_tables", {"game": other_wild["game_id"]}, player_id)
 		"battle":
 			var view: Dictionary = message.get("view", {})
 			var id: String = String(view.get("battle", ""))
@@ -200,6 +204,10 @@ func request_save() -> int:
 
 
 ## A tool's label for what drives this window, such as the autopilot's leg: unnumbered, after all sent before it.
+func send_wild_tables(tables: Dictionary) -> void:
+	transport.send(PokeCoopTransport.HOST_PEER, {"type": "wild_tables", "tables": tables})
+
+
 func note(text: String) -> void:
 	journal.add(PokeCoopLog.CLIENT, "note", {"text": text}, player_id)
 	transport.send(PokeCoopTransport.HOST_PEER, {"type": "note", "text": text})

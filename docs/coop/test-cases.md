@@ -62,6 +62,15 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | K14 | START > CO-OP on the hosting device | The header shows `IP <address>` partners join at | | launcher_host_join | |
 | K15 | Host with Blaue selected on a device that has a Rote campaign (and Blue with a Red one) | The Rote campaign is listed, labelled "Rote campaign"; Host plays it with the Blaue cartridge and its file stays in `coop_campaigns/red_de/`; Rename and Delete work on it | `test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder` | coop_tab_tour (host_other_version) | |
 
+## Wild Pokémon from both versions
+
+| ID | Case | Expected | Automated | Two windows | Hand |
+|---|---|---|---|---|---|
+| V01 | New campaign on Rote (or Red): the switch "Wild Pokémon from both versions"; then Edit campaign on an existing one | Off by default; on, the card says "wild Pokémon from both versions"; Edit turns it on or off for the next hosting; Yellow or another game shows no switch | `test_wild_pokemon_from_both_versions_is_a_campaign_switch_off_until_turned_on` | | |
+| V02 | Host the campaign with only Rote players, then a Blaue player joins | Hosting says the switch waits for a player with Blaue; once the Blaue window is in, it says "on" | `test_with_both_versions_the_other_versions_exclusives_take_half_their_slots`, `test_wild_pokemon_from_both_versions_is_a_campaign_switch_off_until_turned_on` | | |
+| V03 | Walk Route 6's grass in the Rote window with a Blaue window in the session; then Viridian Forest | On Route 6 about half the slots Blaue fills with its exclusives show them (KNOFENSA, MAUZI) at the cartridge's level, the rest are Rote's own; the Blaue window meets Rote's (MYRAPLA, MENKI) the same way. Viridian Forest, where the versions only swap HORNLIU and RAUPY, stays exactly Rote's | `test_with_both_versions_the_other_versions_exclusives_take_half_their_slots` | `both_versions` (`SEED=` a `both` seed at `cerulean_thief`) | |
+| V04 | Catch one of the other version's Pokémon; visit the Game Corner and the in-game trades | It joins your team or PC like any catch; the Game Corner's prizes and the trades stay your own version's | | | |
+
 ## Exploration and story
 
 | ID | Case | Expected | Automated | Two windows | Hand |

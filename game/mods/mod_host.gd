@@ -815,6 +815,10 @@ func register_wild_substitute(id: StringName, provider: Object) -> Dictionary:
 	return _register_provider(_wild_substitutes, WILD_SUBSTITUTE_METHODS, id, provider)
 
 
+func unregister_wild_substitute(id: StringName) -> void:
+	_wild_substitutes.erase(id)
+
+
 func wild_substitute_ids() -> Array:
 	return _wild_substitutes.keys()
 

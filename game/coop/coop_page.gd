@@ -575,6 +575,8 @@ func _campaign_card(index: int) -> PokeCoopTabParts.Tile:
 	game.add_child(PokeCoopTabParts.dot(_tint(row["game"]), 8.0))
 	game.add_child(PokeCoopTabParts.text(_theme, "%s campaign" % _short(row["game"]), Gen2LauncherTheme.FONT_SMALL, _theme.muted))
 	box.add_child(game)
+	if bool(row.get("both_versions", false)):
+		box.add_child(PokeCoopTabParts.text(_theme, "Wild Pokémon from both versions", Gen2LauncherTheme.FONT_SMALL, _theme.muted))
 	if not bool(row["readable"]):
 		_note(box, "This version cannot read this campaign. It is left as it is.", _theme.warning)
 	var chips: HFlowContainer = PokeCoopTabParts.flow(6)
@@ -645,6 +647,7 @@ func _build_new_campaign() -> void:
 	_caption(left, "Your rival")
 	_rival_picker(left, "rival")
 	_note(left, "The cartridge's own names, or type up to %d letters. Oak then skips the question for everyone." % MAX_NAME)
+	_both_versions_switch(left, "both", _game_of(_data()))
 	var right: VBoxContainer = columns[1]
 	_caption(right, "You")
 	right.add_child(_field("name", _name(), "Your name", MAX_NAME))
@@ -674,6 +677,23 @@ func _rival_picker(host: VBoxContainer, key: String, ask: bool = true) -> void:
 		for other: Node in chips.get_children():
 			var said: String = (other as Gen2LauncherButton).text
 			(other as Gen2LauncherButton).set_active(typed.strip_edges().to_upper() == ("" if said == "Ask in Oak's speech" else said)))
+
+
+func _game_of(data: GameData) -> StringName:
+	return data.id if data != null else &""
+
+
+func _both_versions_switch(host: VBoxContainer, key: String, game: StringName) -> void:
+	var other: StringName = PokeCoopPolicy.other_version(game)
+	if other.is_empty():
+		return
+	_caption(host, "Wild Pokémon")
+	var row: Control = Gen2LauncherUI.switch(_theme, &"sparkle", "From both versions", bool(_form.get(key, false)),
+		func(on: bool) -> void: _form[key] = on)
+	row.set_meta("label", "Wild Pokémon from both versions")
+	host.add_child(row)
+	_note(host, "Pokémon only the other version has in the wild show up in its slots half the time (%s's in %s, %s's in %s); the rest keep their odds. Needs a player with each version." % [
+		_short(other), _short(game), _short(game), _short(other)])
 
 
 func _rival_presets() -> Array:
@@ -781,7 +801,7 @@ func _create_campaign() -> void:
 	var data: GameData = _data()
 	var title: String = String(_form.get("title", "")).strip_edges().to_upper()
 	var id: String = PokeCoopSession.new_campaign(data, title if not title.is_empty() else "CAMPAIGN %d" % (_campaigns.size() + 1),
-		String(_form.get("rival", "")).strip_edges().to_upper())
+		String(_form.get("rival", "")).strip_edges().to_upper(), bool(_form.get("both", false)))
 	if id.is_empty():
 		_toast("The campaign could not be written.", "Check that this device has room to save.")
 		return
@@ -898,6 +918,11 @@ func _fill_players(box: VBoxContainer, session: PokeCoopSession) -> void:
 		box.add_child(HSeparator.new())
 	if members.size() < PokeCoopEnetTransport.MAX_CLIENTS:
 		_note(box, "Another player can join any time.")
+	var missing: Array = session.host.wild_tables_missing()
+	if session.host.campaign.both_versions:
+		_note(box, "Wild Pokémon from both versions: on." if missing.is_empty() else
+			"Wild Pokémon from both versions start once a player with %s is here." % " and ".join(missing.map(_short)),
+			_theme.muted if missing.is_empty() else _theme.warning)
 
 
 func _ask_stop_hosting() -> void:
@@ -1345,7 +1370,8 @@ func _edit_focused() -> void:
 
 func _open_edit(index: int) -> void:
 	var row: Dictionary = _campaigns[index]
-	_form = {"edit_title": row["title"], "edit_rival": row.get("rival", ""), "editing": index}
+	_form = {"edit_title": row["title"], "edit_rival": row.get("rival", ""), "editing": index,
+		"edit_both": bool(row.get("both_versions", false))}
 	var sheet: PokeCoopTabParts.Sheet = _open_sheet(&"edit", _open_edit.bind(index))
 	sheet.body().add_child(Gen2LauncherUI.title(_theme, String(row["title"]), Gen2LauncherTheme.FONT_TITLE + 3))
 	_caption(sheet.body(), "Campaign name")
@@ -1353,6 +1379,7 @@ func _open_edit(index: int) -> void:
 	_caption(sheet.body(), "Rival")
 	_rival_picker(sheet.body(), "edit_rival", false)
 	_note(sheet.body(), "Takes effect for everyone the next time the campaign is hosted. His team and fights stay the same.")
+	_both_versions_switch(sheet.body(), "edit_both", row["game"])
 	_sheet_buttons(sheet, [["Delete campaign…", _ask_delete.bind(index), "danger"], ["Cancel", _close_sheet]], ["Save", _save_edit.bind(index)])
 
 
@@ -1361,7 +1388,7 @@ func _save_edit(index: int) -> void:
 	var title: String = String(_form.get("edit_title", row["title"])).strip_edges().to_upper()
 	var rival: String = String(_form.get("edit_rival", "")).strip_edges().to_upper()
 	if PokeCoopSession.edit_campaign(_data(), String(row["id"]), title if not title.is_empty() else String(row["title"]), rival,
-			row["game"]) != OK:
+			row["game"], bool(_form.get("edit_both", false))) != OK:
 		_toast("The campaign could not be changed.", "This version cannot read it, or it could not be written.")
 	_close_sheet()
 	_show(HOST)
@@ -1441,7 +1468,8 @@ func _refresh_live(_now: bool) -> void:
 			if Engine.get_process_frames() % 10 == 0:
 				PokeCoopLobby.note_used(PokeCoopLobby.local_addresses(), members)
 			_refill("players", str(members.map(func(member: PokeCoopPlayer) -> String:
-				return "%s/%s/%s" % [member.name, member.game_id, member.connected])), _fill_players.bind(session))
+				return "%s/%s/%s" % [member.name, member.game_id, member.connected])) + str(session.host.wild_tables.keys()),
+				_fill_players.bind(session))
 	var hosts: Array = _listener.hosts().filter(func(row: Dictionary) -> bool: return not _own_beacon(row))
 	if _live.has("hosts"):
 		_refill("hosts", str(hosts.map(func(row: Dictionary) -> String:

@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -20,7 +20,7 @@ const TRADE_EVOLVED: Dictionary = {MACHOKE: 68}
 const FILM_FRAMES: int = 30
 const ROUTES: Dictionary = {
 	"brock": [], "misty": [&"_misty_legs"], "trade": [&"_trade_legs"],
-	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"],
+	"surge": [&"_misty_legs", &"_surge_legs"], "watch_brock": [&"_stand_by_legs"], "both_versions": [&"_both_versions_legs"],
 	"erika": [&"_misty_legs", &"_surge_legs", &"_erika_legs"],
 	"tower": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs"],
 	"koga": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs"],
@@ -126,6 +126,8 @@ var _skipped: int = 0
 var _noting: String = ""
 var _noted: String = ""
 var _rested: int = 0
+var _other_met: String = ""
+var _other_shot_at: int = -1
 
 
 func _read_option(arg: String) -> bool:
@@ -158,6 +160,9 @@ func _process(delta: float) -> bool:
 		_played._r.game_id = _session.data.id
 	_played._frames = _frames
 	_apply(_choose())
+	if _other_shot_at >= 0 and _frames >= _other_shot_at:
+		_other_shot_at = -1
+		_shot("other_version_%s" % _other_met.to_lower().validate_filename())
 	_watch_progress()
 	_dump_texts()
 	return false
@@ -214,6 +219,7 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	var view: Dictionary = panel.battle_view()
 	if view.is_empty():
 		return PokeButton.NONE
+	_note_other_version(view)
 	if panel.busy.is_valid() and bool(panel.busy.call()):
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
@@ -2062,6 +2068,38 @@ func _shot(name: String) -> void:
 
 static func _seconds_since(msec: int) -> float:
 	return (Time.get_ticks_msec() - msec) / 1000.0
+
+
+func _both_versions_legs() -> Array:
+	var p: Variant = _played
+	var m: Dictionary = SURGE_MAPS
+	return [
+		["cerulean_to_route_5", p._cross(Vector2i.DOWN, m.route_5), p._on_map(m.route_5)],
+		["route_5_to_underground", p._warp_to(m.underground_route_5), p._on_map(m.underground_route_5)],
+		["underground_stairs", p._warp_to(m.underground_path), p._on_map(m.underground_path)],
+		["underground_path", p._warp_to(m.underground_route_6), p._on_map(m.underground_route_6)],
+		["underground_out", p._warp_to(m.route_6), p._on_map(m.route_6)],
+		["route_6_grass", _step_in_grass, func(_world: Gen2WorldAPI) -> bool: return not _other_met.is_empty()],
+	]
+
+
+func _step_in_grass(world: Gen2WorldAPI) -> int:
+	var here: Vector2i = world.player_cell
+	return _played._step_toward(world, func(at: Vector2i) -> bool: return at != here and world.can_encounter_wild_mon_at(at))
+
+
+func _note_other_version(view: Dictionary) -> void:
+	var tables: Dictionary = _session.client.other_wild.get("tables", {})
+	var enemy: int = int((view.get("enemy", {}) as Dictionary).get("species", 0))
+	if _route != "both_versions" or not _other_met.is_empty() or bool(view.get("trainer", false)) or tables.is_empty():
+		return
+	if PokeCoopPolicy.wild_species(PokeCoopPolicy.wild_tables(_session.data)).has(enemy) \
+			or not PokeCoopPolicy.wild_species(tables).has(enemy):
+		return
+	_other_met = String(_session.data.species(enemy).get("name", str(enemy)))
+	_other_shot_at = _frames + 150
+	print("coop autoplay: %s met a wild %s, which only %s has, on %s" % [
+		_player_id, _other_met, _session.client.other_wild.get("game_id", "?"), _played._screen.world().map_id()])
 
 
 func _trade_legs() -> Array:
