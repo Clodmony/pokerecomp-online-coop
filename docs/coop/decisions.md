@@ -1541,8 +1541,14 @@ existing campaigns. With it on, each wild Pokémon met in the grass or the water
 is, on the upper half of a 0 to 255 roll from the world's own encounter
 generator, the other version's Pokémon from the same map and slot (so its level
 and rarity stay the cartridge's), through upstream's
-`Gen2ModHost.register_wild_substitute`; a slot both versions share, and a map
-the other version has no table for, stay as they are. Nothing is taken from a
+`Gen2ModHost.register_wild_substitute`, but only when that Pokémon is one the
+player's own version never has in the wild (the owner's choice, the same day):
+a slot both versions share, a slot where the other version only shuffles
+Pokémon both have (Viridian Forest's HORNLIU and RAUPY, the Nidoran swaps,
+Seafoam's ENTON and FLEGMON; 82 of the 175 slots that differ between Rote and
+Blaue), and a map the other version has no table for keep the cartridge's own
+odds. So the switch only adds the other version's ten wild exclusives, each
+taking half of its slot. Nothing is taken from a
 cartridge the device does not have: each window of a paired game sends its own
 wild slots to the host after every welcome (about 10 KB, in the session only),
 and the host passes the other version's to each player of the pair's other

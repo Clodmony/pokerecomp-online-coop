@@ -142,10 +142,11 @@ or one after another:
   you revives your own. What you buy, trade for or use stays yours. Hidden
   items are each player's own to find.
 - **Wild Pokémon from both versions** (a switch in New campaign and Edit
-  campaign, off by default): each wild Pokémon in the grass or the water is,
-  half the time, the one the other version has in the same place and slot, at
-  the same level and rarity: Blue's in Red and Red's in Blue (Blaue's in Rote,
-  Rote's in Blaue). It needs a player of each version in the session, since
+  campaign, off by default): where the other version has a Pokémon in the same
+  place and slot that your version never has in the wild (such as MAUZI or
+  KNOFENSA in Rote, MENKI or MYRAPLA in Blaue), half the wild Pokémon met in
+  that slot are that one, at the slot's level. Everything both versions have
+  keeps your cartridge's odds. It needs a player of each version in the session, since
   each device only knows its own cartridge's tables; until one joins, the
   Hosting screen says which version it waits for and everyone meets their own.
   Fishing, the Game Corner's prizes and the in-game trades stay your own

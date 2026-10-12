@@ -692,7 +692,7 @@ func _both_versions_switch(host: VBoxContainer, key: String, game: StringName) -
 		func(on: bool) -> void: _form[key] = on)
 	row.set_meta("label", "Wild Pokémon from both versions")
 	host.add_child(row)
-	_note(host, "Half the wild Pokémon are the other version's from the same place and slot (%s's in %s, %s's in %s). Needs a player with each version." % [
+	_note(host, "Pokémon only the other version has in the wild show up in its slots half the time (%s's in %s, %s's in %s); the rest keep their odds. Needs a player with each version." % [
 		_short(other), _short(game), _short(game), _short(other)])
 
 

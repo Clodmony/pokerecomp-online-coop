@@ -357,6 +357,7 @@ func _share_wild_tables() -> void:
 	if _both_versions == null and not (client.other_wild.get("tables", {}) as Dictionary).is_empty():
 		_both_versions = BothVersions.new()
 		_both_versions.client = client
+		_both_versions.own = PokeCoopPolicy.wild_species(PokeCoopPolicy.wild_tables(data))
 		Gen2ModHost.instance().register_wild_substitute(BothVersions.ID, _both_versions)
 
 
@@ -921,6 +922,7 @@ static func _remember(key: String, campaign_id: String, player_id: String) -> vo
 class BothVersions extends RefCounted:
 	const ID: StringName = &"coop_both_versions"
 	var client: PokeCoopClient = null
+	var own: Dictionary = {}
 
 	func substitute_wild(context: Dictionary) -> Dictionary:
-		return PokeCoopPolicy.other_wild(context, client.other_wild.get("tables", {})) if client != null else {}
+		return PokeCoopPolicy.other_wild(context, client.other_wild.get("tables", {}), own) if client != null else {}
