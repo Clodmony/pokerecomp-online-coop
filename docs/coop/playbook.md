@@ -39,9 +39,10 @@ real test. Windows has only run under Wine and there is no Android build.
   step by step.
 - A rest point is a moment the cartridge could save: no script holds the player
   and no map load is pending. A scene is the stretch between two rest points.
-- A partner can still walk into the same trainer or SELECT > JOIN and fight from
-  the first turn; what reaches them a few seconds later, after the trainer's
-  last line, is the "beaten" flag and the gift. The host marks a unique trainer
+- A partner can still talk to the same trainer or SELECT > JOIN and fight from
+  the first turn, but the trainer does not spot them while it fights (D107);
+  what reaches them a few seconds later, after the trainer's last line, is the
+  "beaten" flag and the gift. The host marks a unique trainer
   beaten the moment the battle is won, so nobody fights it twice meanwhile.
   Runs with D67 in place had joined Brock, Jr. Trainer and Bug Catcher battles.
 - Why: most bugs found past BROCK came from map-script state crossing windows

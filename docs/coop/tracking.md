@@ -87,6 +87,9 @@ every row marked done below was closed then. Work after that branches from
 | 88 | Autoplayed two-window run to the Hall of Fame | done: every stretch chained in ROUTES; a new campaign reached both Halls of Fame in two windows on 2026-10-08, resumed from snapshots after each autopilot fix (D96); one unbroken run is the next check | | |
 
 | 104 | Battle and trade with a co-op friend from anywhere | done: co-op 243/243, whole suite 5098/5098, English/German windows (D100) | `coop/friend-menu` | open; close on merge |
+| 118 | A trainer fighting one player spots the partner who walks past | done (D107): a sight gate refuses a trainer the team is fighting or beat | `coop/play-fixes` | open; close on merge |
+| 119 | DIG needs a second press, and the Pokémon is drawn twice when it comes up | done: the host takes locked-in turns; Gen 1's slide up rises into its box | `coop/play-fixes` | open; close on merge |
+| 120 | Battle menu falls back to FIGHT/PKMN/ITEM/RUN while the player is in a list | done: a lock-in with no events keeps the open list | `coop/play-fixes` | open; close on merge |
 
 ## Found while GitHub was paused
 

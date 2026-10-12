@@ -386,6 +386,8 @@ var _player_step_sliding: bool = false
 ## OBJECT_STEP_FRAME's spin use. See [method Gen2WorldMovement.spin_advance].
 var _player_spin_frame: int = 0
 var _player_step_tail: Callable = Callable()  ## What runs when the player's queued run drains.
+## Asked with a trainer's event row before it sees the player; false skips it (a co-op partner's fight).
+var sight_gate: Callable = Callable()
 ## Frames left of the counted wait a script is standing in, -1 while it is not
 ## standing in one or has not started counting.
 var _script_wait_frames: int = -1
@@ -9317,7 +9319,7 @@ func _find_sight_request() -> Dictionary:
 		var sight: Dictionary = _sight_distance(object)
 		if sight.is_empty() or int(sight["distance"]) > object.sight_range:
 			continue
-		if object.index < 0 or object.index >= rows.size() or not rows[object.index] is Dictionary:
+		if not _sight_row_open(rows, object.index):
 			continue
 		var event: Dictionary = (rows[object.index] as Dictionary).duplicate(true)
 		event["kind"] = &"objects"
@@ -9340,6 +9342,12 @@ func _find_sight_request() -> Dictionary:
 		request["direction"] = sight["direction"]
 		return request
 	return {}
+
+
+func _sight_row_open(rows: Array, index: int) -> bool:
+	if index < 0 or index >= rows.size() or not rows[index] is Dictionary:
+		return false
+	return not sight_gate.is_valid() or bool(sight_gate.call(rows[index]))
 
 
 func _sight_distance(object: Gen2WorldObject) -> Dictionary:

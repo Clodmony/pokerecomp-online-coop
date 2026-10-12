@@ -909,6 +909,24 @@ func test_a_trainer_the_campaign_has_beaten_counts_as_beaten_without_a_fight() -
 	assert_true(PokeCoopBattlePanel.REFUSALS.has(_blue.last_rejection()), "the panel says it counts as won, not refused")
 
 
+func test_a_trainer_the_partner_is_fighting_or_beat_spots_nobody_else() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var blue: PokeCoopWorldLink = _window(_blue)
+	var row: Dictionary = {"trainer_class": Fixture.GEN1_LEADER, "trainer_number": 1}
+	assert_true(red.trainer_free(row))
+	var strong: Gen2Party = Gen2Party.of(Gen2BattleMon.create(_data, Fixture.GEODUDE, 90, [Fixture.SLASH]))
+	_take_over(_blue, _opened_by_world(blue, strong, Fixture.GEN1_LEADER), [])
+	assert_false(red.trainer_free(row), "the trainer Blue is fighting does not see Red")
+	assert_true(red.trainer_free({"trainer_class": Fixture.GEN1_LEADER, "trainer_number": 2}), "the class's other trainers do")
+	assert_true(red.trainer_free({"species": Fixture.BULBASAUR, "level": 5}), "a Pokémon standing on the map is no trainer")
+	_fight_out(_battle_of(_blue))
+	assert_true(red.trainer_free(row), "a lost fight leaves the trainer free to spot again")
+
+	_take_over(_red, _opened_by_world(red, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0), Fixture.GEN1_LEADER), [])
+	_fight_out(_battle_of(_red))
+	assert_false(blue.trainer_free(row), "beaten for the team before Red's flag reaches Blue's world")
+
+
 func test_the_worlds_own_save_asks_for_a_campaign_checkpoint() -> void:
 	var red: PokeCoopWorldLink = _window(_red)
 	red.save.world = Gen2WorldSnapshot.new()
@@ -3345,6 +3363,30 @@ func test_versus_waits_for_both_choices_and_mirrors_each_players_side() -> void:
 	var red_events: Array = _red.battle(id)["events"]
 	var blue_events: Array = _blue.battle(id)["events"]
 	assert_eq(blue_events, PokeCoopVersus.mirrored(red_events))
+
+
+func test_a_partners_lock_in_leaves_the_other_players_open_list_open() -> void:
+	_host.player(_blue.player_id).give_item(Fixture.POTION, 1)
+	_invite()
+	var id: String = _battle_of(_red)
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_blue, _data))
+	panel._process(0.0)
+	panel._press(PokeButton.A)
+	panel._press(PokeButton.DOWN)
+	assert_eq([panel.menu.page, panel.menu.cursor], [PokeCoopBattleMenu.MOVES, 1])
+	_send(func() -> void: _red.act(id, {"type": "move", "slot": 0}))
+	assert_gt(int(_blue.battle(id)["revision"]), 0, "Red's lock-in moved the revision on")
+	panel._process(0.0)
+	assert_eq([panel.menu.page, panel.menu.cursor], [PokeCoopBattleMenu.MOVES, 1], "Blue's move list stays open")
+	_host.player(_blue.player_id).give_item(Fixture.POTION, 1)
+	_host.player(_blue.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_pump()
+	panel._process(0.0)
+	assert_eq(panel.menu.page, PokeCoopBattleMenu.MOVES, "a new row in the bag asks nothing again")
+	panel._press(PokeButton.A)
+	_pump()
+	panel._process(0.0)
+	assert_ne(panel.menu.page, PokeCoopBattleMenu.MOVES, "a fought turn asks again")
 
 
 func test_a_versus_switch_or_faint_leaves_each_windows_own_pokemon_on_the_field() -> void:

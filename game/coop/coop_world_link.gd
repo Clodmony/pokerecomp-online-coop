@@ -396,6 +396,23 @@ func note_save_written() -> void:
 	_save_written = true
 
 
+## The world's trainer sight gate: a trainer the team is fighting or has beaten spots nobody else.
+func trainer_free(row: Dictionary) -> bool:
+	if not row.has("trainer_class"):
+		return true
+	var key: String = "trainer:%d:%d" % [int(row["trainer_class"]), maxi(int(row.get("trainer_number", 1)) - 1, 0)]
+	return not engaged(client).has(key)
+
+
+static func engaged(session: PokeCoopClient) -> Dictionary:
+	var out: Dictionary = {}
+	for running: Dictionary in session.state.get("battles", []):
+		out[String(running.get("encounter", ""))] = true
+	for done: Variant in (session.state.get("campaign", {}) as Dictionary).get("defeated", []):
+		out[String(done)] = true
+	return out
+
+
 func _world_saved() -> bool:
 	if save.world == _saved_world:
 		return false

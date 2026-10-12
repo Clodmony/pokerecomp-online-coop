@@ -271,11 +271,7 @@ static func _replay_line(host: PokeCoopHost, line: Dictionary, out: Dictionary) 
 				session.abandon()
 				host._finish(session)
 		"battle_advance":
-			var forced: PokeCoopBattleSession = host.battles.get(str(data.get("battle")))
-			if forced is PokeCoopVersus:
-				forced.set("_forced_at", Time.get_ticks_msec() - 200)
-				if forced.advance() and forced.phase() == PokeCoopBattleSession.OVER:
-					host._finish(forced)
+			_replay_advance(host, host.battles.get(str(data.get("battle"))))
 		"challenge_answer":
 			var expired: Dictionary = host.challenges.get(str(data.get("id")), {})
 			if data.get("answer") == "timeout" and not expired.is_empty():
@@ -294,6 +290,13 @@ static func _away_long_enough(host: PokeCoopHost, battle_id: String) -> void:
 	for player_id: String in session.participants:
 		if not host.player(player_id).connected:
 			session.set_absent(player_id, true, Time.get_ticks_msec() - PokeCoopPolicy.STAND_IN_MSEC)
+
+
+static func _replay_advance(host: PokeCoopHost, forced: PokeCoopBattleSession) -> void:
+	if forced is PokeCoopVersus:
+		forced.set("_forced_at", Time.get_ticks_msec() - 200)
+	if forced != null and forced.advance() and forced.phase() == PokeCoopBattleSession.OVER:
+		host._finish(forced)
 
 
 ## A message as JSON left it, with whole numbers and number keys whole again.

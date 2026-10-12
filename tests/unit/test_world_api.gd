@@ -2763,6 +2763,25 @@ func test_trainer_sightings_can_be_switched_off_without_touching_a_flag() -> voi
 	assert_eq(world.dispatch_sight_events().size(), 1, "and the sighting comes back")
 
 
+func test_a_sight_gate_skips_the_trainers_it_refuses() -> void:
+	var world: Gen2WorldAPI = _world(Vector2i(5, 4))
+	var trainer: Gen2WorldObject = world.objects[0]
+	trainer.object_type = Gen2WorldObject.OBJECTTYPE_TRAINER
+	trainer.sight_range = 3
+	trainer.facing = Gen2WorldSprite.FACING_UP
+	var asked: Array = []
+
+	world.sight_gate = func(row: Dictionary) -> bool:
+		asked.append(row)
+		return false
+	assert_true(world.dispatch_sight_events().is_empty())
+	assert_eq(asked.size(), 1, "asked with the trainer's own row")
+	assert_true(trainer.active)
+
+	world.sight_gate = func(_row: Dictionary) -> bool: return true
+	assert_eq(world.dispatch_sight_events().size(), 1)
+
+
 func test_trainer_approach_path_uses_the_source_longer_axis_first() -> void:
 	assert_eq(
 		Gen2WorldAPI.trainer_approach_path(Vector2i(1, 1), Vector2i(4, 3)),

@@ -521,6 +521,29 @@ func test_a_generation_1_show_puts_a_slid_picture_back_home() -> void:
 		assert_eq(background.battler_shift[true], Vector2.ZERO, "effect $%02X" % effect)
 
 
+## `_AnimationSlideMonUp` feeds a dug-in picture back one row at a time from
+## below its box, which it never leaves, and ends it home: drawn once.
+func test_a_generation_1_slide_up_rises_into_its_box_and_ends_home() -> void:
+	var home: PackedByteArray = Gen2BattleScreenMap.seeded(RomRegistry.GEN1)
+	Gen2BattleScreenMap.stamp(home, true, RomRegistry.GEN1)
+	var player: Gen2BattleAnimPlayer = Gen2BattleAnimPlayer.create_gen1(_gen1_data(0), 0)
+	player.background().set_bg_map(home.duplicate())
+	var steps: Array = player._gen1_effect_steps(Gen2BattleAnimPlayer.GEN1_SE_SLIDE_MON_DOWN)
+	steps.append_array(player._gen1_effect_steps(0xF7))
+	var below: Array = []
+	for step: Dictionary in steps:
+		for key: StringName in Gen2BattleAnimPlayer.GEN1_EFFECT_KEYS:
+			if step.has(key):
+				player._gen1_apply(key, step[key])
+		var map: PackedByteArray = player.background().bg_map
+		below.append(map.slice(12 * Gen2BattleScreenMap.COLUMNS) == home.slice(12 * Gen2BattleScreenMap.COLUMNS))
+	var background: Gen2BattleAnimBackground = player.background()
+	assert_true(bool(background.battler_visible[true]))
+	assert_eq(background.battler_shift[true], Vector2.ZERO)
+	assert_eq(background.bg_map, home, "one picture, on its own square")
+	assert_false(below.has(false), "the rows under the box are never written")
+
+
 ## An animation the cache does not carry answers null on either engine.
 func test_a_generation_1_animation_outside_the_table_answers_null() -> void:
 	assert_null(Gen2BattleAnimPlayer.create_gen1(_gen1_data(0), 1))

@@ -33,6 +33,7 @@ var _view: Dictionary = {}
 var _rows: Array = []
 var _idle: int = 0
 var _key: String = ""
+var _turn: int = -1
 var _ask: Dictionary = {}
 var _ball: int = 0
 var _scroll: int = 0
@@ -50,16 +51,24 @@ static func over(session: PokeCoopClient, game: GameData) -> PokeCoopBattleMenu:
 	return out
 
 
+## Asks again on a new turn; a partner's lock-in or a join moves the revision on with no events and keeps the open list.
 func update(view: Dictionary, rows: Array) -> void:
 	_view = view
 	_rows = rows
-	var kinds: PackedStringArray = rows.map(func(row: Dictionary) -> String: return String(row.get("session", "")))
-	var key: String = "%s/%s/%s/%s/%s/%s/%s" % [view.get("battle", ""), view.get("revision", 0), view.get("phase", ""),
+	var battle_id: String = String(view.get("battle", ""))
+	var fresh: bool = _key.get_slice("/", 0) != battle_id
+	if fresh or not (view.get("events", []) as Array).is_empty():
+		_turn = int(view.get("revision", 0))
+	var kinds: PackedStringArray = []
+	for row: Dictionary in rows:
+		if row.has("session"):
+			kinds.append(String(row["session"]))
+	var key: String = "%s/%d/%s/%s/%s/%s/%s" % [battle_id, _turn, view.get("phase", ""),
 		view.get("controller", ""), view.get("outcome", ""), view.get("paused", false), ",".join(kinds)]
 	if key == _key:
 		cursor = clampi(cursor, 0, maxi(_count() - 1, 0))
 		return
-	if _key.get_slice("/", 0) != String(view.get("battle", "")):
+	if fresh:
 		_main = FIGHT
 		_moved = 0
 	_key = key
