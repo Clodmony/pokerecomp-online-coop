@@ -20,6 +20,7 @@ var blocked: Callable = Callable()
 var select_allowed: Callable = Callable()
 var ready_to_meet: Callable = Callable()
 var before_meet: Callable = Callable()
+var address: String = ""
 var _partner: String = ""
 var _incoming: Dictionary = {}
 var _asked_at: int = 0
@@ -287,6 +288,9 @@ func _header() -> PackedStringArray:
 			lines.append_array([member_name, " " + where])
 	if lines.size() == titled:
 		lines.append(_ui("NO PARTNER YET"))
+	if not address.is_empty():
+		var invite: String = _ui("JOIN AT %s") % address
+		lines.append(invite if invite.length() <= COLUMNS - 2 else address)
 	lines = lines.slice(0, HEADER_LINES - 1)
 	lines.append(last_saved(client, data.id if data != null else &""))
 	return lines
