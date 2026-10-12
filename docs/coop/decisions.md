@@ -1485,3 +1485,19 @@ existing native trade screen in each world, and uses the existing cable and
 exactly-once swap. Cancellation or disconnection releases both players without
 moving them. Ordinary Cable Club trading continues to use its room pairing.
 Protocol 6 carries invitations and these private views; both builds must match.
+
+## D101. Red and Blue play one campaign together (owner's request, 2026-10-12)
+
+The owner asked for Red and Blue in one session. Both cartridges share the
+engine, maps, story, Pokémon, moves and items; they differ in what each world
+draws from its own cartridge: wild Pokémon tables (and so the version
+exclusives), Game Corner prizes and the title. Each window already runs its
+world on its own cartridge, and the host's battles use stats and moves both
+share, so the only gate was the host's hello, which wanted the campaign's own
+game and SHA-1. It now also lets in the other game of the same pair (Red with
+Blue, Rote with Blaue Edition, `PokeCoopPolicy.VERSION_PAIRS`) when both are
+the registry's verified dump of their game; another revision, a hack, Yellow
+or another language is still refused (D95). A save brought from the partner
+game is kept. The campaign stays the host's game. Cost: a Blue player's
+exclusives reach a Red player by trade, as between the two cartridges.
+
