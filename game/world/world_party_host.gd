@@ -1087,9 +1087,7 @@ static func capture_nickname_question(
 	species_name: String, generation: int = RomRegistry.GEN2
 ) -> String:
 	if generation == RomRegistry.GEN1:
-		return "Do you want to\ngive a nickname%sto %s?" % [
-			Gen2TextStream.SCROLL_BREAK, species_name,
-		]
+		return Gen1LayoutDe.localized("Do you want to\ngive a nickname" + Gen2TextStream.SCROLL_BREAK + "to %s?") % species_name
 	return "Give a nickname to\n%s?" % species_name
 
 
@@ -1101,28 +1099,28 @@ const SENT_TO_BOX_FORMAT: String = "%s was\nsent to BILL's PC."
 
 ## `_ItemUseBallText07` after EVENT_MET_BILL, `08` before it, over `wBoxMonNicks`.
 static func gen1_transferred_format(met_bill: bool) -> String:
-	return "%s was\ntransferred to%s%s's PC!" % [
+	return Gen1LayoutDe.localized("%s was\ntransferred to%s%s's PC!" % [
 		"%s", Gen2TextStream.SCROLL_BREAK, "BILL" if met_bill else "someone",
-	]
+	])
 
 
 ## `_SentToBoxText`, `wCurrentBoxNum` printed one-based.
 static func gen1_sent_to_box_format(box_number: int) -> String:
-	return "There's no more\nroom for #MON!%s%s was\nsent to #MON%sBOX %d on PC!" % [
+	return Gen1LayoutDe.localized("There's no more\nroom for #MON!%s%s was\nsent to #MON%sBOX %d on PC!") % [
 		Gen2TextStream.SCROLL_BREAK, "%s", Gen2TextStream.SCROLL_BREAK, box_number,
 	]
 
 
 ## `_BoxIsFullText`.
 static func gen1_box_is_full_text() -> String:
-	return "There's no more\nroom for #MON!%sThe #MON BOX\nis full and can't%saccept any more!%sChange the BOX at\na #MON CENTER!" % [
+	return Gen1LayoutDe.localized("There's no more\nroom for #MON!%sThe #MON BOX\nis full and can't%saccept any more!%sChange the BOX at\na #MON CENTER!") % [
 		Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK, Gen2TextStream.PAGE_BREAK,
 	]
 
 
 ## `_GotMonText`, `SetPokedexOwnedFlag`'s own line, and its `sound_get_item_1`.
 static func gen1_got_mon_text(player_name: String, species_name: String) -> String:
-	return "%s got\n%s!%s" % [
+	return Gen1LayoutDe.localized("%s got\n%s!%s") % [
 		player_name, species_name, Gen2TextStream.sound_token(Gen1Sfx.SFX_GET_ITEM_1),
 	]
 
@@ -1232,7 +1230,7 @@ static func _any_poisoned(save: Gen2SaveData) -> bool:
 ## `_PoisonFaintText`, whose `wStringBuffer3` is the nickname `GetPartyNickname`
 ## put there.
 static func poison_faint_text(nickname: String) -> String:
-	return "%s\nfainted!" % nickname
+	return Gen1LayoutDe.localized("%s\nfainted!") % nickname
 
 
 ## `_WhitedOutText`. `<PLAYER>` is the name on the save, and the `para` is the

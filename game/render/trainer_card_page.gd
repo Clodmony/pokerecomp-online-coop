@@ -522,7 +522,7 @@ func gen1_map(page: Dictionary) -> PackedInt32Array:
 	_put(map, GEN1_BADGES_LABEL_AT, Gen1Layout.TRAINER_CARD_CIRCLE_CODE)
 	_gen1_text(map, GEN1_BADGES_LABEL, GEN1_BADGES_LABEL_AT + Vector2i(1, 0))
 	_put(
-		map, GEN1_BADGES_LABEL_AT + Vector2i(GEN1_BADGES_LABEL.length() + 1, 0),
+		map, GEN1_BADGES_LABEL_AT + Vector2i(Gen1LayoutDe.localized(GEN1_BADGES_LABEL).length() + 1, 0),
 		Gen1Layout.TRAINER_CARD_CIRCLE_CODE
 	)
 	for index: int in GEN1_LABELS.size():
@@ -625,7 +625,7 @@ func _put_wrapped(map: PackedInt32Array, cell: int, tile: int) -> void:
 
 
 func _gen1_text(map: PackedInt32Array, text: String, at: Vector2i) -> void:
-	var codes: PackedByteArray = Gen1Text.encode(text)
+	var codes: PackedByteArray = Gen1Text.encode(Gen1LayoutDe.localized(text))
 	for index: int in codes.size():
 		_put(map, at + Vector2i(index, 0), codes[index])
 

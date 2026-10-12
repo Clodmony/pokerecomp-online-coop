@@ -119,10 +119,9 @@ static func teach_prompt(data: GameData, item: int) -> Dictionary:
 		"move": move,
 		"move_name": move_name,
 		"hm": hm,
-		"text": "Booted up %s%s%sIt contained\n%s%s%sTeach %s\nto a #MON?" % [
-			"an HM" if hm else "a TM", stop, Gen2TextStream.PROMPT_BREAK,
-			move_name, stop, Gen2TextStream.PAGE_BREAK, move_name,
-		],
+		"text": Gen1LayoutDe.localized("Booted up %s%s%sIt contained\n%%s%s%sTeach %%s\nto a #MON?" % [
+			"an HM" if hm else "a TM", stop, Gen2TextStream.PROMPT_BREAK, stop, Gen2TextStream.PAGE_BREAK,
+		]) % [move_name, move_name],
 	}
 
 
@@ -133,9 +132,9 @@ static func not_compatible_text(
 	mon_name: String, move_name: String, generation: int = RomRegistry.GEN2
 ) -> String:
 	if generation == RomRegistry.GEN1:
-		return "%s is not\ncompatible with\ue001%s.\ue000It can't learn\n%s." % [
-			mon_name, move_name, move_name,
-		]
+		var line: String = "%s is not\ncompatible with\ue001%s.\ue000It can't learn\n%s."
+		return Gen1LayoutDe.localized(line) % ([mon_name, move_name, move_name] if Gen1LayoutDe.localized(line) == line \
+			else [move_name, mon_name, move_name])
 	return "%s is not compatible with %s. It can't learn %s." % [
 		move_name, mon_name, move_name,
 	]
@@ -147,5 +146,5 @@ static func knows_move_text(
 	mon_name: String, move_name: String, generation: int = RomRegistry.GEN2
 ) -> String:
 	if generation == RomRegistry.GEN1:
-		return "%s knows\n%s!" % [mon_name, move_name]
+		return Gen1LayoutDe.localized("%s knows\n%s!") % [mon_name, move_name]
 	return "%s knows %s." % [mon_name, move_name]

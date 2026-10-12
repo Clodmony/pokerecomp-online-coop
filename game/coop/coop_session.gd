@@ -329,7 +329,7 @@ func _keep_connected() -> void:
 	if client.welcomes != _welcomes_seen:
 		_welcomes_seen = client.welcomes
 		if _reconnect_attempts > 0:
-			say("Back in the session.")
+			say(_de("Back in the session."))
 		_reconnect_attempts = 0
 	if not _was_ready or client.connected or _leaving_at >= 0 or _closed:
 		return
@@ -345,7 +345,7 @@ func _keep_connected() -> void:
 		client.ended_reason = "host_unreachable"
 		journal.add(PokeCoopLog.CLIENT, "unreachable", {"attempts": RECONNECT_ATTEMPTS})
 		return
-	say("Lost the host: reconnecting...")
+	say(_de("Lost the host: reconnecting..."))
 	var link_again: PokeCoopEnetTransport = PokeCoopEnetTransport.dial(
 		String(_greeting["address"]), int(_greeting["port"])
 	)
@@ -361,7 +361,7 @@ func _follow_session_end() -> void:
 		return
 	if _leaving_at < 0 and not client.ended_reason.is_empty():
 		journal.add(PokeCoopLog.WORLD, "leaving", {"reason": client.ended_reason}, client.player_id)
-		say("The session ended: %s." % client.ended_reason.replace("_", " "))
+		say(_de("The session ended: %s.") % _de(client.ended_reason.replace("_", " ")))
 		_leaving_at = Time.get_ticks_msec() + LEAVE_MSEC
 	if _leaving_at > 0 and Time.get_ticks_msec() >= _leaving_at:
 		leave()
@@ -429,7 +429,7 @@ func _tell_refused_save() -> void:
 		if int(rejection.get("seq", -1)) == link.save_seq:
 			_noticed_save = link.save_seq
 			journal.add(PokeCoopLog.WORLD, "save_refused", rejection, client.player_id)
-			say("The campaign was not saved: %s." % String(rejection.get("reason", "")).replace("_", " "))
+			say(_de("The campaign was not saved: %s.") % _de(String(rejection.get("reason", "")).replace("_", " ")))
 
 
 ## A partner arriving, leaving, or starting a battle this player is free to join.
@@ -460,13 +460,13 @@ static func partner_news(before: Dictionary, now: Dictionary, session: PokeCoopC
 		var was: Dictionary = before.get(player_id, {})
 		var is_now: Dictionary = now[player_id]
 		if bool(is_now["connected"]) and not bool(was.get("connected", false)):
-			return "%s joined the session." % is_now["name"]
+			return _ui(game, "%s joined the session.") % is_now["name"]
 		if bool(was.get("connected", false)) and not bool(is_now["connected"]):
-			return "%s left the session." % is_now["name"]
+			return _ui(game, "%s left the session.") % is_now["name"]
 		var battle: String = String(is_now["battle"])
 		if not battle.is_empty() and battle != String(was.get("battle", "")) and battle != mine and mine.is_empty():
-			return "%s is in a battle%s.%s" % [is_now["name"], _against(session, battle, game),
-				"" if _is_private(session, battle) else " START > CO-OP to join."]
+			return _ui(game, "%s is in a battle%s.%s") % [is_now["name"], _against(session, battle, game),
+				"" if _is_private(session, battle) else _ui(game, " START > CO-OP to join.")]
 	return ""
 
 
@@ -480,15 +480,15 @@ static func _against(session: PokeCoopClient, battle_id: String, game: GameData)
 		if String(running.get("battle", "")) != battle_id or game == null:
 			continue
 		var trainer: int = int(running.get("trainer_class", 0))
-		return " against %s" % (game.trainer_name(trainer) if trainer > 0 \
-			else "wild %s" % String(game.species(int(running.get("enemy", 0))).get("name", "")))
+		return _ui(game, " against %s") % (game.trainer_name(trainer) if trainer > 0 \
+			else _ui(game, "wild %s") % String(game.species(int(running.get("enemy", 0))).get("name", "")))
 	return ""
 
 
 func _tell_scene() -> void:
 	var driver: String = link.scene_driver if link != null else ""
 	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(driver, {})
-	var line: String = "%s is facing the rival here. Wait, or join from START > CO-OP." % String(view.get("name", driver))
+	var line: String = _de("%s is facing the rival here. Wait, or join from START > CO-OP.") % String(view.get("name", driver))
 	if driver != _scene_told and not driver.is_empty():
 		say(line)
 	elif not driver.is_empty() and _notice != null and Time.get_ticks_msec() >= _notice_until:
@@ -501,21 +501,29 @@ func _tell_scene() -> void:
 func _tell_saves() -> void:
 	if client.state.is_empty():
 		return
-	var line: String = save_news(_saves_seen, client)
+	var line: String = save_news(_saves_seen, client, data)
 	if not line.is_empty():
 		say(line)
 	_saves_seen = int((client.state.get("saved", {}) as Dictionary).get("count", 0))
 
 
-static func save_news(seen: int, session: PokeCoopClient) -> String:
+static func save_news(seen: int, session: PokeCoopClient, game: GameData = null) -> String:
 	var saved: Dictionary = session.state.get("saved", {})
 	if seen < 0 or int(saved.get("count", 0)) <= seen:
 		return ""
 	var by: String = String(saved.get("by", ""))
 	if by == session.player_id:
-		return "Campaign saved."
+		return _ui(game, "Campaign saved.")
 	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(by, {})
-	return "%s saved the campaign." % String(view.get("name", by))
+	return _ui(game, "%s saved the campaign.") % String(view.get("name", by))
+
+
+func _de(english: String) -> String:
+	return _ui(data, english)
+
+
+static func _ui(game: GameData, english: String) -> String:
+	return Gen1LayoutDe.ui(game.id if game != null else &"", english)
 
 
 func say(text: String) -> void:
@@ -537,7 +545,7 @@ func _collect_evolutions() -> void:
 			continue
 		_settled_battles[battle_id] = true
 		if (view.get("left", []) as Array).has(client.player_id):
-			say(LEFT_BATTLE_ENDED.get(String(view["outcome"]), "The battle you left is over."))
+			say(_de(LEFT_BATTLE_ENDED.get(String(view["outcome"]), "The battle you left is over.")))
 		if _takeover != null and _takeover.claimed.has(battle_id):
 			continue
 		if String(view["outcome"]) == "lost" and not bool(view.get("versus", false)):

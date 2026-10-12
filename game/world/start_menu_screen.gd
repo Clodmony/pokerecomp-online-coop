@@ -2365,7 +2365,7 @@ func _use_selected_item(party_index: int, move_slot: int = -1) -> void:
 		## `PPIsMaxedOutText`, then `.loop2`: the same question over the same list.
 		if StringName(result.get("reason", &"")) == &"pp_maxed_out":
 			_show_pack_result(
-				PP_MAXED_OUT % String(_data.move(int(result.get("move", 0))).get("name", "")),
+				Gen1LayoutDe.localized(PP_MAXED_OUT) % String(_data.move(int(result.get("move", 0))).get("name", "")),
 				_open_pp_move_list.bind(number, party_index)
 			)
 			return
@@ -2413,7 +2413,7 @@ func _use_selected_item(party_index: int, move_slot: int = -1) -> void:
 	## SELECT use closes on the press.
 	sfx_requested.emit(Gen2Sfx.SFX_FULL_HEAL, false)
 	_show_pack_result(
-		((GEN1_USED_ITEM if _gen1_pack() else USED_ITEM) % String(item.get("name", ""))).replace(
+		((Gen1LayoutDe.localized(GEN1_USED_ITEM) if _gen1_pack() else USED_ITEM) % String(item.get("name", ""))).replace(
 			Gen2WorldPC.PLAYER_MARKER, _pack_save.player_name
 		), closed.emit if _using_registered else Callable()
 	)
@@ -2467,13 +2467,13 @@ func _party_result_text(
 	if kind != &"":
 		return Gen2ItemActionText.text(kind, target, result, _gen1_pack())
 	if int(result.get("restored", 0)) > 0:
-		return PP_RESTORED
+		return Gen1LayoutDe.localized(PP_RESTORED)
 	if StringName(result.get("effect", &"")) == &"pp_up":
-		return PP_INCREASED % String(_data.move(int(result.get("move", 0))).get("name", ""))
+		return Gen1LayoutDe.localized(PP_INCREASED) % String(_data.move(int(result.get("move", 0))).get("name", ""))
 	var stat: String = String(result.get("stat", ""))
 	if not stat.is_empty():
-		return STAT_ROSE % [target, String(VITAMIN_STAT_NAMES.get(stat, stat.to_upper()))]
-	return "%s was used." % String(item.get("name", "ITEM"))
+		return Gen1LayoutDe.localized(STAT_ROSE) % [target, Gen1LayoutDe.localized(VITAMIN_STAT_NAMES.get(stat, stat.to_upper()))]
+	return Gen1LayoutDe.localized("%s was used.") % String(item.get("name", "ITEM"))
 
 
 func _party_stats(party_index: int) -> Dictionary:
@@ -2664,7 +2664,7 @@ func _open_pp_move_list(item: int, party_index: int) -> void:
 func _pp_which_move_text() -> String:
 	var raise: bool = _pp_item == int(Gen2WorldPartyHost.item_effects(_data)["pp_up"])
 	if _gen1_pack():
-		return GEN1_RAISE_PP_WHICH_MOVE if raise else GEN1_RESTORE_PP_WHICH_MOVE
+		return Gen1LayoutDe.localized(GEN1_RAISE_PP_WHICH_MOVE if raise else GEN1_RESTORE_PP_WHICH_MOVE)
 	return RAISE_PP_WHICH_MOVE if raise else RESTORE_PP_WHICH_MOVE
 
 
@@ -2876,7 +2876,7 @@ func _pack_text(key: String) -> String:
 	if _gen1_pack():
 		var run: Array = GEN1_PACK_TEXTS.get(key, [])
 		text = _data.special_text(String(run[0]), String(run[1])) if not run.is_empty() \
-			else String(GEN1_TEXT_FALLBACKS.get(key, ""))
+			else Gen1LayoutDe.localized(GEN1_TEXT_FALLBACKS.get(key, ""))
 	else:
 		text = _data.menu_text(key) if _data != null else ""
 		if text.is_empty():

@@ -12,6 +12,22 @@ cartridge's own text, word for word. Three are too short to tell (JA, OK, OK),
 and two that were not found as one string are the naming screen's own pieces
 ("DEIN " / "GEGNER-" / "NAME?"), so they are the cartridge's too.
 
+On the same day the table grew to 354 lines for the rest of the game (#50): the
+battle, item, PC, Pokédex, trainer card, option and TM lines the engine still
+wrote in English. Each new line was taken from pokered-de's text for the same
+label and searched in the dump the same way: 267 of the 354 are found there
+word for word. Three more are the cartridge's although the search cannot find
+them in one piece: TYP/ (the cartridge places TYP and the "/" apart), BSG (the
+party list's fainted word, written letter by letter) and the lines stored with
+the cartridge's `#` code where the table spells POKéMON. The other 84 are the
+project's own wording below.
+
+The cartridge also decides some layouts, which German games now follow: the
+SAVE box starts a column further left (SPIELER), every JA/NEIN box is a column
+wider, the battle menu's right column starts at 12 (FLUCHT), the Safari menu's
+at 11 (KÖDER), the PC menus are wider (`<PKMN>` FREILASSEN) and the STATUS page
+writes AP in letters.
+
 The lines below are the project's own wording: co-op text that no cartridge
 has. Write the better German in the last column and the next session puts it
 in. Line breaks (`/`) matter: a box row is 18 characters at most, a menu row
@@ -31,7 +47,7 @@ fewer.
 | Who gets / %s? | Wer bekommt / %s? | After choosing a ball, with two players | |
 | decides | wählt | Left of FIGHT/PKMN/ITEM/RUN: "RED / wählt" | |
 | For | Für | Same box, choosing for an absent partner | |
-| Joining / soon | Kommt / gleich | Same box, a join waits for the next turn | |
+| Joining / soon | Kommt / bald | Same box, a join waits for the next turn | |
 | %s decides. | %s wählt. | Text box | |
 | %s suggests | %s rät: | Text box: "BLUE rät: / SCHIGGY" | |
 | %s's POKéMON | POKéMON: %s | Party list, whose Pokémon the cursor is on | |
@@ -71,6 +87,70 @@ fewer.
 | SAVED %d SEC. AGO | GESICHERT: %d SEK. | | |
 | SAVED %d MIN. AGO | GESICHERT: %d MIN. | | |
 
-Still English in German windows: the toasts over the world ("BLUE joined the
-session.", "RED is in a battle against wild ... START > CO-OP to join."), the
-launcher's Co-op tab, and the engine literals listed as open on #50.
+## START menu and boxes
+
+| English | German now | Where | Better German |
+|---|---|---|---|
+| CO-OP | KOOP | START menu row and the CO-OP menu's title | |
+| HOME | BEENDEN | START menu row back to the launcher | |
+| quit this game? | Spiel beenden? | Its question, after "Möchtest Du das" | |
+| MOVES | ATTACKE | START menu row for field moves (an option) | |
+| You pressed the / RESET buttons. / Reset the game? | Du hast die RESET- / Tasten gedrückt. / Spiel neu starten? | The reset chord's one-time question | |
+| Save failed: | Nicht gesichert: | SAVE refused, with the reason under it | |
+| battle in progress / no save path / unknown | Kampf läuft. / Kein Speicherort. / Unbekannt. | The reasons | |
+| %s was used. | %s / wurde eingesetzt. | An item with no other line | |
+| You have no POKE BALLS! | Du hast keine / BÄLLE! | BALL with none left | |
+| The capture could not be completed. | Das Fangen / schlug fehl. | A throw the world refused | |
+| soon | bald | "Kommt / bald" left of the battle menu (was "gleich", which the German box cuts) | |
+
+## Co-op messages over the world
+
+Drawn in the window's own font, not the cartridge's, so any length fits.
+
+| English | German now | Better German |
+|---|---|---|
+| %s joined the session. | %s ist der Sitzung beigetreten. | |
+| %s left the session. | %s hat die Sitzung verlassen. | |
+| %s is in a battle against %s. START > CO-OP to join. | %s kämpft gegen %s. Mitkämpfen: START > KOOP. | |
+| … against wild %s | … gegen ein wildes %s | |
+| %s is facing the rival here. Wait, or join from START > CO-OP. | %s trifft hier auf den Rivalen. Warte oder kämpfe mit: START > KOOP. | |
+| Campaign saved. | Kampagne gesichert. | |
+| %s saved the campaign. | %s hat die Kampagne gesichert. | |
+| The campaign was not saved: %s. | Die Kampagne wurde nicht gesichert: %s. | |
+| The session ended: %s. | Die Sitzung ist beendet: %s. | |
+| host shutdown / host unreachable / ended / refused: content mismatch / refused: protocol mismatch | der Host hat sie geschlossen / Host nicht erreichbar / beendet / andere Edition / andere Programmversion | |
+| Back in the session. | Wieder in der Sitzung. | |
+| Lost the host: reconnecting... | Host verloren: verbinde neu... | |
+| The battle you left was won. / was lost. / ended in a catch. / is over. | Der Kampf, den Du verlassen hast, ist gewonnen. / ist verloren. / endete mit einem Fang. / ist vorbei. | |
+
+## Refusals in a co-op battle
+
+Shown in the battle's text box, wrapped at 18 characters.
+
+| English | German now | Better German |
+|---|---|---|
+| It is not your turn. | Du bist nicht am Zug. | |
+| The battle moved on; try again. | Der Kampf ging weiter. Nochmal! | |
+| The battle is waiting for a player to come back. | Der Kampf wartet auf einen Spieler. | |
+| No room left for a catch. | Kein Platz für einen Fang. | |
+| You can't catch a trainer's POKéMON! | Sei kein Dieb! (the cartridge's) | |
+| Not saved: a battle is running. | Nicht gesichert: ein Kampf läuft. | |
+| You are already in a battle. | Du kämpfst bereits. | |
+| No room for more POKéMON in that battle. | In diesem Kampf ist kein Platz mehr. | |
+| Someone is already fighting that. | Dagegen kämpft schon jemand. | |
+| That battle is over. | Dieser Kampf ist vorbei. | |
+| It won't have any effect. | Das hätte keinen / Effekt! (the cartridge's) | |
+| None of your POKéMON can fight. | Keines Deiner POKéMON kann kämpfen. | |
+| The campaign could not be saved. | Die Kampagne konnte nicht gesichert werden. | |
+| Beaten already in this campaign: it counts as won. | In dieser Kampagne schon besiegt: zählt als gewonnen. | |
+| Your own world started this battle: you stay in it. | Deine Welt hat diesen Kampf begonnen: Du bleibst dabei. | |
+| Your POKéMON are still in a battle. | Deine POKéMON kämpfen noch. | |
+| That move can't be used now. | Diese Attacke geht jetzt nicht. | |
+| A partner met the rival first: the battle is one for both. | Ein Freund traf den Rivalen zuerst: Ihr kämpft zusammen. | |
+| Refused: %s | Abgelehnt: %s | |
+
+Still English in German windows: the launcher, its Co-op tab and its messages
+(they serve every game and have no translation yet), the test host's own
+encounter names in `tools/coop_session.gd` ("wild PIDGEY L5"), the Nuzlocke
+rule lines, and failure lines for states a played game does not reach ("No
+save is loaded.", "Purchase failed: …").

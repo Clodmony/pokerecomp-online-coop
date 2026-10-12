@@ -143,7 +143,7 @@ static func cancel_label() -> String:
 
 ## `BattleText_TheresNoWillToBattle` and Generation 1's `_NoWillText`.
 static func no_energy_text(generation_1: bool = false) -> String:
-	return "There's no will\nto fight!" if generation_1 else "There's no will to\nbattle!"
+	return Gen1LayoutDe.localized("There's no will\nto fight!") if generation_1 else "There's no will to\nbattle!"
 
 
 ## `BattleText_AnEGGCantBattle`.
@@ -153,12 +153,12 @@ static func egg_text() -> String:
 
 ## `BattleText_MonIsAlreadyOut` and Generation 1's `_AlreadyOutText`.
 static func already_out_text(name: String, generation_1: bool = false) -> String:
-	return ("%s is\nalready out!" if generation_1 else "%s\nis already out.") % name
+	return (Gen1LayoutDe.localized("%s is\nalready out!") if generation_1 else "%s\nis already out.") % name
 
 
 ## `AskUseNextPokemon`'s question, wild battles only: `_UseNextMonText` on both.
 static func use_next_text() -> String:
-	return "Use next #MON?"
+	return Gen1LayoutDe.localized("Use next #MON?")
 
 
 ## `BattleText_EnemyIsAboutToUseWillPlayerChangeMon` and `_TrainerAboutToUseText`.
@@ -166,5 +166,7 @@ static func offer_text(
 	trainer: String, mon: String, player: String, generation_1: bool = false
 ) -> String:
 	var opening: String = "%s is\nabout to use" if generation_1 else "%s\nis about to use"
-	return (opening + Gen2TextStream.SCROLL_BREAK + "%s" + ("!" if generation_1 else ".")
-		+ Gen2TextStream.PAGE_BREAK + "Will %s\nchange #MON?") % [trainer, mon, player]
+	var line: String = opening + Gen2TextStream.SCROLL_BREAK + "%s" + ("!" if generation_1 else ".") \
+		+ Gen2TextStream.PAGE_BREAK + "Will %s\nchange #MON?"
+	line = Gen1LayoutDe.localized(line) if generation_1 else line
+	return line % [trainer, mon, player].slice(0, line.count("%s"))
