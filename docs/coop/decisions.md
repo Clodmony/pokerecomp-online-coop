@@ -1501,3 +1501,16 @@ or another language is still refused (D95). A save brought from the partner
 game is kept. The campaign stays the host's game. Cost: a Blue player's
 exclusives reach a Red player by trade, as between the two cartridges.
 
+## D102. German games say everything in the cartridge's words (owner's request, #50, 2026-10-12)
+
+German games draw the engine's own lines through `Gen1LayoutDe.UI`. Where the
+cartridge has the line, the German is pokered-de's text for the same label and
+must be found in both owner dumps (267 of 356 lines word for word, 7 more in
+the cartridge's pieces); co-op and engine-only lines are project wording,
+listed in `german-wording.md` for the owner. Layouts the German cartridge
+changed follow it (SAVE box, JA/NEIN boxes, battle and Safari menu columns, PC
+boxes, the Cable Club cancel box), keyed on the German cartridge being open and
+on nothing in English games. The launcher stays English until it has its own
+translation system. Cost: small lookups and column offsets in 19 upstream
+files.
+
