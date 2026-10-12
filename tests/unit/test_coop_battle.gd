@@ -411,6 +411,13 @@ func test_a_partner_stands_in_for_a_dropped_controller_only_once_asked() -> void
 	assert_true(session.is_paused(), "and is waited for again the next time")
 
 
+func test_the_view_carries_each_enemy_members_hp_and_status_for_its_balls() -> void:
+	var session: PokeCoopBattleSession = _start(_red(), _enemy())
+	var foe: Gen2BattleMon = session.battle.mon(Gen2Battle.ENEMY)
+	foe.status = 8
+	assert_eq(session.view()["enemy_states"], [{"hp": foe.hp, "status": 8}])
+
+
 func test_the_panel_names_a_move_that_is_disabled_or_out_of_pp() -> void:
 	var red: PokeCoopPlayer = _red()
 	var session: PokeCoopBattleSession = _start(red, _enemy())
