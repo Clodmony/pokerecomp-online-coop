@@ -82,32 +82,35 @@ var _direct_trade: int = 0
 var _direct_open: bool = false
 
 
-static func campaign_path(game: GameData, id: String = "") -> String:
-	return "%s/%s/%s.json" % [CAMPAIGNS_DIR, String(game.id), id if not id.is_empty() else String(game.id)]
+static func campaign_path(game: GameData, id: String = "", folder: StringName = &"") -> String:
+	var game_id: String = String(folder if not folder.is_empty() else game.id)
+	return "%s/%s/%s.json" % [CAMPAIGNS_DIR, game_id, id if not id.is_empty() else game_id]
 
 
 static func new_campaign_id(game: GameData) -> String:
 	return "%s-%d-%04x" % [String(game.id), int(Time.get_unix_time_from_system()), randi() & 0xFFFF]
 
 
-## This device's campaigns for [param game], the latest saved first, and who this device is in each hosted on [param port].
-static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> Array:
-	move_legacy(game)
-	var folder: String = campaign_path(game).get_base_dir()
+## This device's campaigns for [param game] (or its [param folder]), the latest saved first, and who this device is in each hosted on [param port].
+static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_PORT, folder: StringName = &"") -> Array:
+	var game_id: StringName = folder if not folder.is_empty() else game.id
+	if game_id == game.id:
+		move_legacy(game)
+	var directory: String = campaign_path(game, "", game_id).get_base_dir()
 	var out: Array = []
-	for name: String in DirAccess.get_files_at(folder):
+	for name: String in DirAccess.get_files_at(directory):
 		if not name.ends_with(".json"):
 			continue
-		var path: String = "%s/%s" % [folder, name]
+		var path: String = "%s/%s" % [directory, name]
 		var loaded: Dictionary = PokeCoopSave.read(path)
 		var campaign: PokeCoopCampaign = loaded.get("campaign", null)
 		var members: Array = loaded.get("players", [])
-		var mine: String = String(_remembered("%s/host:%d" % [String(game.id), port]).get(name.get_basename(), ""))
+		var mine: String = String(_remembered(host_key(game_id, port)).get(name.get_basename(), ""))
 		var you: Array = members.filter(func(member: PokeCoopPlayer) -> bool: return member.player_id == mine)
 		out.append({
-			"id": name.get_basename(), "saved": FileAccess.get_modified_time(path),
+			"id": name.get_basename(), "saved": FileAccess.get_modified_time(path), "game": game_id,
 			"title": campaign.title if campaign != null and not campaign.title.is_empty() \
-				else "FIRST CAMPAIGN" if name.get_basename() == String(game.id) else name.get_basename(),
+				else "FIRST CAMPAIGN" if name.get_basename() == String(game_id) else name.get_basename(),
 			"players": members.map(func(member: PokeCoopPlayer) -> String: return member.name),
 			"members": members.map(func(member: PokeCoopPlayer) -> Dictionary: return {"name": member.name, "game": member.game_id}),
 			"badges": String.num_int64(campaign.badges, 2).count("1") if campaign != null else 0, "readable": campaign != null,
@@ -116,6 +119,19 @@ static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_
 		})
 	out.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return int(first["saved"]) > int(second["saved"]))
 	return out
+
+
+## The campaigns of both games of [param game]'s pair (D101): a Blue cartridge hosts a Red campaign from its own folder.
+static func pair_campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> Array:
+	var out: Array = []
+	for game_id: StringName in PokeCoopLobby.partners(game.id):
+		out.append_array(campaigns(game, port, game_id))
+	out.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return int(first["saved"]) > int(second["saved"]))
+	return out
+
+
+static func host_key(game_id: StringName, port: int) -> String:
+	return "%s/host:%d" % [String(game_id), port]
 
 
 static func new_campaign(game: GameData, title: String, rival: String = "") -> String:
@@ -128,19 +144,19 @@ static func new_campaign(game: GameData, title: String, rival: String = "") -> S
 	return id if PokeCoopSave.write(campaign_path(game, id), campaign, []) == OK else ""
 
 
-static func edit_campaign(game: GameData, id: String, title: String, rival: String) -> Error:
-	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game, id))
+static func edit_campaign(game: GameData, id: String, title: String, rival: String, folder: StringName = &"") -> Error:
+	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game, id, folder))
 	if loaded.is_empty():
 		return ERR_FILE_UNRECOGNIZED
 	var campaign: PokeCoopCampaign = loaded["campaign"]
 	campaign.title = title
 	campaign.rival_name = rival
-	return PokeCoopSave.write(campaign_path(game, id), campaign, loaded["players"])
+	return PokeCoopSave.write(campaign_path(game, id, folder), campaign, loaded["players"])
 
 
 ## Gone from the list; its latest state stays beside the others as `<id>.json.bak`.
-static func delete_campaign(game: GameData, id: String) -> Error:
-	var path: String = ProjectSettings.globalize_path(campaign_path(game, id))
+static func delete_campaign(game: GameData, id: String, folder: StringName = &"") -> Error:
+	var path: String = ProjectSettings.globalize_path(campaign_path(game, id, folder))
 	var loaded: Dictionary = PokeCoopSave.read(path)
 	if not loaded.is_empty() and FileAccess.file_exists(path + PokeCoopSave.JOURNAL_SUFFIX):
 		PokeCoopSave.write(path, loaded["campaign"], loaded["players"])
@@ -161,15 +177,16 @@ static func move_legacy(game: GameData) -> void:
 
 
 ## Hosts on [param port], loading or starting the campaign; [param brought] is a save in place of a starter.
+## [param folder] is the campaign's own game when it is the other version of [param game]'s pair.
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null,
-	campaign_id: String = "", title: String = "", session_log: PokeCoopLog = null
+	campaign_id: String = "", title: String = "", session_log: PokeCoopLog = null, folder: StringName = &""
 ) -> PokeCoopSession:
 	last_failure = ""
 	if game == null:
 		return null
 	move_legacy(game)
-	var path: String = campaign_path(game, campaign_id)
+	var path: String = campaign_path(game, campaign_id, folder)
 	var link_out: PokeCoopEnetTransport = PokeCoopEnetTransport.listen(port)
 	if link_out == null:
 		return null
@@ -194,7 +211,7 @@ static func hosting(
 		"campaign_title": campaign.title, "campaign_path": path,
 	})
 	var out: PokeCoopSession = _connect(
-		game, "127.0.0.1", port, player_name, starter, "", "%s/host:%d" % [String(game.id), port], brought, serving.journal
+		game, "127.0.0.1", port, player_name, starter, "", host_key(folder if not folder.is_empty() else game.id, port), brought, serving.journal
 	)
 	if out == null:
 		serving.journal.close()

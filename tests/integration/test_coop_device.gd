@@ -550,6 +550,46 @@ func test_a_new_campaign_names_its_rival_and_renaming_or_deleting_it_keeps_a_bac
 		"the last checkpoint stays as the backup")
 
 
+func test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder() -> void:
+	var blaue_cache: String = RomCache.directory_for(&"coopdeviceblaue", "")
+	var blaue: GameData = Fixture.build(blaue_cache, String(RomRegistry.BLUE_DE), RomRegistry.GEN1)
+	blaue.sha1 = RomRegistry.sha1_for(RomRegistry.BLUE_DE)
+	var rote: PokeCoopCampaign = PokeCoopCampaign.create("rote-1", RomRegistry.RED_DE, RomRegistry.sha1_for(RomRegistry.RED_DE))
+	rote.title = "ROTE RUN"
+	PokeCoopPolicy.start_campaign(rote)
+	var rote_path: String = PokeCoopSession.campaign_path(blaue, "rote-1", RomRegistry.RED_DE)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(rote_path.get_base_dir()))
+	assert_eq(PokeCoopSave.write(rote_path, rote, []), OK)
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return blaue if id == RomRegistry.BLUE_DE else null
+	PokeCoopPage.forget()
+	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+
+	assert_true(_press(page, "HOST"))
+	var said: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is Label).map(func(label: Label) -> String:
+		return label.text)
+	assert_has(said, "ROTE RUN", "the other version's campaign is listed")
+	assert_has(said, "%s campaign" % PokeCoopLobby.short_title(RomRegistry.RED_DE), "and labelled with its game")
+	assert_true(_press(page, "Host ROTE RUN"))
+	_type(page, "name", "blau")
+	assert_true(_press(page, "Start in Pallet Town"))
+	assert_true(_press(page, "Host as BLAU"))
+	var hosting: PokeCoopSession = Gen2GameRuntime.instance().coop
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+
+	assert_eq([hosting.data.id, hosting.host.campaign.game_id, hosting.host.save_path], [RomRegistry.BLUE_DE, RomRegistry.RED_DE, rote_path],
+		"the host's window plays Blaue; the campaign stays in Rote's folder")
+	assert_eq(hosting.host.player(hosting.client.player_id).game_id, String(RomRegistry.BLUE_DE))
+	assert_eq(PokeCoopSession.campaigns(blaue, PORT), [], "no copy in Blaue's folder")
+	_close_all()
+	assert_eq(PokeCoopSession.campaigns(blaue, PORT, RomRegistry.RED_DE)[0]["you"], "BLAU", "remembered as the campaign's host")
+	for path: String in [rote_path, rote_path + PokeCoopSave.BACKUP_SUFFIX, rote_path + PokeCoopSave.JOURNAL_SUFFIX]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	for folder: String in [rote_path.get_base_dir(), PokeCoopSession.campaign_path(blaue).get_base_dir()]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
+	RomCache.clear(blaue_cache)
+
+
 func test_a_device_asks_the_host_first_and_says_hello_on_the_same_link() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "", "WITH BLUE")
 	_sessions.append(hosting)

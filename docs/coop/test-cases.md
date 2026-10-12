@@ -60,6 +60,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | K12 | Change the launcher's theme while hosting or while a join is on its way | The tab comes back on the same step, with the session or the dial still going | | coop_tab_tour | |
 | K13 | Two launchers on one device, both on the Co-op tab | The second's Nearby says it is not listening until the first hosts or leaves the tab; joining by address works throughout | `test_a_beacon_crosses_a_real_socket_and_a_second_listener_on_the_port_waits` | coop_tab_tour | |
 | K14 | START > CO-OP on the hosting device | The header shows `IP <address>` partners join at | | launcher_host_join | |
+| K15 | Host with Blaue selected on a device that has a Rote campaign (and Blue with a Red one) | The Rote campaign is listed, labelled "Rote campaign"; Host plays it with the Blaue cartridge and its file stays in `coop_campaigns/red_de/`; Rename and Delete work on it | `test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder` | coop_tab_tour (host_other_version) | |
 
 ## Exploration and story
 

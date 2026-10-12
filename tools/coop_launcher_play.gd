@@ -177,7 +177,7 @@ func _tour_join() -> Array:
 		_type.bind("address", "127.0.0.1:%d" % (_port + 7)), _press.bind("Join"), _shot.bind("connecting"), _wait.bind(260),
 		_shot.bind("failure"), _press.bind("Cancel"), _join_host, _until_screen.bind(PokeCoopPage.NEW_PLAYER), _fill_new_player,
 		_shot.bind("new_player"), _press_join_as, _until_world, _until_launcher, _wait.bind(30), _shot.bind("sent_back"),
-		_press.bind("Join again"), _until_known, _shot.bind("connecting_known"), _join_as]
+		_press.bind("HOST"), _shot.bind("host_other_version"), _press.bind("Back"), _press.bind("Join again"), _until_known, _shot.bind("connecting_known"), _join_as]
 
 
 func _page() -> PokeCoopPage:

@@ -12,8 +12,10 @@ the cartridge is sent between devices.
    the one you play with; the line under them says which games play together
    (Red with Blue, Rote with Blaue Edition). The tab remembers your pick.
 2. One player presses **HOST**. Each of the device's campaigns for that
-   cartridge is a card with its players, the cartridge each plays, badges,
-   place and last save. Pick one and press **Host <name>**, or press
+   cartridge and for the other game of its pair is a card with the game it was
+   started on ("Rote campaign"), its players, the cartridge each plays, badges,
+   place and last save: a Blaue cartridge hosts a Rote campaign too, and its
+   file stays in Rote's folder. Pick one and press **Host <name>**, or press
    **+ New campaign**: name it, choose the rival's name (one of the cartridge's
    own three, typed, or **Ask in Oak's speech**), type your name and choose how
    you start (below), then **Create and host**.
