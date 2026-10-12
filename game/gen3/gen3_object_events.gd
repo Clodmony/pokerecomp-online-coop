@@ -109,6 +109,7 @@ class ObjectEvent:
 	var pixel_position := Vector2i.ZERO
 	var jump_y: int = 0
 	var ground_on_spawn: bool = true
+	var player_copyable_movement: int = 0
 
 
 var camera: Gen3FieldCamera
@@ -389,6 +390,7 @@ func _build_motions() -> void:
 	if _frlg:
 		for direction: int in range(1, 5):
 			_motions[0x08 + direction - 1] = [Motion.WALK, direction, 0]
+			_motions[0xA6 + direction - 1] = [Motion.JUMP, direction, Jump.SPECIAL]
 	elif camera.data.id == RomRegistry.EMERALD:
 		for index: int in 4:
 			_motions[0x8C + index] = [Motion.WALK, [7, 8, 5, 6][index], 1]
@@ -397,7 +399,7 @@ func _build_motions() -> void:
 
 ## `ObjectEventSetHeldMovement`: true refuses; completion does not clear the hold.
 func set_held_movement(object: ObjectEvent, action: int) -> bool:
-	if not object.active or object.single_movement_active or object.held_movement_active or not _motions.has(action):
+	if not object.active or movement_overridden(object) or not _motions.has(action):
 		return true
 	object.frozen = false
 	object.movement_action = action
@@ -423,6 +425,64 @@ static func clear_held_movement_if_finished(object: ObjectEvent) -> int:
 	if status == 1:
 		clear_held_movement(object)
 	return status
+
+
+static func movement_overridden(object: ObjectEvent) -> bool:
+	return object.single_movement_active or object.held_movement_active
+
+
+## `FreezeObjectEvents` skips the player and held actions; unfreezing visits
+## every active slot, including objects that were already frozen.
+func freeze_except_player() -> void:
+	for object: ObjectEvent in objects:
+		if object.active and not object.is_player and not object.held_movement_active:
+			object.frozen = true
+
+
+func unfreeze_all() -> void:
+	for object: ObjectEvent in objects:
+		if object.active:
+			object.frozen = false
+
+
+## `RemoveObjectEventByLocalIdAndMap` sets the template's hide flag. The
+## current map's mutable templates precede another map's header templates.
+func remove(local_id: int, number: int, group: int) -> void:
+	for object: ObjectEvent in objects:
+		if object.active and object.local_id == local_id and object.map_number == number and object.map_group == group:
+			events.flag_set(int(_template_by_id(local_id, number, group).get("flag", 0)))
+			object.active = false
+			return
+
+
+func _template_by_id(local_id: int, number: int, group: int) -> Dictionary:
+	var rows: Array = templates if number == camera.number and group == camera.group \
+		else camera.data.world_map_events(group, number).get("objects", [])
+	for row: Dictionary in rows:
+		if int(row["local_id"]) == local_id:
+			return row
+	return {}
+
+
+## FRLG's `HandleBoulderFallThroughHole` and
+## `HandleBoulderActivateVictoryRoadSwitch`. Reveal flags use the template's
+## u16 trainer field, not the object's truncated trainer type. Switches ignore
+## elevation and variable gates and visit all coordinate rows in order.
+func boulder_landing(object: ObjectEvent) -> Array:
+	var requests: Array = []
+	if not _frlg:
+		return requests
+	var behavior: int = camera.grid.behavior_at(object.current.x, object.current.y)
+	if behavior == 0x66:
+		var template: Dictionary = _template_by_id(object.local_id, camera.number, camera.group)
+		remove(object.local_id, camera.number, camera.group)
+		events.flag_clear(int(template.get("trainer_type", 0)))
+		requests.append({"kind": "sound", "name": "fall"})
+	if behavior == 0x20:
+		for row: Dictionary in camera.data.world_map_events(camera.group, camera.number).get("coords", []):
+			if Vector2i(int(row["x"]), int(row["y"])) + Vector2i.ONE * Gen3MapGrid.MAP_OFFSET == object.current:
+				requests.append({"kind": "script", "offset": int(row["script_offset"])})
+	return requests
 
 
 ## `UpdateObjectEventCurrentMovement`: held actions bypass freezing/collision.

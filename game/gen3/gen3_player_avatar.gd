@@ -2,8 +2,8 @@ class_name Gen3PlayerAvatar
 extends RefCounted
 
 ## `field_player_avatar.c`: initialization, state queries and collision
-## decisions. Collision effects are returned as requests for the movement host;
-## movement tasks, sprites and Hoenn's rotating-gate puzzles are not modeled.
+## decisions, Strength and surf dismount tasks. Sprites and Hoenn's
+## rotating-gate puzzles are not modeled.
 
 enum Flag { ON_FOOT = 1, MACH_BIKE = 2, ACRO_BIKE = 4, SURFING = 8,
 	UNDERWATER = 16, CONTROLLABLE = 32, FORCED_MOVE = 64, DASH = 128 }
@@ -11,6 +11,7 @@ enum State { NORMAL, MACH_BIKE, ACRO_BIKE, SURFING, UNDERWATER, FIELD_MOVE, FISH
 enum Collision { NONE, OUTSIDE_RANGE, IMPASSABLE, ELEVATION_MISMATCH, OBJECT_EVENT,
 	STOP_SURFING, LEDGE_JUMP, PUSHED_BOULDER, DIRECTIONAL_STAIR_WARP, WHEELIE_HOP,
 	ISOLATED_VERTICAL_RAIL, ISOLATED_HORIZONTAL_RAIL, VERTICAL_RAIL, HORIZONTAL_RAIL }
+enum Task { NONE, PUSH_WAIT, PUSH_MOVE, SURF_WAIT, SURF_JUMP }
 const MOVEMENT_TYPE_PLAYER: int = 0xB
 ## `sPlayerAvatarGfxIds`; FRLG's graphics-state indices differ from Hoenn's.
 const HOENN_GRAPHICS: Array = [[0, 89], [1, 90], [63, 91], [2, 92], [111, 112],
@@ -28,6 +29,11 @@ var objects: Gen3ObjectEvents
 var object_id: int = -1
 var gender: int = 0
 var flags: int = 0
+var prevent_step: bool = false
+var controls_locked: bool = false
+var task: Task = Task.NONE
+var _task_direction: int = 0
+var _boulder_id: int = -1
 var _frlg: bool = false
 
 
@@ -169,3 +175,110 @@ func facing_fishable_water() -> bool:
 
 static func _result(collision: int, requests: Array = []) -> Dictionary:
 	return {"collision": collision, "requests": requests}
+
+
+## The collision branch of `PlayerNotOnBikeCollide`: query once, consume its
+## effects and start the task immediately. Tasks block further player steps;
+## ordinary walks and stairs are left to the field input host.
+func begin_collision_movement(direction: int) -> Dictionary:
+	if prevent_step:
+		return _result(Collision.IMPASSABLE)
+	var result: Dictionary = check_collision(direction)
+	var requests: Array = []
+	match int(result["collision"]):
+		Collision.PUSHED_BOULDER:
+			_boulder_id = int(result["requests"][0]["object_id"])
+			_task_direction = direction
+			prevent_step = true
+			controls_locked = true
+			task = Task.PUSH_WAIT
+		Collision.STOP_SURFING:
+			_task_direction = direction
+			prevent_step = true
+			controls_locked = true
+			flags = (flags & ~Flag.SURFING) | Flag.ON_FOOT
+			if _frlg:
+				objects.freeze_except_player()
+			requests.append({"kind": "restore_field_music"})
+			task = Task.SURF_WAIT
+			_start_dismount(requests)
+		Collision.LEDGE_JUMP:
+			requests.append({"kind": "jumped_ledge"})
+			requests.append({"kind": "sound", "name": "ledge"})
+			if not Gen3ObjectEvents.movement_overridden(object()):
+				object().player_copyable_movement = 8
+				objects.set_held_movement(object(), (0x14 if _frlg else 0x0C) + direction - 1)
+	result["requests"] = requests
+	return result
+
+
+## `RunTasks` precedes `AnimateSprites`: call this once per field frame,
+## then [method Gen3ObjectEvents.step_movements]. Presentation requests leave
+## flags, occupancy and held actions owned by these models.
+func step_movement_tasks() -> Array:
+	var requests: Array = []
+	match task:
+		Task.PUSH_WAIT:
+			_start_push(requests)
+		Task.PUSH_MOVE:
+			_finish_push(requests)
+		Task.SURF_WAIT:
+			_start_dismount(requests)
+		Task.SURF_JUMP:
+			_finish_dismount(requests)
+	return requests
+
+
+## Emerald's `PushBoulder_Move` clears finished holds before testing overrides;
+## `DoBoulderDust` on Ruby/Sapphire/FRLG does not, even for a finished hold.
+func _start_push(requests: Array) -> void:
+	var player: Gen3ObjectEvents.ObjectEvent = object()
+	var boulder: Gen3ObjectEvents.ObjectEvent = objects.objects[_boulder_id]
+	if objects.events.game == RomRegistry.EMERALD:
+		Gen3ObjectEvents.clear_held_movement_if_finished(player)
+		Gen3ObjectEvents.clear_held_movement_if_finished(boulder)
+	if Gen3ObjectEvents.movement_overridden(player) or Gen3ObjectEvents.movement_overridden(boulder):
+		return
+	Gen3ObjectEvents.clear_held_movement_if_finished(player)
+	Gen3ObjectEvents.clear_held_movement_if_finished(boulder)
+	objects.set_held_movement(player, (0x25 if _frlg else 0x1D) + _task_direction - 1)
+	objects.set_held_movement(boulder, (0x08 if _frlg else 0x04) + _task_direction - 1)
+	requests.append({"kind": "dust", "at": boulder.current, "elevation": boulder.previous_elevation})
+	requests.append({"kind": "sound", "name": "strength"})
+	task = Task.PUSH_MOVE
+
+
+func _finish_push(requests: Array) -> void:
+	var player: Gen3ObjectEvents.ObjectEvent = object()
+	var boulder: Gen3ObjectEvents.ObjectEvent = objects.objects[_boulder_id]
+	if Gen3ObjectEvents.held_movement_status(player) == 0 or Gen3ObjectEvents.held_movement_status(boulder) == 0:
+		return
+	Gen3ObjectEvents.clear_held_movement_if_finished(player)
+	Gen3ObjectEvents.clear_held_movement_if_finished(boulder)
+	requests.append_array(objects.boulder_landing(boulder))
+	prevent_step = false
+	controls_locked = false
+	task = Task.NONE
+
+
+func _start_dismount(requests: Array) -> void:
+	if Gen3ObjectEvents.movement_overridden(object()) \
+			and Gen3ObjectEvents.clear_held_movement_if_finished(object()) == 0:
+		return
+	requests.append({"kind": "surf_bob", "mode": "mon_only"})
+	objects.set_held_movement(object(), (0xA6 if _frlg else 0x3A) + _task_direction - 1)
+	task = Task.SURF_JUMP
+
+
+func _finish_dismount(requests: Array) -> void:
+	if Gen3ObjectEvents.clear_held_movement_if_finished(object()) == 0:
+		return
+	object().graphics_id = graphics_for(State.NORMAL)
+	objects.set_held_movement(object(), maxi(object().facing - 1, 0))
+	prevent_step = false
+	controls_locked = false
+	if _frlg:
+		objects.unfreeze_all()
+		requests.append({"kind": "refresh_help_context"})
+	requests.append({"kind": "destroy_surf_blob"})
+	task = Task.NONE
