@@ -10,6 +10,7 @@ var data: GameData = null
 var claimed: Dictionary = {}
 var waiting_on: String = ""
 var send_party: Callable = Callable()
+var busy: Callable = Callable()
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattleTakeover:
@@ -111,6 +112,8 @@ class Bridge extends Node:
 				_owner.claimed[_battle_id] = true
 		var outcome: String = String(client.battle(_battle_id).get("outcome", ""))
 		if not _battle_id.is_empty() and not outcome.is_empty():
+			if _owner.busy.is_valid() and bool(_owner.busy.call()):
+				return
 			_take_party()
 			## A catch ends a scripted battle as a win does: the object is gone.
 			_finish(&"won" if outcome in ["won", "caught"] else (&"lost" if outcome == "lost" else &"ran"))

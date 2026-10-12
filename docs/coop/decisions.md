@@ -1514,3 +1514,15 @@ on nothing in English games. The launcher stays English until it has its own
 translation system. Cost: small lookups and column offsets in 19 upstream
 files.
 
+## D103. Hold B to run in a co-op run (owner's request, 2026-10-12)
+
+The owner asked for a run button. Upstream already has the RUN BUTTON mod
+policy: while one is registered, a walk with B held takes the bike's four
+passes, a recording keeps the run state, and the bike and surf keep their own
+pace. A co-op session registers `PokeCoopRemoteActor` as that policy for as
+long as it holds a client, so every player of a run can run and a solo game
+walks as the cartridge does. A partner's steps are eased over the time between
+their reports, eight frames when they run or ride and sixteen when they walk.
+Cost: B is held for nothing else on the map in Gen 1, so no cartridge input
+is lost; there is no setting to turn it off.
+

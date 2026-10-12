@@ -45,6 +45,7 @@ var _menu_drawn: String = ""
 var _clicks: int = 0
 var _screen: Gen2Screen = null
 var _masked: bool = false
+var _fanfared: bool = false
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -280,6 +281,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_anim_after = {}
 	_hold = 0
 	_sound_wait = false
+	_fanfared = false
 	_box.visible = false
 
 
@@ -307,7 +309,7 @@ func _open(view: Dictionary) -> void:
 	_messages.append({"cry": ally})
 
 
-## An event's steps besides its line; a faint plays ahead of it, as `MonFaintedAnimation` does.
+## An event's steps besides its line; a faint plays ahead of it, as `MonFaintedAnimation` does, a wild win's fanfare after it.
 func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 	var side: int = int(event.get("side", 0))
 	match StringName(event.get("type", &"")):
@@ -322,6 +324,9 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 		Gen2Battle.FAINTED:
 			_messages.append({"stage": PokeCoopBattleStage.FAINT, "side": side})
 			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false))))
+			if side == Gen2Battle.ENEMY and not bool(view.get("trainer", false)) and String(view.get("outcome", "")) == "won":
+				_messages.append({"fanfare": false, "gym": false})
+				_fanfared = true
 		Gen2Battle.CRY:
 			_messages.append({"cry": int(event.get("species", 0))})
 		Gen2Battle.GREW_LEVEL:
@@ -385,8 +390,10 @@ func _queue_victory(view: Dictionary) -> void:
 	var trainer: bool = bool(view.get("trainer", false))
 	var me: String = _player_name(panel.client.player_id)
 	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
-	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
-		or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
+	if not _fanfared:
+		_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
+			or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
+	_fanfared = true
 	var said: String = Gen2TextStream.fill_context(String(view.get("win_text", "")), {"player": me,
 		"rival": String((panel.client.state.get("campaign", {}) as Dictionary).get("rival_name", ""))})
 	var lines: Array = [_de(data, "%s defeated\n%s!") % [me, _trainer_name(view)], said] if trainer else []
