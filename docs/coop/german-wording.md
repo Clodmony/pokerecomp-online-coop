@@ -12,21 +12,23 @@ cartridge's own text, word for word. Three are too short to tell (JA, OK, OK),
 and two that were not found as one string are the naming screen's own pieces
 ("DEIN " / "GEGNER-" / "NAME?"), so they are the cartridge's too.
 
-On the same day the table grew to 354 lines for the rest of the game (#50): the
+On the same day the table grew to 356 lines for the rest of the game (#50): the
 battle, item, PC, Pokédex, trainer card, option and TM lines the engine still
 wrote in English. Each new line was taken from pokered-de's text for the same
-label and searched in the dump the same way: 267 of the 354 are found there
-word for word. Three more are the cartridge's although the search cannot find
-them in one piece: TYP/ (the cartridge places TYP and the "/" apart), BSG (the
-party list's fainted word, written letter by letter) and the lines stored with
-the cartridge's `#` code where the table spells POKéMON. The other 84 are the
-project's own wording below.
+label and searched the same way in both dumps, Rote and Blaue Edition: 267 of
+the 356 are found in each word for word. Seven more are the cartridge's
+although the search cannot find them in one piece: TYP/ (the cartridge places
+TYP and the "/" apart), BSG (the party list's fainted word, written letter by
+letter), the two naming-screen titles, and three lines the table spells with
+POKéMON where the cartridge stores its `#` code. The other 82 are the project's
+own wording below.
 
 The cartridge also decides some layouts, which German games now follow: the
 SAVE box starts a column further left (SPIELER), every JA/NEIN box is a column
 wider, the battle menu's right column starts at 12 (FLUCHT), the Safari menu's
-at 11 (KÖDER), the PC menus are wider (`<PKMN>` FREILASSEN) and the STATUS page
-writes AP in letters.
+at 11 (KÖDER), the PC menus are wider (`<PKMN>` FREILASSEN), the Cable Club's
+cancel box is 12 wide (ABBRECHEN) and the STATUS page writes AP in letters.
+"GLUMANDA ben. KRATZER!" is the cartridge's own `_UsedMove1Text`, not a cut.
 
 The lines below are the project's own wording: co-op text that no cartridge
 has. Write the better German in the last column and the next session puts it

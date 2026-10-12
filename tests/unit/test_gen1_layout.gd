@@ -669,3 +669,12 @@ func test_german_menus_take_the_german_cartridges_columns() -> void:
 	assert_eq(Gen2BattleMenu.main_box().column_spacing, 6)
 	assert_eq(Gen2BattleMenu.safari_options("BALL×       BAIT", "THROW ROCK  RUN"), ["BALL×", "BAIT", "THROW ROCK", "RUN"])
 	assert_eq(Gen2MenuBox.yes_no().left, 14)
+
+
+func test_every_generation_1_battle_line_has_its_german_line() -> void:
+	for kind: Variant in Gen2BattleScreen.GEN1_LINES:
+		var english: String = String((Gen2BattleScreen.GEN1_LINES[kind] as Array)[0])
+		if not english.is_empty():
+			assert_true(Gen1LayoutDe.UI.has(english), english.c_escape())
+	assert_eq(Gen1LayoutDe.ui(&"red_de", Gen2BattleScreen.GEN1_LINES[Gen2Battle.FOCUS_ENERGY_SET][0]) % "MASCHOCK",
+		Gen1LayoutDe.PAUSE + "MASCHOCK\npumpt sich auf!")
