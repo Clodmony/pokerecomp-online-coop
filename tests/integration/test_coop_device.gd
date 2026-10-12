@@ -41,6 +41,10 @@ func after_each() -> void:
 	PokeCoopPage.host_port = PokeCoopEnetTransport.DEFAULT_PORT
 	Gen2GameRuntime.instance().coop = null
 	PokeCoopSession.ended_note = ""
+	## A sheet opens on the root, so a test that ends with one up would leave its buttons to the next test's presses.
+	for sheet: Node in get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP):
+		if sheet is PokeCoopTabParts.Sheet:
+			Gen2Screen.drop(sheet)
 	if _window_size != Vector2i.ZERO:
 		get_tree().root.size = _window_size
 		_window_size = Vector2i.ZERO
