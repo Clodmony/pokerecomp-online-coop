@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Friend menu continuation (#104, D100, 2026-10-11–12)
+
+Claude left an uncommitted `coop/pvp-battle` worktree on the native menus and
+Cable Club continue branch. `coop/friend-menu` keeps that worktree intact and
+completes its friend battles, invitations and trades; dependencies are draft
+#101 and #103. BATTLE / TRADE / CANCEL is available by talking to the partner,
+and named BATTLE / TRADE rows are in START > CO-OP (also SELECT).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Co-op suites 243/243, 1217 assertions. Friend invitations, both choices/replacements, mirrored views, full unsplit EXP for winner/loser, healing without money/warp/whiteout, simultaneous learning, forced turns, timeout/busy/disconnect, direct trade swap/cancellation and log replay. The existing gesture test now releases held actions and clears a previous menu's input stall before counting presses. |
+| Editor | Godot 4.8-dev7 import/class scan; analyser: 0 warnings across all 18 changed scripts; Debugger dump: 0 entries |
+| Whole suite and boot | 5098/5098 tests, 151074 assertions, 214.4 s through the bounded CI runner on 2026-10-12; editor import and boot smoke pass |
+| Source gates | `test_source_budget` 4/4; engine-free gates pass, comments 41343/41343 |
+| Localhost sockets | ENet demo 16/16 on port 24581; three-process host/p1/p2 check passes on 24582 |
+| Screens | `friend_menu`: English Red and German Rote Edition, 21 captures each, all inspected: own teams on both battle fields, natural finish, healed parties (Blue's RATTATA level 9 to 10), trade invitations, the complete native trade movie, swapped parties and CANCEL back at both original cells. The saved campaign keeps 3000 money each and every UID once. A short German invitation run also checks the widened JA/NEIN box. Captures and imports stay under `/tmp`, outside commits |
+| Platforms | Linux game windows exercised. Local Linux and Windows exports both boot: Linux directly, Windows under Wine in a fresh temporary prefix. No hand-played Windows or phone session for this continuation. |
+
 ## Baseline
 
 | Check | Result | Where |
@@ -246,6 +264,11 @@ The owner settled the open questions (D72); the work follows `tasks.md`.
 | #88 stretch `elite` (D87, D88), seeded in the Indigo Plateau lobby at level 60 | the lobby nurse, LORELEI, BRUNO, AGATHA, LANCE (the lead alternating, the partner joining from SELECT and then winning at once), the Champion joined from LANCE's room, each window's own Hall of Fame, credits and Continue in Pallet Town: six runs, the last three pass, the last with 0 script errors. Found and fixed on the way: a won joined battle blacked out an initiator whose own team fell; the Hall of Fame's reset dropped the window to the saves page. Co-op suites 211/211, whole suite 5027/5027, ENet demo and three-process check pass. Not run: the chained run, an Elite Four rematch, a whiteout inside the League, Windows and the launcher path. |
 | #85 (D77), Vermilion Gym's first lock kept while a partner is near | two GUT tests; two windows, `vermilion_locks` from an edited after-Surge seed: BLUE walks from the Pokémon Center into the city twice while RED searches, BLUE's window rolls 6 (10 in another run) and keeps 4, RED finds the first switch in can 4 and opens the first lock; three passing runs. Control run with the change off: BLUE's entry sends lock 10 and RED finds only trash in can 4 |
 | Campaign seeds (D78) | `tools/coop_seed.gd` writes a two-player campaign at any of upstream's 30 Gen 1 story legs in 5 to 7 s, byte for byte the same each time; ten seeds, one per later stretch start, each opened in two windows (`story_seed`): both players where the story left them, side by side, the party right, 0 script errors; the autopilot finished `from=lt_surge` at once on the Vermilion seed. Against the real run's campaign after LT. SURGE the story seed has the same badges and 62 of its 66 story flags (three trainers the story's path skipped, and `EVENT_WALKED_OUT_OF_DOCK`), and no host `defeated` encounters or gift commits |
+| Phone softlock after a battle (2026-10-09, played on an iPhone) | the panel freezes the world screen, and the on-screen pad with it, so a phone could only tap rows, and a finished battle had none: the result could not be closed. The pad now runs under a held world (the tappable CLOSE and BAG row of that fix were replaced by D98). GUT: co-op suites and the whole suite pass; two windows: `catch_for_partner`, the result shows `> CLOSE`. Not yet played on the phone again |
+| Battle menus on the world screen (#99, D98) | co-op battles drawn in the world's own 160x144 screen with FIGHT/PKMN/ITEM/RUN, the move list with TYPE/PP, the party list over both teams, the bag, YES/NO questions and a ball's recipient list; no side panel. Tests: whole suite passes (see the PR); two windows 2026-10-10, captures looked at: `switch_and_suggest`, `catch_for_partner`, `leave_rejoin_takeover`, `lose_and_white_out`, `playthrough_brock` (both windows finished, 0 script errors), `start_coop_menu`; a 540x1170 window with the touch pad forced on (battle at the top, pad visible). Not checked: a German window, the learn and Mimic screens on screen (GUT only), a real phone |
+| Suggestions at every menu level (#99, D98) | the partner's hollow ▷ on the main menu and the row, initials with three players, "BLUE suggests / SQUIRTLE" in the idle controller's box, a ball's recipient. GUT (two and three players); seen in `switch_and_suggest` and `catch_for_partner` |
+| A battle closes by itself (#98) | the result needs no A: seen in `catch_for_partner` and `lose_and_white_out`; GUT |
+| START > CO-OP and gestures (#99, D99) | CO-OP in the START menu of a co-op world only; the session menu on the 160x144 screen (offers, JOIN/REJOIN with the foe, LEAVE asked YES/NO, partners and last save); SELECT still opens it; swipes and taps over the screen while it or a co-op battle is open. GUT; two windows: `start_coop_menu`, `leave_rejoin_takeover`, `catch_for_partner`, `save_from_start_menu`, `playthrough_brock`, `german_menus` (red_de), `launcher_host_join`, `launcher_leave_rehost`. Gestures in GUT only; not played on a phone |
 
 ## Upstream 0.1.75 (branch `coop/upstream-sync`, 2026-10-09)
 
@@ -260,7 +283,7 @@ A cloud session with no cartridge: everything below runs on the synthetic cache.
 | Local x86_64, dev4: `main` before the merge, for comparison | whole suite 5030/5047: the 17 failures were all `test_coop_device`, whose fixed port 24791 a parallel run held; its co-op suites alone 223/223 |
 | Engine-free gates | version 0.1.75 everywhere, comments 41343 of 41343 |
 | Screens (scripted), Red | not run: no cartridge in the merging session; `playthrough_brock` and `cable_club_trade` are the owner's checks before the merge (P05) |
-
+| Stuck in the Trade Center (2026-10-11, played: Linux host, Windows partner) | Generation 1's Cable Club rooms have no exit; the cartridge leaves them by a reset that continues at the receptionist, where the save before the link put the player. A co-op continue used the player's last reported cell, in the room, so a reset and a new host both opened inside it again. The host now keeps the cell the room was entered from (and the last map the center's door leads to) and a continue and the campaign file use it. GUT: co-op suites 232/232; not yet played again |
 ## Slice 1 acceptance criteria
 
 | # | Criterion | Status |

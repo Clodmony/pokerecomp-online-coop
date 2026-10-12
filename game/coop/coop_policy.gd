@@ -71,6 +71,28 @@ const RIVAL_SCENES: Dictionary = {
 }
 
 
+const CHALLENGE_BATTLE: String = "battle"
+const CHALLENGE_TRADE: String = "trade"
+const CHALLENGE_ANSWER_MSEC: int = 30000
+const CHALLENGE_EXPIRE_MSEC: int = 60000
+
+
+static func versus_experience(award: Gen2Battle, faced: Dictionary, foes: Array) -> Array:
+	var events: Array = []
+	var learners: Array = faced.keys()
+	learners.sort()
+	for index: int in learners:
+		var met: Array = (faced[index] as Dictionary).keys()
+		met.sort()
+		for foe: int in met:
+			var learner: Gen2BattleMon = award.party(Gen2Battle.PLAYER).at(index)
+			var defeated: Gen2BattleMon = foes[foe]
+			var block: Dictionary = Gen2Experience.shared_block(defeated.base_stat_exp_shape(), defeated.base_exp(), false, 1)
+			award.call(&"_give_experience_to", learner, index, award.call(&"_award_to", learner, defeated, block),
+				block["stats"], false, events)
+	return events
+
+
 ## Prize money with Pay Day's: every participant is paid all of it (D61).
 static func prize_shares(total: int, participants: Array) -> Dictionary:
 	var out: Dictionary = {}

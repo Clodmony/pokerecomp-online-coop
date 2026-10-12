@@ -419,6 +419,7 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	_fill(out, me, session.box.get("rows", []))
 	var world: Gen2WorldSnapshot = continued_world(session)
 	after_the_credits(world, data.gen1_fly_warp(PokeCoopPolicy.START_MAP.y) if data.generation == RomRegistry.GEN1 else {})
+	out_of_a_link_room(world, data.gen1_fly_warp(world.gen1_last_blackout_map) if data.generation == RomRegistry.GEN1 else {})
 	var map: Gen2WorldMap = data.world_map(world.map_id.x, world.map_id.y)
 	if map != null:
 		if data.generation == RomRegistry.GEN1 and afloat(data.world_tileset(map.tileset), map, world.player_cell):
@@ -434,13 +435,14 @@ static func afloat(tileset: Gen2WorldTileset, map: Gen2WorldMap, cell: Vector2i)
 
 static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
 	var view: Dictionary = (session.state.get("players", {}) as Dictionary).get(session.player_id, {})
+	view = view.get("rest", view)
 	var places: Dictionary = session.me().get("places", {})
 	var out := Gen2WorldSnapshot.new()
 	out.map_id = view.get("map", PokeCoopPolicy.START_MAP)
 	out.player_cell = view.get("cell", Vector2i.ZERO)
 	out.player_facing = int(view.get("facing", Gen2WorldSprite.FACING_DOWN))
 	out.world_state = Gen2WorldState.from_dict(_host_world(session))
-	out.gen1_last_map = int(places.get("gen1_last_map", out.gen1_last_map))
+	out.gen1_last_map = int(view.get("last_map", places.get("gen1_last_map", out.gen1_last_map)))
 	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
 	return out
 
@@ -452,6 +454,15 @@ static func after_the_credits(world: Gen2WorldSnapshot, landing: Dictionary) -> 
 	world.map_id = PokeCoopPolicy.START_MAP
 	world.player_cell = Vector2i(int(landing["x"]), int(landing["y"]))
 	world.player_facing = Gen2WorldSprite.FACING_DOWN
+
+
+static func out_of_a_link_room(world: Gen2WorldSnapshot, landing: Dictionary) -> void:
+	if not PokeCoopTrades.LINK_ROOMS.has(world.map_id) or landing.is_empty():
+		return
+	world.map_id = Vector2i(0, world.gen1_last_blackout_map)
+	world.player_cell = Vector2i(int(landing["x"]), int(landing["y"]))
+	world.player_facing = Gen2WorldSprite.FACING_DOWN
+	world.gen1_last_map = world.gen1_last_blackout_map
 
 
 static func _fill(into: Gen2SaveData, me: Dictionary, stored: Array) -> void:

@@ -1415,3 +1415,73 @@ cache format went from 163 to 170, so every imported cartridge, English and
 German, is imported again; the co-op campaign format and upstream's saves are
 unchanged. Cost: the owner's dev4 editor and templates are replaced; checks
 that need a cartridge were not run in the merging session.
+
+## D98. A co-op battle uses the cartridge's own menus on the world's screen (owner's request, #99, 2026-10-10)
+
+Replaces the overlay of D22 and the side panel of D32. On an iPhone the panel
+covered the on-screen controller, its rows were too small to hit, and a
+finished battle could not be closed by touch (#98). A co-op battle is now drawn
+inside the world screen's own 160x144 `Gen2Screen` with the cartridge's
+menus: FIGHT/PKMN/ITEM/RUN, the move list with TYPE/PP, the party list six
+rows at a time over every player's Pokémon (the text box names the owner of
+the row under the cursor), the Gen 1 bag list, YES/NO boxes, and a name list
+for whom a ball catches for. The panel keeps the flat list of choices as the
+model; `PokeCoopBattleMenu` turns presses into those choices, so the
+autopilot and scripted `@ROW` keys still pick rows. A partner's suggestion is
+a hollow ▷ at every level (on FIGHT, PKMN, ITEM or RUN, and on the exact
+row), a partner's initial with three or more players, and an idle
+controller's text box spells it out ("BLUE suggests / SQUIRTLE") in turns
+with the menu. The other player walks the same menus; resting the cursor on a
+row suggests it, and A sends it again rather than acting. RUN flees for the
+player whose world started the fight and asks everyone else whether to leave
+(their team stays); take over and rejoin are YES/NO questions. A finished
+battle closes once its last line has played. Trade-offs: marks are
+monochrome rather than in player colours, nicknames are not shown (the view
+has species only), items are used on the Pokémon that is out, and the bag
+lists only items usable in a battle.
+
+## D99. The session menu is START > CO-OP on the cartridge's screen, with swipes and taps (owner's request, #99, 2026-10-10)
+
+The session menu is a CO-OP row in the cartridge's START menu, registered
+through upstream's mod seam (`MENU_START`, visible only while a co-op world is
+up), drawn on the world's 160x144 screen with the cartridge's font, boxes and
+cursor: FIGHT offers, JOIN <partners> / VS <foe>, REJOIN, LEAVE SESSION
+(asked YES/NO) and CANCEL, under a box with each partner, where they are and
+the last save. SAVE stays START > SAVE (D80). SELECT on the map still opens
+it; it does not where the world reads SELECT itself (the START menu and bag, a
+world battle, the party). While the CO-OP menu or a co-op battle is open, a
+swipe over the game screen is one d-pad press per 16 hardware pixels and a
+tap is A, fed as ordinary button presses; touches on the on-screen pad and
+two-finger touches are left alone, and walking on the map is untouched. No
+new size setting: the menus are drawn at the game screen's scale, upstream's
+zoom is keyboard and wheel only, and the pad has its own SIZE.
+
+
+## D100. Friends battle and trade from their current locations (#104, 2026-10-11)
+
+The owner's request, begun by Claude and continued by Codex: talking to the
+partner opens BATTLE / TRADE / CANCEL; START > CO-OP also lists each free
+partner. An invitation needs the recipient's YES, displayed at a rest point.
+NO, B or 30 seconds unanswered declines it; the host expires a pending
+invitation after 60 seconds and rechecks availability on acceptance.
+
+`PokeCoopVersus` extends the existing battle session because both sides now
+need human commands, replacements, private mirrored views and learning prompts.
+The campaign host remains authoritative and uses the existing battle engine.
+Choices from both players may use the same round revision; learning answers
+have a separate minimum revision per side. Forced turns continue on the host.
+A dropped opponent pauses human choices and is allowed the existing two-minute
+reconnection grace; the other player cannot stand in for them.
+
+At the end both parties recover HP, PP and status where they stood, without
+money, story rewards or whiteout. Each Pokémon receives the full trainer EXP
+and stat EXP for every distinct opposing Pokémon it faced, whether its player
+won or lost; teammates do not split that award. Normal traded-Pokémon boosts,
+level growth, learning and evolution still belong to the existing engine.
+RUN forfeits. Items are unavailable in this friend battle.
+
+A trade pairs the two consenting players in `PokeCoopTrades`, opens the
+existing native trade screen in each world, and uses the existing cable and
+exactly-once swap. Cancellation or disconnection releases both players without
+moving them. Ordinary Cable Club trading continues to use its room pairing.
+Protocol 6 carries invitations and these private views; both builds must match.

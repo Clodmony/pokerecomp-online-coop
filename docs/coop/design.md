@@ -68,6 +68,10 @@ never identity.
 - Each player is drawn in one colour in every window, by their place in the
   session; a player in a battle wears the "!" emote where the battle started.
 
+Friend battles and direct trades are an additional consent-based activity,
+with healing, experience and return rules specified in [D100](decisions.md#d100-friends-battle-and-trade-from-their-current-locations-104-2026-10-11).
+Their outcomes do not commit campaign story rewards.
+
 ## Battles
 
 - A player starts a battle alone. The other player may keep exploring or start

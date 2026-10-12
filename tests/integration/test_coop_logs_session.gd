@@ -479,3 +479,26 @@ func _journal_for_session() -> PokeCoopLog:
 	out.flush_msec = 0
 	_journals.append(out)
 	return out
+
+
+func test_friend_invitations_forfeits_and_direct_trade_cancellation_replay() -> void:
+	_both()
+	_red.challenge(_blue.player_id, "battle")
+	_pump()
+	_host._expire_challenges(Time.get_ticks_msec() + PokeCoopPolicy.CHALLENGE_EXPIRE_MSEC)
+	_pump()
+	for kind: String in ["battle", "trade"]:
+		_red.challenge(_blue.player_id, kind)
+		_pump()
+		_blue.answer_challenge(String(_blue.me()["challenge"]["incoming"]["id"]), true)
+		_pump()
+		if kind == "battle":
+			var id: String = String(_red.current_battle()["battle"])
+			_red.act(id, {"type": "run"})
+			_blue.act(id, {"type": "run"})
+		else:
+			_blue.send({"type": "trade", "end": 1})
+		_pump()
+	_host.shutdown("host_shutdown", 0)
+	var replayed: Dictionary = LogTool.replay(_lines(_host.journal), _data)
+	assert_eq([replayed["mismatches"], replayed["end"]], [[], "match"], JSON.stringify(replayed))

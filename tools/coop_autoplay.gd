@@ -175,6 +175,8 @@ func _choose() -> int:
 	var screen: Gen2WorldScreen = _session.screen
 	if screen == null or not is_instance_valid(screen) or screen.world() == null or _session.panel == null:
 		return PokeButton.NONE
+	if _session.menu != null and _session.menu.is_open():
+		return _menu_button(_session.menu)
 	if _session.panel.is_open():
 		_film_battle(_session.panel.battle_view())
 		return _panel_button(_session.panel)
@@ -211,11 +213,11 @@ func _intro_button(intro: Gen2IntroScreen) -> int:
 func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	var view: Dictionary = panel.battle_view()
 	if view.is_empty():
-		return _menu_button(panel)
+		return PokeButton.NONE
 	if panel.busy.is_valid() and bool(panel.busy.call()):
 		return PokeButton.NONE
 	if not String(view.get("outcome", "")).is_empty():
-		return _paced(PokeButton.A)
+		return PokeButton.NONE
 	if String(view.get("encounter", "")).begins_with("trainer:") and panel._controls(view) and not _filmed.has(view["battle"]):
 		_filmed[view["battle"]] = true
 		_shot("battle_%s_%s" % [view["battle"], String(view.get("trainer_name", "")).to_lower().validate_filename()])
@@ -226,7 +228,7 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 		target = _target_row(view, panel._rows)
 	if target < 0:
 		return PokeButton.NONE
-	return _paced(PokeButton.DOWN if panel._cursor != target else PokeButton.A)
+	return _paced(panel.menu.button_toward(target))
 
 
 func _target_row(view: Dictionary, rows: Array) -> int:
@@ -840,13 +842,13 @@ func _join_button(encounter: String) -> int:
 	return PokeButton.NONE
 
 
-func _menu_button(panel: PokeCoopBattlePanel) -> int:
+func _menu_button(menu: PokeCoopMenu) -> int:
 	var wanted: String = _joining if not _joining.is_empty() else _partner_fight()
-	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
+	var row: int = menu._rows.find_custom(func(entry: Dictionary) -> bool:
 		return String(entry.get("action", "")) == "join" and String(entry.get("id", "")) == wanted)
 	if wanted.is_empty() or row < 0:
 		return _paced(PokeButton.B)
-	var press: int = _paced(PokeButton.A if panel._cursor == row else PokeButton.DOWN)
+	var press: int = _paced(PokeButton.A if menu._cursor == row else PokeButton.DOWN)
 	if press == PokeButton.A:
 		print("coop autoplay: %s joins %s from the session menu" % [_player_id, wanted])
 		_joining = ""
@@ -1965,7 +1967,7 @@ func _apply(button: int) -> void:
 		input.release(_tap)
 		_tap = PokeButton.NONE
 	if PokeButton.is_direction(button) and _tap == PokeButton.NONE and _session.opening_screen == null \
-			and not _session.panel.is_open():
+			and not _session.overlay_open():
 		if _direction != button or not PokeButton.held(button):
 			if _direction != PokeButton.NONE:
 				input.release(_direction)
@@ -2013,10 +2015,8 @@ func _dump_texts() -> void:
 	var lines: Dictionary = {"world": _box_lines(screen.get("_text_box"))}
 	var battle: Gen2BattleScreen = screen.get("_battle_host")
 	lines["battle"] = String(battle.battle_snapshot().get("message", "")) if battle != null else ""
-	if _session.panel != null and _session.panel.get_parent() != null:
-		for node: Node in _session.panel.get_parent().get_children():
-			if node is PokeCoopBattleField:
-				lines["field"] = _box_lines(node.get("_box"))
+	if _session.field != null:
+		lines["field"] = _box_lines(_session.field.get("_box"))
 	var leg: String = String(_legs[_leg][0]) if _leg < _legs.size() and _legs[_leg] is Array else ""
 	for where: String in lines:
 		var text: String = String(lines[where]).replace("\n", " / ")

@@ -40,8 +40,8 @@ func after_each() -> void:
 		_window_size = Vector2i.ZERO
 	var folder: String = PokeCoopSession.campaign_path(_data).get_base_dir()
 	var paths: Array = [IDENTITY, OTHER_DEVICE, LEGACY, TAB]
-	for name: String in DirAccess.get_files_at(folder):
-		paths.append("%s/%s" % [folder, name])
+	for file_name: String in DirAccess.get_files_at(folder):
+		paths.append("%s/%s" % [folder, file_name])
 	for path: String in paths:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -296,6 +296,104 @@ func test_a_world_held_under_the_panel_keeps_its_audio_playing() -> void:
 	PokeCoopSession.hold_world(world, audio, false)
 	assert_eq([world.can_process(), audio.can_process()], [true, true])
 	assert_eq(audio.process_mode, Node.PROCESS_MODE_INHERIT, "a paused game pauses it again")
+
+
+func test_a_world_held_under_the_panel_keeps_its_touch_controls() -> void:
+	var world: Node = add_child_autofree(Node.new())
+	var pad: Gen2TouchPad = Gen2TouchPad.new()
+	world.add_child(pad)
+
+	PokeCoopSession.hold_world(world, null, true)
+	assert_true(pad.can_process(), "a phone's A still reaches the panel")
+	PokeCoopSession.hold_world(world, null, false)
+	assert_eq(pad.process_mode, Node.PROCESS_MODE_INHERIT)
+
+
+class Heard:
+	extends Node
+	var buttons: Array = []
+
+	func _input(event: InputEvent) -> void:
+		if PokeButton.pressed_in(event) != PokeButton.NONE:
+			buttons.append(PokeButton.pressed_in(event))
+
+
+func _finger(gestures: PokeCoopTouchGestures, index: int, at: Vector2, pressed: Variant = null) -> void:
+	var event: InputEvent
+	if pressed == null:
+		event = InputEventScreenDrag.new()
+	else:
+		event = InputEventScreenTouch.new()
+	event.set("index", index)
+	event.set("position", at)
+	if pressed != null:
+		event.set("pressed", pressed)
+	gestures._input(event)
+
+
+func test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a() -> void:
+	var input: Gen2InputRuntime = Gen2InputRuntime.instance()
+	for button: int in PokeButton.ALL:
+		input.release(button)
+	for action: StringName in PokeButton.UI_ACTIONS.values():
+		Input.action_release(action)
+	input.stall(0)
+	input._held_back.clear()
+	Input.flush_buffered_events()
+	await wait_process_frames(2)
+	var options := Gen2Options.new()
+	options.touch_mode = Gen2Options.TOUCH_ALWAYS
+	Gen2InputRuntime.instance().apply_options(options)
+	var screen: Control = add_child_autofree(Control.new())
+	screen.size = Vector2(Gen2Screen.WIDTH, Gen2Screen.HEIGHT) * 4.0
+	var pad: Gen2TouchPad = add_child_autofree(Gen2TouchPad.new())
+	pad.size = screen.size
+	var open: Array = [false]
+	var gestures: PokeCoopTouchGestures = add_child_autofree(PokeCoopTouchGestures.over(screen, func() -> bool: return open[0]))
+	var heard: Heard = add_child_autofree(Heard.new())
+	var middle := Vector2(320, 280)
+	var row: float = gestures.row_pixels()
+	assert_eq(row, 64.0, "two tiles at four screen pixels a hardware pixel")
+
+	for walking: Array in [[middle, middle + Vector2(0, row * 3)], [middle, middle]]:
+		_finger(gestures, 0, walking[0], true)
+		_finger(gestures, 0, walking[1])
+		_finger(gestures, 0, walking[1], false)
+	await wait_frames(10)
+	assert_eq(heard.buttons, [], "walking on the map is the pad's alone")
+
+	open[0] = true
+	_finger(gestures, 0, middle, true)
+	for at: Vector2 in [middle + Vector2(0, row * 0.4), middle + Vector2(0, row * 2.2), middle + Vector2(0, row * 1.1)]:
+		_finger(gestures, 0, at)
+	_finger(gestures, 0, middle + Vector2(0, row * 1.1), false)
+	_finger(gestures, 0, middle, true)
+	_finger(gestures, 0, middle + Vector2(row * 1.5, 4), false)
+	_finger(gestures, 0, middle, true)
+	_finger(gestures, 0, middle + Vector2(row * 0.2, 3), false)
+	await wait_frames(30)
+	assert_eq(heard.buttons, [PokeButton.DOWN, PokeButton.DOWN, PokeButton.UP, PokeButton.RIGHT, PokeButton.A],
+		"down two rows and back one, right one, then a tap that wobbled less than half a row")
+
+	heard.buttons.clear()
+	_finger(gestures, 0, middle, true)
+	_finger(gestures, 1, middle + Vector2(50, 0), true)
+	_finger(gestures, 0, middle + Vector2(0, row * 3))
+	_finger(gestures, 0, middle, false)
+	_finger(gestures, 1, middle, false)
+	var on_pad: Vector2 = Vector2(-1, -1)
+	for x: int in range(0, int(screen.size.x), 16):
+		for y: int in range(0, int(screen.size.y), 16):
+			if on_pad.x < 0 and pad.button_at(Vector2(x, y)) != PokeButton.NONE:
+				on_pad = Vector2(x, y)
+	assert_gt(on_pad.x, -1.0, "the pad stands over the screen")
+	_finger(gestures, 0, on_pad, true)
+	_finger(gestures, 0, on_pad, false)
+	_finger(gestures, 0, screen.size + Vector2(10, 10), true)
+	_finger(gestures, 0, screen.size + Vector2(10, 10), false)
+	await wait_frames(10)
+	Gen2InputRuntime.instance().apply_options(Gen2Options.new())
+	assert_eq(heard.buttons, [], "two fingers, a finger on the pad and one off the screen are left alone")
 
 
 func _close_all() -> void:
