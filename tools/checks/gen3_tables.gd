@@ -86,6 +86,7 @@ func _one_game() -> void:
 	_player_avatars()
 	_held_movements()
 	_boulder_landings()
+	_rotating_gates()
 	_world_scripts()
 	_world_script_data()
 	_wild_encounters()
@@ -1100,3 +1101,59 @@ func _world_script_data() -> void:
 				(record.get("bytes", PackedByteArray()) as PackedByteArray).hex_encode(),
 				_script_numbers(record.get("format", [])), _script_numbers(record.get("entries", []))])
 	_r.digest_matches("gen3_script_data", lines, SCRIPT_DATA_DIGESTS[data.id])
+
+
+## ARM gate routines on every puzzle cell and orientation, with real layouts.
+const GATE_DIGESTS: Dictionary = {
+	&"ruby": "d2404bf15714b745fac5a6e0c0651bbd829ced55",
+	&"sapphire": "d2404bf15714b745fac5a6e0c0651bbd829ced55",
+	&"emerald": "7815a603ccec3a1f13b0cd795d4f3888493696aa",
+}
+
+
+func _rotating_gates() -> void:
+	var data: GameData = _r.data
+	if not GATE_DIGESTS.has(data.id):
+		return
+	var lines := PackedStringArray()
+	var configs: Dictionary = Gen3PlayerAvatar.EMERALD_GATES if data.id == RomRegistry.EMERALD else Gen3PlayerAvatar.RS_GATES
+	for key: String in configs:
+		var pair: PackedStringArray = key.split(":")
+		var camera: Gen3FieldCamera = Gen3FieldCamera.open(data, int(pair[0]), int(pair[1]), Vector2i.ZERO)
+		var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(_fresh_objects(camera), Vector2i(7, 7), 1, 0)
+		for word: int in 16:
+			avatar.objects.events.var_set(0x4000 + word, 0xA5A5)
+		avatar.load_rotating_gates(true)
+		var bytes: Array = []
+		for byte: int in 16:
+			bytes.append(avatar.gate_orientation(byte))
+		lines.append("%s|%s" % [key, _script_numbers(bytes)])
+		_gate_puzzle_sweep(avatar, configs[key], lines)
+	_r.digest_matches("gen3_rotating_gates", lines, GATE_DIGESTS[data.id])
+
+
+func _gate_puzzle_sweep(avatar: Gen3PlayerAvatar, rows: Array, lines: PackedStringArray) -> void:
+	for gate: int in rows.size():
+		var center := Vector2i(int(rows[gate][0]) + 7, int(rows[gate][1]) + 7)
+		for orientation: int in 4:
+			for y: int in range(center.y - 3, center.y + 3):
+				for x: int in range(center.x - 3, center.x + 3):
+					for direction: int in range(1, 5):
+						for read_only: int in (2 if avatar.objects.events.game == RomRegistry.EMERALD else 1):
+							lines.append(_gate_probe(avatar, rows.size(), [gate, orientation, x, y, -1, 0, direction, read_only]))
+
+
+func _gate_probe(avatar: Gen3PlayerAvatar, count: int, prefix: Array) -> String:
+	var orientation: int = int(prefix[1])
+	for word: int in (count + 1) / 2:
+		avatar.objects.events.var_set(0x4000 + word, orientation | (orientation << 8))
+	var result: Dictionary = avatar.rotating_gate_collision(int(prefix[6]), Vector2i(int(prefix[2]), int(prefix[3])), int(prefix[7]) != 0)
+	var values: Array = prefix + [int(result["collision"] != 0)]
+	for gate: int in count:
+		values.append(avatar.gate_orientation(gate))
+	if result["requests"].is_empty():
+		values.append_array([-1, -1, -1])
+	else:
+		var effect: Dictionary = result["requests"][0]
+		values.append_array([effect["gate"], effect["orientation"], effect["rotation"]])
+	return _script_numbers(values)
