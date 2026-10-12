@@ -135,7 +135,7 @@ Red (or Blue) cartridge, the same one.
 | B12 | Win with EXP.ALL in one bag | Fighters split as usual; each team's others share as they would alone | `test_one_exp_all_pays_every_team...` | | |
 | B13 | Level up into a new move or an evolution | The owner is asked; evolution plays in the owner's world | `test_a_level_up_shows_on_the_panel...` | | |
 | B14 | Lose a shared battle | Each player whites out in their own world and pays half their own money | `test_the_world_whites_out_its_own_player...` | lose_and_white_out | |
-| B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line, the prize | `test_a_trainer_win_closes_with_the_defeat...` | playthrough_brock | |
+| B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line with the player's own name in it (not `<PLAYER>`), the prize | `test_a_trainer_win_closes_with_the_defeat...` | playthrough_brock | |
 | B16 | One player walks into Pokémon Tower's MAROWAK with the SILPH SCOPE; the other uses SELECT > JOIN | One host battle with both; afterwards gone for both, its cell starts nothing | | playthrough_tower | |
 | B17 | A wild battle in the tower without the SILPH SCOPE | The window's own GHOST battle; no host battle, no join offered; RUN escapes | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
 | B18 | DISABLE hits a move; a move runs out of PP | Choosing it says "The move is disabled!" or "No PP left for this move!" in the text box and sends nothing | `test_the_panel_names_a_move_that_is_disabled_or_out_of_pp`, `test_a_move_that_cannot_be_used...` | playthrough_erika | |
@@ -177,8 +177,8 @@ Red (or Blue) cartridge, the same one.
 | G06 | A Blue window joins a Red host (and Blaue Edition a Rote Edition host); then Yellow, the other language, or an unverified dump | Joined: each world has its own wild Pokémon, Game Corner and colours; battles, friend battles and trades work across the two; the rest is refused with "Red or Blue of the same language" | `test_blue_joins_a_red_campaign_of_its_own_language_and_nothing_else_does` | `red_and_blue` (red+blue, red_de+blue_de), `catch_for_partner` and `playthrough_brock` with `P2_GAME=blue` | |
 | G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
 | G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |
-| G04 | A German Pokédex entry | Height in m and weight in kg | | | |
-| G05 | Blaue Edition from the opening to BROCK in two windows | Both reach BROCK's badge | | not yet run | |
+| G04 | A German Pokédex entry | Height in m and weight in kg | | `pokedex_entry` with `SEED=` a red_de or blue_de seed (GLUMANDA 0.6m, 8.5kg) | |
+| G05 | Blaue Edition from the opening to BROCK in two windows | Both reach BROCK's badge | | `playthrough_brock` with `GAME=blue_de` | |
 
 ## Logs
 

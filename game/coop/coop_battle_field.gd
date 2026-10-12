@@ -387,7 +387,9 @@ func _queue_victory(view: Dictionary) -> void:
 	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
 	_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
 		or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
-	var lines: Array = [_de(data, "%s defeated\n%s!") % [me, _trainer_name(view)], String(view.get("win_text", ""))] if trainer else []
+	var said: String = Gen2TextStream.fill_context(String(view.get("win_text", "")), {"player": me,
+		"rival": String((panel.client.state.get("campaign", {}) as Dictionary).get("rival_name", ""))})
+	var lines: Array = [_de(data, "%s defeated\n%s!") % [me, _trainer_name(view)], said] if trainer else []
 	if prize > 0:
 		lines.append(_de(data, "%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
 	for line: int in lines.size():
