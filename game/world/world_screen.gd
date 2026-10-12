@@ -3394,7 +3394,7 @@ func _offer_repel_renewal() -> bool:
 	)
 	if item <= 0:
 		_world.clear_repel_expired()
-		_show_player_event(PackedStringArray([REPEL_WORE_OFF_TEXT]), Callable())
+		_show_player_event(PackedStringArray([Gen1LayoutDe.localized(REPEL_WORE_OFF_TEXT)]), Callable())
 		return true
 	var repel: String = _data.item_name(item)
 	if not _open_host_prompt(REPEL_RENEWAL_TEXT % (repel if not repel.is_empty() else "REPEL")):
@@ -7936,7 +7936,7 @@ func _on_rod_used(request: Dictionary) -> void:
 		return
 	_play_sfx(Gen2Sfx.SFX_FULL_HEAL)
 	_player_event_after = start_fishing
-	_show_field_move_text((Gen2StartMenuScreen.GEN1_USED_ITEM % _data.item_name(
+	_show_field_move_text((Gen1LayoutDe.localized(Gen2StartMenuScreen.GEN1_USED_ITEM) % _data.item_name(
 		int(request.get("item", 0))
 	)).replace(Gen2WorldPC.PLAYER_MARKER, _world.player_name()), false, false, GEN1_ROD_CAST_FRAMES)
 

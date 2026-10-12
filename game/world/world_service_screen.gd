@@ -81,6 +81,7 @@ const MART_SELL_STAGES: Array[StringName] = [
 ## `MenuHeader_BuySell`'s three rows, and `BuySellQuitText`'s box at (0,0) to
 ## (10,6) with its string at (2,1).
 const MART_TOP_ROWS: Array[String] = ["BUY", "SELL", "QUIT"]
+const MART_TOP_ROWS_DE: Array[String] = ["BUY", "SELL", "SEE YA!"]
 const GEN1_TOP_MENU_BOX := Rect2i(0, 0, 10, 6)
 const MART_TOP_BUY: int = 0
 const MART_TOP_SELL: int = 1
@@ -2137,7 +2138,9 @@ func _mart_confirm_open() -> bool:
 
 
 func _mart_top_rows() -> Array:
-	return MART_TOP_ROWS if _mart_stage == MART_TOP and not _box.has_text_left() else []
+	if _mart_stage != MART_TOP or _box.has_text_left():
+		return []
+	return MART_TOP_ROWS_DE if Gen1LayoutDe.is_german(_data.id) else MART_TOP_ROWS
 
 
 func _mart_dial_quantity() -> int:
@@ -5472,6 +5475,8 @@ const GEN1_PC_BOXES: Dictionary = {
 	MODE.PC_MON_ACTION: Rect2i(9, 10, 19, 17),
 }
 const GEN1_PC_TOP_BOTTOM: Dictionary = {3: 7, 4: 9, 5: 11}
+## German PC menus are a column wider (`BillsPCMenu` two) and `DisplayDepositWithdrawMenu` starts at `hlcoord 8, 10`.
+const GEN1_PC_DE_WIDER: Dictionary = {MODE.PC_BOXES: 2}
 const GEN1_BILLS_ROW_STEP: int = 2
 ## `DisplayChangeBoxMenu`'s `hlcoord 11, 0 / lb bc, 12, 7`, whose names are one
 ## row apart: `BIT_DOUBLE_SPACED_MENU` names the bit that is set for a
@@ -5494,6 +5499,9 @@ func _gen1_pc_box() -> Gen2MenuBox:
 	))
 	if _mode == MODE.PC_BOXES:
 		corners.end.y = 1 + GEN1_BILLS_ROW_STEP * _pc_rows.size()
+	if Gen1LayoutDe.is_german(_data.id):
+		corners = Rect2i(8, 10, 11, 7) if _mode == MODE.PC_MON_ACTION else Rect2i(corners.position, corners.size \
+			+ Vector2i(GEN1_PC_DE_WIDER.get(_mode, 1), 0))
 	var menu_box: Gen2MenuBox = Gen2MenuBox.from_coords(
 		corners.position.x, corners.position.y, corners.end.x, corners.end.y,
 		Gen2MenuBox.STATICMENU_CURSOR

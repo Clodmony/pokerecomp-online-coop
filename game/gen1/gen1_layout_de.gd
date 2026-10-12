@@ -372,6 +372,9 @@ const WORDS: Dictionary = {
 }
 
 const SCROLL: String = Gen2TextStream.SCROLL_BREAK
+const PAGE: String = Gen2TextStream.PAGE_BREAK
+const PAUSE: String = Gen2TextStream.PAUSE_MARK
+const PROMPT: String = Gen2TextStream.PROMPT_BREAK
 const STAT_MODS: Dictionary = {
 	"ATTACK": "ANGR", "DEFENSE": "VERT", "SPEED": "INIT", "SPECIAL": "SPEZ", "ACCURACY": "GENA", "EVADE": "FLU",
 }
@@ -482,7 +485,7 @@ const UI: Dictionary = {
 	"accepted": "angenommen", "declined": "abgelehnt", "timeout": "abgelaufen", "left": "gegangen",
 	"partner busy": "Freund beschäftigt", "no fit pokemon": "Kein kampffähiges PKMN",
 	"Items cannot be\nused here.": "Items sind hier\nnicht erlaubt.",
-	"decides": "wählt", "For": "Für", "Joining": "Kommt", "soon": "gleich", "%s decides.": "%s wählt.",
+	"decides": "wählt", "For": "Für", "Joining": "Kommt", "soon": "bald", "%s decides.": "%s wählt.",
 	"%s's POKéMON": "POKéMON: %s", "%s suggests": "%s rät:", "%s for %s": "%s für %s",
 	"%s enough!\nCome back!": "%s genug!\nKomm zurück!", "%s\nCome back!": "%s\nKomm zurück!",
 	"%s OK!\nCome back!": "%s OK!\nKomm zurück!", "%s good!\nCome back!": "%s super!\nKomm zurück!",
@@ -491,6 +494,98 @@ const UI: Dictionary = {
 	"Leave the co-op": "Die Sitzung", "session?": "verlassen?", "IN A BATTLE": "IM KAMPF", "IN THE OPENING": "AM ANFANG",
 	"NO PARTNER YET": "NOCH ALLEIN", "NOT SAVED YET": "NICHT GESICHERT", "SAVED JUST NOW": "GERADE GESICHERT",
 	"SAVED %d SEC. AGO": "GESICHERT: %d SEK.", "SAVED %d MIN. AGO": "GESICHERT: %d MIN.",
+	"GHOST": "GEIST", "%s\nappeared!": "%s\ntaucht auf!", "The hooked\n%s%sattacked!": "Das gefangene\n%s%sgreift an!",
+	"It dodged the\nthrown BALL!" + PAGE + "This #MON\ncan't be caught!":
+		"Es weicht dem\nBALL aus!" + PAGE + "Dieses #MON\nläßt sich nicht" + SCROLL + "fangen!",
+	"The #MON BOX\nis full! Can't%suse that item!": "Die #MON-BOX\nist voll! Das%sItem kann nicht" + SCROLL + "benutzt werden!",
+	"The trainer\nblocked the BALL!": "Der Trainer hat\nden BALL" + SCROLL + "abgeblockt!", "Don't be a thief!": "Sei kein Dieb!",
+	"New #DEX data\nwill be added for" + SCROLL + "%s!": "Für %s\nwird ein neuer" + SCROLL + "Eintrag im" + SCROLL + "#DEX angelegt!",
+	"You have no POKE BALLS!": "Du hast keine\nBÄLLE!", "The capture could not be completed.": "Das Fangen\nschlug fehl.",
+	"%s has no\nmoves left!": "%s hat\nkeine Attacken" + SCROLL + "mehr übrig!",
+	"The SUBSTITUTE\ntook damage for" + SCROLL + "%s!": "Der DELEGATOR hat\n%s" + SCROLL + "vor Schaden" + SCROLL + "bewahrt!",
+	PAUSE + "%s's\ngetting pumped!": PAUSE + "%s\npumpt sich auf!", "%s's\ndream was eaten!": "%ss\nTraum gefressen!",
+	"Sucked health from\n%s!": "%s\nhat KP verloren!", "One-hit KO!": "K.O.-TREFFER!", "Nothing happened!": "Nichts geschieht!",
+	"made a whirlwind!": "erz. WIRBELWIND!", "took in sunlight!": "badet im Licht!", "lowered its head!": "duckt sich!",
+	"is glowing!": "leuchtet!", "flew up high!": "fliegt empor!", "dug a hole!": "gräbt sich ein!",
+	"No! There's no\nrunning from a" + SCROLL + "trainer battle!": "Man kann aus\nTRAINER-KÄMPFEN" + SCROLL + "nicht fliehen!",
+	"%s is\ntrying to learn" + SCROLL + "%s!" + PAGE + "But, %s\ncan't learn more" + SCROLL + "than 4 moves!" + PAGE
+		+ "Delete an older\nmove to make room" + SCROLL + "for %s?": "%s\nversucht," + SCROLL + "%s zu" + SCROLL + "erlernen!"
+		+ PAGE + "Aber %s\nkann nicht mehr" + SCROLL + "als vier Attacken" + SCROLL + "erlernen!" + PAGE
+		+ "Soll eine andere\nAttacke zugunsten" + SCROLL + "von %s" + SCROLL + "vergessen werden?",
+	"Abandon learning\n%s?": "%s\nnicht erlernen?", "%s\ndid not learn" + SCROLL + "%s!": "%s\nhat %s" + SCROLL + "nicht erlernt!",
+	"1, 2 and...%s Poof!%s" + PAGE + "%s forgot\n%s!" + PAGE + "And...":
+		"1, 2, %sschwupp!%s" + PAGE + "%s hat\n%s" + SCROLL + "vergessen!" + PAGE + "Und...",
+	"HM techniques\ncan't be deleted!": "VM-Attacken\nkönnen nicht" + SCROLL + "gelöscht werden!",
+	"There's no will\nto fight!": "Das #MON\nwurde besiegt!", "%s is\nalready out!": "%s\nkämpft bereits!",
+	"Use next #MON?": "Nächstes #MON\neinsetzen?",
+	"%s is\nabout to use" + SCROLL + "%s!" + PAGE + "Will %s\nchange #MON?":
+		"%s wird\n%s in den" + SCROLL + "Kampf schicken!" + PAGE + "Möchtest Du das\n#MON wechseln?",
+	"%s\nrecovered by %d!": "%s erhält\n%d Kraftpunkte!", "%s\nis revitalized!": "%s\nist wieder fit!",
+	"%s was\ncured of poison!": "Die Vergiftung\nwurde geheilt!", "%s's\nburn was healed!": "%s\nwurde geheilt!",
+	"%s was\ndefrosted!": "%s\nwurde aufgetaut!", "%s's\nrid of paralysis!": "Die Paralyse\nwurde aufgehoben!",
+	"%s's\nhealth returned!": "%s wurde\nkomplett geheilt!",
+	"Do you want to\ngive a nickname" + SCROLL + "to %s?": "Möchtest Du\n%s einen" + SCROLL + "Spitznamen geben?",
+	"%s was\ntransferred to" + SCROLL + "BILL's PC!": "%s wurde\nauf BILLS PC" + SCROLL + "übertragen!",
+	"%s was\ntransferred to" + SCROLL + "someone's PC!": "%s wurde\nauf den GAST-PC" + SCROLL + "übertragen!",
+	"There's no more\nroom for #MON!%s%s was\nsent to #MON%sBOX %d on PC!": "Es ist nicht\ngenug Platz für" + SCROLL
+		+ "das #MON!%s%s wurde" + SCROLL + "mittels PC in%s#MON-BOX %d" + SCROLL + "transferiert!",
+	"There's no more\nroom for #MON!%sThe #MON BOX\nis full and can't%saccept any more!%sChange the BOX at\na #MON CENTER!":
+		"Es ist kein Platz\nfür das #MON!%sDie #MON-BOX\nist voll und kann%skeine weiteren" + SCROLL + "#MON" + SCROLL
+		+ "aufnehmen!%sWechsle in einem\n#MON-CENTER" + SCROLL + "die BOX!",
+	"%s got\n%s!%s": "%s erhält\n%s!%s",
+	"Restore PP of\nwhich technique?": "Für welche\nAttacke sollen" + SCROLL + "die AP erneuert" + SCROLL + "werden?",
+	"Raise PP of which\ntechnique?": "Für welche\nAttacke sollen" + SCROLL + "die AP erhöht" + SCROLL + "werden?",
+	"PP was restored.": "Die AP wurden\naufgefüllt!", "%s's PP\nincreased.": "Die AP von\n%s" + SCROLL + "sind gestiegen.",
+	"%s's PP\nis maxed out.": "Die AP von\n%s sind" + SCROLL + "auf dem Maximum!",
+	"%s's\n%s rose.": "%ss\n%s ist" + SCROLL + "gestiegen.", "HEALTH": "GESU", "ATTACK": "ANGR", "DEFENSE": "VERT",
+	"SPEED": "INIT", "SPECIAL": "SPEZ", "TYPE/": "TYP/", "Disabled!": "BLOCKIERT",
+	"<PLAYER> used\n%s!": "<PLAYER> setzt\n%s ein!", "%s was used.": "%s\nwurde eingesetzt.",
+	"You don't have\nany #MON!": "Du besitzt noch\nkeine #MON!", "REPEL's effect\nwore off.": "Der SCHUTZ wirkt\nnicht mehr.",
+	"'s NEST": " FUNDORT", " AREA UNKNOWN": " GEBIET UNB.", "%s's PC": "PC VON %s",
+	"BILL's PC": "BILLS PC", "SOMEONE's PC": "JEMANDES PC", "PROF.OAK's PC": "EICHS PC", "<PKMN>LEAGUE": "<PKMN>-LIGA",
+	"WITHDRAW <PKMN>": "<PKMN> MITNEHMEN", "DEPOSIT <PKMN>": "<PKMN> ABLEGEN", "RELEASE <PKMN>": "<PKMN> FREILASSEN",
+	"CHANGE BOX": "BOX WECHSELN", "SEE YA!": "TSCHÜSS!", "BOX No.": "BOX Nr.", "NO THANKS": "TSCHÜSS!",
+	"HALL OF FAME No": "RUHMESHALLE Nr.", "FNT": "BSG", " FAST  MEDIUM SLOW": " 3     2      1   ",
+	" ON       OFF": " AN       AUS", " SHIFT    SET": " WECHSEL  FOLGEND",
+	"Booted up a TM!" + PROMPT + "It contained\n%s!" + PAGE + "Teach %s\nto a #MON?":
+		"TM aktiviert!" + PROMPT + "Sie enthält\n%s!" + PAGE + "%s\neinem #MON" + SCROLL + "beibringen?",
+	"Booted up an HM!" + PROMPT + "It contained\n%s!" + PAGE + "Teach %s\nto a #MON?":
+		"VM aktiviert!" + PROMPT + "Sie enthält\n%s!" + PAGE + "%s\neinem #MON" + SCROLL + "beibringen?",
+	"%s is not\ncompatible with" + SCROLL + "%s." + PAGE + "It can't learn\n%s.":
+		"%s\npaßt nicht zu" + SCROLL + "%s." + PAGE + "Es kann\n%s" + SCROLL + "nicht lernen.",
+	"%s knows\n%s!": "%s kennt\n%s" + SCROLL + "bereits!",
+	"Save failed:": "Nicht gesichert:", "battle in progress": "Kampf läuft.", "no save path": "Kein Speicherort.",
+	"unknown": "Unbekannt.", "HOME": "BEENDEN", "MOVES": "ATTACKE", "CO-OP": "KOOP",
+	"quit this game?": "Spiel beenden?", "You pressed the": "Du hast die RESET-", "RESET buttons.": "Tasten gedrückt.",
+	"Reset the game?": "Spiel neu starten?",
+	"Back in the session.": "Wieder in der Sitzung.", "Lost the host: reconnecting...": "Host verloren: verbinde neu...",
+	"The session ended: %s.": "Die Sitzung ist beendet: %s.", "host shutdown": "der Host hat sie geschlossen",
+	"host unreachable": "Host nicht erreichbar", "ended": "beendet", "refused: content mismatch": "andere Edition",
+	"refused: protocol mismatch": "andere Programmversion",
+	"The campaign was not saved: %s.": "Die Kampagne wurde nicht gesichert: %s.", "save failed": "Fehler beim Schreiben",
+	"Campaign saved.": "Kampagne gesichert.", "%s saved the campaign.": "%s hat die Kampagne gesichert.",
+	"%s joined the session.": "%s ist der Sitzung beigetreten.", "%s left the session.": "%s hat die Sitzung verlassen.",
+	"%s is in a battle%s.%s": "%s kämpft%s.%s", " against %s": " gegen %s", "wild %s": "ein wildes %s",
+	" START > CO-OP to join.": " Mitkämpfen: START > KOOP.",
+	"%s is facing the rival here. Wait, or join from START > CO-OP.":
+		"%s trifft hier auf den Rivalen. Warte oder kämpfe mit: START > KOOP.",
+	"The battle you left was won.": "Der Kampf, den Du verlassen hast, ist gewonnen.",
+	"The battle you left was lost.": "Der Kampf, den Du verlassen hast, ist verloren.",
+	"The battle you left ended in a catch.": "Der Kampf, den Du verlassen hast, endete mit einem Fang.",
+	"The battle you left is over.": "Der Kampf, den Du verlassen hast, ist vorbei.",
+	"It is not your turn.": "Du bist nicht am Zug.", "The battle moved on; try again.": "Der Kampf ging weiter. Nochmal!",
+	"The battle is waiting for a player to come back.": "Der Kampf wartet auf einen Spieler.",
+	"No room left for a catch.": "Kein Platz für einen Fang.", "You can't catch a trainer's POKéMON!": "Sei kein Dieb!",
+	"Not saved: a battle is running.": "Nicht gesichert: ein Kampf läuft.", "You are already in a battle.": "Du kämpfst bereits.",
+	"No room for more POKéMON in that battle.": "In diesem Kampf ist kein Platz mehr.",
+	"Someone is already fighting that.": "Dagegen kämpft schon jemand.", "That battle is over.": "Dieser Kampf ist vorbei.",
+	"It won't have any effect.": "Das hätte keinen\nEffekt!", "None of your POKéMON can fight.": "Keines Deiner POKéMON kann kämpfen.",
+	"The campaign could not be saved.": "Die Kampagne konnte nicht gesichert werden.",
+	"Beaten already in this campaign: it counts as won.": "In dieser Kampagne schon besiegt: zählt als gewonnen.",
+	"Your own world started this battle: you stay in it.": "Deine Welt hat diesen Kampf begonnen: Du bleibst dabei.",
+	"Your POKéMON are still in a battle.": "Deine POKéMON kämpfen noch.", "That move can't be used now.": "Diese Attacke geht jetzt nicht.",
+	"A partner met the rival first: the battle is one for both.": "Ein Freund traf den Rivalen zuerst: Ihr kämpft zusammen.",
+	"Refused: %s": "Abgelehnt: %s",
 }
 
 static var _red: Dictionary = {}
@@ -528,6 +623,15 @@ static func prints_nothing(id: StringName, run: String, slot: String) -> bool:
 
 static func ui(id: StringName, english: String) -> String:
 	return String(UI.get(english, english)) if is_german(id) else english
+
+
+static func active() -> bool:
+	return Gen1Text.language() == "de"
+
+
+## German `TwoOptionMenuStrings` makes JA/NEIN one column wider, the box growing to the left.
+static func yes_no_widened() -> int:
+	return 1 if active() else 0
 
 
 static func localized(english: String) -> String:
