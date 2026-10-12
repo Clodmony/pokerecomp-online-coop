@@ -2118,12 +2118,27 @@ func test_a_partner_off_the_screen_is_an_arrow_on_its_edge_in_their_colour() -> 
 	var marks: Array = _tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(25, 10)).partner_marks()
 
 	assert_eq(marks.size(), 1)
-	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(150, 64), Vector2i.RIGHT], "on the right edge, level with the player")
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(148, 64), Vector2i.RIGHT], "on the right edge, level with the player")
 	assert_eq(marks[0]["colors"], PokeCoopRemoteActor.colors_of(_red.state, _blue.player_id))
 	assert_eq(_tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(12, 8)).partner_marks(), [], "a partner on the screen is drawn instead")
 	var wide: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(25, 10))
 	wide._world.view_pixels = Vector2i(256, 144)
-	assert_eq(wide.partner_marks()[0]["at"], Vector2i(246, 64), "a widened screen's own edge")
+	assert_eq(wide.partner_marks()[0]["at"], Vector2i(244, 64), "a widened screen's own edge")
+
+
+func test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 10), [], [{"direction": "north", "map_group": 0, "map_number": 2, "x_offset": 0, "y_offset": 0}])
+	_room(atlas, 2, Vector2i(10, 5), [], [{"direction": "south", "map_group": 0, "map_number": 1, "x_offset": 0, "y_offset": 0}])
+	var actor: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(6, 1), 2, Vector2i(6, 9))
+
+	var drawn: Array = actor.sprites()
+
+	assert_eq([drawn.size(), drawn[0]["position_cells"], drawn[0]["solid"]], [1, Vector2(6, -1), false], "a step north of this map's edge")
+	assert_eq(actor.partner_marks(), [], "drawn, so no arrow")
+	(_red.state["players"][_blue.player_id] as Dictionary)["cell"] = Vector2i(6, 1)
+	actor.advance_frame()
+	assert_eq(actor.partner_marks()[0]["direction"], Vector2i.UP, "up the next route, out of sight")
 
 
 func test_a_partner_inside_a_building_on_a_connected_map_is_found_at_its_door() -> void:
@@ -2135,7 +2150,7 @@ func test_a_partner_inside_a_building_on_a_connected_map_is_found_at_its_door() 
 
 	var marks: Array = _tracker(atlas, 1, Vector2i(6, 10), 3, Vector2i(2, 2)).partner_marks()
 
-	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(68, 2), Vector2i.UP], "straight up to the door two maps north")
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(68, 4), Vector2i.UP], "straight up to the door two maps north")
 
 
 func test_inside_a_building_the_arrow_stands_over_the_door_out_to_the_partner() -> void:

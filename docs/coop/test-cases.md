@@ -155,7 +155,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | W78 | The partner is far away (another town, flown or warped) | The edge arrow points where the TOWN MAP puts them | `test_a_partner_no_way_reaches_is_pointed_at_by_the_town_map` | | |
 | W79 | Open a menu, a text box, the PC or a Mart while the partner is away | No arrow over any of them | | partner_tracker (the TOWN MAP) | |
 | W80 | START > CO-OP > TOWN MAP (also without the TOWN MAP item), and the TOWN MAP item | The region map with the partner's icon in their colour where they are, under your own | `test_the_session_menu_opens_the_town_map_where_the_partner_stands` | partner_tracker | |
-## Battles
+| W81 | The partner walks off the map's edge onto the next route or town while you stay near that edge | You keep seeing them walk on the next map, in their colour (you can walk through them there); the arrow takes over once they are out of sight | `test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost` | partner_tracker | |## Battles
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
