@@ -32,6 +32,8 @@ var link_origin: Dictionary = {}
 var places: Dictionary = {}
 var battle_id: String = ""
 var connected: bool = false
+var game_id: String = ""
+var via: String = ""
 var next_mon_serial: int = 1
 ## While the player plays the opening: its stage, the story it runs on and the rival's name.
 var opening: Dictionary = {}
@@ -326,7 +328,7 @@ func resume_exploration() -> void:
 func public_view() -> Dictionary:
 	var out: Dictionary = {
 		"player_id": player_id, "name": name, "map": map, "cell": cell, "facing": facing,
-		"battle": battle_id, "connected": connected, "opening": is_hidden(),
+		"battle": battle_id, "connected": connected, "opening": is_hidden(), "game": game_id,
 	}
 	if not link_origin.is_empty():
 		out["rest"] = link_origin.duplicate()
@@ -363,7 +365,7 @@ func to_dict() -> Dictionary:
 		"items": item_rows, "money": money,
 		"map": [rest["map"].x, rest["map"].y], "cell": [rest["cell"].x, rest["cell"].y], "facing": int(rest["facing"]),
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
-		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(),
+		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(), "game_id": game_id,
 	}
 
 
@@ -419,6 +421,7 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	out.facing = int(source.get("facing", 0))
 	out.keep_places(source.get("places", {}))
 	out.next_mon_serial = maxi(int(source.get("next_mon_serial", 1)), 1)
+	out.game_id = PokeCoopTransport.text(source.get("game_id"))
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:
 		out.world = PokeCoopOwnership.canonical(raw_world, PokeCoopOwnership.PLAYER)

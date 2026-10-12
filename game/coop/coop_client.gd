@@ -14,6 +14,7 @@ var battles: Dictionary = {}
 var box: Dictionary = {}
 var rejections: Array = []
 var ended_reason: String = ""
+var probed: Dictionary = {}
 ## How many times the host has welcomed this player, a reconnection included.
 var welcomes: int = 0
 var _seq: int = 0
@@ -39,7 +40,7 @@ static func over(link: PokeCoopTransport) -> PokeCoopClient:
 ## Sent once connected; [param id] reclaims a player, a new one brings [param starter] or the save [param brought].
 func greet(
 	player_name: String, game_id: StringName, rom_sha1: String, id: String = "", starter: int = 0,
-	brought: Dictionary = {}, known: Dictionary = {}
+	brought: Dictionary = {}, known: Dictionary = {}, via: String = ""
 ) -> void:
 	_greeting = {
 		"type": "hello", "protocol": PokeCoopHost.PROTOCOL, "name": player_name,
@@ -50,12 +51,23 @@ func greet(
 		_greeting["save"] = brought
 	elif starter == PokeCoopPolicy.PLAY_OPENING:
 		_greeting["opening"] = true
+	if not via.is_empty():
+		_greeting["via"] = via
+	if connected:
+		_say_hello()
+
+
+func probe(player_name: String, game_id: StringName, rom_sha1: String, known: Dictionary = {}) -> void:
+	_greeting = {
+		"type": "probe", "protocol": PokeCoopHost.PROTOCOL, "build": PokeCoopLobby.build(), "name": player_name,
+		"game_id": String(game_id), "rom_sha1": rom_sha1, "known": known,
+	}
 	if connected:
 		_say_hello()
 
 
 func _say_hello() -> void:
-	journal.add(PokeCoopLog.CLIENT, "hello", _greeting, player_id)
+	journal.add(PokeCoopLog.CLIENT, String(_greeting["type"]), _greeting, player_id)
 	transport.send(PokeCoopTransport.HOST_PEER, _greeting)
 
 
@@ -91,6 +103,9 @@ func share_log(now: bool = false) -> bool:
 
 func _receive(message: Dictionary) -> void:
 	match String(message.get("type", "")):
+		"probe":
+			probed = message
+			journal.add(PokeCoopLog.CLIENT, "probed", message, player_id)
 		"welcome":
 			welcomes += 1
 			_welcomed = true
@@ -207,7 +222,6 @@ func battle(battle_id: String) -> Dictionary:
 	return battles.get(battle_id, {})
 
 
-## The battle this player is in or waiting to join, or empty.
 func current_battle() -> Dictionary:
 	for battle_id: String in battles:
 		var view: Dictionary = battles[battle_id]

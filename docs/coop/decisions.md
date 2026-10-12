@@ -1514,3 +1514,23 @@ on nothing in English games. The launcher stays English until it has its own
 translation system. Cost: small lookups and column offsets in 19 upstream
 files.
 
+## D103. The Co-op tab is a flow of screens; joining asks the host first (owner's request, protocol 7, 2026-10-12)
+
+The single scrolling form became Start (cartridge tiles with Ready, Re-import on
+Play or Not imported; HOST and JOIN; Last session), Host (campaign cards with
+each player's cartridge; edit, rename the rival, delete to `.bak`), New
+campaign (name; the rival from the cartridge's presets, typed, or asked in
+Oak's speech; how you start), Hosting (addresses by network with Copy and the
+live players; the session runs while the launcher shows it), Join (Nearby from
+a UDP beacon on 24681, By address, Recent), Connecting and Failure sheets, and
+New player, in both launcher themes and a phone layout. A client sends `probe`
+before `hello` on the same ENet link; the host answers whatever the protocol,
+without creating a player, with the campaign, version, cartridge fit and the
+trainer it knows. Dialling retries every 3 s for a minute, because partners
+often press Join first, and the checklist depends on the kind of address.
+Discovery is optional (one listener per device; iOS may need the multicast
+entitlement); the address path is complete without it. The host's START >
+CO-OP header shows its address. Rejected: mDNS (no Godot API), joining without
+a probe (mismatches found only after a player was created), X for secondary
+actions (not a launcher action; Y is used).
+

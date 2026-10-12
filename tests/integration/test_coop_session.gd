@@ -408,6 +408,42 @@ func test_blue_joins_a_red_campaign_of_its_own_language_and_nothing_else_does() 
 	german_host.transport.close()
 
 
+func test_a_probe_says_who_the_device_is_and_what_differs_and_hands_out_nobody() -> void:
+	_host.allow_new_players = true
+	_host.host_player_id = _red.player_id
+	_host.campaign.title = "CAMPAIGN 1"
+	_host.transport.drop(2)
+	_pump()
+	_host.poll()
+	var ask: Callable = func(fields: Dictionary) -> Dictionary:
+		var link := PokeCoopTransport.new()
+		PokeCoopTransport.link(_host.transport, link, 5)
+		var asking: PokeCoopClient = PokeCoopClient.over(link)
+		asking.connected = true
+		asking.probe(String(fields.get("name", "")), fields.get("game", _data.id), String(fields.get("sha1", _data.sha1)),
+			fields.get("known", {}))
+		_host.poll()
+		asking.poll()
+		_host.transport.drop(5)
+		_host.poll()
+		return asking.probed
+
+	var by_id: Dictionary = ask.call({"known": {"c1": _blue.player_id}})
+	var by_name: Dictionary = ask.call({"name": "BLUE"})
+	var stranger: Dictionary = ask.call({"name": "GREEN"})
+	var playing: Dictionary = ask.call({"name": "RED"})
+	var german: Dictionary = ask.call({"name": "GREEN", "game": RomRegistry.RED_DE, "sha1": RomRegistry.sha1_for(RomRegistry.RED_DE)})
+
+	assert_eq([by_id["you"], by_name["you"]], [{"player_id": _blue.player_id, "name": "BLUE"}, {"player_id": _blue.player_id, "name": "BLUE"}])
+	assert_eq([stranger["you"], playing["you"]], [{}, {}], "a new name, or a trainer already playing elsewhere, is a new player")
+	assert_eq([by_id["refused"], german["refused"]], ["", "content_mismatch"])
+	assert_eq([german["game_id"], german["title"], german["host"]], [String(_data.id), "CAMPAIGN 1", "RED"],
+		"a refusal still says what the host plays")
+	assert_eq(_host.players.size(), 2, "nobody was created")
+	var older: Dictionary = _host.probe_answer({"protocol": PokeCoopHost.PROTOCOL - 1, "game_id": String(_data.id), "rom_sha1": _data.sha1})
+	assert_eq([older["refused"], older["protocol"], older["build"]], ["protocol_mismatch", PokeCoopHost.PROTOCOL, PokeCoopLobby.build()])
+
+
 func test_only_plain_data_crosses_the_wire() -> void:
 	var stripped: Dictionary = PokeCoopTransport.decode(PokeCoopTransport.encode({
 		"type": "state", "object": RefCounted.new(), "nested": [Node2D, {"cell": Vector2i(1, 2)}],

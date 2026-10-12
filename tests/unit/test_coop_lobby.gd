@@ -1,0 +1,163 @@
+extends GutTest
+
+## What the Co-op tab does before a session exists: the LAN beacon, the dial that retries, the
+## cartridges it offers, the advice it gives and what it remembers.
+
+const Fixture := preload("res://tests/unit/battle_fixture.gd")
+const MEMORY: String = "user://coop_lobby_test.json"
+const BEACON_PORT: int = 24797
+const NOBODY_PORT: int = 24798
+const VIEW: Dictionary = {
+	"kind": PokeCoopLobby.KIND, "protocol": 7, "build": "0.1.75", "game_id": "red_de", "rom_sha1": "abc", "campaign": "red_de-1",
+	"title": "CAMPAIGN 1", "host": "CLOEDL", "players": [{"name": "CLOEDL", "game": "red_de", "connected": true},
+		{"name": "MÖKI", "game": "blue_de", "connected": false}], "badges": 3, "place": "Pewter City",
+}
+
+var _directory: String = ""
+var _data: GameData = null
+
+
+func before_each() -> void:
+	PokeCoopLobby.memory_path = MEMORY
+	PokeCoopLobby.beacon_port = BEACON_PORT
+	_directory = RomCache.directory_for(&"cooplobbytest", "0123456789abcdef")
+	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
+
+
+func after_each() -> void:
+	PokeCoopLobby.memory_path = "user://coop_tab.json"
+	PokeCoopLobby.beacon_port = PokeCoopLobby.BEACON_PORT
+	PokeCoopLobby.open_game = Callable()
+	if FileAccess.file_exists(MEMORY):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(MEMORY))
+	RomCache.clear(_directory)
+	RomCache.clear(RomCache.directory_for(&"cooplobbystale", ""))
+
+
+func test_a_beacon_reads_back_as_the_row_join_lists_and_nothing_else_does() -> void:
+	var row: Dictionary = PokeCoopLobby.read_beacon(PokeCoopLobby.beacon_bytes(VIEW, 24850), "192.168.1.150")
+
+	assert_eq([row["address"], row["port"], row["host"], row["title"], row["game_id"], row["badges"], row["protocol"]],
+		["192.168.1.150", 24850, "CLOEDL", "CAMPAIGN 1", "red_de", 3, 7])
+	assert_eq((row["players"] as Array).map(func(member: Dictionary) -> Array: return [member["name"], member["connected"]]),
+		[["CLOEDL", true], ["MÖKI", false]])
+	var foreign: Dictionary = VIEW.duplicate()
+	foreign["kind"] = "someone-else"
+	var oversized := PackedByteArray()
+	oversized.resize(PokeCoopLobby.MAX_BEACON_BYTES + 1)
+	for refused: PackedByteArray in [PokeCoopLobby.beacon_bytes(foreign, 24850), PokeCoopLobby.beacon_bytes(VIEW, 0),
+			"not json".to_utf8_buffer(), oversized]:
+		assert_eq(PokeCoopLobby.read_beacon(refused, "192.168.1.150"), {})
+
+
+func test_join_lists_the_hosts_heard_lately_by_their_network_address() -> void:
+	var listener := PokeCoopLobby.Listener.new()
+	var heard: Callable = func(from: String) -> Dictionary:
+		return PokeCoopLobby.read_beacon(PokeCoopLobby.beacon_bytes(VIEW, 24680), from)
+
+	listener.hear(heard.call("192.168.1.150"), 1000)
+	listener.hear(heard.call("127.0.0.1"), 1100)
+
+	assert_eq(listener.hosts(1200).map(func(row: Dictionary) -> String: return row["address"]), ["192.168.1.150"],
+		"the host's own loopback copy is one host, still at the address a partner dials")
+	assert_eq(listener.hosts(1100 + PokeCoopLobby.SEEN_MSEC + 1), [], "a host that stopped is gone in a few seconds")
+
+
+func test_a_beacon_crosses_a_real_socket_and_a_second_listener_on_the_port_waits() -> void:
+	var listener := PokeCoopLobby.Listener.new()
+	var second := PokeCoopLobby.Listener.new()
+	var beacon := PokeCoopLobby.Beacon.new()
+	listener.poll()
+	second.poll()
+	assert_true(listener.listening())
+	assert_false(second.listening(), "the port is taken: this one hears nothing rather than failing")
+
+	beacon.tick(VIEW, 24680)
+	var deadline: int = Time.get_ticks_msec() + 2000
+	while listener.hosts().is_empty() and Time.get_ticks_msec() < deadline:
+		OS.delay_msec(10)
+		listener.poll()
+
+	assert_eq(listener.hosts().map(func(row: Dictionary) -> String: return row["title"]), ["CAMPAIGN 1"])
+	listener.close()
+	second.poll(Time.get_ticks_msec() + PokeCoopLobby.RETRY_MSEC)
+	assert_true(second.listening(), "and takes the port once it is free")
+	second.close()
+	beacon.close()
+
+
+func test_a_dial_tries_again_every_few_seconds_for_a_minute_then_waits_to_be_asked() -> void:
+	var dial: PokeCoopLobby.Dial = PokeCoopLobby.Dial.to("127.0.0.1", NOBODY_PORT, _data, "BLUE")
+	var started: int = dial.started_at
+	assert_eq([dial.step, dial.attempts], [PokeCoopLobby.Dial.Step.DIALING, 1])
+
+	dial.process(started + PokeCoopLobby.RETRY_MSEC - 1)
+	assert_eq(dial.attempts, 1, "a dial is given its few seconds")
+	dial.process(started + PokeCoopLobby.RETRY_MSEC)
+	assert_eq([dial.step, dial.attempts, dial.seconds_left(started + PokeCoopLobby.RETRY_MSEC)],
+		[PokeCoopLobby.Dial.Step.DIALING, 2, (PokeCoopLobby.DIAL_MSEC - PokeCoopLobby.RETRY_MSEC) / 1000])
+	dial.process(started + PokeCoopLobby.DIAL_MSEC + PokeCoopLobby.RETRY_MSEC)
+	assert_eq(dial.step, PokeCoopLobby.Dial.Step.GAVE_UP, "a minute with no host")
+	assert_null(dial.client, "and the link is closed")
+
+	dial.retry_now()
+	assert_eq([dial.step, dial.attempts, dial.seconds_left(dial.started_at)], [PokeCoopLobby.Dial.Step.DIALING, 3,
+		PokeCoopLobby.DIAL_MSEC / 1000], "Try now starts the minute again")
+	dial.close()
+	assert_eq(dial.step, PokeCoopLobby.Dial.Step.CLOSED)
+
+
+func test_each_co_op_cartridge_is_ready_needs_a_new_import_or_is_missing() -> void:
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == &"cooplobbyready" else null
+	var stale: String = RomCache.directory_for(&"cooplobbystale", "")
+	RomCache.prepare(stale)
+	RomCache.write_json(RomCache.manifest_path(stale), {"format_version": RomCache.FORMAT_VERSION - 1, "complete": true})
+
+	var rows: Array = PokeCoopLobby.cartridges([&"cooplobbyready", &"cooplobbystale", &"cooplobbymissing"])
+
+	assert_eq(rows.map(func(row: Dictionary) -> StringName: return row["status"]),
+		[PokeCoopLobby.READY, PokeCoopLobby.STALE, PokeCoopLobby.MISSING], "GameData not opening it is not hidden")
+	assert_eq(rows[0]["data"], _data)
+
+
+func test_a_host_none_of_the_cartridges_fits_names_the_one_that_would() -> void:
+	var blue: GameData = Fixture.build(RomCache.directory_for(&"cooplobbyblue", ""), "blue", RomRegistry.GEN1)
+	blue.sha1 = RomRegistry.sha1_for(RomRegistry.BLUE)
+	var rote: GameData = Fixture.build(RomCache.directory_for(&"cooplobbyrote", ""), "red_de", RomRegistry.GEN1)
+	rote.sha1 = RomRegistry.sha1_for(RomRegistry.RED_DE)
+	var rows: Array = [{"id": RomRegistry.RED_DE, "data": rote}, {"id": RomRegistry.BLUE, "data": blue}]
+
+	var fits: Array = PokeCoopLobby.fitting(rows, RomRegistry.RED, RomRegistry.sha1_for(RomRegistry.RED))
+
+	assert_eq(fits.map(func(row: Dictionary) -> StringName: return row["id"]), [RomRegistry.BLUE])
+	assert_eq(PokeCoopLobby.fitting(rows, RomRegistry.YELLOW, RomRegistry.sha1_for(RomRegistry.YELLOW)), [])
+	RomCache.clear(RomCache.directory_for(&"cooplobbyblue", ""))
+	RomCache.clear(RomCache.directory_for(&"cooplobbyrote", ""))
+
+
+func test_the_failure_checklist_fits_the_address() -> void:
+	var mine: Array = [{"address": "10.8.0.7", "network": "wg0", "kind": PokeCoopLobby.VPN},
+		{"address": "192.168.1.150", "network": "eno1", "kind": PokeCoopLobby.HOME}]
+
+	var vpn: String = "\n".join(PokeCoopLobby.advice("10.8.0.6", 24680, "CLOEDL", mine))
+	var home: String = "\n".join(PokeCoopLobby.advice("192.168.1.42", 24680, "", mine))
+	var public: String = "\n".join(PokeCoopLobby.advice("84.12.3.4", 24680, "", mine))
+
+	assert_string_contains(vpn, "CLOEDL has pressed Host")
+	assert_string_contains(vpn, "10.8.0.6 only works through it")
+	assert_string_contains(home, "same Wi-Fi")
+	assert_string_contains(home, "firewall")
+	assert_string_contains(public, "forwards UDP port 24680")
+	assert_false(public.contains("same Wi-Fi"))
+
+
+func test_the_tab_remembers_the_last_hosts_joined_newest_first_and_once_each() -> void:
+	for address: String in ["10.8.0.6", "192.168.1.150", "10.0.0.2", "10.0.0.3", "10.8.0.6"]:
+		PokeCoopLobby.add_recent({"address": address, "port": 24680, "title": "AT " + address})
+	PokeCoopLobby.remember({"name": "MÖKI"})
+
+	assert_eq(PokeCoopLobby.recent().map(func(row: Dictionary) -> String: return row["address"]),
+		["10.8.0.6", "10.0.0.3", "10.0.0.2", "192.168.1.150"])
+	assert_eq(PokeCoopLobby.remembered()["name"], "MÖKI", "remembering one thing keeps the rest")
+	assert_eq(PokeCoopLobby.split_address(" 10.8.0.6:24850 ", 24680), ["10.8.0.6", 24850])
+	assert_eq(PokeCoopLobby.split_address("10.8.0.6", 24680), ["10.8.0.6", 24680])
