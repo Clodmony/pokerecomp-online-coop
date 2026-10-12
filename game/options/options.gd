@@ -118,6 +118,7 @@ var controls: Dictionary = PokeInputActions.defaults()
 var mod_controls: Dictionary = {}
 ## See [method PokeInputActions.resolve_pad_layout].
 var pad_layout: StringName = PokeInputActions.PAD_LAYOUT_AUTO
+var pad: Dictionary = {}
 var touch_mode: StringName = TOUCH_AUTO
 var touch_layout: PokeTouchLayout = PokeTouchLayout.new()
 ## Whether the player has answered the question the reset chord asks the first
@@ -237,6 +238,7 @@ func to_dict() -> Dictionary:
 		"controls": PokeInputActions.to_dict(controls),
 		"mod_controls": mod_controls.duplicate(true),
 		"pad_layout": String(pad_layout),
+		"pad": pad.duplicate(),
 		"touch_mode": String(touch_mode),
 		"touch_layout": touch_layout.to_dict(),
 		"soft_reset_acknowledged": soft_reset_acknowledged,
@@ -283,6 +285,7 @@ static func parse(raw: Variant) -> Gen2Options:
 	options.controls = PokeInputActions.sanitize(row.get("controls"))
 	options.mod_controls = PokeInputActions.sanitize_mod_controls(row.get("mod_controls"))
 	options.pad_layout = _one_of(row.get("pad_layout", ""), PokeInputActions.PAD_LAYOUTS)
+	options.pad = PokePadChoice.sanitize(row.get("pad"))
 	options.touch_mode = _one_of(row.get("touch_mode", ""), TOUCH_MODES)
 	options.touch_layout = PokeTouchLayout.parse(row.get("touch_layout"))
 	options.soft_reset_acknowledged = bool(row.get("soft_reset_acknowledged", false))

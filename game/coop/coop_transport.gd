@@ -70,12 +70,10 @@ static func decode(bytes: PackedByteArray) -> Variant:
 	return value if value is Dictionary else null
 
 
-## A client's field read as text, whatever it sent.
 static func text(value: Variant, fallback: String = "") -> String:
 	return String(value) if value is String or value is StringName else fallback
 
 
-## A client's field read as a whole number, whatever it sent.
 static func number(value: Variant, fallback: int = 0) -> int:
 	return int(value) if value is int or value is float or value is bool else fallback
 

@@ -102,7 +102,7 @@ running battles as fled (D37). Story changes between checkpoints are journaled (
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
 new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
 of the real-screen slice, to 41342 with the battle stage (D39), and to
-41343 with upstream's own +1 in 0.1.75 (D97). Co-op code keeps upstream's comment style: only facts
+41343 with upstream's own +1 in 0.1.75 (D97), and to 41347 with wild Pokémon from both versions (D104). Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -1514,7 +1514,60 @@ on nothing in English games. The launcher stays English until it has its own
 translation system. Cost: small lookups and column offsets in 19 upstream
 files.
 
-## D103. Hold B to run in a co-op run (owner's request, 2026-10-12)
+## D103. The Co-op tab is a flow of screens; joining asks the host first (owner's request, protocol 7, 2026-10-12)
+
+The single scrolling form became Start (cartridge tiles with Ready, Re-import on
+Play or Not imported; HOST and JOIN; Last session), Host (campaign cards with
+each player's cartridge; edit, rename the rival, delete to `.bak`), New
+campaign (name; the rival from the cartridge's presets, typed, or asked in
+Oak's speech; how you start), Hosting (addresses by network with Copy and the
+live players; the session runs while the launcher shows it), Join (Nearby from
+a UDP beacon on 24681, By address, Recent), Connecting and Failure sheets, and
+New player, in both launcher themes and a phone layout. A client sends `probe`
+before `hello` on the same ENet link; the host answers whatever the protocol,
+without creating a player, with the campaign, version, cartridge fit and the
+trainer it knows. Dialling retries every 3 s for a minute, because partners
+often press Join first, and the checklist depends on the kind of address.
+Discovery is optional (one listener per device; iOS may need the multicast
+entitlement); the address path is complete without it. The host's START >
+CO-OP header shows its address. Rejected: mDNS (no Godot API), joining without
+a probe (mismatches found only after a player was created), X for secondary
+actions (not a launcher action; Y is used).
+
+## D104. Wild Pokémon from both versions (owner's request, protocol 8, 2026-10-12)
+
+A per-campaign switch, off by default and also offered by Edit campaign for
+existing campaigns. With it on, each wild Pokémon met in the grass or the water
+is, on the upper half of a 0 to 255 roll from the world's own encounter
+generator, the other version's Pokémon from the same map and slot (so its level
+and rarity stay the cartridge's), through upstream's
+`Gen2ModHost.register_wild_substitute`, but only when that Pokémon is one the
+player's own version never has in the wild (the owner's choice, the same day):
+a slot both versions share, a slot where the other version only shuffles
+Pokémon both have (Viridian Forest's HORNLIU and RAUPY, the Nidoran swaps,
+Seafoam's ENTON and FLEGMON; 82 of the 175 slots that differ between Rote and
+Blaue), and a map the other version has no table for keep the cartridge's own
+odds. So the switch only adds the other version's ten wild exclusives, each
+taking half of its slot. Nothing is taken from a
+cartridge the device does not have: each window of a paired game sends its own
+wild slots to the host after every welcome (about 10 KB, in the session only),
+and the host passes the other version's to each player of the pair's other
+game, so it works once a device of each version (Red and Blue, or Rote and
+Blaue) has been in the session; until then the Hosting screen says which
+version it waits for and every world keeps its own. The roll is drawn only
+while a window holds the other tables, so a campaign without the switch keeps
+the cartridge's encounter stream. Fishing, the Game Corner's prizes and the
+in-game trades stay each player's own version. The substitute's context gained
+the drawn `slot` (one line in `world_api.gd`) and `Gen2ModHost` an
+`unregister_wild_substitute` for a session that ends. Protocol 8, because a
+version 7 host refuses an unsequenced message it does not know by closing the
+link. Rejected: a lookup by species and level instead of the slot (two slots
+can share both and differ in the other version), shipping the other version's
+tables with the build (cartridge data), and caching them in the campaign file
+(the owner asked for in-session only). The comment ceiling rose by four for the
+rule and its helpers (D13).
+
+## D105. Hold B to run in a co-op run (owner's request, 2026-10-12)
 
 The owner asked for a run button. Upstream already has the RUN BUTTON mod
 policy: while one is registered, a walk with B held takes the bike's four
@@ -1525,4 +1578,3 @@ walks as the cartridge does. A partner's steps are eased over the time between
 their reports, eight frames when they run or ride and sixteen when they walk.
 Cost: B is held for nothing else on the map in Gen 1, so no cartridge input
 is lost; there is no setting to turn it off.
-

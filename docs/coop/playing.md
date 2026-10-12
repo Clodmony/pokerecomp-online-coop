@@ -6,40 +6,85 @@ the cartridge is sent between devices.
 
 ## Starting
 
-1. Open the launcher and go to the **Co-op** tab.
-2. Under **You**, type your name and choose how a newcomer starts (this only
-   matters the first time you join a campaign):
-   - **The opening: Play it** (the default): Oak's speech, your bedroom, Oak
-     stopping you at the grass, his lab, your starter and the rival's
-     challenge, as in the cartridge. See "The opening" below.
-   - **Skip it**: start in Pallet Town with the **Starter** you pick, level 5.
-   - **Bring**, if the cartridge has a single-player save on this device: that
-     trainer's team, PC, bag, money and place. The first player of a new
-     campaign who brings a save brings its story and badges too.
-3. One player picks a **Campaign** under **Host a campaign**: one of this
-   device's campaigns (the latest is picked), or **A new campaign** with a name
-   such as WITH ALEX, then presses **Host**. The card lists the addresses
-   others on the same network can use, and the port (24680).
-4. The other player types one of those addresses under **Join a campaign** and
-   presses **Join**.
+1. Open the launcher and go to the **Co-op** tab. Its first screen shows your
+   cartridges: **Ready**, **Re-import on Play** (imported, but this version
+   cannot read it: import it again on the Play tab) or **Not imported**. Pick
+   the one you play with; the line under them says which games play together
+   (Red with Blue, Rote with Blaue Edition). The tab remembers your pick.
+2. One player presses **HOST**. Each of the device's campaigns for that
+   cartridge and for the other game of its pair is a card with the game it was
+   started on ("Rote campaign"), its players, the cartridge each plays, badges,
+   place and last save: a Blaue cartridge hosts a Rote campaign too, and its
+   file stays in Rote's folder. Pick one and press **Host <name>**, or press
+   **+ New campaign**: name it, choose the rival's name (one of the cartridge's
+   own three, typed, or **Ask in Oak's speech**), type your name and choose how
+   you start (below), then **Create and host**.
+3. The **Hosting** screen shows the addresses others join at, each labelled by
+   network (a VPN such as wg0 first, then the home network) with a **Copy**
+   button, and the players as they join. Press **Enter the world** whenever you
+   like; partners can join later too, and START > CO-OP shows the address
+   (`IP ...`) for as long as you host.
+4. The other player presses **JOIN**. Hosts on the same Wi-Fi or LAN appear
+   under **Nearby** by themselves, with one button for each of your cartridges
+   that fits ("Join with Blaue"); a host none of them fits says why. Over a VPN
+   or the internet, type the address under **By address** (with `:port` if the
+   host uses another port than 24680), or pick it from **Recent**.
+5. Before anyone joins, the game asks the host about its campaign: the
+   **Connecting** sheet shows each step (host found, same version, cartridges
+   fit). A device the host knows sees **Join as <name>**; a new player names
+   themself and chooses how they start, then presses **Join as <name>**.
 
-The tab remembers the name and address you last used.
+How a new player starts:
+
+- **Play Oak's opening** (the default): Oak's speech, your bedroom, Oak
+  stopping you at the grass, his lab, your starter and the rival's challenge,
+  as in the cartridge. See "The opening" below.
+- **Start in Pallet Town** with one of the three starters, level 5, and 3000
+  money.
+- **Bring a trainer from a save**, if the cartridge has a single-player save on
+  this device: that trainer's team, PC, bag, money and place. The first player
+  of a new campaign who brings a save brings its story and badges too.
+
+If nothing answers, the sheet keeps trying every few seconds for a minute (a
+partner often presses Join before the host is ready), counts the time down and
+lists what to check for that address: a VPN address gets VPN advice, a home
+address the same Wi-Fi and the Windows firewall, a public address port
+forwarding. **Try now** dials at once; **Cancel** or B stops. A host on another
+version, or a cartridge that cannot play with the host's, is named exactly,
+with the one of your cartridges that would fit.
+
+The start screen's **Last session** row hosts your last campaign again, or
+joins the host you last joined, in one press. Y (C on a keyboard) opens
+**Troubleshooting**: the debug log switch and the logs folder.
 
 Each campaign is its own file on the host's device, so a run with one friend
-never overwrites a run with another: start **A new campaign** for each group.
+never overwrites a run with another: start a new campaign for each group.
 The files are in the game's user folder under `coop_campaigns/<game>/`, each
 with the checkpoint before the latest beside it as `<file>.json.bak`. A
 campaign from an earlier build (`coop_<game>_campaign.json`) moves there by
-itself and is listed as FIRST CAMPAIGN. To back a campaign up, copy its file;
-to delete one, delete its file.
+itself and is listed as FIRST CAMPAIGN. Y on a campaign card (or a right click
+or a long press, or **Rename or delete**) renames the campaign or its rival;
+the new rival's name applies the next time the campaign is hosted.
+**Delete campaign…** asks again and keeps the campaign's last state beside
+the others as `<file>.json.bak`, which can be renamed back.
 
 **To carry on where you left off**, the host picks that campaign and presses
-Host on the same device, and the others press Join with the host's address:
-everyone gets their own trainer back, with their team, bag and place. A
-device remembers who it played as in each campaign; a player joining from
-another device or address gets their trainer back by typing the same name as
-before. Only the campaign the host picked is played: the others see its name
-at the top of the CO-OP menu (START > CO-OP).
+Host on the same device, and the others join it again: everyone gets their own
+trainer back, with their team, bag and place. A device remembers who it played
+as in each campaign; a player joining from another device or address gets
+their trainer back by typing the same name as before. Only the campaign the
+host picked is played: the others see its name at the top of the CO-OP menu
+(START > CO-OP).
+
+On a phone held upright the tab is one column: the cartridges scroll sideways,
+the screen's main button sits at the bottom, sheets rise from the bottom and
+the address field opens the number keypad. Nearby needs the platform to allow
+local network broadcast; where it does not, the address path still works.
+
+With several controllers plugged in, every one of them plays until you pick
+one under Settings > Controls > **Controller**; then only that one does, two
+of one model show as (1) and (2), and an unplugged pick is taken back when it
+is plugged in again. The keyboard and mouse always work.
 
 ## The opening
 
@@ -47,8 +92,8 @@ Everyone who plays the opening plays it in their own world, at the same time
 or one after another:
 
 - Oak asks for your name and already knows it from the Co-op tab. The rival's
-  name is asked only until somebody has named him; after that Oak remembers
-  it for everyone.
+  name is asked only until somebody has named him (or the host named him when
+  creating the campaign); after that Oak remembers it for everyone.
 - Each player wakes up in their own bedroom and plays the opening alone: you
   do not see each other, and nobody else sees you, until you have left Oak's
   lab with your starter. Then you meet in Pallet Town.
@@ -66,12 +111,13 @@ or one after another:
   version of this project, and import Red or Blue of the same language: Red
   with Red or Blue, Rote with Rote or Blaue Edition. Each world has its own
   cartridge's wild Pokémon and Game Corner prizes, so trade the exclusives. The
-  host checks both and the Co-op tab says which one failed.
-- **Easiest: a VPN you are both on** (WireGuard or the like). The
-  host's Co-op tab lists each address with the network it belongs to, for
-  example `10.0.0.1  (wg0)`; the other player joins the VPN one. No router
-  setup is needed and it works behind any NAT. The tab keeps the list current,
-  so a tunnel brought up after the game started shows up too.
+  host checks both before anyone joins and the Connecting sheet says which one
+  failed.
+- **Easiest: a VPN you are both on** (WireGuard, Tailscale or the like). The
+  host's Hosting screen lists each address with the network it belongs to,
+  for example `10.0.0.1` on wg0, and marks the one a partner used last time;
+  the other player joins the VPN one. No router setup is needed and it works
+  behind any NAT.
 - **Without a VPN**, the host forwards UDP port 24680 on their router to their
   device and gives the other player their public address. This does not work
   behind carrier-grade NAT or DS-Lite, which many connections have.
@@ -97,6 +143,16 @@ or one after another:
   VOUCHER, the GOLD TEETH) is taken from everyone; fossils are not, so each of
   you revives your own. What you buy, trade for or use stays yours. Hidden
   items are each player's own to find.
+- **Wild Pokémon from both versions** (a switch in New campaign and Edit
+  campaign, off by default): where the other version has a Pokémon in the same
+  place and slot that your version never has in the wild (such as MAUZI or
+  KNOFENSA in Rote, MENKI or MYRAPLA in Blaue), half the wild Pokémon met in
+  that slot are that one, at the slot's level. Everything both versions have
+  keeps your cartridge's odds. It needs a player of each version in the session, since
+  each device only knows its own cartridge's tables; until one joins, the
+  Hosting screen says which version it waits for and everyone meets their own.
+  Fishing, the Game Corner's prizes and the in-game trades stay your own
+  version's.
 - **Saving**: START > SAVE saves the whole campaign, everyone in it. You see
   "Campaign saved." and the others see "BLUE saved the campaign."; a save
   refused during a battle says so. The host also saves by itself after
@@ -175,10 +231,11 @@ back from the background picks up where it was.
 ## Logs
 
 Every session is written to a file on your device, in `coop_logs` in the
-game's data folder: the Co-op tab's "Open the logs folder" opens it. On Linux it
+game's data folder: "Open the logs folder" under Troubleshooting (Y on the
+Co-op tab) opens it. On Linux it
 is `~/.local/share/godot/app_userdata/pokerecomp/coop_logs`, on Windows
 `%APPDATA%\Godot\app_userdata\pokerecomp\coop_logs`. The last 30 sessions are
-kept. With "Share debug logs with the other players" on (the default), your file
+kept. With "Share debug logs" on (the default), your file
 also gets the other players' lines, so one file usually shows the whole session;
 turned off, your device neither sends nor receives them. To report a bug, send
 the file for that session's date and time (`..._host_...` or `..._join_...`)
