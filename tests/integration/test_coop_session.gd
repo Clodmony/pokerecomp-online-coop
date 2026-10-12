@@ -798,6 +798,20 @@ func test_the_world_leaves_a_won_fight_only_once_the_field_has_played_its_last_l
 	assert_eq(results, [{"outcome": &"won", "team_won": true}])
 
 
+func test_a_battle_that_opens_while_a_menu_fades_to_white_is_not_left_under_the_white() -> void:
+	var screen: Gen2Screen = add_child_autofree((load("res://game/render/gen2_screen.tscn") as PackedScene).instantiate())
+	var field: PokeCoopBattleField = PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data)
+	screen.display(field)
+	await wait_process_frames(1)
+	screen.set_white(true)
+	_send(func() -> void: _red.start_battle("wild:stall"))
+
+	field._process(0.0)
+
+	assert_true(field.visible)
+	assert_false(screen._white.visible, "the world froze mid-fade; the battle is drawn anyway")
+
+
 func test_a_wild_ones_fanfare_starts_on_its_fall_and_plays_once() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
@@ -2057,6 +2071,152 @@ func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:
 
 	assert_eq(drawn.size(), 1)
 	assert_true(bool((drawn[0] as Dictionary).get("solid", false)))
+
+
+class Atlas extends GameData:
+	var maps: Dictionary = {}
+	var places: Dictionary = {}
+
+	func world_map(group: int, number: int) -> Gen2WorldMap:
+		return maps.get(Vector2i(group, number))
+
+	func landmark(index: int) -> Dictionary:
+		return places.get(index, {})
+
+	func area_landmark(index: int) -> int:
+		return index
+
+
+static func _room(atlas: Atlas, number: int, size: Vector2i, warps: Array = [], connections: Array = []) -> void:
+	var map := Gen2WorldMap.new()
+	map.number = number
+	map.width_blocks = size.x
+	map.height_blocks = size.y
+	map.events = {"warps": warps}
+	map.connections = connections
+	atlas.maps[Vector2i(0, number)] = map
+
+
+func _tracker(atlas: Atlas, at: int, cell: Vector2i, partner_map: int, partner_cell: Vector2i) -> PokeCoopRemoteActor:
+	var world := Gen2WorldAPI.new(_data, atlas.maps[Vector2i(0, at)], null)
+	world.data = atlas
+	world.player_cell = cell
+	var actor: PokeCoopRemoteActor = PokeCoopRemoteActor.over(_red)
+	actor.set_world(world)
+	var partner: Dictionary = _red.state["players"][_blue.player_id]
+	partner["map"] = Vector2i(0, partner_map)
+	partner["cell"] = partner_cell
+	partner["connected"] = true
+	partner["opening"] = false
+	return actor
+
+
+func test_a_partner_off_the_screen_is_an_arrow_on_its_edge_in_their_colour() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(20, 20))
+
+	var marks: Array = _tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(25, 10)).partner_marks()
+
+	assert_eq(marks.size(), 1)
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(148, 64), Vector2i.RIGHT], "on the right edge, level with the player")
+	assert_eq(marks[0]["colors"], PokeCoopRemoteActor.colors_of(_red.state, _blue.player_id))
+	assert_eq(_tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(12, 8)).partner_marks(), [], "a partner on the screen is drawn instead")
+	var wide: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(10, 10), 1, Vector2i(25, 10))
+	wide._world.view_pixels = Vector2i(256, 144)
+	assert_eq(wide.partner_marks()[0]["at"], Vector2i(244, 64), "a widened screen's own edge")
+
+
+func test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 10), [], [{"direction": "north", "map_group": 0, "map_number": 2, "x_offset": 0, "y_offset": 0}])
+	_room(atlas, 2, Vector2i(10, 5), [], [{"direction": "south", "map_group": 0, "map_number": 1, "x_offset": 0, "y_offset": 0}])
+	var actor: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(6, 1), 2, Vector2i(6, 9))
+
+	var drawn: Array = actor.sprites()
+
+	assert_eq([drawn.size(), drawn[0]["position_cells"], drawn[0]["solid"]], [1, Vector2(6, -1), false], "a step north of this map's edge")
+	assert_eq(actor.partner_marks(), [], "drawn, so no arrow")
+	(_red.state["players"][_blue.player_id] as Dictionary)["cell"] = Vector2i(6, 1)
+	actor.advance_frame()
+	assert_eq(actor.partner_marks()[0]["direction"], Vector2i.UP, "up the next route, out of sight")
+
+
+func test_a_partner_inside_a_building_on_a_connected_map_is_found_at_its_door() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 10), [], [{"direction": "north", "map_group": 0, "map_number": 2, "x_offset": 0, "y_offset": 0}])
+	_room(atlas, 2, Vector2i(10, 5), [{"x": 6, "y": 3, "map_group": 0, "map_number": 3, "destination": 0}],
+		[{"direction": "south", "map_group": 0, "map_number": 1, "x_offset": 0, "y_offset": 0}])
+	_room(atlas, 3, Vector2i(4, 4), [{"x": 2, "y": 7, "map_group": 0, "map_number": Gen1Layout.WARP_TO_LAST_MAP, "destination": 0}])
+
+	var marks: Array = _tracker(atlas, 1, Vector2i(6, 10), 3, Vector2i(2, 2)).partner_marks()
+
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(68, 4), Vector2i.UP], "straight up to the door two maps north")
+
+
+func test_of_two_doors_into_one_map_of_rooms_the_arrow_takes_the_partners_room() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 4), [{"x": 2, "y": 1, "map_group": 0, "map_number": 3, "destination": 0},
+		{"x": 12, "y": 1, "map_group": 0, "map_number": 3, "destination": 1}])
+	_room(atlas, 3, Vector2i(10, 4), [{"x": 1, "y": 7, "map_group": 0, "map_number": 1, "destination": 0},
+		{"x": 15, "y": 7, "map_group": 0, "map_number": 1, "destination": 1}])
+
+	(atlas.maps[Vector2i(0, 1)] as Gen2WorldMap).generation = RomRegistry.GEN1
+
+	var marks: Array = _tracker(atlas, 1, Vector2i(3, 3), 3, Vector2i(14, 4)).partner_marks()
+
+	assert_eq([marks[0]["at"], marks[0]["direction"]], [Vector2i(148, 46), Vector2i.RIGHT], "the far door, into the room they are in")
+
+
+func test_inside_a_building_the_arrow_stands_over_the_door_out_to_the_partner() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 10))
+	_room(atlas, 4, Vector2i(4, 4), [{"x": 2, "y": 7, "map_group": 0, "map_number": Gen1Layout.WARP_TO_LAST_MAP, "destination": 0}])
+	var actor: PokeCoopRemoteActor = _tracker(atlas, 4, Vector2i(2, 5), 1, Vector2i(9, 9))
+	actor._world._gen1_last_map = 1
+
+	assert_eq(actor.partner_marks()[0], {"at": Vector2i(68, 86), "direction": Vector2i.DOWN, "id": _blue.player_id,
+		"colors": PokeCoopRemoteActor.colors_of(_red.state, _blue.player_id)}, "a bobbing arrow two cells above the doormat")
+	actor._world._gen1_last_map = 2
+	assert_eq(actor.partner_marks(), [], "a building left for elsewhere has no way to them, and both share one TOWN MAP cell")
+
+
+func test_a_partner_no_way_reaches_is_pointed_at_by_the_town_map() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(10, 10))
+	_room(atlas, 9, Vector2i(10, 10))
+	atlas.places = {1: {"x": 40, "y": 100}, 9: {"x": 40, "y": 20}}
+
+	var marks: Array = _tracker(atlas, 1, Vector2i(6, 6), 9, Vector2i(2, 2)).partner_marks()
+
+	assert_eq(marks[0]["direction"], Vector2i.UP)
+	var actor: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(6, 6), 9, Vector2i(2, 2))
+	assert_eq(actor.town_map_marks(), [{"map": 9, "colors": PokeCoopRemoteActor.colors_of(_red.state, _blue.player_id)}],
+		"and stands on the TOWN MAP in their colours")
+
+
+func test_the_session_menu_opens_the_town_map_where_the_partner_stands() -> void:
+	var menu: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_red, _data))
+	var opened: Array = []
+	menu.open_map = func() -> void: opened.append(true)
+	menu.open()
+	menu._set_cursor(_menu_row(menu, "TOWN MAP"))
+
+	menu.press(PokeButton.A)
+
+	assert_eq(opened, [true])
+	assert_false(menu.is_open(), "the map takes the screen")
+
+
+func test_an_arrow_points_its_tip_the_way_it_names() -> void:
+	var colors: PackedColorArray = PackedColorArray(PokeCoopRemoteActor.PLAYER_COLORS[1])
+	var up: Image = PokeCoopRemoteActor.arrow_image(Vector2i.UP, colors)
+	var down: Image = PokeCoopRemoteActor.arrow_image(Vector2i.DOWN, colors)
+	var corner: Image = PokeCoopRemoteActor.arrow_image(Vector2i(-1, 1), colors)
+
+	assert_eq(PokeCoopRemoteActor.eighth(Vector2(-30, 28)), Vector2i(-1, 1))
+	assert_eq([up.get_pixel(0, 7).a, up.get_pixel(0, 0).a], [1.0, 0.0], "the flat base below, the tip above")
+	assert_eq([down.get_pixel(0, 0).a, down.get_pixel(0, 7).a], [1.0, 0.0])
+	assert_eq([corner.get_pixel(0, 7).a, corner.get_pixel(7, 0).a], [1.0, 0.0], "a corner arrow's point bottom left")
 
 
 const CERULEAN_CITY: int = 3

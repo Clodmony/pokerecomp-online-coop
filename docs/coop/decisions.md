@@ -1578,3 +1578,27 @@ walks as the cartridge does. A partner's steps are eased over the time between
 their reports, eight frames when they run or ride and sixteen when they walk.
 Cost: B is held for nothing else on the map in Gen 1, so no cartridge input
 is lost; there is no setting to turn it off.
+
+## D106. Finding the partner: an arrow on the screen and the TOWN MAP (owner's request, 2026-10-12)
+
+The owner found it easy to lose the partner and asked for an arrow or a map.
+Both are there. On the world's own screen, a partner who is not on it is an
+8x8 arrow in their colour, drawn over the map and under every text box and
+menu, and only while the player walks about (no menu, script, battle or
+screen of the world's own up). It points at them through a breadth-first
+search of the maps from the player's: where connections alone reach their map
+(the next route, the town beyond it) they have a place in this map's cells
+and the arrow points at them exactly; past a door or stairs the arrow points
+at, or stands over, the last warp on a map that can be placed, so it leads to
+the right building and floor. Indoors, `LAST_MAP` exits resolve to this
+player's own last map, and only until the search has left their building, so
+an unrelated house never short-cuts back. Where nothing joins the two (a
+partner who flew or is across the sea before the search reaches them), the
+arrow takes the TOWN MAP's direction from one area to the other. The search
+is cached per pair of maps and the player's last map. The TOWN MAP (the item,
+and a TOWN MAP row in START > CO-OP for players without it) shows each
+partner's icon in their colour, through a new `register_town_map_marks`
+mod seam (`Gen2ModHost`, `Gen2TownMapScreen`), under the player's own icon,
+on the map and the fly map but not the dex's AREA. Rejected: a minimap
+(a second picture of the world over a 160x144 screen), and arrows through
+menus. The comment ceiling rose by three for the search and the seam (D13).
