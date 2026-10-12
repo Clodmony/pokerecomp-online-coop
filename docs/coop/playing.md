@@ -63,9 +63,10 @@ or one after another:
 ## Playing over the internet
 
 - **Same version, same cartridge.** Both players run builds made from the same
-  version of this project, and both import the same game file: the same game
-  (Red with Red, Blue with Blue) and the same revision. The host checks both and
-  the Co-op tab says which one failed.
+  version of this project, and import Red or Blue of the same language: Red
+  with Red or Blue, Rote with Rote or Blaue Edition. Each world has its own
+  cartridge's wild Pokémon and Game Corner prizes, so trade the exclusives. The
+  host checks both and the Co-op tab says which one failed.
 - **Easiest: a VPN you are both on** (WireGuard or the like). The
   host's Co-op tab lists each address with the network it belongs to, for
   example `10.0.0.1  (wg0)`; the other player joins the VPN one. No router
