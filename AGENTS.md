@@ -9,7 +9,8 @@ here.
 
 Read before working:
 
-- [docs/coop/tasks.md](docs/coop/tasks.md): **start here**, the next tasks in order and the current state.
+- **Start here:** the open issues on GitHub (the only task list) and the session
+  handoff note; work follows the issue loop under *Workflow*.
 - [docs/coop/playbook.md](docs/coop/playbook.md): the plan to a fully playable run, the world-sharing rule and the owner's open decisions.
 - [docs/coop/brief.md](docs/coop/brief.md): the owner's brief, the source of
   truth for goals and constraints.
@@ -47,6 +48,22 @@ Read before working:
   `progress.md` separates static inspection, passing tests, builds and played
   sessions.
 
+## Workflow
+
+- **One issue per session.** Pick the issue with the owner, branch
+  `coop/<issue>-<topic>` from `main`, reproduce the problem (a failing GUT test
+  or scenario first), fix it, run `tools/verify.sh`, update the docs below, push
+  and open a draft pull request that says `Closes #N`. Then write the handoff
+  note (open pull requests, branch state, next candidates) and stop: the owner
+  starts a fresh session for the next issue.
+- **GitHub issues are the task list.** New work, bugs found on the way and
+  follow-ups become issues; there is no task file in the repository.
+- **The owner merges.** A pull request is merged only when the owner says so.
+- **Scratch lives on disk, outside the repository**, under
+  `~/dev-scratch/pokerecomp-coop/`: captures, seeds, logs, verify runs, extra
+  git worktrees, pull request bodies. /tmp is a small RAM disk on the owner's
+  machine. Delete an issue's scratch when its pull request is open.
+
 ## Setup
 
 ```bash
@@ -63,7 +80,16 @@ to it in 0.1.73; the fork followed with the 0.1.75 merge (D97).
 
 ## Verification commands
 
-Run from the repository root with `godot` being the 4.8-dev7 binary:
+Run from the repository root with `godot` being the 4.8-dev7 binary. The usual
+check of a branch is one command, unattended, with a summary at the end:
+
+```bash
+# Import, GUT, release gates, boot, ENet demo, three processes, then the named
+# two-window scenarios; logs in ~/dev-scratch/pokerecomp-coop/verify/<stamp>/.
+GODOT=godot tools/verify.sh [--coop] [scenario ...]
+```
+
+The single steps, for debugging one of them:
 
 ```bash
 # Import and class scan; required after adding a script with class_name.
@@ -85,21 +111,21 @@ GODOT=godot tools/coop_two_process.sh 24690
 
 # Two windows on the imported cartridge, driven by a scenario, captures outside the
 # repository and a private user folder (the owner's campaigns are never touched).
-GODOT=godot tools/coop_screens.sh leave_rejoin_takeover /tmp/coop_screens/leave
+GODOT=godot tools/coop_screens.sh leave_rejoin_takeover ~/dev-scratch/pokerecomp-coop/coop_screens/leave
 # Two windows that play themselves from Oak's speech to BROCK's (or MISTY's) badge,
 # about five (ten) minutes; exits non-zero if either window fails.
-GODOT=godot tools/coop_screens.sh playthrough_brock /tmp/coop_screens/brock
+GODOT=godot tools/coop_screens.sh playthrough_brock ~/dev-scratch/pokerecomp-coop/coop_screens/brock
 # A campaign at a later point of the story (`list` names the legs), then a stretch
 # played from it: SEED= starts the run there, the autopilot's from=<leg> skips ahead.
-godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower /tmp/seeds/tower
-SEED=/tmp/seeds/tower GODOT=godot tools/coop_screens.sh story_seed /tmp/coop_screens/seed
+godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower ~/dev-scratch/pokerecomp-coop/seeds/tower
+SEED=~/dev-scratch/pokerecomp-coop/seeds/tower GODOT=godot tools/coop_screens.sh story_seed ~/dev-scratch/pokerecomp-coop/coop_screens/seed
 # An autoplayed run's host snapshots the campaign and each window's leg every 10 s; rerun a
 # stalled or killed run from its last snapshot (or <n>, or -<seconds> before its end).
-GODOT=godot tools/coop_resume.sh /tmp/coop_screens/elite [<n> | -600] [out dir]
+GODOT=godot tools/coop_resume.sh ~/dev-scratch/pokerecomp-coop/coop_screens/elite [<n> | -600] [out dir]
 
 # Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
 # (replay needs the cartridge imported); demo and check write logs only with `logs`.
-godot --headless --path . -s res://tools/coop_log.gd -- merge user://coop_logs out=/tmp/merged.jsonl
+godot --headless --path . -s res://tools/coop_log.gd -- merge user://coop_logs out=$HOME/dev-scratch/pokerecomp-coop/merged.jsonl
 godot --headless --path . -s res://tools/coop_log.gd -- summary user://coop_logs
 godot --headless --path . -s res://tools/coop_log.gd -- replay <host log>.jsonl
 
@@ -116,7 +142,7 @@ godot --headless --path . -s res://tools/coop_session.gd -- host 24680 red
 godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p1 red   # window 1
 godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p2 red   # window 2
 # In a window, SELECT opens the session menu (fight, join, save). Scripted runs:
-#   keys=SELECT,A,D,A   capture=/tmp/shot.png@600
+#   keys=SELECT,A,D,A   capture=$HOME/dev-scratch/pokerecomp-coop/shot.png@600
 
 # Engine-free gates (version, release notes, comment ceiling); also the pre-push hook.
 tools/release.sh --gates
@@ -162,13 +188,13 @@ before pushing.
 | `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
 | `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
+| `tools/verify.sh` | one unattended check of a branch: CI's stages, then two-window scenarios, with a short summary |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69) |
 | `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead |
 | `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
-| `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 
 ## Conventions specific to the fork
 

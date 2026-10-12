@@ -2,8 +2,8 @@
 
 The plan agreed with the owner on 2026-10-07 for getting from "a third of the
 game works in two windows" to "two players can play Red or Blue from Oak's
-speech to the Hall of Fame". What to do next, in order, is in
-[tasks.md](tasks.md); this file says why and how.
+speech to the Hall of Fame". What to do next is the open
+issues on GitHub, one at a time; this file says why and how.
 
 ## Where we stand
 

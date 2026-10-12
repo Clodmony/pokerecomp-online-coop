@@ -75,7 +75,7 @@ graphics).
 
 ## M1 state sync (local branch `coop/m1-state-sync`, 2026-10-06)
 
-Not on GitHub yet; see `tracking.md`.
+Not on GitHub at the time (GitHub was paused); its items were filed as issues on 2026-10-07.
 
 | Run | Result |
 |---|---|
@@ -218,7 +218,7 @@ a two-window check of each feature (D65).
 
 ## To the Hall of Fame (branch `coop/playthrough`, second session, 2026-10-07)
 
-The owner settled the open questions (D72); the work follows `tasks.md`.
+The owner settled the open questions (D72); the work follows the issues.
 
 | Check | Result |
 |---|---|
@@ -399,7 +399,7 @@ has **played** it by hand yet.
 
 ## Next concrete step
 
-See [tasks.md](tasks.md) (the next tasks in order) and
+See the open issues on GitHub (the work, one issue at a time) and
 [playbook.md](playbook.md) (the plan to a fully playable run). In short: share
 the campaign at rest points (#84, #85, adopted in D72), let the first player in
 drive a rival scene (#24), then play on to the Hall of Fame (#88) before the
