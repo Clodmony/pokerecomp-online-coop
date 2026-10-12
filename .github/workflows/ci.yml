@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, pokerecomp-online-coop]
   pull_request:
     # Bot-authored AltStore feed PRs cannot start this run; export-preset tests cover the feed.
     paths-ignore: [".github/altstore/source.json"]

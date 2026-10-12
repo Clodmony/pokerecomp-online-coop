@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> **pokerecomp-coop: built entirely with AI.** This is a private fork of
+> **pokerecomp-coop: built entirely with AI.** This is a fork of
 > [Decryptu/pokerecomp](https://github.com/Decryptu/pokerecomp) that adds a
 > cooperative two-player Red/Blue campaign. The whole co-op project, meaning
 > every change in this fork after upstream commit `696d1c9`, is written by an AI
