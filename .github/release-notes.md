@@ -3,8 +3,9 @@ the release changes is standing guidance with a {VERSION} placeholder. -->
 
 ## Added
 
-- Generation 3's field model now initializes the player avatar and checks its steps against terrain, objects and special field interactions.
-- Generation 3's field model now runs basic scripted object movements, including walking, turning, delays and jumps, with cartridge timing.
+- Generation 3's field model now handles ledge jumps, surf dismounts, Strength pushes, boulder falls and switches, and Hoenn's rotating gates.
+- Generation 3 objects now support contextual facing, visibility changes, landing effects, drawing priority changes and emote requests.
+- Generation 3 NPCs now follow deterministic patrol routes and run supported stationary movements with cartridge timing and collision checks.
 - Generation 3 cartridges remain unplayable while field integration continues.
 
 ## Updating this release
