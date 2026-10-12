@@ -230,8 +230,8 @@ func _goal(player_id: String, view: Dictionary) -> Dictionary:
 	if route.has("origin"):
 		var at: Vector2 = (route["origin"] as Vector2) + Vector2(view["cell"] as Vector2i)
 		return {"partner": (_walks.get(player_id, {}) as Dictionary).get("at", at)}
-	if route.has("exit"):
-		return {"cell": route["exit"]}
+	if route.has("door"):
+		return {"cell": _door(route["door"], view["map"], view["cell"])}
 	var here: Dictionary = _world.data.landmark(_world.data.area_landmark(_world.map_id().y))
 	var there: Dictionary = _world.data.landmark(_world.data.area_landmark((view["map"] as Vector2i).y))
 	if here.is_empty() or there.is_empty():
@@ -250,7 +250,8 @@ func _mark_towards(goal: Dictionary) -> Dictionary:
 		if Rect2(Vector2.ZERO, size).has_point(drawn):
 			if goal.has("partner") or Vector2i(cell) == _world.player_cell:
 				return {}
-			return {"at": Vector2i(drawn) - Vector2i(ARROW_SIZE / 2, ARROW_SIZE + 6), "direction": Vector2i.DOWN}
+			var over: Vector2 = (drawn - Vector2(ARROW_SIZE / 2, ARROW_SIZE + 6)).clamp(Vector2.ONE * MARK_INSET, size - Vector2.ONE * (MARK_INSET + ARROW_SIZE))
+			return {"at": Vector2i(over), "direction": Vector2i.DOWN}
 		away = drawn - middle
 	var low := Vector2.ONE * float(MARK_INSET + ARROW_SIZE / 2)
 	var reach := Vector2(
@@ -286,7 +287,7 @@ static func arrow_image(direction: Vector2i, colors: PackedColorArray) -> Image:
 	return image
 
 
-## Breadth first over warps and connections: `origin` in this map's cells where connections alone reach, else `exit`, the last warp off such a map.
+## Breadth first over warps and connections: `origin` where connections alone reach, else `door`, whose [method _door] is walkable and lands nearest them.
 func _route(to: Vector2i) -> Dictionary:
 	var start: Vector2i = _world.map_id()
 	var key: String = "%s|%s|%d" % [start, to, _world.gen1_last_map()]
@@ -324,23 +325,49 @@ func _steps(map: Gen2WorldMap, here: Dictionary) -> Array:
 		if here.has("origin"):
 			step["origin"] = (here["origin"] as Vector2) \
 				+ Vector2(Gen2WorldAPI.connection_origin_blocks(map, target, connection) * Gen2Layout.MAP_BLOCK_CELL_WIDTH)
-		elif here.has("exit"):
-			step["exit"] = here["exit"]
+		elif here.has("door"):
+			step["door"] = here["door"]
 		out.append(step)
-	var last_map: int = _world.gen1_last_map()
 	for warp: Dictionary in map.events.get("warps", []):
-		var number: int = int(warp.get("map_number", -1))
-		if number == Gen1Layout.WARP_TO_LAST_MAP:
-			if not bool(here["own"]):
-				continue
-			number = last_map
-		var step: Dictionary = {"map": Vector2i(int(warp.get("map_group", map.group)), number), "own": bool(here["own"]) and number != last_map}
+		var next: Vector2i = _warp_target(map, warp, bool(here["own"]))
+		if next.y < 0:
+			continue
+		var step: Dictionary = {"map": next, "own": bool(here["own"]) and next.y != _world.gen1_last_map()}
 		if here.has("origin"):
-			step["exit"] = (here["origin"] as Vector2) + Vector2(int(warp.get("x", 0)), int(warp.get("y", 0)))
-		elif here.has("exit"):
-			step["exit"] = here["exit"]
+			step["door"] = {"map": map, "origin": here["origin"], "own": here["own"], "to": next}
+		elif here.has("door"):
+			step["door"] = here["door"]
 		out.append(step)
 	return out
+
+
+func _warp_target(map: Gen2WorldMap, warp: Dictionary, own: bool) -> Vector2i:
+	var number: int = int(warp.get("map_number", -1))
+	if number == Gen1Layout.WARP_TO_LAST_MAP:
+		number = _world.gen1_last_map() if own else -1
+	return Vector2i(int(warp.get("map_group", map.group)), number)
+
+
+func _door(door: Dictionary, to: Vector2i, cell: Vector2i) -> Vector2:
+	var map: Gen2WorldMap = door["map"]
+	var target: Gen2WorldMap = _world.data.world_map(to.x, to.y) if door["to"] == to else null
+	var best: Vector2 = Vector2.INF
+	var best_score: float = INF
+	for warp: Dictionary in map.events.get("warps", []):
+		if _warp_target(map, warp, bool(door["own"])) != door["to"]:
+			continue
+		var at := Vector2(int(warp.get("x", 0)), int(warp.get("y", 0)))
+		var block := Vector2i((at / float(Gen2Layout.MAP_BLOCK_CELL_WIDTH)).floor())
+		var reached: bool = Vector2i(map.group, map.number) != _world.map_id() or _world.camera_reaches(block.x, block.y)
+		var score: float = (0.0 if reached else 10000.0) + at.distance_to(Vector2(_world.player_cell))
+		var arrival: Array = target.events.get("warps", []) if target != null else []
+		var landing: int = int(warp.get("destination", -1))
+		if landing >= 0 and landing < arrival.size():
+			score = (0.0 if reached else 10000.0) + Vector2(int(arrival[landing].get("x", 0)), int(arrival[landing].get("y", 0))).distance_to(Vector2(cell))
+		if score < best_score:
+			best_score = score
+			best = (door["origin"] as Vector2) + at
+	return best
 
 
 func town_map_marks() -> Array:
