@@ -449,7 +449,7 @@ func _start_cards(column: VBoxContainer) -> void:
 	var data: GameData = _data()
 	var cards: BoxContainer = Gen2LauncherUI.column(Gen2LauncherUI.GAP_MD) if _compact else Gen2LauncherUI.row(Gen2LauncherUI.GAP_MD + 4)
 	column.add_child(cards)
-	var count: int = PokeCoopSession.campaigns(data, host_port).size() if data != null else 0
+	var count: int = PokeCoopSession.pair_campaigns(data, host_port).size() if data != null else 0
 	var hosting: PokeCoopTabParts.Tile = _big_card(cards, "HOST", "%d campaign%s on this device" % [count, "" if count == 1 else "s"],
 		&"play", true)
 	hosting.chosen.connect(_show.bind(HOST))
@@ -489,7 +489,8 @@ func _last_session(column: VBoxContainer) -> void:
 		return
 	var summary: Dictionary = last.duplicate()
 	if last.get("kind") == "host":
-		var found: Array = PokeCoopSession.campaigns(data, host_port).filter(func(row: Dictionary) -> bool: return row["id"] == last.get("campaign"))
+		var found: Array = PokeCoopSession.pair_campaigns(data, host_port).filter(func(row: Dictionary) -> bool:
+			return row["id"] == last.get("campaign"))
 		if found.is_empty() or not bool(found[0]["readable"]):
 			return
 		summary.merge({"title": found[0]["title"], "badges": found[0]["badges"], "members": found[0]["members"], "saved": found[0]["saved"]}, true)
@@ -522,7 +523,8 @@ func _last_session(column: VBoxContainer) -> void:
 func _again(last: Dictionary) -> void:
 	_game = StringName(String(last.get("game", _game)))
 	if last.get("kind") == "host":
-		_host_campaign(String(last.get("campaign", "")), String(last.get("name", _name())))
+		_host_campaign(String(last.get("campaign", "")), String(last.get("name", _name())), 0, null,
+			StringName(String(last.get("campaign_game", ""))))
 	else:
 		_join(String(last.get("address", "")), int(last.get("port", host_port)), _game, last)
 
@@ -530,7 +532,7 @@ func _again(last: Dictionary) -> void:
 func _build_host() -> void:
 	var data: GameData = _data()
 	_heading("Host", "Co-op › %s" % _row(_game)["title"])
-	_campaigns = PokeCoopSession.campaigns(data, host_port) if data != null else []
+	_campaigns = PokeCoopSession.pair_campaigns(data, host_port) if data != null else []
 	_picked = clampi(_picked, 0, maxi(_campaigns.size() - 1, 0))
 	var column: VBoxContainer = _pane()
 	var grid := GridContainer.new()
@@ -568,13 +570,18 @@ func _campaign_card(index: int) -> PokeCoopTabParts.Tile:
 	card.set_selected(index == _picked)
 	var box: BoxContainer = card.content()
 	box.add_child(PokeCoopTabParts.text(_theme, row["title"], Gen2LauncherTheme.FONT_TITLE))
+	var game: HBoxContainer = Gen2LauncherUI.row(6)
+	game.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	game.add_child(PokeCoopTabParts.dot(_tint(row["game"]), 8.0))
+	game.add_child(PokeCoopTabParts.text(_theme, "%s campaign" % _short(row["game"]), Gen2LauncherTheme.FONT_SMALL, _theme.muted))
+	box.add_child(game)
 	if not bool(row["readable"]):
 		_note(box, "This version cannot read this campaign. It is left as it is.", _theme.warning)
 	var chips: HFlowContainer = PokeCoopTabParts.flow(6)
 	for member: Dictionary in row.get("members", []):
-		var game: String = String(member.get("game", ""))
-		chips.add_child(PokeCoopTabParts.chip(_theme, "%s · %s" % [member["name"], _short(game)] if not game.is_empty() else String(member["name"]),
-			_tint(game)))
+		var plays: String = String(member.get("game", ""))
+		chips.add_child(PokeCoopTabParts.chip(_theme, "%s · %s" % [member["name"], _short(plays)] if not plays.is_empty() else String(member["name"]),
+			_tint(plays)))
 	if chips.get_child_count() == 0:
 		chips.add_child(PokeCoopTabParts.chip(_theme, "Nobody yet"))
 	box.add_child(chips)
@@ -616,10 +623,10 @@ func _host_picked() -> void:
 	var row: Dictionary = _campaigns[_picked]
 	var you: String = _you_in(row)
 	if you.is_empty():
-		_form = {"hosting": true, "campaign": row["id"], "title": row["title"], "name": _name()}
+		_form = {"hosting": true, "campaign": row["id"], "campaign_game": String(row["game"]), "title": row["title"], "name": _name()}
 		_show(NEW_PLAYER)
 		return
-	_host_campaign(String(row["id"]), you)
+	_host_campaign(String(row["id"]), you, 0, null, row["game"])
 
 
 func _new_campaign() -> void:
@@ -781,7 +788,7 @@ func _create_campaign() -> void:
 	_host_campaign(id, _name(), _starter(), _brought())
 
 
-func _host_campaign(id: String, player_name: String, starter: int = 0, brought: Gen2SaveData = null) -> void:
+func _host_campaign(id: String, player_name: String, starter: int = 0, brought: Gen2SaveData = null, folder: StringName = &"") -> void:
 	var data: GameData = _data()
 	if data == null:
 		return
@@ -790,14 +797,14 @@ func _host_campaign(id: String, player_name: String, starter: int = 0, brought: 
 		return
 	_listener.close()
 	var session: PokeCoopSession = PokeCoopSession.hosting(data, host_port, player_name, starter, brought, id, "",
-		PokeCoopLog.create(PokeCoopLog.sharing()))
+		PokeCoopLog.create(PokeCoopLog.sharing()), folder)
 	if session == null:
 		_toast("Could not host on port %d" % host_port, "Is another host running on this device?" if PokeCoopSession.last_failure.is_empty() \
 			else "This device's campaign file could not be read, so it was left as it is.")
 		return
 	Gen2GameRuntime.instance().coop = session
 	PokeCoopLobby.remember({"name": player_name, "game": String(_game),
-		"last": {"kind": "host", "game": String(_game), "campaign": id, "name": player_name}})
+		"last": {"kind": "host", "game": String(_game), "campaign": id, "campaign_game": String(folder), "name": player_name}})
 	_target = {"campaign": id}
 	_show(HOSTING)
 
@@ -1272,7 +1279,7 @@ func _build_new_player() -> void:
 
 func _new_player_go() -> void:
 	if bool(_form.get("hosting", false)):
-		_host_campaign(String(_form.get("campaign", "")), _name(), _starter(), _brought())
+		_host_campaign(String(_form.get("campaign", "")), _name(), _starter(), _brought(), StringName(String(_form.get("campaign_game", ""))))
 	else:
 		_join_now(_name(), "", _starter(), _brought())
 
@@ -1353,7 +1360,8 @@ func _save_edit(index: int) -> void:
 	var row: Dictionary = _campaigns[index]
 	var title: String = String(_form.get("edit_title", row["title"])).strip_edges().to_upper()
 	var rival: String = String(_form.get("edit_rival", "")).strip_edges().to_upper()
-	if PokeCoopSession.edit_campaign(_data(), String(row["id"]), title if not title.is_empty() else String(row["title"]), rival) != OK:
+	if PokeCoopSession.edit_campaign(_data(), String(row["id"]), title if not title.is_empty() else String(row["title"]), rival,
+			row["game"]) != OK:
 		_toast("The campaign could not be changed.", "This version cannot read it, or it could not be written.")
 	_close_sheet()
 	_show(HOST)
@@ -1364,12 +1372,12 @@ func _ask_delete(index: int) -> void:
 	var sheet: PokeCoopTabParts.Sheet = _open_sheet(&"delete", _ask_delete.bind(index))
 	sheet.body().add_child(Gen2LauncherUI.title(_theme, "Delete %s?" % row["title"], Gen2LauncherTheme.FONT_TITLE + 3))
 	_note(sheet.body(), "Its players and story leave this list. The last checkpoint stays in the campaigns folder as %s%s, in case you want it back." % [
-		PokeCoopSession.campaign_path(_data(), String(row["id"])).get_file(), PokeCoopSave.BACKUP_SUFFIX], _theme.muted)
+		PokeCoopSession.campaign_path(_data(), String(row["id"]), row["game"]).get_file(), PokeCoopSave.BACKUP_SUFFIX], _theme.muted)
 	_sheet_buttons(sheet, [["Keep it", _close_sheet]], ["Delete", _delete.bind(index)])
 
 
 func _delete(index: int) -> void:
-	PokeCoopSession.delete_campaign(_data(), String(_campaigns[index]["id"]))
+	PokeCoopSession.delete_campaign(_data(), String(_campaigns[index]["id"]), _campaigns[index]["game"])
 	_picked = 0
 	_close_sheet()
 	_show(HOST)
