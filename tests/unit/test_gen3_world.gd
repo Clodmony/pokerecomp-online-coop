@@ -2,9 +2,10 @@ extends GutTest
 
 ## Protect GBA bounds, header/event formats, script dispatch and encounter variants.
 ## GB world tests miss packed unions, padding, rod slices and Hoenn species IDs.
-const LAYOUT: Dictionary = {"map_groups": 0, "map_group_sizes": [2],
+const LAYOUT: Dictionary = {"map_groups": 0, "map_group_sizes": [2], "item_count": 10,
 	"wild_headers": 0x400, "wild_header_count": 2, "species_to_national": 0x800,
 	"standard_scripts": 0xC00, "standard_script_count": 1,
+	"movement_types": 0xF80, "movement_type_count": 2,
 	"trainer_battle_scripts": [0xD01, 0xD01, 0xD01, 0xD01, 0xD01]}
 
 
@@ -310,6 +311,9 @@ func test_graphics_payloads_keep_bank_splits_attributes_and_detached_bytes() -> 
 		assert_eq(metatile["tiles"][0], {"tile": 0, "flip_x": true, "flip_y": true, "palette": 15})
 		assert_eq(metatile["behavior"], 0x123 if id == RomRegistry.FIRERED else 0x23)
 		assert_eq(metatile["layer_type"], 2)
+		# One row past the array, DrawMetatileAt reads the attribute array as tiles.
+		var past: Dictionary = data.world_metatile(0, 0, int(secondary["metatile_offset"]) + 1)
+		assert_eq(past["tiles"][0]["tile"], 0x123)
 		assert_eq(data.world_map_layout(0, 0)["blocks"]["bytes"].size(), 12)
 		primary["tiles"]["bytes"][31] = 0
 		assert_eq(data.world_map_tileset(0, 0)["tiles"]["bytes"][31], 31)
@@ -324,7 +328,7 @@ func test_graphics_payloads_keep_bank_splits_attributes_and_detached_bytes() -> 
 func test_graphics_bounds_flags_and_lz_refuse_the_entire_world() -> void:
 	var changes: Array = [[0x114, 0x08000340, 4], [0x340, 2, 1], [0x341, 2, 1], [0x344, 0, 4],
 		[0x348, 0x08000FFC, 4], [0x34C, 0x08000E81, 4], [0x350, 0x08000E91, 4],
-		[0x354, 0x08001001, 4], [0x350, 0x08000E80, 4], [0xE00, 0, 1]]
+		[0x354, 0x08001001, 4], [0x354, 0x08000F01, 4], [0x350, 0x08000E80, 4], [0xE00, 0, 1]]
 	for change: Array in changes:
 		var bytes: PackedByteArray = _dump()
 		if int(change[2]) == 1:
@@ -405,9 +409,8 @@ func test_trainer_script_formats_keep_continuations_and_frlg_rival_texts() -> vo
 			bytes[0xD02] = mode
 			bytes.encode_u16(0xD03, 42)
 			bytes.encode_u16(0xD05, 5)
-			for pointer: int in 4:
-				bytes.encode_u32(0xD07 + pointer * 4, 0x08000D41)
 			bytes[0xD41] = 2
+			bytes[0xD51] = 0xFF
 			var size: int = 14
 			if mode == 3:
 				size = 10
@@ -415,11 +418,15 @@ func test_trainer_script_formats_keep_continuations_and_frlg_rival_texts() -> vo
 				size = 22
 			elif mode in [1, 2, 4, 7]:
 				size = 18
+			for pointer: int in range(0xD07, 0xD01 + size, 4):
+				var continuation: bool = mode in [1, 2, 6, 8] and pointer + 4 == 0xD01 + size
+				bytes.encode_u32(pointer, 0x08000D41 if continuation else 0x08000D51)
 			bytes[0xD01 + size] = 2
 			var scripts: Dictionary = Gen3Script.read(RomFile.from_bytes(bytes, id), LAYOUT, {})
 			assert_false(scripts.is_empty(), "%s mode %d" % [id, mode])
 			var row: Dictionary = scripts["instructions"][str(0xD01)]
 			assert_eq(row["next_offset"], 0xD01 + size)
+			assert_eq(scripts["texts"].keys(), [str(0xD51)])
 			var targets: Array = row["script_offsets"]
 			if id == RomRegistry.EMERALD and mode in [10, 11]:
 				assert_true(targets.is_empty())
@@ -449,6 +456,76 @@ func test_script_bounds_unknown_opcodes_and_targets_refuse_the_whole_world() -> 
 		assert_true(Gen3Script.instruction(RomFile.from_bytes(bytes, RomRegistry.EMERALD), 0).is_empty())
 
 
+## No cartridge text carries $FF inside a control code's arguments, and none of
+## the refusals below occurs in a dump, so the real-cache sweeps cannot see them.
+func test_text_span_reads_control_code_arguments_per_engine() -> void:
+	var bgm := PackedByteArray([0xFC, 0x0B, 0xFF, 0x01, 0xBB, 0xFF])
+	assert_eq(Gen3Text.span(RomRegistry.RUBY, bgm, 0, 16), 6)
+	assert_eq(Gen3Text.decode_fixed(RomRegistry.RUBY, bgm, 0, 6), "<PLAY_BGM 511>A")
+	var resume := PackedByteArray([0xFC, 0x18, 0xFF])
+	assert_eq(Gen3Text.span(RomRegistry.EMERALD, resume, 0, 16), 3)
+	assert_eq(Gen3Text.span(RomRegistry.RUBY, resume, 0, 16), -1)
+	assert_eq(Gen3Text.span(RomRegistry.EMERALD, PackedByteArray([0xFC, 0x19, 0xFF]), 0, 16), -1)
+	var symbol := PackedByteArray([0xF9, 0xFF, 0xFF])
+	assert_eq(Gen3Text.span(RomRegistry.FIRERED, symbol, 0, 16), 3)
+	assert_eq(Gen3Text.span(RomRegistry.SAPPHIRE, symbol, 0, 16), 2)
+	assert_eq(Gen3Text.span(RomRegistry.EMERALD, bgm, 0, 3), -1)
+	assert_eq(Gen3Text.decode_fixed(RomRegistry.SAPPHIRE, PackedByteArray([0xFD, 0x08]), 0, 2), "<AQUA>")
+	assert_eq(Gen3Text.decode_fixed(RomRegistry.RUBY, PackedByteArray([0xFD, 0x08]), 0, 2), "<MAGMA>")
+
+
+func _data_dump(script: PackedByteArray) -> PackedByteArray:
+	var bytes: PackedByteArray = _dump()
+	for index: int in script.size():
+		bytes[0xD01 + index] = script[index]
+	for index: int in 6:
+		bytes[0xF00 + index] = [0xFC, 0x0B, 0xFF, 0x01, 0xBB, 0xFF][index]
+	bytes[0xF20] = 0x10
+	bytes[0xF21] = 0x11
+	bytes[0xF22] = 0xFE
+	bytes.encode_u16(0xF30, 5)
+	bytes.encode_u16(0xF32, 3)
+	return bytes
+
+
+## Protect which operands are data and how far each run reaches: msgbox's
+## `loadword 0` but no other slot, null and RAM texts, a movement label inside
+## another list, and a mart's ITEM_NONE. A wrong role or length moves a digest
+## only after a reimport, and the refusals never happen on a real dump.
+func test_script_data_follows_handler_operands_through_the_cache() -> void:
+	var script := PackedByteArray([0x0F, 0, 0, 0x0F, 0, 8, 0x0F, 1, 0xF0, 0x0F, 0, 0xFF,
+		0x67, 0, 0, 0, 0, 0x67, 0xC4, 0x1F, 0x02, 0x02, 0x4F, 1, 0, 0x20, 0x0F, 0, 8,
+		0x4F, 2, 0, 0x21, 0x0F, 0, 8, 0x86, 0x30, 0x0F, 0, 8, 2])
+	var world: Dictionary = Gen3World.read(RomFile.from_bytes(_data_dump(script), RomRegistry.EMERALD), LAYOUT)
+	assert_false(world.is_empty())
+	var path: String = "user://test_gen3_script_data.json"
+	assert_true(RomCache.write_section(path, RomCache.blob_path(path), world["scripts"]))
+	var data := GameData.new()
+	data.generation = RomRegistry.GEN3
+	data._sections = {"scripts": true}
+	data._world_scripts = RomCache.read_json(path)
+	data._indices["blob/scripts"] = RomCache.read_blob(RomCache.blob_path(path))
+	assert_eq(data.world_script_offsets("texts"), [0xF00])
+	assert_eq(data.world_script_data("texts", 0xF00)["bytes"], PackedByteArray([0xFC, 0x0B, 0xFF, 0x01, 0xBB, 0xFF]))
+	assert_eq(data.world_script_offsets("movements"), [0xF20, 0xF21])
+	assert_eq(data.world_script_data("movements", 0xF21)["bytes"], PackedByteArray([0x11, 0xFE]))
+	var mart: Dictionary = data.world_script_data("marts", 0xF30)
+	assert_eq(mart["entries"], [5, 3])
+	assert_typeof(mart["entries"][0], TYPE_INT)
+	mart["entries"][0] = 0
+	assert_eq(data.world_script_data("marts", 0xF30)["entries"][0], 5)
+	assert_true(data.world_script_data("braille", 0xF00).is_empty())
+	DirAccess.remove_absolute(path)
+	DirAccess.remove_absolute(RomCache.blob_path(path))
+	var refusals: Array = [{0xF32: 10}, {0xF20: 0x9E}, {0xF04: 0xFC, 0xF05: 0x19, 0xF06: 0xFF},
+		{0xD03: 0x0C, 0xD04: 0x0D}]
+	for change: Dictionary in refusals:
+		var bytes: PackedByteArray = _data_dump(script)
+		for at: int in change:
+			bytes[at] = change[at]
+		assert_true(Gen3World.read(RomFile.from_bytes(bytes, RomRegistry.EMERALD), LAYOUT).is_empty(), str(change))
+
+
 func test_out_of_range_standard_script_calls_keep_their_fallthrough() -> void:
 	var bytes: PackedByteArray = _dump()
 	bytes[0xD01] = 8
@@ -457,3 +534,672 @@ func test_out_of_range_standard_script_calls_keep_their_fallthrough() -> void:
 	var scripts: Dictionary = Gen3Script.read(RomFile.from_bytes(bytes, RomRegistry.EMERALD), LAYOUT, {})
 	assert_true(scripts["instructions"][str(0xD01)]["fallthrough"])
 	assert_eq(scripts["instructions"].size(), 2)
+
+
+func _field_objects(id: StringName) -> Gen3ObjectEvents:
+	var data := GameData.new()
+	data.id = id
+	data.generation = RomRegistry.GEN3
+	data._sections = {"headers": true, "scripts": true}
+	data._world_headers = {"0:0": {"events": {"objects": []}}}
+	var movement: Array = []
+	for type: int in 12:
+		movement.append({"ranged": false, "facing": 1})
+	data._world_scripts = {"movement_types": movement}
+	var camera := Gen3FieldCamera.new()
+	camera.data = data
+	camera.group = 0
+	camera.number = 0
+	camera.grid = Gen3MapGrid.new()
+	camera.grid.width = 32
+	camera.grid.height = 32
+	camera.grid.layout_width = 17
+	camera.grid.layout_height = 18
+	camera.grid.blocks.resize(32 * 32)
+	camera.grid.blocks.fill(0x3000)
+	camera.grid._behaviors.resize(1024)
+	for behavior: int in 512:
+		camera.grid._behaviors[behavior] = behavior
+	return Gen3ObjectEvents.new(camera, Gen3EventData.new(id))
+
+
+## Protect pool reservation, player persistence at map edges, locked turns and
+## state-mask priority. Reusing an NPC spawn or replacing all flag bits breaks
+## these; the importer and NPC corpus checks never create an avatar.
+func test_player_avatar_reserves_a_slot_and_preserves_control_state() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.SAPPHIRE, RomRegistry.FIRERED,
+			RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		var objects: Gen3ObjectEvents = _field_objects(id)
+		var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 1)
+		assert_eq(avatar.object_id, 0)
+		assert_true(avatar.object().is_player)
+		assert_eq(avatar.object().graphics_id, 7 if id in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN] else 89)
+		assert_eq(avatar.object().current, Vector2i(12, 12))
+		assert_eq(avatar.object().previous_movement_direction, 1)
+		assert_eq(avatar.object().current_elevation, 0)
+		assert_eq(avatar.flags, 0x21)
+		assert_null(Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 1, 0))
+		avatar.track_camera()
+		assert_true(avatar.object().tracked_by_camera)
+		objects.camera.pos = Vector2i(100, 100)
+		objects.remove_outside_view()
+		assert_true(avatar.object().active)
+		avatar.object().facing_locked = true
+		Gen3ObjectEvents.set_direction(avatar.object(), 2)
+		assert_eq(avatar.object().facing, 4)
+		assert_eq(avatar.object().previous_movement_direction, 4)
+		assert_eq(avatar.object().movement_direction, 2)
+		avatar.flags = 0xFF
+		avatar.set_state_mask(8)
+		assert_eq(avatar.flags, 0xE8)
+		assert_eq(avatar.graphics_by_current_state(), 9 if id in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN] else 92)
+		avatar.set_state_mask(3)
+		assert_eq(avatar.graphics_by_current_state(), avatar.graphics_for(0))
+	var full_pool: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	for object: Gen3ObjectEvents.ObjectEvent in full_pool.objects:
+		object.active = true
+	assert_null(Gen3PlayerAvatar.open(full_pool, Vector2i(12, 12), 1, 0))
+
+
+## Protect precedence and current-vs-previous lookup: a blocked ledge is still
+## jumped, surf dismount ignores a departing object, Strength does not. A flat
+## passability test or reuse of the generic occupancy reader changes them.
+func test_player_collision_precedence_and_effect_requests() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 1, 0)
+	var grid: Gen3MapGrid = objects.camera.grid
+	grid.set_metatile_entry(12, 13, 0x3C3B)
+	assert_eq(avatar.check_collision(1), {"collision": 6, "requests": [{"kind": "jumped_ledge"}]})
+	assert_eq(avatar.collision_at(avatar.object(), Vector2i(12, 13), 1, true)["collision"], 2)
+	assert_eq(avatar.check_collision(2)["collision"], 0)
+	grid.set_metatile_entry(12, 13, 0x3000)
+	avatar.object().current_elevation = 1
+	avatar.flags = 8
+	assert_eq(avatar.check_collision(1), {"collision": 5, "requests": [{"kind": "stop_surfing", "direction": 1}]})
+	var other: Gen3ObjectEvents.ObjectEvent = objects.objects[1]
+	other.active = true
+	other.current = Vector2i(13, 13)
+	other.previous = Vector2i(12, 13)
+	other.current_elevation = 3
+	assert_eq(avatar.check_collision(1)["collision"], 5)
+	other.current = Vector2i(12, 13)
+	assert_eq(avatar.check_collision(1)["collision"], 3)
+	other.current_elevation = 0
+	assert_eq(avatar.check_collision(1)["collision"], 3)
+	avatar.object().current_elevation = 3
+	other.graphics_id = 87
+	objects.events.flag_set(0x829)
+	other.previous = other.current
+	assert_eq(avatar.check_collision(1)["collision"], 4)
+	objects.events.flag_set(0x889)
+	assert_eq(avatar.check_collision(1), {"collision": 7,
+		"requests": [{"kind": "push_boulder", "object_id": 1, "direction": 1}]})
+	grid.set_metatile_entry(12, 14, 0x3060)
+	assert_eq(avatar.check_collision(1)["collision"], 4)
+	other.current = Vector2i(13, 13)
+	assert_eq(avatar.check_collision(1)["collision"], 4)
+	other.active = false
+	grid.set_metatile_entry(12, 13, 0x30D1)
+	assert_eq(avatar.check_collision(1)["collision"], 9)
+
+
+## FRLG's stairs read the source cell and its fall warp bypasses boulder
+## blocking; ninth-bit behaviors narrow at u8 predicates. Hoenn checks and
+## real maps without such high-bit attributes cannot catch these differences.
+func test_frlg_stairs_fall_warps_and_behavior_narrowing() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.FIRERED)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	var grid: Gen3MapGrid = objects.camera.grid
+	grid.set_metatile_entry(12, 12, 0x306C)
+	assert_eq(avatar.check_collision(4)["collision"], 8)
+	assert_eq(avatar.check_collision(3)["collision"], 0)
+	grid.set_metatile_entry(12, 12, 0x3000)
+	grid.set_metatile_entry(13, 12, 0x30D1)
+	assert_eq(avatar.check_collision(4)["collision"], 0)
+	var boulder: Gen3ObjectEvents.ObjectEvent = objects.objects[1]
+	boulder.active = true
+	boulder.current = Vector2i(13, 12)
+	boulder.previous = boulder.current
+	boulder.graphics_id = 97
+	objects.events.flag_set(0x805)
+	grid.set_metatile_entry(14, 12, 0x3C66)
+	assert_eq(avatar.check_collision(4)["collision"], 7)
+	grid.set_metatile_entry(14, 12, 0x3D66)
+	assert_eq(avatar.check_collision(4)["collision"], 4)
+	grid.set_metatile_entry(14, 12, 0x3C00)
+	assert_eq(avatar.check_collision(4)["collision"], 4)
+	boulder.active = false
+	grid.set_metatile_entry(13, 12, 0x3131)
+	assert_eq(avatar.check_collision(4)["collision"], 2)
+	grid.set_metatile_entry(13, 12, 0x3138)
+	assert_eq(avatar.check_collision(4)["collision"], 6)
+	grid.set_metatile_entry(12, 12, 0x316C)
+	assert_eq(avatar.check_collision(4)["collision"], 8)
+	var probe := Gen3ObjectEvents.ObjectEvent.new()
+	var collisions := PackedByteArray()
+	for behavior: int in 512:
+		grid.set_metatile_entry(13, 12, 0x3000 | behavior)
+		for direction: int in range(1, 5):
+			collisions.append(objects.collision_at(probe, 13, 12, direction))
+	# GetCollisionAtCoords on the byte-matching FireRed ARM build, all nine-bit
+	# behaviors and four directions; unrelated occupancy/bounds checks stubbed.
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA1)
+	context.update(collisions)
+	assert_eq(context.finish().hex_encode(), "52b7918b9a77eab781cb5694d5d6fd3fe3d8dc60")
+	collisions.clear()
+	grid.set_metatile_entry(13, 12, 0x3000)
+	for behavior: int in 512:
+		probe.current_behavior = behavior
+		for direction: int in range(1, 5):
+			collisions.append(objects.collision_at(probe, 13, 12, direction))
+	context.start(HashingContext.HASH_SHA1)
+	context.update(collisions)
+	assert_eq(context.finish().hex_encode(), "a7a8366fd59a46b69c316cf1ba715119eb7e48b5")
+
+
+## Surf prompts use the last nonzero elevation and, on FRLG, terrain rather
+## than a water-looking behavior. Reusing the Hoenn predicate makes valid
+## FRLG water fail and waterfalls pass; collision tests do not ask this query.
+func test_player_water_query_reads_each_engines_source_of_water() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.FIRERED, RomRegistry.EMERALD]:
+		var objects: Gen3ObjectEvents = _field_objects(id)
+		var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+		avatar.object().current_elevation = 3
+		avatar.object().previous_elevation = 3
+		var grid: Gen3MapGrid = objects.camera.grid
+		grid.set_metatile_entry(13, 12, 0x1010)
+		if id == RomRegistry.FIRERED:
+			var words := PackedByteArray()
+			words.resize(256 * 4)
+			words.encode_u32(0x10 * 4, 2 << 9)
+			grid.primary = {"metatile_count": 256, "attribute_size": 4,
+				"attributes": {"bytes": words}, "metatiles": {"bytes": PackedByteArray()}}
+		assert_true(avatar.facing_fishable_water())
+		avatar.object().previous_elevation = 1
+		assert_false(avatar.facing_fishable_water())
+		avatar.object().previous_elevation = 3
+		grid.set_metatile_entry(13, 12, 0x1013)
+		assert_false(avatar.facing_fishable_water())
+
+
+## ARM-handler traces protect destination reservation, slow-walk cadence,
+## midpoint jumps, locked/contextual facings, persistent flags and emote requests.
+## Substituting a generic tween or Hoenn action ids on FRLG changes this stream.
+func test_held_movement_frames_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "8f601df9948184cd1f4b9395a546e524f7194864",
+		RomRegistry.SAPPHIRE: "8f601df9948184cd1f4b9395a546e524f7194864",
+		RomRegistry.FIRERED: "556512c4f0d98afaab7d753f5e9b11ef6930373d",
+		RomRegistry.LEAFGREEN: "556512c4f0d98afaab7d753f5e9b11ef6930373d",
+		RomRegistry.EMERALD: "1f482a1870310797065be38c27f2a7d97262f427",
+	}
+	for id: StringName in digests:
+		assert_eq(_held_movement_trace(id).sha1_text(), digests[id], str(id))
+
+
+func _held_movement_trace(id: StringName) -> String:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	var lines := PackedStringArray()
+	for action: int in 256:
+		for locked: int in 2:
+			var object := Gen3ObjectEvents.ObjectEvent.new()
+			object.active = true
+			object.local_id = 0
+			object.map_number = 0
+			object.map_group = 0
+			object.current = Vector2i(12, 12)
+			object.previous = Vector2i(11, 12)
+			object.pixel_position = object.current * 16
+			object.facing = 4
+			object.movement_direction = 4
+			object.facing_locked = locked != 0
+			object.frozen = true
+			objects.objects[0] = object
+			if objects.set_held_movement(object, action):
+				continue
+			for frame: int in range(1, 41):
+				var effects: Array = objects.step_movements().filter(
+					func(request: Dictionary) -> bool: return request["kind"] == "field_effect")
+				var effect: Array = [-1, 0, 0, 0] if effects.is_empty() else [effects[0]["effect_id"],
+					effects[0]["local_id"], effects[0]["map_number"], effects[0]["map_group"]]
+				var pixels: Vector2i = object.pixel_position - Vector2i(192, 192)
+				lines.append(",".join([action, locked, frame, object.current.x, object.current.y,
+					object.previous.x, object.previous.y, pixels.x, pixels.y, object.jump_y,
+					object.facing, object.movement_direction, object.previous_movement_direction,
+					int(object.facing_locked), int(object.held_movement_finished),
+					int(object.invisible), int(object.disable_jump_landing_effect), int(object.fixed_priority)] + effect))
+	return "\n".join(lines) + "\n"
+
+
+## The collision host must reserve both endpoints until arrival and release
+## only the departure cell then. No importer or stationary collision check
+## exercises occupancy while a held action is progressing or awaiting clearing.
+func test_held_movement_occupancy_ground_reads_and_explicit_clearing() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	var player: Gen3ObjectEvents.ObjectEvent = avatar.object()
+	var grid: Gen3MapGrid = objects.camera.grid
+	grid.set_metatile_entry(12, 12, 0x3001)
+	grid.set_metatile_entry(13, 12, 0x4002)
+	player.frozen = true
+	assert_eq(Gen3ObjectEvents.held_movement_status(player), 16)
+	assert_false(objects.set_held_movement(player, 0x0B))
+	assert_false(player.frozen)
+	assert_true(objects.set_held_movement(player, 0))
+	assert_eq(objects.step_movements(), [{"kind": "spawn", "object_id": 0},
+		{"kind": "begin_step", "object_id": 0}])
+	assert_eq(player.current, Vector2i(13, 12))
+	assert_eq(player.previous, Vector2i(12, 12))
+	assert_eq(player.pixel_position, Vector2i(193, 192))
+	assert_eq([player.current_behavior, player.previous_behavior, player.current_elevation], [2, 1, 4])
+	var probe := Gen3ObjectEvents.ObjectEvent.new()
+	assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+	assert_eq(objects.collision_at(probe, 13, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 0)
+	for frame: int in 14:
+		assert_eq(objects.step_movements(), [])
+	assert_eq(objects.step_movements(), [{"kind": "finish_step", "object_id": 0}])
+	assert_eq(player.previous, player.current)
+	assert_eq(player.pixel_position, Vector2i(208, 192))
+	assert_eq([player.current_behavior, player.previous_behavior], [2, 2])
+	assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.NONE)
+	assert_eq(Gen3ObjectEvents.held_movement_status(player), 1)
+	assert_true(objects.set_held_movement(player, 0))
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 1)
+	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 16)
+	assert_true(objects.set_held_movement(player, 0xFE))
+	assert_false(player.held_movement_active)
+
+
+## ARM tasks and held dispatchers pin frame order, blocked/finished holds,
+## facing locks and FRLG freezing. Swapping task/sprite order or clearing every
+## finished hold erases cartridge differences no stationary probe exercises.
+func test_avatar_movement_tasks_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "dcda455344be4fb5d7dff51eea65c3b67d356500",
+		RomRegistry.SAPPHIRE: "dcda455344be4fb5d7dff51eea65c3b67d356500",
+		RomRegistry.FIRERED: "f881d6493b11d6169671ed20ab47926d3eb5dc59",
+		RomRegistry.LEAFGREEN: "f881d6493b11d6169671ed20ab47926d3eb5dc59",
+		RomRegistry.EMERALD: "c9405ecfd60809f43167cc01942dfb66361a8727",
+	}
+	for id: StringName in digests:
+		var trace: String = _avatar_task_trace(id)
+		assert_eq(trace.sha1_text(), digests[id], str(id))
+
+
+func _avatar_task_trace(id: StringName) -> String:
+	var lines := PackedStringArray()
+	for kind: int in 2:
+		for direction: int in range(1, 5):
+			for hold_state: int in 4:
+				for locked: int in 2:
+					var avatar: Gen3PlayerAvatar = _task_avatar(id, kind, direction, hold_state, locked)
+					lines.append(_task_frame(avatar, [kind, direction, hold_state, locked, 0]))
+					for frame: int in range(1, 41):
+						var held: Gen3ObjectEvents.ObjectEvent = avatar.object() if kind == 1 else avatar.objects.objects[1]
+						if frame == 4 and hold_state > 0 and (held.single_movement_active
+								or held.movement_action == (0x19 if avatar._frlg else 0x11)):
+							Gen3ObjectEvents.clear_held_movement(held)
+							held.single_movement_active = false
+						avatar.step_movement_tasks()
+						avatar.objects.step_movements()
+						lines.append(_task_frame(avatar, [kind, direction, hold_state, locked, frame]))
+	return "\n".join(lines) + "\n"
+
+
+func _task_avatar(id: StringName, kind: int, direction: int, hold_state: int, locked: int) -> Gen3PlayerAvatar:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 1)
+	avatar.flags = 0xE8 if kind == 1 else 0x21
+	avatar.object().facing_locked = locked != 0
+	avatar.object().frozen = true
+	if kind == 1:
+		avatar.object().graphics_id = avatar.graphics_for(Gen3PlayerAvatar.State.SURFING)
+		avatar.object().current_elevation = 1
+	for slot: int in range(1, 3):
+		var object := Gen3ObjectEvents.ObjectEvent.new()
+		object.active = true
+		object.local_id = slot
+		object.map_group = 0
+		object.map_number = 0
+		object.graphics_id = 97
+		if slot == 1 and not avatar._frlg:
+			object.graphics_id = 87
+		object.current = Vector2i(12, 12) + Gen3FieldCamera.DIRECTIONS[direction] if slot == 1 else Vector2i(20, 20)
+		object.previous = object.current
+		object.pixel_position = object.current * 16
+		object.facing = 4
+		object.movement_direction = 4
+		object.frozen = slot == 1 and kind == 0
+		objects.objects[slot] = object
+	if kind == 1:
+		objects.objects[1].current_elevation = 1
+	var held: Gen3ObjectEvents.ObjectEvent = avatar.object() if kind == 1 else objects.objects[1]
+	if hold_state in [1, 2]:
+		objects.set_held_movement(held, 0x19 if avatar._frlg else 0x11)
+		held.held_movement_finished = hold_state == 2
+	elif hold_state == 3:
+		held.single_movement_active = true
+	if kind == 1 and hold_state == 1:
+		objects.set_held_movement(objects.objects[2], 0x1C if avatar._frlg else 0x14)
+	objects.events.flag_set(Gen3EventData.STRENGTH_FLAG[id])
+	avatar.begin_collision_movement(direction)
+	return avatar
+
+
+func _task_frame(avatar: Gen3PlayerAvatar, prefix: Array) -> String:
+	var values: Array = prefix + [avatar.flags, int(avatar.prevent_step), int(avatar.controls_locked)]
+	var origins: Array[Vector2i] = [Vector2i(12, 12),
+		Vector2i(12, 12) + Gen3FieldCamera.DIRECTIONS[int(prefix[1])], Vector2i(20, 20)]
+	for slot: int in 3:
+		var object: Gen3ObjectEvents.ObjectEvent = avatar.objects.objects[slot]
+		var pixels: Vector2i = object.pixel_position - origins[slot] * 16
+		values.append_array([object.current.x, object.current.y, object.previous.x, object.previous.y,
+			pixels.x, pixels.y, object.jump_y, object.facing, object.movement_direction,
+			object.previous_movement_direction, int(object.facing_locked), Gen3ObjectEvents.held_movement_status(object),
+			object.movement_action, object.graphics_id, int(object.frozen)])
+	return ",".join(values)
+
+
+## A push lands before its task unlocks input. Using the object's byte-sized
+## trainer type or removing without a hide flag loses a Seafoam floor's state;
+## stationary avatar probes never run the landing or respawn objects.
+func test_strength_landing_hides_boulder_reveals_floor_and_releases_occupancy() -> void:
+	for id: StringName in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN]:
+		var avatar: Gen3PlayerAvatar = _boulder_avatar(id, 0x3C66)
+		var objects: Gen3ObjectEvents = avatar.objects
+		var boulder: Gen3ObjectEvents.ObjectEvent = objects.objects[1]
+		objects.events.flag_set(0x125)
+		assert_eq(boulder.trainer_type, 0x25)
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.PUSHED_BOULDER)
+		assert_true(avatar.controls_locked)
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.IMPASSABLE)
+		var effects: Array = []
+		for frame: int in 33:
+			effects.append_array(avatar.step_movement_tasks())
+			objects.step_movements()
+			if frame == 0:
+				assert_eq(boulder.current, Vector2i(14, 12))
+				assert_eq(boulder.previous, Vector2i(13, 12))
+				assert_eq(objects.collision_at(avatar.object(), 13, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+		assert_false(avatar.prevent_step)
+		assert_false(avatar.controls_locked)
+		assert_false(boulder.active)
+		assert_eq(avatar.object().current, Vector2i(12, 12))
+		assert_true(objects.events.flag_get(0x25))
+		assert_false(objects.events.flag_get(0x125))
+		assert_true(effects.has({"kind": "sound", "name": "fall"}))
+		objects.spawn_in_view()
+		assert_eq(objects.at_position(Vector2i(13, 12)), -1)
+		assert_eq(objects.collision_at(avatar.object(), 13, 12, 4), Gen3ObjectEvents.Collision.NONE)
+
+
+## Switch dispatch ignores the normal coordinate-event variable/elevation
+## gates and preserves duplicate rows, including null scripts. Filtering as a
+## player step drops a boulder's scripts; no bytecode test pushes.
+func test_strength_switch_dispatch_preserves_all_matching_coordinate_rows() -> void:
+	for id: StringName in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		var avatar: Gen3PlayerAvatar = _boulder_avatar(id, 0x3020)
+		var coords: Array = [
+			{"x": 7, "y": 5, "elevation": 15, "variable": 0x4000, "value": 99, "script_offset": 0xD00},
+			{"x": 8, "y": 5, "elevation": 0, "variable": 0, "value": 0, "script_offset": 0xD20},
+			{"x": 7, "y": 5, "elevation": 0, "variable": 0, "value": 0, "script_offset": 0},
+		]
+		avatar.objects.camera.data._world_headers["0:0"]["events"]["coords"] = coords
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.PUSHED_BOULDER)
+		var scripts: Array = []
+		for frame: int in 33:
+			for effect: Dictionary in avatar.step_movement_tasks():
+				if effect["kind"] == "script":
+					scripts.append(int(effect["offset"]))
+			avatar.objects.step_movements()
+		assert_eq(scripts, [] if id == RomRegistry.EMERALD else [0xD00, 0])
+		assert_false(avatar.controls_locked)
+		assert_true(avatar.objects.objects[1].active)
+
+
+func _boulder_avatar(id: StringName, entry: int) -> Gen3PlayerAvatar:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	objects.camera.header = {"layout_id": 1}
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	var template: Dictionary = Gen3ObjectEvents.EMPTY_TEMPLATE.duplicate()
+	template.merge({"local_id": 1, "graphics_id": 97 if avatar._frlg else 87,
+		"x": 6, "y": 5, "elevation": 3, "trainer_type": 0x125, "flag": 0x25}, true)
+	objects.camera.data._world_headers["0:0"]["events"]["objects"] = [template]
+	objects.load_templates()
+	objects.spawn_in_view()
+	objects.camera.grid.set_metatile_entry(14, 12, entry)
+	objects.events.flag_set(Gen3EventData.STRENGTH_FLAG[id])
+	return avatar
+
+
+## A ledge is a two-cell held jump, while another held action remains owned by
+## its caller. Replacing it or clearing a finished hold here changes scripted
+## motion; only the input model consumes ledge collision requests.
+func test_ledge_collision_starts_two_cell_jump_without_stealing_a_hold() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	objects.camera.grid.set_metatile_entry(13, 12, 0x3C38)
+	assert_eq(avatar.begin_collision_movement(4)["requests"],
+		[{"kind": "jumped_ledge"}, {"kind": "sound", "name": "ledge"}])
+	assert_eq(avatar.object().player_copyable_movement, 8)
+	for frame: int in 32:
+		objects.step_movements()
+	assert_eq(avatar.object().current, Vector2i(14, 12))
+	assert_eq(avatar.object().pixel_position, Vector2i(224, 192))
+	objects.camera.grid.set_metatile_entry(15, 12, 0x3C38)
+	avatar.begin_collision_movement(4)
+	assert_true(avatar.object().held_movement_finished)
+	assert_eq(avatar.object().movement_action, 0x0F)
+
+
+## The ARM lookup uses active local IDs, not the player bit or map identity;
+## nearest-axis facing and unconditional coordinate shifts both corrupt it.
+## Isolated action traces have no player and cannot detect these substitutions.
+func test_contextual_facing_matches_cartridge_lookup_and_axis_priority() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.SAPPHIRE, RomRegistry.FIRERED,
+			RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		assert_eq(_context_facing_trace(id).sha1_text(), "42f8b1b53021ea18a3e0f8d3c5869651ddf336f3", str(id))
+
+
+func _context_facing_trace(id: StringName) -> String:
+	var field: Gen3ObjectEvents = _field_objects(id)
+	for entry: Vector2i in [Vector2i(7, 2), Vector2i(9, 3), Vector2i(10, 4)]:
+		field.camera.data._world_scripts["movement_types"][entry.x]["facing"] = entry.y
+	var objects := Gen3ObjectEvents.new(field.camera, field.events)
+	var actions: Array = [0x4A, 0x4B, 0x5A] if objects._frlg else [0x3E, 0x3F, 0x4E]
+	var lines := PackedStringArray()
+	for mode: int in 3:
+		for locked: int in 2:
+			for presence: int in 4:
+				for type: int in [0, 7, 8, 9, 10]:
+					for dx: int in range(-2, 3):
+						for dy: int in range(-2, 3):
+							lines.append_array(_context_frames(objects, int(actions[mode]),
+								[mode, locked, presence, type, dx, dy]))
+	return "\n".join(lines) + "\n"
+
+
+func _context_frames(objects: Gen3ObjectEvents, action: int, setup: Array) -> PackedStringArray:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.local_id = 42
+	object.map_number = 7
+	object.map_group = 9
+	object.movement_type = int(setup[3])
+	object.current = Vector2i(12, 12)
+	object.previous = Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = 4
+	object.movement_direction = 4
+	object.facing_locked = int(setup[1]) != 0
+	objects.objects[0] = object
+	var player := Gen3ObjectEvents.ObjectEvent.new()
+	player.active = int(setup[2]) in [1, 3]
+	player.is_player = int(setup[2]) == 3
+	player.local_id = 42 if player.is_player else Gen3ObjectEvents.LOCALID_PLAYER
+	player.map_number = 33
+	player.map_group = 44
+	player.current = object.current + Vector2i(int(setup[4]), int(setup[5]))
+	objects.objects[1] = player
+	objects.set_held_movement(object, action)
+	var lines := PackedStringArray()
+	for frame: int in range(1, 3):
+		objects.step_movements()
+		lines.append(",".join(setup + [frame, object.current.x, object.current.y,
+			object.previous.x, object.previous.y, 0, 0, 0, object.facing, object.movement_direction,
+			object.previous_movement_direction, int(object.facing_locked), int(object.held_movement_finished),
+			0, 0, 0, -1, 0, 0, 0]))
+	return lines
+
+
+## State actions must survive hold clearing without freeing an invisible NPC's
+## collision cells; emotes identify it once rather than repeating on each frame.
+## Isolated frame traces reset state before every action and use identity zero.
+func test_instant_actions_persist_without_changing_occupancy_or_repeating_emotes() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.SAPPHIRE, RomRegistry.FIRERED,
+			RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		var objects: Gen3ObjectEvents = _field_objects(id)
+		var template: Dictionary = Gen3ObjectEvents.EMPTY_TEMPLATE.duplicate()
+		template.merge({"local_id": 42, "x": 5, "y": 5}, true)
+		var object: Gen3ObjectEvents.ObjectEvent = objects.objects[objects.spawn(template, 7, 9)]
+		var offset: int = 12 if objects._frlg else 0
+		for action: int in [0x54 + offset, 0x51 + offset, 0x5C + (14 if objects._frlg else 0)]:
+			assert_false(objects.set_held_movement(object, action))
+			objects.step_movements()
+			assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(object), 1)
+		assert_true(object.invisible)
+		assert_true(object.disable_jump_landing_effect)
+		assert_true(object.fixed_priority)
+		var probe := Gen3ObjectEvents.ObjectEvent.new()
+		assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+		assert_false(objects.set_held_movement(object, 0x56 + offset))
+		assert_eq(objects.step_movements(), [{"kind": "field_effect", "effect_id": 0,
+			"object_id": 0, "local_id": 42, "map_number": 7, "map_group": 9}])
+		assert_eq(objects.step_movements(), [])
+		assert_true(object.held_movement_active)
+		Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		for action: int in [0x55 + offset, 0x50 + offset, 0x5D + (14 if objects._frlg else 0)]:
+			assert_false(objects.set_held_movement(object, action))
+			objects.step_movements()
+			Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		assert_false(object.invisible)
+		assert_false(object.disable_jump_landing_effect)
+		assert_false(object.fixed_priority)
+		assert_eq(object.current, Vector2i(12, 12))
+		assert_eq(object.previous, Vector2i(12, 12))
+
+
+## Gate turns share temp-var bytes, static probes never turn, and only collision
+## 1 blocks the arm. Stationary non-puzzle avatar probes miss all three seams.
+func test_rotating_gate_collision_turns_shared_vars_once_and_preserves_static_queries() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	objects.camera.group = 12
+	objects.camera.number = 1
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	objects.events.var_set(0x4003, 0xA5A5)
+	objects.events.var_set(0x4004, 0xBEEF)
+	avatar.load_rotating_gates(true)
+	assert_eq(objects.events.var_get(0x4000), 0x0201)
+	assert_eq(objects.events.var_get(0x4003), 0x0200)
+	assert_eq(objects.events.var_get(0x4004), 0xBEEF)
+	# Gate 0, rotated east: push its south arm by walking west.
+	var at := Vector2i(12, 14)
+	assert_eq(avatar.collision_at(avatar.object(), at, 3, true), {"collision": 0, "requests": []})
+	assert_eq(avatar.gate_orientation(0), 1)
+	var result: Dictionary = avatar.collision_at(avatar.object(), at, 3)
+	assert_eq(result, {"collision": 0, "requests": [{"kind": "rotate_gate", "gate": 0,
+		"orientation": 1, "rotation": 2}]})
+	assert_eq(objects.events.var_get(0x4000), 0x0202)
+	avatar.load_rotating_gates()
+	assert_eq(avatar.gate_orientation(0), 2)
+	avatar.load_rotating_gates(true)
+	objects.camera.grid.blocks[13 + 32 * 14] = 0x3400
+	assert_eq(avatar.collision_at(avatar.object(), at, 3, true)["collision"], 8)
+	assert_eq(avatar.collision_at(avatar.object(), at, 3)["collision"], 8)
+	assert_eq(avatar.gate_orientation(0), 1)
+	for collision: int in [2, 3]:
+		objects.camera.grid.blocks[13 + 32 * 14] = 0x3000 | (collision << 10)
+		avatar.load_rotating_gates(true)
+		avatar.object().current = at + Vector2i(1, 0)
+		assert_eq(avatar.begin_collision_movement(3)["requests"], [{"kind": "rotate_gate", "gate": 0,
+			"orientation": 1, "rotation": 2}])
+		assert_eq(avatar.gate_orientation(0), 2)
+	objects.camera.group = 0
+	assert_eq(avatar.rotating_gate_collision(3, at), {"collision": 0, "requests": []})
+	assert_eq(avatar.gate_orientation(0), 2)
+
+
+## ARM callback traces protect every patrol's return axis, range turns,
+## blocked in-place steps, fixed facing and each pace through freeze/hold gates.
+## Existing held-action tests never dispatch an autonomous movement type.
+func test_autonomous_patrol_frames_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "0d8353eb92e0df59191440a52c955957adae918f",
+		RomRegistry.SAPPHIRE: "0d8353eb92e0df59191440a52c955957adae918f",
+		RomRegistry.FIRERED: "0c0a12d599b9292d1760b8c39bdedd3bbb03a230",
+		RomRegistry.LEAFGREEN: "0c0a12d599b9292d1760b8c39bdedd3bbb03a230",
+		RomRegistry.EMERALD: "adb004e3736ee73894a1658beb8215a51cb45cd2",
+	}
+	for id: StringName in digests:
+		var objects: Gen3ObjectEvents = _patrol_objects(id)
+		var lines := PackedStringArray()
+		var types: Array = range(7, 11) + range(0x19, 0x35) + range(0x40, 0x4D)
+		if id == RomRegistry.EMERALD:
+			types += range(0x4D, 0x51)
+		for type: int in types:
+			for scenario: int in 7:
+				lines.append_array(_patrol_trace(objects, type, scenario))
+		var output: String = "\n".join(lines) + "\n"
+		assert_eq(output.sha1_text(), digests[id], str(id))
+
+
+func _patrol_objects(id: StringName) -> Gen3ObjectEvents:
+	var field: Gen3ObjectEvents = _field_objects(id)
+	var types: Array = []
+	for type: int in 81:
+		types.append({"ranged": false, "facing": [2, 1, 3, 4][type - 0x19] if type >= 0x19 and type <= 0x1C else 4})
+	field.camera.data._world_scripts["movement_types"] = types
+	return Gen3ObjectEvents.new(field.camera, field.events)
+
+
+func _patrol_trace(objects: Gen3ObjectEvents, type: int, scenario: int) -> PackedStringArray:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.movement_type = type
+	object.initial = Vector2i(12, 12)
+	object.current = object.initial
+	object.previous = Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = 4
+	object.movement_direction = 4
+	object.current_elevation = 3
+	object.previous_elevation = 3
+	object.movement_range = Vector2i(2, 3)
+	object.facing_locked = scenario == 2
+	objects.objects[0] = object
+	objects.camera.grid.set_metatile_entry(13, 12, 0x3400 if scenario == 1 else (0x1000 if scenario == 6 else 0x3000))
+	var other := Gen3ObjectEvents.ObjectEvent.new()
+	other.active = scenario == 5
+	other.current = Vector2i(13, 12)
+	other.previous = Vector2i(12, 13)
+	other.current_elevation = 3
+	objects.objects[1] = other
+	var lines := PackedStringArray()
+	for frame: int in range(1, 193):
+		if scenario == 3 and frame in [9, 13]:
+			object.frozen = frame == 9
+		if scenario == 4:
+			if frame == 85:
+				objects.set_held_movement(object, 2)
+			if frame == 100:
+				Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		objects.step_movements()
+		var pixels: Vector2i = object.pixel_position - Vector2i(192, 192)
+		lines.append(",".join([type, scenario, frame, object.current.x, object.current.y,
+			object.previous.x, object.previous.y, pixels.x, pixels.y, object.facing,
+			object.movement_direction, object.previous_movement_direction, object.direction_sequence_index,
+			object.movement_state, object.movement_action, int(object.single_movement_active),
+			int(object.held_movement_active), int(object.held_movement_finished), int(object.frozen), int(object.invisible)]))
+	return lines

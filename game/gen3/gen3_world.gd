@@ -15,7 +15,7 @@ const RODS: Dictionary = {"old_rod": [0, 2], "good_rod": [2, 5], "super_rod": [5
 
 static func verify(rom: RomFile, layout: Dictionary) -> Dictionary:
 	if read(rom, layout).is_empty():
-		return {"ok": false, "message": "Map layouts, tilesets, events, script bytecode or wild encounters did not decode."}
+		return {"ok": false, "message": "Map layouts, tilesets, events, script bytecode, script data, movement types or wild encounters did not decode."}
 	return {"ok": true, "message": ""}
 
 
@@ -30,9 +30,28 @@ static func read(rom: RomFile, layout: Dictionary) -> Dictionary:
 	if graphics.is_empty():
 		return {}
 	var scripts: Dictionary = Gen3Script.read(rom, layout, headers)
-	if scripts.is_empty():
+	var movement_types: Array = _movement_types(rom, layout)
+	if scripts.is_empty() or movement_types.is_empty():
 		return {}
+	scripts["movement_types"] = movement_types
 	return {"headers": headers, "encounters": encounters, "graphics": graphics, "scripts": scripts}
+
+
+## Per `MOVEMENT_TYPE_*`, whether `InitObjectEventStateFromTemplate` gives it a
+## range of at least one, and the direction an object of that type starts facing.
+static func _movement_types(rom: RomFile, layout: Dictionary) -> Array:
+	var at: int = int(layout["movement_types"])
+	var count: int = int(layout["movement_type_count"])
+	if not rom.in_bounds(at, count * 2):
+		return []
+	var out: Array = []
+	for type: int in count:
+		var ranged: int = rom.u8(at + type)
+		var facing: int = rom.u8(at + count + type)
+		if ranged > 1 or facing > 4:
+			return []
+		out.append({"ranged": ranged == 1, "facing": facing})
+	return out
 
 
 static func _headers(rom: RomFile, layout: Dictionary) -> Dictionary:
@@ -263,7 +282,9 @@ static func _tileset(rom: RomFile, at: int) -> Dictionary:
 	if tile_bytes.is_empty():
 		return {}
 	var palette: Dictionary = _tileset_palette(rom, at, frlg, secondary)
-	if palette.is_empty():
+	var callback: int = int(palette.get("callback_offset", 0))
+	var animation: Dictionary = Gen3TilesetAnims.read(rom, callback) if callback != 0 else {}
+	if palette.is_empty() or (callback != 0 and animation.is_empty()):
 		return {}
 	var out: Dictionary = {"compressed": rom.u8(at) == 1, "secondary": secondary == 1,
 		"tile_offset": split if secondary == 1 else 0, "tile_count": tile_bytes.size() / 32,
@@ -271,9 +292,21 @@ static func _tileset(rom: RomFile, at: int) -> Dictionary:
 		"attribute_size": attribute_size,
 		"tiles": {"bytes": Array(tile_bytes)},
 		"metatiles": {"bytes": Array(rom.slice(metatiles, count * 16))},
-		"attributes": {"bytes": Array(rom.slice(attributes, count * attribute_size))}}
+		"attributes": {"bytes": Array(rom.slice(attributes, count * attribute_size))},
+		"metatile_tail": {"bytes": Array(_tail(rom, metatiles + count * 16, (capacity - count) * 16))},
+		"attribute_tail": {"bytes": Array(_tail(rom, attributes + count * attribute_size,
+			(capacity - count) * attribute_size))},
+		"animation": animation}
 	out.merge(palette)
 	return out
+
+
+## The ROM after a metatile or attribute array, up to the bank's id space:
+## `DrawMetatileAt` and `GetMetatileAttributesById` index past the array for an
+## id the tileset lacks, which a connection strip from a map on another
+## secondary tileset brings into the backup map.
+static func _tail(rom: RomFile, at: int, length: int) -> PackedByteArray:
+	return rom.slice(at, clampi(rom.size() - at, 0, length))
 
 
 static func _tile_bytes(rom: RomFile, at: int, capacity: int, compressed: bool) -> PackedByteArray:
@@ -305,18 +338,57 @@ static func primary_tile_count(id: StringName) -> int:
 	return 640 if id in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN] else 512
 
 
+## One metatile id's tiles and attributes. An id past the tileset's rows reads
+## the ROM after the arrays, as the cartridge does; one past that is empty.
 static func metatile(tileset: Dictionary, number: int) -> Dictionary:
-	var index: int = number - int(tileset.get("metatile_offset", 0))
-	if index < 0 or index >= int(tileset.get("metatile_count", 0)):
+	var row: Array = _metatile_row(tileset, number)
+	if row.is_empty():
 		return {}
-	var tiles: PackedByteArray = tileset["metatiles"]["bytes"]
-	var attributes: PackedByteArray = tileset["attributes"]["bytes"]
-	var wide: bool = int(tileset["attribute_size"]) == 4
-	var raw: int = attributes.decode_u32(index * 4) if wide else attributes.decode_u16(index * 2)
+	var tiles: PackedByteArray = row[0]
+	var index: int = row[2]
+	var raw: int = metatile_attributes(tileset, number)
 	var entries: Array = []
 	for slot: int in 8:
 		var word: int = tiles.decode_u16(index * 16 + slot * 2)
 		entries.append({"tile": word & 0x3FF, "flip_x": (word & 0x400) != 0,
 			"flip_y": (word & 0x800) != 0, "palette": word >> 12})
-	return {"tiles": entries, "attributes": raw, "behavior": raw & (0x1FF if wide else 0xFF),
-		"layer_type": (raw >> (29 if wide else 12)) & (3 if wide else 15)}
+	return {"tiles": entries, "attributes": raw, "behavior": behavior(tileset, raw),
+		"layer_type": layer_type(tileset, raw)}
+
+
+## The raw attribute word of the id [method metatile] reads, or -1 where it is
+## empty.
+static func metatile_attributes(tileset: Dictionary, number: int) -> int:
+	var row: Array = _metatile_row(tileset, number)
+	if row.is_empty():
+		return -1
+	var words: PackedByteArray = row[1]
+	return words.decode_u32(row[2] * 4) if _wide(tileset) else words.decode_u16(row[2] * 2)
+
+
+static func behavior(tileset: Dictionary, raw: int) -> int:
+	return raw & (0x1FF if _wide(tileset) else 0xFF)
+
+
+static func layer_type(tileset: Dictionary, raw: int) -> int:
+	return (raw >> 29) & 3 if _wide(tileset) else (raw >> 12) & 15
+
+
+static func _wide(tileset: Dictionary) -> bool:
+	return int(tileset["attribute_size"]) == 4
+
+
+## The metatile and attribute arrays an id reads and its index in them.
+static func _metatile_row(tileset: Dictionary, number: int) -> Array:
+	var index: int = number - int(tileset.get("metatile_offset", 0))
+	var count: int = int(tileset.get("metatile_count", 0))
+	if index < 0:
+		return []
+	if index < count:
+		return [tileset["metatiles"]["bytes"], tileset["attributes"]["bytes"], index]
+	index -= count
+	var tiles: PackedByteArray = tileset["metatile_tail"]["bytes"]
+	var words: PackedByteArray = tileset["attribute_tail"]["bytes"]
+	if (index + 1) * 16 > tiles.size() or (index + 1) * int(tileset["attribute_size"]) > words.size():
+		return []
+	return [tiles, words, index]
