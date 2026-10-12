@@ -1987,30 +1987,32 @@ func _enemy_switch_trainer_hud() -> void:
 	_push_view()
 
 
-## One side of it. `LoadTrainerHudOAM` walks six slots from
-## [constant HUD_BALL_AT] in [constant HUD_BALL_STEP]'s direction, and
-## `PlaceHUDBorderTiles` draws the frame from a corner outwards the same way.
 func _add_trainer_hud(side: int) -> void:
-	var player_side: bool = side == Gen2Battle.PLAYER
+	var party: Gen2Party = _battle.party(side) if _battle != null else null
+	var balls: Array = range(Gen2Party.MAX_SIZE).map(func(slot: int) -> int: return _hud_ball_tile(party, slot))
+	add_trainer_hud(side == Gen2Battle.PLAYER, balls, _generation() == RomRegistry.GEN1, _hud_balls, _hud_border)
+
+
+## One side: `LoadTrainerHudOAM` walks [param balls], six `HUD_BALL_*` tiles, from [constant HUD_BALL_AT] along
+## [constant HUD_BALL_STEP], and `PlaceHUDBorderTiles` draws the frame from a corner outwards the same way.
+static func add_trainer_hud(player_side: bool, balls: Array, gen1: bool, into_balls: Array, into_border: Array) -> void:
 	var at: Vector2i = HUD_BALL_AT[player_side]
 	var step: int = int(HUD_BALL_STEP[player_side])
-	var party: Gen2Party = _battle.party(side) if _battle != null else null
 	for slot: int in Gen2Party.MAX_SIZE:
-		_hud_balls.append({
-			"x": at.x + slot * step, "y": at.y, "tile": _hud_ball_tile(party, slot),
+		into_balls.append({
+			"x": at.x + slot * step, "y": at.y, "tile": int(balls[slot]) if slot < balls.size() else HUD_BALL_EMPTY,
 		})
 	var border: Vector2i = HUD_BORDER_AT[player_side]
-	var tiles: Array = (GEN1_HUD_BORDER_TILES if _generation() == RomRegistry.GEN1
-		else HUD_BORDER_TILES)[player_side]
+	var tiles: Array = (GEN1_HUD_BORDER_TILES if gen1 else HUD_BORDER_TILES)[player_side]
 	var direction: int = 1 if player_side else -1
-	_hud_border.append({"x": border.x, "y": border.y, "tile": int(tiles[0])})
-	_hud_border.append({"x": border.x, "y": border.y + 1, "tile": int(tiles[1])})
+	into_border.append({"x": border.x, "y": border.y, "tile": int(tiles[0])})
+	into_border.append({"x": border.x, "y": border.y + 1, "tile": int(tiles[1])})
 	for index: int in HUD_BORDER_EDGE:
-		_hud_border.append({
+		into_border.append({
 			"x": border.x - (index + 1) * direction, "y": border.y + 1,
 			"tile": int(tiles[3]),
 		})
-	_hud_border.append({
+	into_border.append({
 		"x": border.x - (HUD_BORDER_EDGE + 1) * direction, "y": border.y + 1,
 		"tile": int(tiles[2]),
 	})

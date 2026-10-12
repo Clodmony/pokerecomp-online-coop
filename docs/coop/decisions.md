@@ -1618,3 +1618,18 @@ the trainer, so it spots again. Talking to the trainer, or SELECT > JOIN, still
 joins the running fight. Left open: a partner spotted during the first
 player's walk-up and before-battle text, before the host knows of the fight,
 still joins it. The comment ceiling rose by four for the gate and the locked-in turn (D13).
+
+## D108. A co-op battle shows the party balls (owner's question, 2026-10-13)
+
+The owner asked where the balls went that tell how many Pokémon the opponent
+has left. The single-player screen draws them (`DrawAllPokeballs`,
+`DrawEnemyPokeballs`); the co-op field never did. Now, as on the cartridge,
+both rows stand under "X wants to fight!" (only the player's under "Wild X
+appeared!"), and the trainer's row comes back after its Pokémon faints, until
+the next one comes out. The host's view carries each enemy member's HP and
+status (`enemy_states`, no protocol change: an older host's view shows
+the trainer's row empty). The player's row is the viewer's own Pokémon, not the whole allied
+party, which can hold twelve. One difference: the cartridge shows the
+trainer's row under SHIFT's "about to use" question and clears it before "X
+sent out"; co-op asks no such question, so the row stands under "X sent out"
+for a beat instead. The comment total stays at the ceiling.

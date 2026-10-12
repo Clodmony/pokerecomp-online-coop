@@ -46,6 +46,7 @@ var _clicks: int = 0
 var _screen: Gen2Screen = null
 var _masked: bool = false
 var _fanfared: bool = false
+var _enemy_down: bool = false
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -284,6 +285,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_hold = 0
 	_sound_wait = false
 	_fanfared = false
+	_enemy_down = false
 	_box.visible = false
 
 
@@ -291,17 +293,22 @@ func _begin_battle(view: Dictionary) -> void:
 func _open(view: Dictionary) -> void:
 	var opening: Dictionary = out_now(view)
 	var enemy: int = int(opening[Gen2Battle.ENEMY])
+	var mine: Array = ball_tiles(view, Gen2Battle.PLAYER, panel.client.player_id)
 	_board.open(int(view.get("trainer_class", 0)))
 	_messages.append({"stage": PokeCoopBattleStage.INTRO, "side": Gen2Battle.ENEMY})
 	if bool(view.get("trainer", false)):
+		_messages.append({"balls": {Gen2Battle.PLAYER: mine, Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
 		_messages.append({"text": _de(data, "%s wants\nto fight!") % _trainer_name(view)})
+		_messages.append({"balls": {}})
 		_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.ENEMY})
 		_messages.append({"text": _de(data, "%s sent\nout %s!") % [_trainer_name(view), _species_name(data, enemy)]})
 		_messages.append_array(send_out_steps(Gen2Battle.ENEMY))
 		_messages.append({"cry": enemy})
 	else:
 		_messages.append({"cry": enemy})
+		_messages.append({"balls": {Gen2Battle.PLAYER: mine}})
 		_messages.append({"text": _de(data, "Wild %s\nappeared!") % _species_name(data, enemy)})
+		_messages.append({"balls": {}})
 		_messages.append({"stage": PokeCoopBattleStage.PANEL, "side": Gen2Battle.ENEMY})
 	var ally: int = int(opening[Gen2Battle.PLAYER])
 	_messages.append({"hold": Gen2BattleScreen.PLAYER_ENTRANCE_FRAMES})
@@ -322,8 +329,12 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			})
 		Gen2Battle.SENT_OUT:
 			out[side] = int(event.get("species", species_at(view, side, int(event.get("index", 0)))))
+			if side == Gen2Battle.ENEMY and _enemy_down and bool(view.get("trainer", false)):
+				_messages.append({"balls": {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
+			_enemy_down = false if side == Gen2Battle.ENEMY else _enemy_down
 			_messages.append({"enter": event})
 		Gen2Battle.FAINTED:
+			_enemy_down = _enemy_down or side == Gen2Battle.ENEMY
 			_messages.append({"stage": PokeCoopBattleStage.FAINT, "side": side})
 			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false))))
 			if side == Gen2Battle.ENEMY and not bool(view.get("trainer", false)) and String(view.get("outcome", "")) == "won":
@@ -436,6 +447,19 @@ static func out_now(view: Dictionary) -> Dictionary:
 	}
 
 
+## `DrawAllPokeballs`' `StageBallTilesData`: the enemy's party, or [param player_id]'s own Pokémon among the allies.
+static func ball_tiles(view: Dictionary, side: int, player_id: String) -> Array:
+	var rows: Array = view.get("enemy_states", []) if side == Gen2Battle.ENEMY else (view.get("allies", []) as Array).filter(
+		func(ally: Dictionary) -> bool: return String(ally.get("owner", "")) == player_id)
+	var out: Array = []
+	for slot: int in Gen2Party.MAX_SIZE:
+		var row: Dictionary = rows[slot] if slot < rows.size() else {}
+		out.append(Gen2BattleScreen.HUD_BALL_EMPTY if row.is_empty() else Gen2BattleScreen.HUD_BALL_FAINTED
+			if int(row.get("hp", 0)) <= 0 else Gen2BattleScreen.HUD_BALL_STATUSED if int(row.get("status", 0)) != 0
+			else Gen2BattleScreen.HUD_BALL_NORMAL)
+	return out
+
+
 static func species_at(view: Dictionary, side: int, index: int) -> int:
 	var rows: Array = view.get("enemy_party", []) if side == Gen2Battle.ENEMY else \
 		(view.get("allies", []) as Array).map(func(ally: Dictionary) -> int: return int(ally["species"]))
@@ -484,7 +508,9 @@ func _take_step(step: Dictionary) -> void:
 	if step.has("text"):
 		_show(String(step["text"]))
 		var next: Dictionary = {} if _messages.is_empty() else _messages[0]
-		_hold = 0 if next.has("anim") or next.has("stage") else HOLD_FRAMES
+		_hold = 0 if (next.has("anim") or next.has("stage")) and _board.balls.is_empty() else HOLD_FRAMES
+	elif step.has("balls"):
+		_board.party_balls(step["balls"])
 	elif step.has("stage"):
 		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
 	elif step.has("hold"):

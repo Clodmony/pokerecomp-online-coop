@@ -543,6 +543,7 @@ func view() -> Dictionary:
 		"active": party.active, "allies": allies,
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
 		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
+		"enemy_states": party_states(battle.party(Gen2Battle.ENEMY)),
 		"suggestions": suggestions.duplicate(true), "events": last_events, "outcome": outcome(),
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
@@ -553,6 +554,10 @@ func view() -> Dictionary:
 
 func view_for(_viewer: String) -> Dictionary:
 	return view()
+
+
+static func party_states(party: Gen2Party) -> Array:
+	return party.mons.map(func(mon: Gen2BattleMon) -> Dictionary: return {"hp": mon.hp, "status": mon.status})
 
 
 static func _battler_view(member: Gen2BattleMon) -> Dictionary:

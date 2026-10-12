@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Party balls in co-op battles (D108, 2026-10-13)
+
+The owner asked whether the opponent's remaining Pokémon used to show as
+balls. They did, and still do in a solo game, but the co-op field never drew
+them. It now shows both rows under "X wants to fight!" (yours alone under
+"Wild X appeared!"), and the trainer's row again after each faint, under "X
+sent out", until the next Pokémon comes out. The host's battle views carry
+`enemy_states` (HP and status per member). Branch `coop/opponent-balls`, built
+on the local merge of #109, #111, #112, #116, #117 and #121.
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Two new: `test_a_trainer_battle_opens_on_both_parties_balls_and_this_player_sees_their_own` (integration), `test_the_view_carries_each_enemy_members_hp_and_status_for_its_balls`; `test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted` now also checks the balls |
+| Suites | Co-op 281/281, battle screen, renderer and HUD suites pass; the whole suite ran 5144/5145 before the comment trim, the one failure the comment total; after trimming comments only, `test_source_budget` passes at 41354/41354 |
+| Gates, sockets | `tools/release.sh --gates` pass; ENet demo 16/16 on port 24653 |
+| Screens | `party_balls` on the Red import (a `pewter_gym` seed with `party=3 level=25` moved onto ROUTE 3, RED's lead knowing only EMBER): under "LASS wants to fight!" her two balls top left, RED's three bottom right; after RATTATA faints her row shows it crossed out and NIDORAN♂'s whole under "LASS sent out NIDORAN♂!", gone once it is out. All captures looked at, no script errors, battle won |
+| Not run | A friend battle's balls on screen; the whole suite again after the comment trim; no hand-played session |
+
 ## Owner's play-test fixes: a busy trainer, DIG, battle menus (#118, #119, #120, D107, 2026-10-12)
 
 The owner's German session on the S.S. Anne turned up three faults, each

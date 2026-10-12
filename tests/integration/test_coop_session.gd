@@ -1104,7 +1104,7 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 		"battle": "b9", "revision": 3, "trainer": true, "trainer_class": 1, "active": 0,
 		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34}],
 		"enemy": {"species": Fixture.PIKACHU, "level": 14, "hp": 40, "max_hp": 40},
-		"enemy_party": [Fixture.GEODUDE, Fixture.PIKACHU],
+		"enemy_party": [Fixture.GEODUDE, Fixture.PIKACHU], "enemy_states": [{"hp": 0, "status": 0}, {"hp": 40, "status": 0}],
 		"events": [
 			{"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY},
 			{"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.ENEMY, "index": 1, "species": Fixture.PIKACHU,
@@ -1116,15 +1116,52 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 	field._take_events(view)
 
 	var kinds: Array = field._messages.map(func(step: Dictionary) -> String: return step.keys()[0])
-	assert_eq(kinds, ["stage", "sound", "sound", "text", "enter", "text", "stage", "cry"],
-		"the picture sinks and lands before its line, and the next one grows out after the trainer's")
+	assert_eq(kinds, ["stage", "sound", "sound", "text", "balls", "enter", "text", "stage", "cry"],
+		"the picture sinks and lands before its line, the party's balls, and the next one grows out after the trainer's")
+	var empty: int = Gen2BattleScreen.HUD_BALL_EMPTY
+	assert_eq(field._messages[4]["balls"], {Gen2Battle.ENEMY: [Gen2BattleScreen.HUD_BALL_FAINTED,
+		Gen2BattleScreen.HUD_BALL_NORMAL, empty, empty, empty, empty]}, "`DrawEnemyPokeballs`: one down, one left")
 	assert_eq([field._messages[1]["sound"], field._messages[2]["sound"]], [Gen1Sfx.SFX_FAINT_FALL, Gen1Sfx.SFX_FAINT_THUD])
 	assert_eq(PokeCoopBattleField.faint_sounds(Gen2Battle.ENEMY, Fixture.GEODUDE, false), [], "a wild faint is silent")
 	assert_eq(PokeCoopBattleField.faint_sounds(Gen2Battle.PLAYER, Fixture.CHARMANDER, false), [{"cry": Fixture.CHARMANDER}])
 	var trainer: String = _data.trainer_name(1)
-	assert_eq(field._messages[5]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
+	assert_eq(field._messages[6]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
 	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
+
+
+func test_a_trainer_battle_opens_on_both_parties_balls_and_this_player_sees_their_own() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b10", "revision": 0, "trainer": true, "trainer_class": 1, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "hp": 30, "status": 0, "owner": _red.player_id},
+			{"species": Fixture.GEODUDE, "hp": 0, "status": 0, "owner": _blue.player_id},
+			{"species": Fixture.PIKACHU, "hp": 20, "status": 8, "owner": _red.player_id}],
+		"enemy": {"species": Fixture.GEODUDE, "hp": 12, "max_hp": 12},
+		"enemy_party": [Fixture.GEODUDE, Fixture.PIKACHU, Fixture.GEODUDE],
+		"enemy_states": [{"hp": 12, "status": 0}, {"hp": 15, "status": 0}, {"hp": 18, "status": 0}],
+	}
+	field._take_events(view)
+
+	var balls: Array = field._messages.filter(func(step: Dictionary) -> bool: return step.has("balls"))
+	var empty: int = Gen2BattleScreen.HUD_BALL_EMPTY
+	var well: int = Gen2BattleScreen.HUD_BALL_NORMAL
+	assert_eq(balls, [{"balls": {
+		Gen2Battle.PLAYER: [well, Gen2BattleScreen.HUD_BALL_STATUSED, empty, empty, empty, empty],
+		Gen2Battle.ENEMY: [well, well, well, empty, empty, empty],
+	}}, {"balls": {}}], "`DrawAllPokeballs` under the challenge, Blue's fainted GEODUDE not among Red's")
+	var shown: int = field._messages.find(balls[0])
+	assert_true(String(field._messages[shown + 1].get("text", "")).contains("wants"), "the balls stand under the challenge")
+
+	var stage := PokeCoopBattleStage.new()
+	stage.reset(_data, true)
+	stage.party_balls(balls[0]["balls"])
+	var scene: Dictionary = stage.over({})
+	assert_eq((scene["trainer_hud_balls"] as Array).size(), 2 * Gen2Party.MAX_SIZE)
+	assert_false((scene["trainer_hud_border"] as Array).is_empty())
+	stage.begin(PokeCoopBattleStage.SEND_OUT, Gen2Battle.ENEMY)
+	assert_eq(stage.over({})["trainer_hud_balls"], [], "`ClearSprites` before the Pokémon comes out")
 
 
 func test_a_level_up_shows_on_the_panel_and_a_full_moveset_asks_what_to_forget() -> void:

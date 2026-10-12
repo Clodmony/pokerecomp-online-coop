@@ -340,7 +340,7 @@ func view_for(viewer: String) -> Dictionary:
 		"allies": range(shown.size()).map(func(index: int) -> Dictionary: return _battler_view(shown.at(index)).merged(
 			{"index": index, "owner": viewer, "uid": _uids[side][index]})),
 		"enemy": _battler_view(foes.active_mon()), "enemy_party": foes.mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
-		"suggestions": {}, "events": _side_events[side], "outcome": outcome_for(side), "trainer": true,
+		"enemy_states": PokeCoopBattleSession.party_states(foes), "suggestions": {}, "events": _side_events[side], "outcome": outcome_for(side), "trainer": true,
 		"caught_for": "", "trainer_class": Gen1Layout.LINK_TRAINER_CLASS, "trainer_index": 0, "trainer_pic": Gen2BattleScreen.LINK_OPPONENT_PIC,
 		"trainer_name": (_members[other] as PokeCoopPlayer).name, "win_text": "", "gym": false,
 		"versus": true, "forfeit": _forfeit >= 0,

@@ -18,6 +18,8 @@ var trainer: bool = false
 var shown: Dictionary = {}
 var hidden: Dictionary = {}
 var pictures: Dictionary = {}
+var balls: Array = []
+var border: Array = []
 var _intro: Gen2BattleIntro = null
 var _routine: Dictionary = {}
 
@@ -29,6 +31,8 @@ func reset(game_data: GameData, trainer_battle: bool) -> void:
 	shown = {}
 	hidden = {}
 	pictures = {}
+	balls = []
+	border = []
 	_intro = null
 	_routine = {}
 
@@ -38,6 +42,13 @@ func open(trainer_class: int) -> void:
 	Gen2BattleScreenMap.clear_intro_box(map)
 	pictures = {"player_backpic": Gen1Layout.PLAYER_BACKPICS[0], "enemy_trainer_pic": trainer_class if trainer else 0}
 	hidden = {Gen2Battle.PLAYER: true, Gen2Battle.ENEMY: true}
+
+
+func party_balls(rows: Dictionary) -> void:
+	balls = []
+	border = []
+	for side: int in rows:
+		Gen2BattleScreen.add_trainer_hud(side == Gen2Battle.PLAYER, rows[side], game.generation == RomRegistry.GEN1, balls, border)
 
 
 func busy() -> bool:
@@ -53,6 +64,7 @@ func begin(kind: StringName, side: int, trainer_class: int = 0) -> void:
 		SEND_OUT:
 			sizes.assign(Gen2BattleScreenMap.SEND_OUT_SIZES)
 			hidden.erase(side)
+			party_balls({})
 		RETREAT:
 			sizes.assign(Gen2BattleScreenMap.RETREAT_SIZES)
 		INTRO:
@@ -148,6 +160,8 @@ func settle(view: Dictionary) -> void:
 func over(scene: Dictionary) -> Dictionary:
 	scene.merge(shown, true)
 	scene.merge(pictures, true)
+	scene["trainer_hud_balls"] = balls
+	scene["trainer_hud_border"] = border
 	if _intro != null:
 		scene["raster_scx"] = _intro.offsets()
 		scene["intro_sprites"] = _intro.sprites()
