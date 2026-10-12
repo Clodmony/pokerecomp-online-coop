@@ -24,6 +24,7 @@ func before_each() -> void:
 	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
 	_identity_before = PokeCoopSession.identity_path
 	PokeCoopSession.identity_path = IDENTITY
+	PokeCoopSession.campaigns_dir = "user://coop_campaigns_test"
 	PokeCoopLobby.memory_path = TAB
 	PokeCoopLobby.beacon_port = PORT + 50
 	PokeCoopPage.host_port = PORT

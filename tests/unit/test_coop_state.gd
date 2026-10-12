@@ -34,6 +34,12 @@ func _saved(species: int, level: int) -> Gen2SaveMon:
 	)
 
 
+## The suites share the player's user folder; a run that reached the real campaigns once deleted them.
+func test_the_test_run_keeps_its_campaigns_away_from_the_players() -> void:
+	assert_ne(PokeCoopSession.campaign_path(null, "x", &"red").get_base_dir(), "user://coop_campaigns/red", "`.gutconfig.json` runs `tests/coop_test_folders.gd`")
+	assert_ne(PokeCoopLog.create(false).directory, PokeCoopLog.DIRECTORY, "and the session logs too")
+
+
 func test_a_progress_commit_applies_once_however_often_it_arrives() -> void:
 	var campaign := PokeCoopCampaign.create("c1", &"testgame", "sha")
 	var changes: Dictionary = {"flags": [STORY_FLAG], "badges": 1, "defeated": ["trainer:brock"]}

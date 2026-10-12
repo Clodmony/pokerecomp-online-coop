@@ -23,8 +23,9 @@ const WORLD: StringName = &"world"
 const DEVICE: StringName = &"device"
 
 static var settings_path: String = "user://coop_settings.json"
+static var logs_folder: String = DIRECTORY
 
-var directory: String = DIRECTORY
+var directory: String = logs_folder
 var path: String = ""
 var device: String = ""
 var player_name: String = ""
@@ -52,10 +53,10 @@ var _full_state_at: int = -1
 var _views: Dictionary = {}
 
 
-static func create(shares: bool, folder: String = DIRECTORY) -> PokeCoopLog:
+static func create(shares: bool, folder: String = "") -> PokeCoopLog:
 	var out := PokeCoopLog.new()
 	out.share = shares
-	out.directory = folder
+	out.directory = folder if not folder.is_empty() else logs_folder
 	out._wanted = true
 	return out
 

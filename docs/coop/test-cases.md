@@ -149,6 +149,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | W72 | With a full party and a full current PC box, change box at a PC and catch a wild Pokémon | It is stored in the new box; the host's campaign records that box as current and holds the Pokémon there | `test_a_box_changed_in_a_window_is_the_one_the_host_stores_into` | resumed KOGA run with box 1 full | |
 | W73 | The partner reaches the department store roof second and lands on the stair cell the drinker must pass | The partner steps under the vending machines and waits there; the drinker buys, leaves by the stairs, and the partner follows | | playthrough_sabrina; resume from `celadon_mart_up_*` | |
 | W74 | The drinker reaches Route 7's gate before the partner | It waits in the gate until the partner is in, then hands over the drink; the partner walks through on the shared flag | | playthrough_sabrina | |
+| W75 | Hold B and walk; let go; ride the BIKE holding B | Twice the walking pace while B is held; the partner sees you glide at that pace, not behind; the bike is no faster | `test_b_runs_in_a_run_and_a_running_partner_is_eased_at_the_bikes_pace`, `test_running_takes_the_fast_row_and_only_for_a_walk` | | |
 
 ## Battles
 
@@ -181,6 +182,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | B24 | Talk to a partner, BATTLE / TRADE / CANCEL; or START > CO-OP, BATTLE name | YES/NO at a rest point; B, NO or 30 s declines; busy/offline partners cannot start; both players see their own team and choose their own replacements | `test_friend_menu_invites_only_free_partners...`, `test_versus_waits_for_both_choices...`, `test_friend_talking_opens_the_partner_menu...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
 | B25 | Finish or forfeit a friend battle; both Pokémon participated; one benched | Full HP/PP/status for both teams in place, no whiteout or money, full unsplit EXP per foe faced, owner answers learning | `test_versus_heals_both_parties...`, `test_each_versus_participant...`, `test_versus_forced_turns...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
 | B26 | Disconnect during a friend battle; attempt ITEM, another invitation or JOIN | No opponent takeover or item use; two-minute grace releases the fight and heals both; stale/future commands rejected | `test_a_versus_disconnect...`, `test_invitation_timeout...` | | |
+| B27 | Knock out a wild Pokémon or a trainer's last, and catch one, in a battle your world opened | The battle music plays until the end: a wild win's fanfare starts on the fall, a trainer's after the experience, and the map's music comes back only when the field closes | `test_the_world_leaves_a_won_fight_only_once_the_field_has_played_its_last_line`, `test_a_wild_ones_fanfare_starts_on_its_fall_and_plays_once` | playthrough_brock | |
 
 ## Trades
 
