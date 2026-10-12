@@ -20,6 +20,7 @@ var blocked: Callable = Callable()
 var select_allowed: Callable = Callable()
 var ready_to_meet: Callable = Callable()
 var before_meet: Callable = Callable()
+var open_map: Callable = Callable()
 var address: String = ""
 var _partner: String = ""
 var _incoming: Dictionary = {}
@@ -170,6 +171,11 @@ func _choose() -> void:
 				before_meet.call()
 			client.challenge(String(row["id"]), String(row["action"]))
 			notice.emit(_ui("Invitation sent."))
+		"map":
+			close()
+			acted.emit()
+			open_map.call()
+			return
 		"leave":
 			_asking = true
 			_no = false
@@ -265,6 +271,8 @@ func rows() -> Array:
 			out.append({"text": "JOIN %s (%s)" % [running["battle"], names], "label": _ui("JOIN %s") % names,
 				"detail": against, "action": "join", "id": running["battle"]})
 	out.append_array(_partner_rows())
+	if open_map.is_valid():
+		out.append({"text": "TOWN MAP", "label": _ui("TOWN MAP"), "action": "map"})
 	out.append({"text": "LEAVE SESSION", "label": _ui("LEAVE SESSION"), "action": "leave"})
 	out.append({"text": "CANCEL", "label": _ui("CANCEL"), "action": "cancel"})
 	return out

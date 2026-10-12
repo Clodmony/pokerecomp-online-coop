@@ -11,6 +11,30 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Finding the partner, and a friend battle under a menu's white (D106, 2026-10-12)
+
+The owner found the partner easy to lose and asked for an arrow or a map
+(D106). A partner off the screen is a blinking arrow in their colour on the
+screen's edge; past a door, stairs or a route's edge it stands over, or
+points at, the way they went; START > CO-OP > TOWN MAP and the TOWN MAP item
+show their icon. The owner also got a white screen when a friend accepted
+their invitation while they were in START > OPTION. Cause: a Gen 1 menu
+opens and closes behind `GBPalWhiteOut`, the screen's white cover, held for
+the screen's load frames by the world; a battle that begins inside those
+frames freezes the world with the cover up, over the battle field, until the
+battle ends. The field now takes the cover down while it is up. An invitation
+also waits until its player is back on the map, out of every menu, Mart, PC
+and the TOWN MAP (the check missed the start menu and the service screens).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Seven new in `test_coop_session` (edge arrow and a widened screen's edge, a door on a connected map, the way out of a building, the TOWN MAP direction and icons, arrow images, the session menu's TOWN MAP, the white taken down under a battle; the last fails without the fix) |
+| Whole suite | 5135/5135 on 4.8-dev7 under bwrap, 152061 asserts |
+| Gates, sockets | `tools/release.sh --gates` pass, comments 41350/41350 (ceiling raised by three, D106); ENet demo 16/16 on port 24633 |
+| Screens | `partner_tracker` on the Red import: the arrow over RED's front door in BLUE's window, on the left edge as BLUE walks east (it follows RED's steps), at the top while RED is on Route 1, none over the TOWN MAP; RED's window has none while standing on the doormat; BLUE's TOWN MAP shows RED's icon on Route 1, half under BLUE's own in Pallet Town. `versus_from_menus`: BLUE in the START menu gets the question only after closing it; RED in OPTION sees the battle at once. All captures looked at, no script errors |
+| Not reproduced | The white screen itself: four scripted timings (OPTION open before the answer, party screen, German Rot, the launcher's Co-op tab) all drew the battle; the cover is up only for the menu's load frames, which a script did not hit. The fix rests on the test |
+| Not run | A partner across the sea or after FLY on screen (the test covers the direction); no hand-played session |
+
 ## Battle music to the end, and a run button (D105, 2026-10-12)
 
 The owner reported that the map's music came back on the final strike or a

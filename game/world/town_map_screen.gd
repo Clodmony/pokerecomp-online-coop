@@ -502,8 +502,20 @@ func _gen1_objects() -> Array:
 		out.append([_gen1_bird_image(), _icon_position(_map.cursor)])
 	elif _oam != OAM_CLEARED:
 		out.append([_cursor_image(), _icon_position(_map.cursor)])
+	if _map.screen != Gen2TownMap.SCREEN_DEX_AREA:
+		for mark: Dictionary in Gen2ModHost.town_map_marks():
+			if _has_landmark(int(mark["map"])):
+				out.append([_marked_icon(mark["colors"]), _icon_position(int(mark["map"]))])
 	out.append([_player_image(), _icon_position(_map.player_landmark)])
 	return out
+
+
+func _marked_icon(colors: PackedColorArray) -> Image:
+	var number: int = Gen2WorldSprite.player_normal_sprite(false)
+	var sprite: Gen2WorldSprite = _data.overworld_sprite(number)
+	if sprite == null:
+		return _blank_icon()
+	return Gen2WorldSprite.image_for(sprite, _data.overworld_sprite_indices(number), colors)
 
 
 ## `.loop`'s own two refusals, and what `.exitLoop`'s `ld a, l / and a` counts:
