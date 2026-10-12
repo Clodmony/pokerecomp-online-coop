@@ -94,6 +94,8 @@ func _process(delta: float) -> void:
 		_anim_after = {}
 		_anim = null
 		return
+	if _screen != null:
+		_screen.set_white(false)
 	_take_events(view)
 	var scene: Dictionary = scene_view(view, data)
 	_renderer.set_view(_with_animation(scene.duplicate()))

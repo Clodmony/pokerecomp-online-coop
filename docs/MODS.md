@@ -1404,6 +1404,14 @@ Gotcha line and the nickname prompt.
 
 The catching tutorial and a Bug Contest catch are excluded.
 
+## Town map marks
+
+`register_town_map_marks(id, provider)` adds player icons to Generation 1's
+region map and fly map: `town_map_marks()` answers `[{map, colors}]`, one
+16x16 icon each, the player's own sprite in `colors` (four, the first
+transparent), at `map`'s place on the map and under the player's own icon. The
+dex's AREA screen draws none. Not save bound.
+
 ## Running
 
 `register_run_button(id, provider)` walks the player at bike speed while B is

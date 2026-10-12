@@ -149,6 +149,7 @@ const BATTLE_TAKEOVER_METHODS: Array[String] = ["takes_battle", "create_battle"]
 ## Beside a `finished(result)` signal: the world drives it as it drives its own battle.
 const BATTLE_TAKEOVER_NODE_METHODS: Array[String] = ["start", "advance_frame", "handle_button"]
 const RUN_BUTTON_METHODS: Array[String] = ["runs_while_held"]
+const TOWN_MAP_MARK_METHODS: Array[String] = ["town_map_marks"]
 const EXPERIENCE_SCALE_METHODS: Array[String] = ["experience_scale"]
 const EXPERIENCE_BYSTANDER_METHODS: Array[String] = ["experience_bystander_share"]
 
@@ -265,6 +266,7 @@ var _battle_takeovers: Dictionary = {}
 var _world_requests: Array[Dictionary] = []
 var _roamers_source: Callable = Callable()
 var _run_buttons: Dictionary = {}
+var _town_map_marks: Dictionary = {}
 var _experience_scales: Dictionary = {}
 ## The one BYSTANDER SHARE policy, exclusive for [member _event_mutators]' reason.
 var _experience_bystanders: Dictionary = {}
@@ -976,6 +978,19 @@ static func run_button_held() -> bool:
 		if bool(provider.call("runs_while_held")):
 			return true
 	return false
+
+
+## Registers TOWN MAP MARKS: `town_map_marks()` answers `[{map, colors}]`, more player icons on the Gen 1 maps. See `docs/MODS.md`.
+func register_town_map_marks(id: StringName, provider: Object) -> Dictionary:
+	return _register_provider(_town_map_marks, TOWN_MAP_MARK_METHODS, id, provider)
+
+
+static func town_map_marks() -> Array:
+	var out: Array = []
+	if _instance != null:
+		for provider: Object in _instance._town_map_marks.values():
+			out.append_array(provider.call("town_map_marks"))
+	return out
 
 
 ## Registers an EXPERIENCE SCALE policy for [param manifest]'s own run, save
