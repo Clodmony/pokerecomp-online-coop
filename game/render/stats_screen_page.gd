@@ -910,11 +910,11 @@ func _draw_gen1_moves(page: Dictionary, into: PackedByteArray) -> void:
 			continue
 		var move: Dictionary = moves[slot]
 		_text(into, width, String(move.get("name", "")), GEN1_MOVES_AT + step)
-		for column: int in 2:
-			_tile(
-				into, width, Gen1Layout.STATS_P_CODE,
-				GEN1_PP_LABEL_AT + step + Vector2i(column, 0)
-			)
+		if Gen1Text.language() == "de":
+			_text(into, width, "AP", GEN1_PP_LABEL_AT + step)
+		else:
+			for column: int in 2:
+				_tile(into, width, Gen1Layout.STATS_P_CODE, GEN1_PP_LABEL_AT + step + Vector2i(column, 0))
 		_text(into, width, "%s/%s" % [
 			str(int(move.get("pp", 0))).lpad(PP_DIGITS),
 			str(int(move.get("max_pp", 0))).lpad(PP_DIGITS),

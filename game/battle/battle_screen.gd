@@ -1606,7 +1606,7 @@ func _tutor_ball() -> int:
 func _tutor_name() -> String:
 	if _generation() != RomRegistry.GEN1:
 		return DUDE_NAME
-	return String(Gen1Layout.TUTOR_NAMES.get(String(_gen1_tutor().get("tutor", "")), DUDE_NAME))
+	return _de(String(Gen1Layout.TUTOR_NAMES.get(String(_gen1_tutor().get("tutor", "")), DUDE_NAME)))
 
 
 ## `wPlayerGender`'s `PLAYERGENDER_FEMALE_F`. Gold and Silver have one player
@@ -3011,6 +3011,7 @@ func show_message(text: String, prompt: bool = true) -> void:
 	# `BattleStartMessage` is called after `InitBattleDisplay` returns, so
 	# nothing is said while the pics are still sliding: the box drawn before the
 	# slide is an empty one.
+	text = _de(text)
 	if _intro != null:
 		_intro_message = text
 		return
@@ -3468,7 +3469,7 @@ func _use_pack_item(item: int, target: int, move_slot: int = -1) -> Dictionary:
 	## `BattleRestorePP`'s line over the party list, behind the same sound.
 	if int(effect.get("pp_restored", 0)) > 0:
 		_play_sfx(Gen2Sfx.SFX_FULL_HEAL)
-		_open_item_result(item, target, effect, &"", [Gen2StartMenuScreen.PP_RESTORED])
+		_open_item_result(item, target, effect, &"", [_de(Gen2StartMenuScreen.PP_RESTORED)])
 		return used
 	if StringName(used.get("kind", &"")) == &"poke_flute":
 		_show_flute_boxes(int(used.get("woken", 0)) > 0)
@@ -3739,7 +3740,7 @@ func complete_capture(result: Dictionary) -> Dictionary:
 		_capture_spent_turn = {}
 		var refusal: String = _ball_box_full_text() \
 			if StringName(result.get("reason", &"")) == &"storage_full" \
-			else "The capture could not be completed."
+			else _de("The capture could not be completed.")
 		if _capture_origin == &"pack":
 			_refuse_in_pack(refusal)
 		else:
@@ -3791,7 +3792,7 @@ func _caught_species() -> int:
 func _ball_box_full_text() -> String:
 	if _generation() != RomRegistry.GEN1:
 		return BALL_BOX_FULL_TEXT
-	return GEN1_BALL_BOX_FULL_TEXT % Gen2TextStream.SCROLL_BREAK
+	return _de(GEN1_BALL_BOX_FULL_TEXT) % Gen2TextStream.SCROLL_BREAK
 
 
 ## `PokeBallEffect`'s `ANIM_THROW_POKE_BALL`, one script: the catch is
@@ -4108,7 +4109,7 @@ func _open_new_dex_entry() -> bool:
 			_capture_dex_stage = &"text"
 			var gen1: bool = _generation() == RomRegistry.GEN1
 			show_message(
-				(GEN1_NEW_DEX_DATA_TEXT if gen1 else NEW_DEX_DATA_TEXT) % _name_of(_caught_species())
+				_de(GEN1_NEW_DEX_DATA_TEXT if gen1 else NEW_DEX_DATA_TEXT) % _name_of(_caught_species())
 				+ Gen2TextStream.sound_token(
 					Gen1Sfx.SFX_DEX_PAGE_ADDED if gen1 else Gen2Sfx.SFX_SLOT_MACHINE_START
 				)
@@ -4909,7 +4910,7 @@ func _show_prize_money_text() -> bool:
 	var earned: Dictionary = _earnings()
 	if int(earned["prize_shown"]) <= 0:
 		return false
-	var got: String = "%s got ¥%d\nfor winning!" % [
+	var got: String = _de("%s got ¥%d\nfor winning!") % [
 		_player_label(), int(earned["prize_shown"]),
 	]
 	match StringName(earned["prize_line"]):
@@ -4932,7 +4933,7 @@ func _show_pay_day_text() -> bool:
 	_pay_day_text_shown = true
 	if int(_earnings()["pay_day"]) <= 0:
 		return false
-	show_message("%s picked up\n¥%d!" % [_player_label(), int(_earnings()["pay_day"])])
+	show_message(_de("%s picked up\n¥%d!") % [_player_label(), int(_earnings()["pay_day"])])
 	return true
 
 
@@ -5153,7 +5154,7 @@ func _open_move_menu() -> void:
 		# `.force_struggle`: the line, `ld c, 60`, then Struggle.
 		_struggle_forced = true
 		var nick: String = _battler_name(Gen2Battle.PLAYER)
-		show_message("%s has no\nmoves left!" % nick if _generation() == RomRegistry.GEN1 \
+		show_message(_de("%s has no\nmoves left!") % nick if _generation() == RomRegistry.GEN1 \
 			else _battle_text("BattleText_MonHasNoMovesLeft", {}, [nick]), false)
 		_pending = [{"type": Gen2Battle.DELAY, "frames": NO_MOVES_LEFT_FRAMES}]
 		return
@@ -5976,7 +5977,7 @@ func _draw_yes_no_box(cursor: int = -1) -> void:
 		return
 	var box: Gen2MenuBox = Gen2MenuBox.from_coords(
 		YES_NO_LEFT, YES_NO_TOP,
-		YES_NO_LEFT + YES_NO_SPAN.x, YES_NO_TOP + YES_NO_SPAN.y, YES_NO_FLAGS
+		YES_NO_LEFT + YES_NO_SPAN.x + Gen1LayoutDe.yes_no_widened(), YES_NO_TOP + YES_NO_SPAN.y, YES_NO_FLAGS
 	)
 	_show_menu_image(
 		_menu_page.render(
@@ -6838,7 +6839,8 @@ func _line(row: Array, event: Dictionary) -> String:
 		values.append(_line_argument(code, event))
 	if values.is_empty():
 		return _de(String(row[0]))
-	return _de(String(row[0])) % values
+	var line: String = _de(String(row[0]))
+	return line % values if line == String(row[0]) or line.contains("%") else line
 
 
 ## One `kind:field` argument: a battler's name, a species, a move, an item, a type,
@@ -6873,8 +6875,8 @@ func _no_pp_left_text(event: Dictionary) -> String:
 func _drained_text(event: Dictionary) -> String:
 	var from: String = _battler_name(int(event.get("from", Gen2Battle.ENEMY)))
 	if bool(event.get("dream", false)):
-		return "%s's\ndream was eaten!" % from
-	return "Sucked health from\n%s!" % from
+		return _de("%s's\ndream was eaten!") % from
+	return _de("Sucked health from\n%s!") % from
 
 
 func _move_learned_text(event: Dictionary) -> String:
@@ -6910,7 +6912,7 @@ func _used_move_text(event: Dictionary) -> String:
 
 func _critical_text(event: Dictionary) -> String:
 	if bool(event.get("ohko", false)):
-		return "One-hit KO!" if _generation() == RomRegistry.GEN1 \
+		return _de("One-hit KO!") if _generation() == RomRegistry.GEN1 \
 			else _battle_text("OneHitKOText", event)
 	return _hit_line("CriticalHitText", event)
 
@@ -7005,7 +7007,7 @@ func _hurt_by_status_text(event: Dictionary) -> String:
 func _charging_up_text(event: Dictionary) -> String:
 	return "%s\n%s" % [
 		_battler_name(int(event.get("side", Gen2Battle.PLAYER))),
-		CHARGE_TEXT.get(int(event.get("move", 0)), CHARGE_DUG),
+		_de(CHARGE_TEXT.get(int(event.get("move", 0)), CHARGE_DUG)),
 	]
 
 
@@ -7126,8 +7128,7 @@ func _run_blocked_text(event: Dictionary) -> String:
 			"BattleText_TheresNoEscapeFromTrainerBattle" if trainer else "BattleText_CantEscape2",
 			event
 		)
-	return "No! There's no\nrunning from a" + SCROLL + "trainer battle!" if trainer \
-		else "Can't escape!"
+	return _de("No! There's no\nrunning from a" + SCROLL + "trainer battle!" if trainer else "Can't escape!")
 
 
 ## `BattleText_EnemyWasDefeated`, or `TrainerDefeatedText` off the request.
@@ -7175,7 +7176,7 @@ func _stat_changed_text(event: Dictionary) -> String:
 ## itself, because that is the cartridge's own rule.
 func _stat_failed_text(event: Dictionary) -> String:
 	if _generation() == RomRegistry.GEN1:
-		return "Nothing happened!"
+		return _de("Nothing happened!")
 	var stat_name: String = STAT_NAMES.get(event["stat"], String(event["stat"]).to_upper())
 	var rise: bool = int(event["by"]) > 0
 	var named: Dictionary = event.duplicate()
@@ -7196,7 +7197,7 @@ func _battler_name(side: int) -> String:
 ## `wEnemyMonNick`, which `InitWildBattle` writes GHOST into.
 func _enemy_mon_name() -> String:
 	if _enemy_ghosted:
-		return GHOST_NAME
+		return _de(GHOST_NAME)
 	return _enemy_nick if not _enemy_nick.is_empty() else _name_of(_enemy)
 
 
@@ -7784,11 +7785,11 @@ func _announce() -> void:
 	var wild: String = _enemy_mon_name()
 	## `.pokemonTower`: `EnemyAppearedText` in place of the wild line.
 	if _enemy_ghosted:
-		show_message("%s\nappeared!" % wild)
+		show_message(_de("%s\nappeared!") % wild)
 		return
 	match _battle.battle_type if _battle != null else Gen2Battle.BATTLETYPE_NORMAL:
 		Gen2Battle.BATTLETYPE_FISH:
-			show_message("The hooked\n%s%sattacked!" % [
+			show_message(_de("The hooked\n%s%sattacked!") % [
 				wild, SCROLL if _generation() == RomRegistry.GEN1 else "\n",
 			])
 		Gen2Battle.BATTLETYPE_TREE:

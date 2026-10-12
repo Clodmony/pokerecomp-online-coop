@@ -101,7 +101,8 @@ func _follow_battle(view: Dictionary) -> void:
 		if refused != &"duplicate" and refused != &"":
 			if menu.page == PokeCoopBattleMenu.NONE:
 				menu.reopen()
-			_say(String(REFUSALS.get(refused, "Refused: %s" % refused)))
+			var line: String = Gen1LayoutDe.ui(data.id if data != null else &"", String(REFUSALS.get(refused, "Refused: %s")))
+			_say(line if REFUSALS.has(refused) else line % refused)
 	if not String(view.get("outcome", "")).is_empty() and (not busy.is_valid() or not bool(busy.call())):
 		_dismissed[String(view["battle"])] = true
 

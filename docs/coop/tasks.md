@@ -52,7 +52,7 @@ keep the snapshot below current.
     are merged.
   - Seeds (lost on reboot) were under `/tmp/claude-1000/lead/seeds/`; rebuild
     with `tools/coop_seed.gd`.
-- **Next free decision number:** D102 (D72 to D101 are recorded).
+- **Next free decision number:** D103 (D72 to D102 are recorded).
 - **Godot 4.8-dev7** since the 0.1.75 merge (D97; dev4 before it):
   `Godot_v4.8-dev7_linux.x86_64.zip` from godot-builds, unzipped into the
   session scratchpad; the system `godot` is 4.7 and cannot open the project.
