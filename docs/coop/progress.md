@@ -11,6 +11,27 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Battle music to the end, and a run button (D103, 2026-10-12)
+
+The owner reported that the map's music came back on the final strike or a
+successful throw in a battle the world opened. Cause: the world's battle
+bridge told the world the fight was over the moment the host's outcome came
+in, and the world's battle exit (`_finish_battle_exit`) put the map's track
+back while the field still played the faint, the experience and the fanfare.
+The bridge now waits for the field's last line (`PokeCoopBattleTakeover.busy`).
+A wild win's fanfare now starts when the Pokémon falls, ahead of its line and
+the experience, as `FaintEnemyPokemon` does; a trainer's still follows the
+experience. Hold B to run (D103): the session registers upstream's RUN BUTTON
+policy, and a partner's steps are eased at the pace they report them.
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Co-op suites 247/247 (three new: the world waits for the field's last line, a wild fanfare on the fall and only once, running and a running partner's pace) |
+| Whole suite | 5106 tests on 4.8-dev7 under bwrap; the only failure was the comment ceiling, fixed by trimming the new comments (`test_source_budget` 4/4 after) |
+| Gates, sockets | `tools/release.sh --gates` pass, comments 41343/41343; ENet demo 16/16 on port 24611 |
+| Screens | `playthrough_brock` on the Red import, both windows finished (BROCK in 295 s), 47 captures inspected, no script errors. A local probe (not committed) logged each window's music: in all 22 battles the fanfare (wild, trainer, gym leader) started while the field was up and the map's track came back only after the field had closed. No catch happened in that run; a catch takes the same bridge path |
+| Not run | Running was not driven in a window (the scripted keys press one button at a time); no hand-played session |
+
 ## Friend menu continuation (#104, D100, 2026-10-11–12)
 
 Claude left an uncommitted `coop/pvp-battle` worktree on the native menus and

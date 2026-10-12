@@ -1,8 +1,8 @@
 class_name PokeCoopRemoteActor
 extends RefCounted
 
-## The other players as world actors, registered as a mod's are, eased over a walk's frames in one colour
-## each in every window and wearing the shock emote in a battle; this player's position goes to the host.
+## The other players as world actors, registered as a mod's are, eased at their own pace in one colour each in
+## every window and wearing the shock emote in a battle; this player's position goes to the host, and B held runs.
 
 const STEP_FRAMES: int = 16
 const PLAYER_COLORS: Array = [
@@ -80,12 +80,18 @@ func _advance_walk(player_id: String) -> void:
 		var start: Vector2 = target if walk.is_empty() else walk["at"]
 		if start.distance_to(target) > float(PokeCoopHost.MAX_STEP_CELLS):
 			start = target
-		walk = {"from": start, "to": target, "at": start, "frame": 0}
+		var pace: int = clampi(int(walk.get("since", STEP_FRAMES)), STEP_FRAMES / 2, STEP_FRAMES)
+		walk = {"from": start, "to": target, "at": start, "frame": 0, "frames": pace, "since": 0}
+	walk["since"] = int(walk["since"]) + 1
 	if walk["at"] != walk["to"]:
 		walk["frame"] = int(walk["frame"]) + 1
-		var progress: float = minf(float(walk["frame"]) / float(STEP_FRAMES), 1.0)
+		var progress: float = minf(float(walk["frame"]) / float(walk["frames"]), 1.0)
 		walk["at"] = (walk["from"] as Vector2).lerp(walk["to"], progress)
 	_walks[player_id] = walk
+
+
+func runs_while_held() -> bool:
+	return client != null
 
 
 func sprites() -> Array:
@@ -130,4 +136,4 @@ static func colors_of(state: Dictionary, player_id: String) -> PackedColorArray:
 static func _walk_frame(walk: Dictionary) -> int:
 	if walk.is_empty() or walk["at"] == walk["to"]:
 		return 0
-	return 1 if (int(walk["frame"]) / (STEP_FRAMES / 2)) % 2 == 0 else 3
+	return 1 if (int(walk["frame"]) / (int(walk["frames"]) / 2)) % 2 == 0 else 3

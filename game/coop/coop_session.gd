@@ -659,6 +659,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	field.audio = screen.get("_audio_player")
 	field.restore_music = Callable(screen, &"_play_current_map_music")
 	panel.busy = field.is_playing
+	_takeover.busy = field.is_playing
 	panel.say = field.say
 	var hardware: Gen2Screen = screen.get("_screen")
 	if hardware != null:
@@ -741,6 +742,7 @@ func _claim_seams() -> void:
 		_takeover = PokeCoopBattleTakeover.new()
 		Gen2ModHost.instance().register_world_actor(ACTOR_ID, _actor)
 		Gen2ModHost.instance().register_battle_takeover(TAKEOVER_ID, _takeover)
+		Gen2ModHost.instance().register_run_button(ACTOR_ID, _actor)
 	_actor.client = client
 	_takeover.client = client
 	_takeover.data = data
@@ -786,6 +788,7 @@ func _release_seams() -> void:
 		_actor.client = null
 		_takeover.client = null
 		_takeover.send_party = Callable()
+		_takeover.busy = Callable()
 		Gen2SaveStore.use_root("")
 
 
