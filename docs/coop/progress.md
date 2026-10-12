@@ -11,6 +11,18 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Upstream 0.1.78 (#126, D110, 2026-10-13)
+
+Upstream `v0.1.78` merged into the co-op line; three releases of Generation 3
+field work, Godot still 4.8-dev7. Branch `coop/126-upstream-0.1.78`.
+
+| Run | Result |
+|---|---|
+| `tools/verify.sh`, local x86_64, dev7 | import, gates, boot, ENet demo 16/16 and three processes passed; whole suite 5164/5164 (152555 asserts, 237 s) |
+| Engine-free gates | version 0.1.78 everywhere; comment ceiling 41583, both sides' raises |
+| Screens (scripted), Red | `playthrough_brock`: both windows reached BROCK, 18 battles won, 0 script errors; `cable_club_trade`: MACHOKE traded to P2 and evolved, 0 script errors; captures looked at. Run on a scratch copy of the owner's Red cache stamped with the new format 174 (no Generation 1 import code changed); the owner's caches show "Update needed" until imported again |
+| Not run | German games, Blue, a phone, Windows |
+
 ## A co-op bag holds forty rows (#124, D109, 2026-10-13)
 
 The owner asked for a bag that fits more items. Each player's bag in a co-op
