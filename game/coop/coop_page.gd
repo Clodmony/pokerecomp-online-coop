@@ -186,7 +186,7 @@ func hints() -> Array:
 	match _screen:
 		START:
 			out.append({"action": &"ui_menu", "label": "Troubleshooting", "run": _open_troubleshooting})
-		HOST:
+		HOST when not _campaigns.is_empty():
 			out.append({"action": &"ui_menu", "label": "Rename or delete", "run": _edit_focused})
 		HOSTING:
 			out.append({"action": &"ui_menu", "label": "Copy address", "run": _copy_best})
@@ -723,6 +723,10 @@ func _starter_chips(data: GameData) -> Container:
 		var pick: Gen2LauncherButton = Gen2LauncherButton.create(_theme, species, Gen2LauncherButton.Variant.SEGMENT)
 		pick.set_active(int(_form.get("starter", 1)) == index)
 		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _compact else Control.SIZE_FILL
+		if _compact:
+			pick.clip_text = true
+			pick.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			pick.add_theme_font_size_override("font_size", Gen2LauncherTheme.FONT_SMALL)
 		pick.pressed.connect(func() -> void:
 			_form["starter"] = index
 			for other: Node in chips.get_children():
@@ -1435,7 +1439,7 @@ func _refresh_live(_now: bool) -> void:
 		_refill("hosts", str(hosts.map(func(row: Dictionary) -> String:
 			return "%s|%s|%s|%s|%s" % [row["address"], row["port"], row["title"], row["players"], row["badges"]])), _fill_hosts.bind(hosts))
 	if _live.has("looking"):
-		(_live["looking"]["node"] as Label).text = "looking…" if _listener.listening() else "another window on this device is listening"
+		(_live["looking"]["node"] as Label).text = "looking…" if _listener.listening() else "not listening here: type the address below"
 	if _live.has("nearby_count"):
 		(_live["nearby_count"]["node"] as Label).text = "%d game%s found nearby" % [hosts.size(), "" if hosts.size() == 1 else "s"] \
 			if not hosts.is_empty() else "Looking for games nearby"
