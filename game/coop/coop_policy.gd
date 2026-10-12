@@ -71,6 +71,7 @@ const RIVAL_SCENES: Dictionary = {
 }
 
 
+const VERSION_PAIRS: Array = [[RomRegistry.RED, RomRegistry.BLUE], [RomRegistry.RED_DE, RomRegistry.BLUE_DE]]
 const CHALLENGE_BATTLE: String = "battle"
 const CHALLENGE_TRADE: String = "trade"
 const CHALLENGE_ANSWER_MSEC: int = 30000
@@ -94,6 +95,17 @@ static func versus_experience(award: Gen2Battle, faced: Dictionary, foes: Array)
 
 
 ## Prize money with Pay Day's: every participant is paid all of it (D61).
+static func same_story(game: StringName, other: StringName) -> bool:
+	return game == other or VERSION_PAIRS.any(func(pair: Array) -> bool: return pair.has(game) and pair.has(other))
+
+
+static func plays_with(game: StringName, sha1: String, campaign_game: StringName, campaign_sha1: String) -> bool:
+	if game == campaign_game:
+		return sha1 == campaign_sha1
+	return same_story(game, campaign_game) and sha1 == RomRegistry.sha1_for(game) \
+		and campaign_sha1 == RomRegistry.sha1_for(campaign_game)
+
+
 static func prize_shares(total: int, participants: Array) -> Dictionary:
 	var out: Dictionary = {}
 	for player_id: Variant in participants if total > 0 else []:

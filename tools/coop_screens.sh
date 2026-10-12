@@ -10,7 +10,7 @@
 #   press <p1|p2> <second> KEY...   KEYs one per 0.3 s from that second (U D L R A B START SELECT, - waits)
 #   shot  <p1|p2> <second> <name>   writes <out>/<name>.png
 #   close <p1|p2> <second>          closes that window, in seconds after it was launched
-# and may set GAME (red), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
+# and may set GAME (red), P2_GAME (GAME: Blue joins a Red host), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
 # early once both windows print "autoplay: ... finished" or "FAILED").
 # HOST_TOOL=none starts no tool host, for windows that host from the launcher
@@ -66,9 +66,12 @@ xdg="$out/xdg"
 user="$xdg/godot/app_userdata/pokerecomp"
 mkdir -p "$user/rom_cache"
 [[ -z "${SEED:-}" ]] || cp -r "$SEED/coop_campaigns" "$SEED/coop_identity.json" "$user/"
-cache="$(find "$real_user/rom_cache" -maxdepth 1 -name "${GAME}_????????" -print -quit)"
-[[ -n "$cache" ]] || { echo "coop_screens: no imported $GAME under $real_user/rom_cache" >&2; exit 2; }
-ln -s "$cache" "$user/rom_cache/"
+P2_GAME="${P2_GAME:-$GAME}"
+for game in $(printf '%s\n' "$GAME" "$P2_GAME" | sort -u); do
+	cache="$(find "$real_user/rom_cache" -maxdepth 1 -name "${game}_????????" -print -quit)"
+	[[ -n "$cache" ]] || { echo "coop_screens: no imported $game under $real_user/rom_cache" >&2; exit 2; }
+	ln -s "$(realpath "$cache")" "$user/rom_cache/"
+done
 port="${PORT:-$(( 24800 + RANDOM % 900 ))}"
 pids=()
 finish() { kill "${pids[@]}" 2>/dev/null || true; }
@@ -84,9 +87,10 @@ else
 fi
 
 launch() {
-	local who="$1" extra="$2" tool="$3"
+	local who="$1" extra="$2" tool="$3" game="$GAME"
+	[[ "$who" != p2 ]] || game="$P2_GAME"
 	# shellcheck disable=SC2086
-	XDG_DATA_HOME="$xdg" "$godot" --max-fps "$fps" --path . -s "res://tools/$tool.gd" -- 127.0.0.1 "$port" "$who" "$GAME" \
+	XDG_DATA_HOME="$xdg" "$godot" --max-fps "$fps" --path . -s "res://tools/$tool.gd" -- 127.0.0.1 "$port" "$who" "$game" \
 		$extra ${keys[$who]:+keys=${keys[$who]}} ${shots[$who]} > "$out/$who.log" 2>&1 &
 	local pid=$!
 	pids+=("$pid")

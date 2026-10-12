@@ -360,7 +360,7 @@ func _returning(player_name: String) -> PokeCoopPlayer:
 
 ## A new player's own save, rebuilt from vetted parts: legal Pokémon, sendable world keys, where they stood.
 func _brought_save(raw: Variant) -> Gen2SaveData:
-	if not raw is Dictionary or PokeCoopTransport.text(raw.get("game_id")) != String(data.id):
+	if not raw is Dictionary or not PokeCoopPolicy.same_story(StringName(PokeCoopTransport.text(raw.get("game_id"))), data.id):
 		return null
 	var save := Gen2SaveData.new()
 	save.game_id = data.id
@@ -396,8 +396,8 @@ func _brought_save(raw: Variant) -> Gen2SaveData:
 func _hello_refusal(message: Dictionary) -> StringName:
 	if PokeCoopTransport.number(message.get("protocol"), -1) != PROTOCOL:
 		return &"protocol_mismatch"
-	if StringName(PokeCoopTransport.text(message.get("game_id"))) != campaign.game_id \
-			or PokeCoopTransport.text(message.get("rom_sha1")) != campaign.rom_sha1:
+	if not PokeCoopPolicy.plays_with(StringName(PokeCoopTransport.text(message.get("game_id"))),
+			PokeCoopTransport.text(message.get("rom_sha1")), campaign.game_id, campaign.rom_sha1):
 		return &"content_mismatch"
 	return &""
 

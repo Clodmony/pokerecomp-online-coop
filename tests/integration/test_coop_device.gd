@@ -139,7 +139,7 @@ func test_a_host_that_never_answers_is_reported_rather_than_waited_for() -> void
 	joining.process()
 	assert_eq(joining.ended_reason(), "host_unreachable")
 	assert_string_contains(PokeCoopPage.why_not(joining.ended_reason()), "UDP port")
-	assert_string_contains(PokeCoopPage.why_not("refused: content_mismatch"), "same game file")
+	assert_string_contains(PokeCoopPage.why_not("refused: content_mismatch"), "Red or Blue of the same language")
 
 
 func test_a_joining_device_back_from_a_long_pause_dials_again_at_once() -> void:
