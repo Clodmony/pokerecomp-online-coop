@@ -345,7 +345,7 @@ func _process(_delta: float) -> void:
 static func why_not(reason: String) -> String:
 	match reason:
 		"refused: content_mismatch":
-			return "The host plays a different cartridge. Both players need the same game file: Red and Blue, or two revisions of one, cannot play together."
+			return "The host plays a cartridge yours cannot join. Red plays with Red or Blue of the same language; German and English, Yellow, or other revisions cannot play together."
 		"refused: protocol_mismatch":
 			return "The host runs a different version of the game. Both players need builds made from the same version."
 		"host_unreachable":

@@ -385,6 +385,29 @@ func test_a_client_with_another_cartridge_is_told_why_and_let_go() -> void:
 		assert_eq(_host.players.size(), 2)
 
 
+func test_blue_joins_a_red_campaign_of_its_own_language_and_nothing_else_does() -> void:
+	var red_host: PokeCoopHost = PokeCoopHost.create(_data, PokeCoopCampaign.create(
+		"c2", RomRegistry.RED, RomRegistry.sha1_for(RomRegistry.RED)), PokeCoopTransport.new())
+	var german_host: PokeCoopHost = PokeCoopHost.create(_data, PokeCoopCampaign.create(
+		"c3", RomRegistry.BLUE_DE, RomRegistry.sha1_for(RomRegistry.BLUE_DE)), PokeCoopTransport.new())
+	var hello: Callable = func(host: PokeCoopHost, game: StringName, sha1: String) -> StringName:
+		return host._hello_refusal({"protocol": PokeCoopHost.PROTOCOL, "game_id": String(game), "rom_sha1": sha1})
+
+	for game: StringName in [RomRegistry.RED, RomRegistry.BLUE]:
+		assert_eq(hello.call(red_host, game, RomRegistry.sha1_for(game)), &"", String(game))
+	assert_eq(hello.call(german_host, RomRegistry.RED_DE, RomRegistry.sha1_for(RomRegistry.RED_DE)), &"", "Rot with Blau")
+	for refused: Array in [
+		[red_host, RomRegistry.BLUE, "a hacked blue"], [red_host, RomRegistry.RED_DE, RomRegistry.sha1_for(RomRegistry.RED_DE)],
+		[red_host, RomRegistry.YELLOW, RomRegistry.sha1_for(RomRegistry.YELLOW)],
+		[german_host, RomRegistry.BLUE, RomRegistry.sha1_for(RomRegistry.BLUE)],
+	]:
+		assert_eq(hello.call(refused[0], refused[1], refused[2]), &"content_mismatch", "%s %s" % [refused[1], refused[2]])
+	assert_true(PokeCoopPolicy.same_story(RomRegistry.BLUE, RomRegistry.RED), "a Blue save brought into a Red campaign is kept")
+	assert_false(PokeCoopPolicy.same_story(RomRegistry.BLUE, RomRegistry.BLUE_DE))
+	red_host.transport.close()
+	german_host.transport.close()
+
+
 func test_only_plain_data_crosses_the_wire() -> void:
 	var stripped: Dictionary = PokeCoopTransport.decode(PokeCoopTransport.encode({
 		"type": "state", "object": RefCounted.new(), "nested": [Node2D, {"cell": Vector2i(1, 2)}],
