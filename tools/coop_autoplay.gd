@@ -2093,23 +2093,13 @@ func _note_other_version(view: Dictionary) -> void:
 	var enemy: int = int((view.get("enemy", {}) as Dictionary).get("species", 0))
 	if _route != "both_versions" or not _other_met.is_empty() or bool(view.get("trainer", false)) or tables.is_empty():
 		return
-	var own: Array = _species_in(PokeCoopPolicy.wild_tables(_session.data))
-	if own.has(enemy) or not _species_in(tables).has(enemy):
+	if PokeCoopPolicy.wild_species(PokeCoopPolicy.wild_tables(_session.data)).has(enemy) \
+			or not PokeCoopPolicy.wild_species(tables).has(enemy):
 		return
 	_other_met = String(_session.data.species(enemy).get("name", str(enemy)))
 	_other_shot_at = _frames + 150
 	print("coop autoplay: %s met a wild %s, which only %s has, on %s" % [
 		_player_id, _other_met, _session.client.other_wild.get("game_id", "?"), _played._screen.world().map_id()])
-
-
-static func _species_in(tables: Dictionary) -> Array:
-	var out: Array = []
-	for maps: Dictionary in tables.values():
-		for slots: Array in maps.values():
-			for slot: Array in slots:
-				if not out.has(int(slot[0])):
-					out.append(int(slot[0]))
-	return out
 
 
 func _trade_legs() -> Array:
