@@ -21,7 +21,8 @@
 # autoplayed run has the host snapshot the campaign and each window's leg every 10 s
 # into <out>/snapshots/<n>/ (SNAPSHOTS=0 turns it off): tools/coop_resume.sh reruns
 # the scenario from one. <out>/run.env records the scenario and what shaped it.
-# The out dir defaults to /tmp/coop_screens/<scenario>; it must be outside the
+# The out dir defaults to ~/dev-scratch/pokerecomp-coop/coop_screens/<scenario> (COOP_SCREENS_OUT
+# moves it); it must be outside the
 # repository, since captures show cartridge graphics. Exits non-zero when a
 # process logged a script error.
 set -euo pipefail
@@ -30,7 +31,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 scenario="${1:?usage: GODOT=<binary> tools/coop_screens.sh <scenario> [out dir]}"
 [[ -f "$scenario" ]] || scenario="$root/tools/coop_screens/$scenario.sh"
 name="$(basename "$scenario" .sh)"
-out="$(realpath -m "${2:-/tmp/coop_screens/$name}")"
+out="$(realpath -m "${2:-${COOP_SCREENS_OUT:-$HOME/dev-scratch/pokerecomp-coop/coop_screens}/$name}")"
 godot="${GODOT:?set GODOT to the Godot 4.8-dev7 binary}"
 real_user="${REAL_USER_DIR:-$HOME/.local/share/godot/app_userdata/pokerecomp}"
 case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&2; exit 2 ;; esac
