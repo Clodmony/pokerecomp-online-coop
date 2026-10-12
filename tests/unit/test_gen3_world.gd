@@ -730,8 +730,8 @@ func test_held_movement_frames_match_each_cartridge_engine() -> void:
 	var digests: Dictionary = {
 		RomRegistry.RUBY: "e8850179d6a0660a9626b59748eaa14ca69baea6",
 		RomRegistry.SAPPHIRE: "e8850179d6a0660a9626b59748eaa14ca69baea6",
-		RomRegistry.FIRERED: "85fba961aa128c1324bfa0bd89b9113b4352b4f3",
-		RomRegistry.LEAFGREEN: "85fba961aa128c1324bfa0bd89b9113b4352b4f3",
+		RomRegistry.FIRERED: "a39340a2eef7068ff2f3ed0c3fdcf465a7260434",
+		RomRegistry.LEAFGREEN: "a39340a2eef7068ff2f3ed0c3fdcf465a7260434",
 		RomRegistry.EMERALD: "d4f9c758c075bdc96e396c4456d3fa937a8722ea",
 	}
 	for id: StringName in digests:
@@ -803,3 +803,185 @@ func test_held_movement_occupancy_ground_reads_and_explicit_clearing() -> void:
 	assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(player), 16)
 	assert_true(objects.set_held_movement(player, 0xFE))
 	assert_false(player.held_movement_active)
+
+
+## ARM tasks and held dispatchers pin frame order, blocked/finished holds,
+## facing locks and FRLG freezing. Swapping task/sprite order or clearing every
+## finished hold erases cartridge differences no stationary probe exercises.
+func test_avatar_movement_tasks_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "dcda455344be4fb5d7dff51eea65c3b67d356500",
+		RomRegistry.SAPPHIRE: "dcda455344be4fb5d7dff51eea65c3b67d356500",
+		RomRegistry.FIRERED: "f881d6493b11d6169671ed20ab47926d3eb5dc59",
+		RomRegistry.LEAFGREEN: "f881d6493b11d6169671ed20ab47926d3eb5dc59",
+		RomRegistry.EMERALD: "c9405ecfd60809f43167cc01942dfb66361a8727",
+	}
+	for id: StringName in digests:
+		var trace: String = _avatar_task_trace(id)
+		assert_eq(trace.sha1_text(), digests[id], str(id))
+
+
+func _avatar_task_trace(id: StringName) -> String:
+	var lines := PackedStringArray()
+	for kind: int in 2:
+		for direction: int in range(1, 5):
+			for hold_state: int in 4:
+				for locked: int in 2:
+					var avatar: Gen3PlayerAvatar = _task_avatar(id, kind, direction, hold_state, locked)
+					lines.append(_task_frame(avatar, [kind, direction, hold_state, locked, 0]))
+					for frame: int in range(1, 41):
+						var held: Gen3ObjectEvents.ObjectEvent = avatar.object() if kind == 1 else avatar.objects.objects[1]
+						if frame == 4 and hold_state > 0 and (held.single_movement_active
+								or held.movement_action == (0x19 if avatar._frlg else 0x11)):
+							Gen3ObjectEvents.clear_held_movement(held)
+							held.single_movement_active = false
+						avatar.step_movement_tasks()
+						avatar.objects.step_movements()
+						lines.append(_task_frame(avatar, [kind, direction, hold_state, locked, frame]))
+	return "\n".join(lines) + "\n"
+
+
+func _task_avatar(id: StringName, kind: int, direction: int, hold_state: int, locked: int) -> Gen3PlayerAvatar:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 1)
+	avatar.flags = 0xE8 if kind == 1 else 0x21
+	avatar.object().facing_locked = locked != 0
+	avatar.object().frozen = true
+	if kind == 1:
+		avatar.object().graphics_id = avatar.graphics_for(Gen3PlayerAvatar.State.SURFING)
+		avatar.object().current_elevation = 1
+	for slot: int in range(1, 3):
+		var object := Gen3ObjectEvents.ObjectEvent.new()
+		object.active = true
+		object.local_id = slot
+		object.map_group = 0
+		object.map_number = 0
+		object.graphics_id = 97
+		if slot == 1 and not avatar._frlg:
+			object.graphics_id = 87
+		object.current = Vector2i(12, 12) + Gen3FieldCamera.DIRECTIONS[direction] if slot == 1 else Vector2i(20, 20)
+		object.previous = object.current
+		object.pixel_position = object.current * 16
+		object.facing = 4
+		object.movement_direction = 4
+		object.frozen = slot == 1 and kind == 0
+		objects.objects[slot] = object
+	if kind == 1:
+		objects.objects[1].current_elevation = 1
+	var held: Gen3ObjectEvents.ObjectEvent = avatar.object() if kind == 1 else objects.objects[1]
+	if hold_state in [1, 2]:
+		objects.set_held_movement(held, 0x19 if avatar._frlg else 0x11)
+		held.held_movement_finished = hold_state == 2
+	elif hold_state == 3:
+		held.single_movement_active = true
+	if kind == 1 and hold_state == 1:
+		objects.set_held_movement(objects.objects[2], 0x1C if avatar._frlg else 0x14)
+	objects.events.flag_set(Gen3EventData.STRENGTH_FLAG[id])
+	avatar.begin_collision_movement(direction)
+	return avatar
+
+
+func _task_frame(avatar: Gen3PlayerAvatar, prefix: Array) -> String:
+	var values: Array = prefix + [avatar.flags, int(avatar.prevent_step), int(avatar.controls_locked)]
+	var origins: Array[Vector2i] = [Vector2i(12, 12),
+		Vector2i(12, 12) + Gen3FieldCamera.DIRECTIONS[int(prefix[1])], Vector2i(20, 20)]
+	for slot: int in 3:
+		var object: Gen3ObjectEvents.ObjectEvent = avatar.objects.objects[slot]
+		var pixels: Vector2i = object.pixel_position - origins[slot] * 16
+		values.append_array([object.current.x, object.current.y, object.previous.x, object.previous.y,
+			pixels.x, pixels.y, object.jump_y, object.facing, object.movement_direction,
+			object.previous_movement_direction, int(object.facing_locked), Gen3ObjectEvents.held_movement_status(object),
+			object.movement_action, object.graphics_id, int(object.frozen)])
+	return ",".join(values)
+
+
+## A push lands before its task unlocks input. Using the object's byte-sized
+## trainer type or removing without a hide flag loses a Seafoam floor's state;
+## stationary avatar probes never run the landing or respawn objects.
+func test_strength_landing_hides_boulder_reveals_floor_and_releases_occupancy() -> void:
+	for id: StringName in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN]:
+		var avatar: Gen3PlayerAvatar = _boulder_avatar(id, 0x3C66)
+		var objects: Gen3ObjectEvents = avatar.objects
+		var boulder: Gen3ObjectEvents.ObjectEvent = objects.objects[1]
+		objects.events.flag_set(0x125)
+		assert_eq(boulder.trainer_type, 0x25)
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.PUSHED_BOULDER)
+		assert_true(avatar.controls_locked)
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.IMPASSABLE)
+		var effects: Array = []
+		for frame: int in 33:
+			effects.append_array(avatar.step_movement_tasks())
+			objects.step_movements()
+			if frame == 0:
+				assert_eq(boulder.current, Vector2i(14, 12))
+				assert_eq(boulder.previous, Vector2i(13, 12))
+				assert_eq(objects.collision_at(avatar.object(), 13, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+		assert_false(avatar.prevent_step)
+		assert_false(avatar.controls_locked)
+		assert_false(boulder.active)
+		assert_eq(avatar.object().current, Vector2i(12, 12))
+		assert_true(objects.events.flag_get(0x25))
+		assert_false(objects.events.flag_get(0x125))
+		assert_true(effects.has({"kind": "sound", "name": "fall"}))
+		objects.spawn_in_view()
+		assert_eq(objects.at_position(Vector2i(13, 12)), -1)
+		assert_eq(objects.collision_at(avatar.object(), 13, 12, 4), Gen3ObjectEvents.Collision.NONE)
+
+
+## Switch dispatch ignores the normal coordinate-event variable/elevation
+## gates and preserves duplicate rows, including null scripts. Filtering as a
+## player step drops a boulder's scripts; no bytecode test pushes.
+func test_strength_switch_dispatch_preserves_all_matching_coordinate_rows() -> void:
+	for id: StringName in [RomRegistry.FIRERED, RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		var avatar: Gen3PlayerAvatar = _boulder_avatar(id, 0x3020)
+		var coords: Array = [
+			{"x": 7, "y": 5, "elevation": 15, "variable": 0x4000, "value": 99, "script_offset": 0xD00},
+			{"x": 8, "y": 5, "elevation": 0, "variable": 0, "value": 0, "script_offset": 0xD20},
+			{"x": 7, "y": 5, "elevation": 0, "variable": 0, "value": 0, "script_offset": 0},
+		]
+		avatar.objects.camera.data._world_headers["0:0"]["events"]["coords"] = coords
+		assert_eq(avatar.begin_collision_movement(4)["collision"], Gen3PlayerAvatar.Collision.PUSHED_BOULDER)
+		var scripts: Array = []
+		for frame: int in 33:
+			for effect: Dictionary in avatar.step_movement_tasks():
+				if effect["kind"] == "script":
+					scripts.append(int(effect["offset"]))
+			avatar.objects.step_movements()
+		assert_eq(scripts, [] if id == RomRegistry.EMERALD else [0xD00, 0])
+		assert_false(avatar.controls_locked)
+		assert_true(avatar.objects.objects[1].active)
+
+
+func _boulder_avatar(id: StringName, entry: int) -> Gen3PlayerAvatar:
+	var objects: Gen3ObjectEvents = _field_objects(id)
+	objects.camera.header = {"layout_id": 1}
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	var template: Dictionary = Gen3ObjectEvents.EMPTY_TEMPLATE.duplicate()
+	template.merge({"local_id": 1, "graphics_id": 97 if avatar._frlg else 87,
+		"x": 6, "y": 5, "elevation": 3, "trainer_type": 0x125, "flag": 0x25}, true)
+	objects.camera.data._world_headers["0:0"]["events"]["objects"] = [template]
+	objects.load_templates()
+	objects.spawn_in_view()
+	objects.camera.grid.set_metatile_entry(14, 12, entry)
+	objects.events.flag_set(Gen3EventData.STRENGTH_FLAG[id])
+	return avatar
+
+
+## A ledge is a two-cell held jump, while another held action remains owned by
+## its caller. Replacing it or clearing a finished hold here changes scripted
+## motion; only the input model consumes ledge collision requests.
+func test_ledge_collision_starts_two_cell_jump_without_stealing_a_hold() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	objects.camera.grid.set_metatile_entry(13, 12, 0x3C38)
+	assert_eq(avatar.begin_collision_movement(4)["requests"],
+		[{"kind": "jumped_ledge"}, {"kind": "sound", "name": "ledge"}])
+	assert_eq(avatar.object().player_copyable_movement, 8)
+	for frame: int in 32:
+		objects.step_movements()
+	assert_eq(avatar.object().current, Vector2i(14, 12))
+	assert_eq(avatar.object().pixel_position, Vector2i(224, 192))
+	objects.camera.grid.set_metatile_entry(15, 12, 0x3C38)
+	avatar.begin_collision_movement(4)
+	assert_true(avatar.object().held_movement_finished)
+	assert_eq(avatar.object().movement_action, 0x0F)

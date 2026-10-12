@@ -85,6 +85,7 @@ func _one_game() -> void:
 	_object_events()
 	_player_avatars()
 	_held_movements()
+	_boulder_landings()
 	_world_scripts()
 	_world_script_data()
 	_wild_encounters()
@@ -910,6 +911,63 @@ static func _reset_mover(objects: Gen3ObjectEvents) -> void:
 	object.movement_direction = object.facing
 	object.frozen = true
 	objects.objects[0] = object
+
+
+## ARM landing routines over every hole/switch cell on each boulder's map.
+const BOULDER_DIGESTS: Dictionary = {
+	&"firered": "ee2cd591c7bee7b593f9be4717990bf815f4ca6c",
+	&"leafgreen": "c20bfa2f1fb4b51cf3aebd75e8e2bb432d5f5add",
+}
+
+
+func _boulder_landings() -> void:
+	var data: GameData = _r.data
+	if not BOULDER_DIGESTS.has(data.id):
+		return
+	var lines := PackedStringArray(["boulder landings"])
+	for header: Dictionary in data.world_map_headers():
+		var boulders: Array = data.world_map_events(int(header["group"]), int(header["number"])).get("objects", []).filter(
+			func(row: Dictionary) -> bool: return int(row["graphics_id"]) == 97 and int(row["kind"]) == 0)
+		if boulders.is_empty():
+			continue
+		var camera: Gen3FieldCamera = Gen3FieldCamera.open(data, int(header["group"]), int(header["number"]), Vector2i.ZERO)
+		var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+		var targets: Array[Vector2i] = _boulder_targets(camera.grid)
+		for template: Dictionary in boulders:
+			for at: Vector2i in targets:
+				lines.append(_boulder_landing_trace(objects, template, at))
+	_r.digest_matches("gen3_boulder_landings", lines, BOULDER_DIGESTS[data.id])
+
+
+static func _boulder_targets(grid: Gen3MapGrid) -> Array[Vector2i]:
+	var targets: Array[Vector2i] = []
+	for y: int in range(Gen3MapGrid.MAP_OFFSET, Gen3MapGrid.MAP_OFFSET + grid.layout_height):
+		for x: int in range(Gen3MapGrid.MAP_OFFSET, Gen3MapGrid.MAP_OFFSET + grid.layout_width):
+			if grid.behavior_at(x, y) in [0x20, 0x66]:
+				targets.append(Vector2i(x, y))
+	return targets
+
+
+static func _boulder_landing_trace(objects: Gen3ObjectEvents, template: Dictionary, at: Vector2i) -> String:
+	var boulder := Gen3ObjectEvents.ObjectEvent.new()
+	boulder.active = true
+	boulder.local_id = int(template["local_id"])
+	boulder.map_group = objects.camera.group
+	boulder.map_number = objects.camera.number
+	boulder.current = at
+	objects.objects[0] = boulder
+	var hide: int = int(template["flag"])
+	var reveal: int = int(template["trainer_type"])
+	objects.events.flag_clear(hide)
+	objects.events.flag_set(reveal)
+	var requests: Array = objects.boulder_landing(boulder)
+	var values: Array = [boulder.map_group, boulder.map_number, boulder.local_id, at.x, at.y,
+		objects.camera.grid.behavior_at(at.x, at.y), int(boulder.active),
+		int(objects.events.flag_get(hide)), int(objects.events.flag_get(reveal))]
+	for request: Dictionary in requests:
+		if request["kind"] == "script":
+			values.append(int(request["offset"]))
+	return "|".join(values)
 
 
 func _avatar_states(avatar: Gen3PlayerAvatar) -> String:
