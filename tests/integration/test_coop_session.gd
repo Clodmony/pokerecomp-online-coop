@@ -778,6 +778,41 @@ func test_a_battle_the_world_opens_is_fought_on_the_host_and_hands_back_the_part
 	)
 
 
+func test_the_world_leaves_a_won_fight_only_once_the_field_has_played_its_last_line() -> void:
+	var red: PokeCoopWorldLink = _window(_red)
+	var results: Array = []
+	var playing: Array = [true]
+	var takeover: PokeCoopBattleTakeover = PokeCoopBattleTakeover.over(_red, _data)
+	takeover.busy = func() -> bool: return playing[0]
+	var bridge: Node = add_child_autofree(takeover.create_battle())
+	bridge.connect("finished", func(result: Dictionary) -> void: results.append(result))
+	bridge.call("start", _opened_by_world(red, Gen2Party.of(Gen2BattleMon.create(_data, Fixture.BULBASAUR, 2, [Fixture.GROWL]))))
+	_pump()
+	bridge.call("_process", 0.0)
+
+	_fight_out(_battle_of(_red))
+	bridge.call("_process", 0.0)
+	assert_eq(results, [], "the map's music waits for the fanfare and the lines")
+	playing[0] = false
+	bridge.call("_process", 0.0)
+	assert_eq(results, [{"outcome": &"won", "team_won": true}])
+
+
+func test_a_wild_ones_fanfare_starts_on_its_fall_and_plays_once() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {"battle": "b7", "revision": 4, "active": 0, "outcome": "won",
+		"allies": [{"species": Fixture.PIKACHU, "level": 9, "hp": 20, "max_hp": 20}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 3, "hp": 0, "max_hp": 12},
+		"events": [{"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY}, {"type": Gen2Battle.EXP_GAINED, "index": 0, "amount": 9}]}
+	field._take_events(view)
+	var steps: Array = field._messages
+	var fanfare: int = steps.find({"fanfare": false, "gym": false})
+	var fainted: int = steps.find_custom(func(step: Dictionary) -> bool: return String(step.get("text", "")).contains("fainted"))
+	assert_true(fanfare >= 0 and fanfare < fainted, "`FaintEnemyPokemon` plays it ahead of the line")
+	assert_eq(steps.filter(func(step: Dictionary) -> bool: return step.has("fanfare")).size(), 1)
+
+
 func test_the_world_whites_out_its_own_player_and_the_host_does_not_charge_twice() -> void:
 	var blue: PokeCoopWorldLink = _window(_blue)
 	var context: Dictionary = _opened_by_world(blue, Gen2Party.of(
@@ -1990,6 +2025,25 @@ func test_a_key_item_the_story_takes_is_taken_from_everyone_but_a_fossil_is_not(
 	assert_eq(red.state.item_quantity(PARCEL), 0)
 	assert_eq(blue.state.item_quantity(PARCEL), 0, "Oak has the parcel: nobody carries it on")
 	assert_eq(blue.state.item_quantity(DOME_FOSSIL), 1, "Blue revives their own fossil")
+
+
+func test_b_runs_in_a_run_and_a_running_partner_is_eased_at_the_bikes_pace() -> void:
+	var world := Gen2WorldAPI.new(_data, Gen2WorldMap.new(), null)
+	var actor: PokeCoopRemoteActor = PokeCoopRemoteActor.over(_red)
+	actor.set_world(world)
+	assert_true(actor.runs_while_held())
+	_red.state["nearby"] = [_blue.player_id]
+	var partner: Dictionary = _red.state["players"][_blue.player_id]
+	partner["map"] = world.map_id()
+	partner["cell"] = Vector2i(4, 4)
+	for cell: int in 3:
+		partner["cell"] = Vector2i(5 + cell, 4)
+		for _frame: int in PokeCoopRemoteActor.STEP_FRAMES / 2:
+			actor.advance_frame()
+	assert_eq(actor.sprites()[0]["position_cells"], Vector2(7, 4), "a step every eight frames lands with the partner")
+
+	actor.client = null
+	assert_false(actor.runs_while_held(), "a closed session walks again")
 
 
 func test_a_partner_on_the_map_blocks_the_way_like_a_person_does() -> void:

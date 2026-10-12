@@ -133,6 +133,8 @@ or one after another:
 - Both players explore freely, on the same map or on different ones. The
   partner is drawn on your map in their own colour, with a "!" while they are
   in a battle, and blocks your way like any person on the map.
+- Hold **B** while walking to run at the bike's pace. The bike and surfing
+  keep their own speed.
 - Story flags, badges, beaten trainers and taken items on the ground are
   shared. Your team, PC, bag, money and position are yours.
 - Every item one player finds or is given along the story reaches the other
