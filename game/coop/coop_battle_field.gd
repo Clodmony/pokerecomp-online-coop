@@ -347,7 +347,8 @@ func _queue_animation(event: Dictionary, out: Dictionary) -> void:
 			_messages.append_array(send_out_steps(Gen2Battle.ENEMY if enemy_turn else Gen2Battle.PLAYER))
 		return
 	if index == Gen2Battle.ANIM_RETURN_MON:
-		_messages.append({"stage": PokeCoopBattleStage.RETREAT, "side": Gen2Battle.PLAYER})
+		if not enemy_turn:
+			_messages.append({"stage": PokeCoopBattleStage.RETREAT, "side": Gen2Battle.PLAYER})
 		return
 	_messages.append({
 		"anim": index, "enemy": enemy_turn, "after": int(event.get("after_anim", 0)),

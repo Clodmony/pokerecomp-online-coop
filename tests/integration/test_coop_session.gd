@@ -3347,6 +3347,40 @@ func test_versus_waits_for_both_choices_and_mirrors_each_players_side() -> void:
 	assert_eq(blue_events, PokeCoopVersus.mirrored(red_events))
 
 
+func test_a_versus_switch_or_faint_leaves_each_windows_own_pokemon_on_the_field() -> void:
+	_invite()
+	var id: String = _battle_of(_red)
+	var fields: Array = [_red, _blue].map(func(client: PokeCoopClient) -> PokeCoopBattleField:
+		var field: PokeCoopBattleField = add_child_autofree(
+			PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(client, _data)), _data))
+		field.visible = true
+		return field)
+	var whole: PackedByteArray = Gen2BattleScreenMap.seeded(_data.generation)
+	var turns: Array = [
+		["RED switches", {"type": "switch", "index": 1}, {"type": "move", "slot": 1}],
+		["BLUE switches", {"type": "move", "slot": 0}, {"type": "switch", "index": 1}],
+		["RED switches back", {"type": "switch", "index": 0}, {"type": "move", "slot": 0}],
+		["BLUE's faints", {"type": "move", "slot": 0}, {"type": "move", "slot": 0}],
+		["BLUE sends one out", {}, {"type": "send_out", "index": 0}],
+	]
+	for turn: Array in turns:
+		for chosen: int in 2:
+			if not (turn[chosen + 1] as Dictionary).is_empty():
+				_send(func() -> void: ([_red, _blue][chosen] as PokeCoopClient).act(id, turn[chosen + 1]))
+		for seat: int in 2:
+			var field: PokeCoopBattleField = fields[seat]
+			var view: Dictionary = ([_red, _blue][seat] as PokeCoopClient).battle(id)
+			field._take_events(view)
+			for frame: int in 3000:
+				field._advance_text()
+			field._board.settle(PokeCoopBattleField.scene_view(view, _data))
+			if turn[0] == "BLUE's faints":
+				assert_eq(field._board.hidden.keys(), [Gen2Battle.ENEMY if seat == 0 else Gen2Battle.PLAYER])
+				continue
+			assert_true(field._board.map == whole, "%s: both pictures whole in %s's window" % [turn[0], ["RED", "BLUE"][seat]])
+	assert_eq(_host.battles[id].battle.party(Gen2Battle.ENEMY).active, 0, "BLUE's CHARMANDER came back out")
+
+
 func test_versus_heals_both_parties_and_gives_full_exp_without_warp_or_money() -> void:
 	var red: PokeCoopPlayer = _host.player(_red.player_id)
 	var blue: PokeCoopPlayer = _host.player(_blue.player_id)
