@@ -1129,3 +1129,77 @@ func test_rotating_gate_collision_turns_shared_vars_once_and_preserves_static_qu
 	objects.camera.group = 0
 	assert_eq(avatar.rotating_gate_collision(3, at), {"collision": 0, "requests": []})
 	assert_eq(avatar.gate_orientation(0), 2)
+
+
+## ARM callback traces protect every patrol's return axis, range turns,
+## blocked in-place steps, fixed facing and each pace through freeze/hold gates.
+## Existing held-action tests never dispatch an autonomous movement type.
+func test_autonomous_patrol_frames_match_each_cartridge_engine() -> void:
+	var digests: Dictionary = {
+		RomRegistry.RUBY: "0d8353eb92e0df59191440a52c955957adae918f",
+		RomRegistry.SAPPHIRE: "0d8353eb92e0df59191440a52c955957adae918f",
+		RomRegistry.FIRERED: "0c0a12d599b9292d1760b8c39bdedd3bbb03a230",
+		RomRegistry.LEAFGREEN: "0c0a12d599b9292d1760b8c39bdedd3bbb03a230",
+		RomRegistry.EMERALD: "adb004e3736ee73894a1658beb8215a51cb45cd2",
+	}
+	for id: StringName in digests:
+		var objects: Gen3ObjectEvents = _patrol_objects(id)
+		var lines := PackedStringArray()
+		var types: Array = range(7, 11) + range(0x19, 0x35) + range(0x40, 0x4D)
+		if id == RomRegistry.EMERALD:
+			types += range(0x4D, 0x51)
+		for type: int in types:
+			for scenario: int in 7:
+				lines.append_array(_patrol_trace(objects, type, scenario))
+		var output: String = "\n".join(lines) + "\n"
+		assert_eq(output.sha1_text(), digests[id], str(id))
+
+
+func _patrol_objects(id: StringName) -> Gen3ObjectEvents:
+	var field: Gen3ObjectEvents = _field_objects(id)
+	var types: Array = []
+	for type: int in 81:
+		types.append({"ranged": false, "facing": [2, 1, 3, 4][type - 0x19] if type >= 0x19 and type <= 0x1C else 4})
+	field.camera.data._world_scripts["movement_types"] = types
+	return Gen3ObjectEvents.new(field.camera, field.events)
+
+
+func _patrol_trace(objects: Gen3ObjectEvents, type: int, scenario: int) -> PackedStringArray:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.movement_type = type
+	object.initial = Vector2i(12, 12)
+	object.current = object.initial
+	object.previous = Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = 4
+	object.movement_direction = 4
+	object.current_elevation = 3
+	object.previous_elevation = 3
+	object.movement_range = Vector2i(2, 3)
+	object.facing_locked = scenario == 2
+	objects.objects[0] = object
+	objects.camera.grid.set_metatile_entry(13, 12, 0x3400 if scenario == 1 else (0x1000 if scenario == 6 else 0x3000))
+	var other := Gen3ObjectEvents.ObjectEvent.new()
+	other.active = scenario == 5
+	other.current = Vector2i(13, 12)
+	other.previous = Vector2i(12, 13)
+	other.current_elevation = 3
+	objects.objects[1] = other
+	var lines := PackedStringArray()
+	for frame: int in range(1, 193):
+		if scenario == 3 and frame in [9, 13]:
+			object.frozen = frame == 9
+		if scenario == 4:
+			if frame == 85:
+				objects.set_held_movement(object, 2)
+			if frame == 100:
+				Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		objects.step_movements()
+		var pixels: Vector2i = object.pixel_position - Vector2i(192, 192)
+		lines.append(",".join([type, scenario, frame, object.current.x, object.current.y,
+			object.previous.x, object.previous.y, pixels.x, pixels.y, object.facing,
+			object.movement_direction, object.previous_movement_direction, object.direction_sequence_index,
+			object.movement_state, object.movement_action, int(object.single_movement_active),
+			int(object.held_movement_active), int(object.held_movement_finished), int(object.frozen), int(object.invisible)]))
+	return lines
