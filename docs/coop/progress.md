@@ -11,6 +11,27 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A friend battle switch keeps the viewer's own Pokémon (2026-10-12)
+
+The owner reported that in a friend battle the viewer's own Pokémon vanished
+once the opponent switched. Cause: the host mirrors the challenger's recall
+(`ANIM_RETURN_MON`, which the engine only plays for its player side) into the
+challenged player's view as an enemy-turn animation, and the field
+(`PokeCoopBattleField._queue_animation`) shrank the player's side for it
+regardless of whose turn it was. The challenged player's own picture was
+emptied and only came back if their own move's animation happened to redraw
+it. The field now plays the retreat only on the player's own turn; the
+opponent's square empties at its send-out, as before. A switch by the challenged
+player never had the fault (no recall animation reaches the challenger).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | New `test_a_versus_switch_or_faint_leaves_each_windows_own_pokemon_on_the_field`: failed before the fix (BLUE's window blank on both of RED's switches), passes after; co-op suites 267/267 |
+| Whole suite | 5129/5129 on 4.8-dev7 under bwrap; the owner's campaigns and logs untouched by the runs |
+| Gates | `tools/release.sh --gates` pass, comments 41347/41347 |
+| Screens | A local friend-battle scenario on the Red import (not committed): RED switches CHARMANDER for PIDGEY while BLUE uses TAIL WHIP or TACKLE, then BLUE switches to RATTATA. Before the fix BLUE's window showed its SQUIRTLE shrink away during "RED withdrew CHARMANDER!" and stay empty until its own move's animation; after it, every capture shows both Pokémon |
+| Not run | No forced switch after a faint on screen (covered by the test only); no hand-played session |
+
 ## Battle music to the end, and a run button (D105, 2026-10-12)
 
 The owner reported that the map's music came back on the final strike or a
