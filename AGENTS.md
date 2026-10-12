@@ -157,7 +157,9 @@ before pushing.
 | `game/coop/coop_link_transport.gd` | `PokeCoopLinkTransport`: the Cable Club's cable to the partner the host names |
 | `game/coop/coop_battle_takeover.gd` | `PokeCoopBattleTakeover`: a window's own battles fought on the host |
 | `game/coop/coop_session.gd` | `PokeCoopSession`: one device's co-op run, held by `Gen2GameRuntime.coop` |
-| `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab |
+| `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab, its screens and sheets |
+| `game/coop/coop_tab_parts.gd` | `PokeCoopTabParts`: the tab's cards, chips, steps and its sheet |
+| `game/coop/coop_lobby.gd` | `PokeCoopLobby`: LAN beacon and listener, the dial that retries and probes, addresses, cartridges, the tab's memory |
 | `game/coop/coop_log.gd` | `PokeCoopLog`: a device's session log, its debug-stream batches and the setting that shares them |
 | `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
 | `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
@@ -165,9 +167,9 @@ before pushing.
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
-| `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69) |
+| `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69); `tour=` photographs every screen |
 | `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead |
-| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
+| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/unit/test_coop_lobby.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd` | co-op tests |
 | `docs/coop/tracking.md` | issue status and the issue numbers of items first tracked locally (`L1` and on) |
 
 ## Conventions specific to the fork

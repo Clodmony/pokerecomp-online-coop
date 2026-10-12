@@ -3,7 +3,7 @@
 # Rote hosts a new CAMPAIGN 1 with the rival BLAU; Blaue finds it nearby, first fails to reach an
 # address nobody hosts, then joins as a new player. Rote stops hosting (asked first), shows its
 # campaign card, its edit and delete sheets, then hosts it again; Blaue, sent back, joins again as
-# the trainer the host knows. Run with GAME=red_de P2_GAME=blue_de (test cases L01 to L12).
+# the trainer the host knows. Run with GAME=red_de P2_GAME=blue_de (test cases K01 to K13).
 HOST_TOOL=none
 P1_TOOL=coop_launcher_play
 P2_TOOL=coop_launcher_play

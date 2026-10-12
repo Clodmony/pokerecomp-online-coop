@@ -2,7 +2,7 @@
 # BLUE joins it from Nearby; BLUE leaves from the CO-OP menu (SELECT), then RED. RED hosts a new SECOND,
 # BLUE joins, RED leaves under BLUE, who is told and sent back. RED picks FIRST again from its campaign
 # cards and BLUE, asked first, joins as the trainer the host knows, then saves. Each campaign file holds
-# RED and BLUE once (test cases S01, S03, S06, S11, L05, L06). Seconds count from each window's launch;
+# RED and BLUE once (test cases S01, S03, S06, S11, K05, K06). Seconds count from each window's launch;
 # a round takes a step every third of a second once what it waits for is there.
 HOST_TOOL=none
 P1_TOOL=coop_launcher_play
