@@ -1633,3 +1633,16 @@ party, which can hold twelve. One difference: the cartridge shows the
 trainer's row under SHIFT's "about to use" question and clears it before "X
 sent out"; co-op asks no such question, so the row stands under "X sent out"
 for a beat instead. The comment total stays at the ceiling.
+
+## D109. A co-op bag holds forty rows (#124, owner's request, 2026-10-13)
+
+The owner asked for a bag that fits more. Red and Blue keep one list of
+twenty rows, and in co-op it fills sooner: every shared key item and HM
+(`SHARED_ITEMS`) takes a row in both bags. A co-op run now gives each player
+forty (`PokeCoopPolicy.BAG_CAPACITY`). The world asks one upstream seam,
+`Gen2WorldPack.gen1_bag_capacity`, which every "is there room" check
+(pickups, Marts, the PC, gifts) goes through. The session raises it when its
+world opens and puts back the cartridge's twenty when it closes, so a solo
+game is unchanged. The host's own spill of a gift to the PC uses the same
+forty. A co-op bag never reaches a cartridge `.sav`: windows save JSON slots,
+and only the launcher exports solo saves. The PC keeps its fifty.

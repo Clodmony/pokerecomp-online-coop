@@ -4,6 +4,7 @@ extends RefCounted
 ## Rules the original games never had to decide, kept apart from the simulation; `docs/coop/design.md` says which the owner settled.
 
 const NEW_PLAYER_MONEY: int = 3000
+const BAG_CAPACITY: int = 40  ## Each player's bag rows, twice the cartridge's twenty (D109).
 ## Red and Blue's three starters, and the level Oak's lab hands one out at.
 const STARTERS: Array[int] = [1, 4, 7]
 const STARTER_LEVEL: int = 5
@@ -349,9 +350,9 @@ static func hand_over(player: PokeCoopPlayer, item: int) -> void:
 		_stow(player, item, 1)
 
 
-## Into the bag, or the PC's items when the bag's twenty rows are taken.
+## Into the bag, or the PC's items when the bag's rows are taken.
 static func _stow(player: PokeCoopPlayer, item: int, count: int) -> void:
-	if player.item_count(item) > 0 or player.items.size() < Gen1Layout.BAG_ITEM_CAPACITY:
+	if player.item_count(item) > 0 or player.items.size() < BAG_CAPACITY:
 		player.give_item(item, count)
 		return
 	var stored: Dictionary = player.world.get("pc_items", {})

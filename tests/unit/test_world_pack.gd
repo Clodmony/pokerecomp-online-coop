@@ -188,6 +188,20 @@ func test_receive_check_counts_a_generation_1_bag_as_one_pocket() -> void:
 	)["ok"]), "a stack already held takes no new slot")
 
 
+func test_a_raised_generation_1_bag_takes_more_rows() -> void:
+	var data: GameData = GameData.open_directory(Fixture.directory())
+	data.generation = RomRegistry.GEN1
+	var owned: Dictionary = {}
+	for item: int in range(100, 100 + Gen1Layout.BAG_ITEM_CAPACITY):
+		owned[item] = 1
+	Gen2WorldPack.gen1_bag_capacity = Gen1Layout.BAG_ITEM_CAPACITY + 1
+	var roomy: bool = bool(Gen2WorldPack.receive_check(data, owned, ITEM_POTION, 1)["ok"])
+	owned[ITEM_POTION] = 1
+	var full: bool = bool(Gen2WorldPack.receive_check(data, owned, ITEM_ANTIDOTE, 1)["ok"])
+	Gen2WorldPack.gen1_bag_capacity = Gen1Layout.BAG_ITEM_CAPACITY
+	assert_eq([roomy, full], [true, false], "one more row, then full")
+
+
 ## engine/items/pack.asm's .ItemBallsKey_LoadSubmenu picks between six headers on
 ## two inverted permission bits and the field-menu nibble. POTION is CANT_SELECT
 ## with a usable field menu, so it reaches MenuHeader_UsableItem.

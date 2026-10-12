@@ -762,6 +762,7 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 		_takeover.send_party = link.push_party
 		screen.save_gate = link.save_refusal
 		world.sight_gate = link.trainer_free
+		Gen2WorldPack.gen1_bag_capacity = PokeCoopPolicy.BAG_CAPACITY
 		screen.save_written = link.note_save_written
 		cable = PokeCoopLinkTransport.over(client)
 		world.state.set_link_transport(cable)
@@ -905,6 +906,7 @@ func close() -> void:
 
 
 func _release_seams() -> void:
+	Gen2WorldPack.gen1_bag_capacity = Gen1Layout.BAG_ITEM_CAPACITY
 	if _both_versions != null:
 		Gen2ModHost.instance().unregister_wild_substitute(BothVersions.ID)
 		_both_versions = null

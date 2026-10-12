@@ -11,6 +11,20 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A co-op bag holds forty rows (#124, D109, 2026-10-13)
+
+The owner asked for a bag that fits more items. Each player's bag in a co-op
+run now holds forty rows instead of the cartridge's twenty. A solo game keeps
+twenty. Branch `coop/bag-size`, stacked on `coop/opponent-balls` (#122).
+
+| Verification | Result |
+|---|---|
+| Synthetic tests | Three new: `test_a_raised_generation_1_bag_takes_more_rows` (unit), `test_a_window_takes_a_twenty_first_item_out_of_its_pc_and_the_host_keeps_it`, `test_closing_a_session_gives_a_solo_game_back_the_cartridges_bag` (integration); the gift-spill test now fills forty rows |
+| Whole suite | 5148/5148 on 4.8-dev7 under bwrap, 152121 asserts |
+| Gates, sockets | `tools/release.sh --gates` pass, comments 41354/41354; ENet demo 16/16 on port 24657 |
+| Screens | `bag_forty` on the Red import (a `viridian_forest` seed, BLUE's bag twenty different items, the PC its POTION): in the Pewter POKéMON CENTER BLUE withdraws the POTION ("Withdrew POTION.", where the cartridge says it can't carry more); the bag lists it as row twenty-one before CANCEL; after SAVE the host's campaign holds 21 rows and an empty PC (the scenario's check). All captures looked at, no script errors. A control run with nineteen items behaves as before |
+| Not run | A Mart purchase or a pickup past twenty on screen (the same `receive_check`); a bag of forty-one; no hand-played session |
+
 ## Party balls in co-op battles (D108, 2026-10-13)
 
 The owner asked whether the opponent's remaining Pokémon used to show as
