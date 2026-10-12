@@ -16,7 +16,7 @@ const PLAYER_COLORS: Array = [
 const ARROW_SIDE: PackedStringArray = ["oo......", "offo....", "offffo..", "offffffo", "offffffo", "offffo..", "offo....", "oo......"]
 const ARROW_CORNER: PackedStringArray = [".......o", "......oo", ".....ofo", "....offo", "...offfo", "..offffo", ".offfffo", "oooooooo"]
 const ARROW_SIZE: int = 8
-const MARK_INSET: int = 2
+const MARK_INSET: int = 4
 const MARK_BLINK_FRAMES: int = 52
 const MARK_CYCLE_FRAMES: int = 64
 const SCREEN_MIDDLE: Vector2 = Vector2(72, 68)
@@ -49,8 +49,9 @@ func advance_frame() -> void:
 	if _world == null or client == null:
 		return
 	_report()
-	for player_id: String in _visible():
-		_advance_walk(player_id)
+	var shown: Dictionary = _shown()
+	for player_id: String in shown:
+		_advance_walk(player_id, shown[player_id])
 
 
 func _report() -> void:
@@ -84,12 +85,33 @@ func _visible() -> Array[String]:
 	return out
 
 
+func _shown() -> Dictionary:
+	var out: Dictionary = {}
+	for player_id: String in _visible():
+		out[player_id] = Vector2.ZERO
+	if _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+		return out
+	var everyone: Dictionary = client.state.get("players", {})
+	for player_id: String in everyone:
+		var view: Dictionary = everyone[player_id]
+		if player_id == client.player_id or out.has(player_id) or not _partner_out(view) or view["map"] == _world.map_id():
+			continue
+		var route: Dictionary = _route(view["map"])
+		if route.has("origin"):
+			out[player_id] = route["origin"]
+	return out
+
+
+func _partner_out(view: Dictionary) -> bool:
+	return bool(view.get("connected", false)) and view.get("opening") != true and view.get("map") is Vector2i and view.get("cell") is Vector2i
+
+
 func _view(player_id: String) -> Dictionary:
 	return (client.state.get("players", {}) as Dictionary).get(player_id, {})
 
 
-func _advance_walk(player_id: String) -> void:
-	var target := Vector2(_view(player_id)["cell"] as Vector2i)
+func _advance_walk(player_id: String, origin: Vector2) -> void:
+	var target: Vector2 = origin + Vector2(_view(player_id)["cell"] as Vector2i)
 	var walk: Dictionary = _walks.get(player_id, {})
 	if walk.is_empty() or walk["to"] != target:
 		var start: Vector2 = target if walk.is_empty() else walk["at"]
@@ -113,14 +135,15 @@ func sprites() -> Array:
 	var out: Array = []
 	if _world == null or client == null:
 		return out
-	for player_id: String in _visible():
+	var shown: Dictionary = _shown()
+	for player_id: String in shown:
 		var view: Dictionary = _view(player_id)
 		var walk: Dictionary = _walks.get(player_id, {})
 		var entry: Dictionary = {
 			"sprite": Gen2WorldSprite.SPRITE_PLAYER, "facing": int(view["facing"]),
-			"position_cells": walk.get("at", Vector2(view["cell"] as Vector2i)),
+			"position_cells": walk.get("at", (shown[player_id] as Vector2) + Vector2(view["cell"] as Vector2i)),
 			"frame": _walk_frame(walk), "id": StringName(player_id), "colors": _colors(player_id),
-			"solid": true,
+			"solid": view.get("map") == _world.map_id(),
 		}
 		if not String(view.get("battle", "")).is_empty():
 			entry["emote"] = Gen2WorldActors.EMOTE_SHOCK
@@ -189,7 +212,7 @@ func partner_marks() -> Array:
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:
 		var view: Dictionary = everyone[player_id]
-		if player_id == client.player_id or not bool(view.get("connected", false)) or view.get("opening") == true:
+		if player_id == client.player_id or not _partner_out(view):
 			continue
 		var goal: Dictionary = _goal(player_id, view)
 		if goal.is_empty():
@@ -203,12 +226,10 @@ func partner_marks() -> Array:
 
 
 func _goal(player_id: String, view: Dictionary) -> Dictionary:
-	if not view.get("map") is Vector2i or not view.get("cell") is Vector2i:
-		return {}
 	var route: Dictionary = _route(view["map"])
 	if route.has("origin"):
-		var at: Vector2 = (_walks.get(player_id, {}) as Dictionary).get("at", Vector2(view["cell"] as Vector2i))
-		return {"partner": (route["origin"] as Vector2) + at}
+		var at: Vector2 = (route["origin"] as Vector2) + Vector2(view["cell"] as Vector2i)
+		return {"partner": (_walks.get(player_id, {}) as Dictionary).get("at", at)}
 	if route.has("exit"):
 		return {"cell": route["exit"]}
 	var here: Dictionary = _world.data.landmark(_world.data.area_landmark(_world.map_id().y))
@@ -329,6 +350,6 @@ func town_map_marks() -> Array:
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:
 		var view: Dictionary = everyone[player_id]
-		if player_id != client.player_id and bool(view.get("connected", false)) and view.get("opening") != true and view.get("map") is Vector2i:
+		if player_id != client.player_id and _partner_out(view):
 			out.append({"map": _world.data.area_landmark((view["map"] as Vector2i).y), "colors": _colors(player_id)})
 	return out
