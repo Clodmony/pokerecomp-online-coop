@@ -223,6 +223,7 @@ Kept small so upstream merges stay cheap (#14):
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
 | `autoload/input_runtime.gd`, `game/options/options.gd`, `game/launcher/controls_section.gd`, `game/input/input_actions.gd` | the owner's controller pick: `Gen2Options.pad`, applied by the new `game/input/pad_choice.gd` (`PokePadChoice`) after each install and plug; Settings > Controls > Controller; other pads' events are dropped in `_input`; Auto letters read the picked pad |
 | `game/mods/mod_host.gd`, `game/world/world_api.gd`, `tests/unit/test_world_api.gd` | `unregister_wild_substitute`; the wild substitute's context carries the drawn `slot` (D104) |
+| `game/mods/mod_host.gd`, `game/world/town_map_screen.gd`, `docs/MODS.md` | `register_town_map_marks`: more player icons on the Generation 1 region map and fly map (D106) |
 | `.gutconfig.json` | `pre_run_script`: `tests/coop_test_folders.gd` keeps every run's co-op campaigns and session logs out of the player's folders |
 | `README.md` | AI-authorship notice at the top |
 

@@ -150,9 +150,13 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | W73 | The partner reaches the department store roof second and lands on the stair cell the drinker must pass | The partner steps under the vending machines and waits there; the drinker buys, leaves by the stairs, and the partner follows | | playthrough_sabrina; resume from `celadon_mart_up_*` | |
 | W74 | The drinker reaches Route 7's gate before the partner | It waits in the gate until the partner is in, then hands over the drink; the partner walks through on the shared flag | | playthrough_sabrina | |
 | W75 | Hold B and walk; let go; ride the BIKE holding B | Twice the walking pace while B is held; the partner sees you glide at that pace, not behind; the bike is no faster | `test_b_runs_in_a_run_and_a_running_partner_is_eased_at_the_bikes_pace`, `test_running_takes_the_fast_row_and_only_for_a_walk` | | |
-
-## Battles
-
+| W76 | Walk away from the partner on one map until they leave the screen | An arrow in the partner's colour on the screen's edge points at them and follows them; it blinks, and is gone when they are back on screen | `test_a_partner_off_the_screen_is_an_arrow_on_its_edge_in_their_colour` | partner_tracker | |
+| W77 | The partner goes into a house, a cave or a floor up or down, or onto the next route | Where the door, stairs or map edge they took is on your screen, an arrow stands over it pointing down; otherwise the edge arrow points the way to it. Inside a building the arrow is over the way out | `test_a_partner_inside_a_building_on_a_connected_map_is_found_at_its_door`, `test_inside_a_building_the_arrow_stands_over_the_door_out_to_the_partner` | partner_tracker | |
+| W78 | The partner is far away (another town, flown or warped) | The edge arrow points where the TOWN MAP puts them | `test_a_partner_no_way_reaches_is_pointed_at_by_the_town_map` | | |
+| W79 | Open a menu, a text box, the PC or a Mart while the partner is away | No arrow over any of them | | partner_tracker (the TOWN MAP) | |
+| W80 | START > CO-OP > TOWN MAP (also without the TOWN MAP item), and the TOWN MAP item | The region map with the partner's icon in their colour where they are, under your own | `test_the_session_menu_opens_the_town_map_where_the_partner_stands` | partner_tracker | |
+| W81 | The partner walks off the map's edge onto the next route or town while you stay near that edge | You keep seeing them walk on the next map, in their colour (you can walk through them there); the arrow takes over once they are out of sight | `test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost` | partner_tracker | |## Battles
+| W82 | The partner goes into one of several doors that lead into the same map (the S.S. Anne's cabins, which are one map of six rooms) | The arrow stands over the door they took; inside a cabin, over that cabin's own door | `test_of_two_doors_into_one_map_of_rooms_the_arrow_takes_the_partners_room` | partner_tracker_cabins | |
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
 | B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock, catch_for_partner | |
@@ -183,7 +187,8 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | B25 | Finish or forfeit a friend battle; both Pokémon participated; one benched | Full HP/PP/status for both teams in place, no whiteout or money, full unsplit EXP per foe faced, owner answers learning | `test_versus_heals_both_parties...`, `test_each_versus_participant...`, `test_versus_forced_turns...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
 | B26 | Disconnect during a friend battle; attempt ITEM, another invitation or JOIN | No opponent takeover or item use; two-minute grace releases the fight and heals both; stale/future commands rejected | `test_a_versus_disconnect...`, `test_invitation_timeout...` | | |
 | B27 | Knock out a wild Pokémon or a trainer's last, and catch one, in a battle your world opened | The battle music plays until the end: a wild win's fanfare starts on the fall, a trainer's after the experience, and the map's music comes back only when the field closes | `test_the_world_leaves_a_won_fight_only_once_the_field_has_played_its_last_line`, `test_a_wild_ones_fanfare_starts_on_its_fall_and_plays_once` | playthrough_brock | |
-
+| B29 | Invite the partner to a battle, then open START > OPTION (or leave it) just as they accept | The battle is drawn at once, never a white screen; after it the menu is where you left it | `test_a_battle_that_opens_while_a_menu_fades_to_white_is_not_left_under_the_white` | versus_from_menus | |
+| B30 | Be in the START menu, a Mart, the PC or the TOWN MAP when the partner invites you | The question waits until you are back on the map | | versus_from_menus | |
 ## Trades
 
 | ID | Case | Expected | Automated | Two windows | Hand |

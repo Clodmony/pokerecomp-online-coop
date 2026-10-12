@@ -401,6 +401,7 @@ func _tend_world() -> void:
 	var world: Gen2WorldAPI = screen.get("_world")
 	if world != null and not rival_name().is_empty() and world.rival_name != rival_name():
 		world.rival_name = rival_name()
+	_actor.show_marks(screen.get("_screen"), not frozen and _world_quiet())
 	_collect_evolutions()
 	_tell_refused_save()
 	_tell_partners()
@@ -414,6 +415,15 @@ func _tend_world() -> void:
 		journal.add(PokeCoopLog.WORLD, "evolve", {"party_indices": _evolving}, client.player_id)
 		screen.evolve_after_battle(_evolving)
 		_evolving = []
+
+
+func _world_quiet() -> bool:
+	return not _world_screens_up() and [&"", &"movement"].has(PokeCoopWorldLink.unrest(screen))
+
+
+func _world_screens_up() -> bool:
+	var hosts: Array = Gen2WorldScreen.OVERLAY_HOSTS + Gen2WorldScreen.FULLSCREEN_HOSTS + Gen2WorldScreen.ANSWERING_HOSTS
+	return hosts.any(func(host: StringName) -> bool: return screen.get(host) != null)
 
 
 func overlay_open() -> bool:
@@ -796,6 +806,7 @@ func _add_menu(layer: CanvasLayer) -> void:
 	menu.ready_to_meet = _ready_to_meet
 	if link != null:
 		menu.before_meet = link.push_party
+	menu.open_map = Callable(screen, &"_open_town_map_overlay")
 	menu.notice.connect(say)
 	_actor.meet = menu.open_partner
 	menu.leave_requested.connect(leave)
@@ -806,7 +817,7 @@ func _add_menu(layer: CanvasLayer) -> void:
 
 
 func _ready_to_meet() -> bool:
-	return screen != null and is_instance_valid(screen) and screen.world() != null and not overlay_open() \
+	return screen != null and is_instance_valid(screen) and screen.world() != null and not overlay_open() and not _world_screens_up() \
 		and PokeCoopWorldLink.unrest(screen) == &"" and String(client.me().get("battle", "")).is_empty()
 
 
@@ -850,6 +861,7 @@ func _claim_seams() -> void:
 		Gen2ModHost.instance().register_world_actor(ACTOR_ID, _actor)
 		Gen2ModHost.instance().register_battle_takeover(TAKEOVER_ID, _takeover)
 		Gen2ModHost.instance().register_run_button(ACTOR_ID, _actor)
+		Gen2ModHost.instance().register_town_map_marks(ACTOR_ID, _actor)
 	_actor.client = client
 	_takeover.client = client
 	_takeover.data = data

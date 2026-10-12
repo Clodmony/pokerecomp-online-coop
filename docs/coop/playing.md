@@ -133,6 +133,12 @@ or one after another:
 - Both players explore freely, on the same map or on different ones. The
   partner is drawn on your map in their own colour, with a "!" while they are
   in a battle, and blocks your way like any person on the map.
+- **Finding each other**: while the partner is off your screen, a small
+  arrow in their colour blinks on the screen's edge and points at them. When
+  they went through a door, up or down stairs or onto the next route, the
+  arrow stands over that door or points the way to it; inside a building it
+  stands over the way out. START > CO-OP > TOWN MAP (and the TOWN MAP item)
+  shows their icon in their colour where they are.
 - Hold **B** while walking to run at the bike's pace. The bike and surfing
   keep their own speed.
 - Story flags, badges, beaten trainers and taken items on the ground are
@@ -200,7 +206,8 @@ or one after another:
 
 Talk to the other player and choose BATTLE, or open START > CO-OP and choose
 BATTLE followed by their name (SELECT also opens it). They receive a YES/NO
-invitation when their current scene ends; B or no answer for 30 seconds
+invitation when their current scene ends and they are back on the map, out of
+every menu; B or no answer for 30 seconds
 means NO. Both players choose their own moves, switches and replacements.
 RUN forfeits; items are unavailable. Afterwards both teams recover full HP,
 PP and status at their original positions, with experience for the opponents
