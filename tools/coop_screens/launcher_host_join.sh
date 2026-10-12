@@ -1,7 +1,7 @@
 # RED hosts a new campaign from the launcher's Co-op tab with CHARMANDER; BLUE finds it nearby,
 # joins as a new player and plays the opening (Oak's speech with the tab's name, the rival named
 # GARY, the bedroom) while RED hears BLUE arrive and the CO-OP menu says where BLUE is and the
-# address RED is reached at (test cases S01, S05, W08, L03). Seconds count from each window's
+# address RED is reached at (test cases S01, S05, W08, K07, K14). Seconds count from each window's
 # launch: a round takes a step every third of a second once what it waits for is there.
 HOST_TOOL=none
 P1_TOOL=coop_launcher_play
