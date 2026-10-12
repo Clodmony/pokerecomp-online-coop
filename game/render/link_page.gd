@@ -125,11 +125,12 @@ const GEN1_PARTNER_NAME_AT: Vector2i = Vector2i(5, 8)
 const GEN1_PLAYER_LIST_AT: Vector2i = Vector2i(2, 1)
 const GEN1_PARTNER_LIST_AT: Vector2i = Vector2i(2, 9)
 const GEN1_CURSOR_COLUMN: int = 1
-## `TradeCenter_DrawCancelBox`: `$7e` over 49 cells, then the box at (0, 15).
+## `TradeCenter_DrawCancelBox`: `$7e` over 49 cells, then the box at (0, 15); German fills from (8, 15), 12 wide.
 const GEN1_FILL_TILE: int = 8
 const GEN1_FILL_AT: Vector2i = Vector2i(11, 15)
 const GEN1_FILL_CELLS: int = 2 * COLUMNS + 9
 const GEN1_CANCEL_BOX: Rect2i = Rect2i(0, 15, 9, 1)
+const GEN1_CANCEL_WIDER_DE: int = 3
 const GEN1_CANCEL_AT: Vector2i = Vector2i(2, 16)
 const GEN1_CANCEL_ARROW_AT: Vector2i = Vector2i(1, 16)
 const GEN1_FOOTER_BOX: Rect2i = Rect2i(0, 14, 18, 2)
@@ -430,10 +431,11 @@ func _draw_gen1_lists(indices: PackedByteArray, state: Dictionary) -> void:
 		_text(indices, String(player["species"][row]), GEN1_PLAYER_LIST_AT + Vector2i(0, row))
 	for row: int in (partner.get("species", []) as Array).size():
 		_text(indices, String(partner["species"][row]), GEN1_PARTNER_LIST_AT + Vector2i(0, row))
-	for cell: int in GEN1_FILL_CELLS:
-		var at: int = GEN1_FILL_AT.y * COLUMNS + GEN1_FILL_AT.x + cell
+	var wider: int = GEN1_CANCEL_WIDER_DE if Gen1LayoutDe.active() else 0
+	for cell: int in GEN1_FILL_CELLS + wider:
+		var at: int = GEN1_FILL_AT.y * COLUMNS + GEN1_FILL_AT.x - wider + cell
 		_blit(indices, GEN1_FILL_TILE, Vector2i(at % COLUMNS, at / COLUMNS))
-	_box(indices, GEN1_CANCEL_BOX)
+	_box(indices, GEN1_CANCEL_BOX.grow_side(SIDE_RIGHT, wider))
 	_text(indices, String(strings.get("cancel", "")), GEN1_CANCEL_AT)
 	var partner_choice: int = int(state.get("partner_choice", -1))
 	if partner_choice >= 0:
