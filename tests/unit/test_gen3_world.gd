@@ -1089,3 +1089,43 @@ func test_instant_actions_persist_without_changing_occupancy_or_repeating_emotes
 		assert_false(object.fixed_priority)
 		assert_eq(object.current, Vector2i(12, 12))
 		assert_eq(object.previous, Vector2i(12, 12))
+
+
+## Gate turns share temp-var bytes, static probes never turn, and only collision
+## 1 blocks the arm. Stationary non-puzzle avatar probes miss all three seams.
+func test_rotating_gate_collision_turns_shared_vars_once_and_preserves_static_queries() -> void:
+	var objects: Gen3ObjectEvents = _field_objects(RomRegistry.EMERALD)
+	objects.camera.group = 12
+	objects.camera.number = 1
+	var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(objects, Vector2i(12, 12), 4, 0)
+	objects.events.var_set(0x4003, 0xA5A5)
+	objects.events.var_set(0x4004, 0xBEEF)
+	avatar.load_rotating_gates(true)
+	assert_eq(objects.events.var_get(0x4000), 0x0201)
+	assert_eq(objects.events.var_get(0x4003), 0x0200)
+	assert_eq(objects.events.var_get(0x4004), 0xBEEF)
+	# Gate 0, rotated east: push its south arm by walking west.
+	var at := Vector2i(12, 14)
+	assert_eq(avatar.collision_at(avatar.object(), at, 3, true), {"collision": 0, "requests": []})
+	assert_eq(avatar.gate_orientation(0), 1)
+	var result: Dictionary = avatar.collision_at(avatar.object(), at, 3)
+	assert_eq(result, {"collision": 0, "requests": [{"kind": "rotate_gate", "gate": 0,
+		"orientation": 1, "rotation": 2}]})
+	assert_eq(objects.events.var_get(0x4000), 0x0202)
+	avatar.load_rotating_gates()
+	assert_eq(avatar.gate_orientation(0), 2)
+	avatar.load_rotating_gates(true)
+	objects.camera.grid.blocks[13 + 32 * 14] = 0x3400
+	assert_eq(avatar.collision_at(avatar.object(), at, 3, true)["collision"], 8)
+	assert_eq(avatar.collision_at(avatar.object(), at, 3)["collision"], 8)
+	assert_eq(avatar.gate_orientation(0), 1)
+	for collision: int in [2, 3]:
+		objects.camera.grid.blocks[13 + 32 * 14] = 0x3000 | (collision << 10)
+		avatar.load_rotating_gates(true)
+		avatar.object().current = at + Vector2i(1, 0)
+		assert_eq(avatar.begin_collision_movement(3)["requests"], [{"kind": "rotate_gate", "gate": 0,
+			"orientation": 1, "rotation": 2}])
+		assert_eq(avatar.gate_orientation(0), 2)
+	objects.camera.group = 0
+	assert_eq(avatar.rotating_gate_collision(3, at), {"collision": 0, "requests": []})
+	assert_eq(avatar.gate_orientation(0), 2)
