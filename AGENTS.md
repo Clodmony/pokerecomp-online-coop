@@ -1,6 +1,7 @@
 # Agent instructions: pokerecomp-coop
 
-This repository is a **private fork** of
+This repository ([Clodmony/pokerecomp-online-coop](https://github.com/Clodmony/pokerecomp-online-coop))
+is a **public fork** of
 [Decryptu/pokerecomp](https://github.com/Decryptu/pokerecomp) that adds a
 cooperative two-player Red/Blue campaign. The co-op project is built entirely
 with AI: every change after upstream commit `696d1c9` is written by an AI coding
@@ -26,23 +27,28 @@ Read before working:
 
 ## Hard rules
 
-- **GitHub, private repository only.** GitHub use resumed on 2026-10-07 after a
-  pause: push feature branches to `origin`, open draft pull requests, and keep
-  the issues current. Verify locally with Godot 4.8-dev7 before pushing; CI
-  runs the same steps on pull requests.
-- The repository stays **private**. Never publish releases, Pages sites,
-  packages, store builds or artifacts. The release and export-template
-  workflows are guarded to run only in `Decryptu/pokerecomp` and are disabled
-  on this repository; keep both.
+- **Two kinds of branches.** `main` is an exact copy of upstream's `main`: never
+  commit to it; bring it up to date with
+  `git fetch upstream && git push origin upstream/main:main`. The co-op line is
+  `pokerecomp-online-coop`, the default branch: issue branches come off it and
+  draft pull requests go into it. Upstream fixes come in by merging `main` into
+  it (see `architecture.md`).
+- The fork is public, its releases are not. Never publish releases, Pages
+  sites, packages, store builds or artifacts. The release and export-template
+  workflows are guarded to run only in `Decryptu/pokerecomp` and stay disabled
+  here; keep both.
 - Never push to `upstream`. Its push URL is disabled on purpose. Never
   force-push over existing work.
+- No personal data in commits, docs, issues or pull requests (names, emails,
+  hardware, local paths). Commits are authored as `Claude <noreply@anthropic.com>`
+  (the clone's local git config).
 - Never commit or upload ROMs, saves, extracted cartridge content, credentials
   or local caches. Screenshots of the game show cartridge graphics: keep them
   local, never in commits, issues or pull requests. Tests use the synthetic cache in
   `tests/unit/battle_fixture.gd`. A check that needs a real cartridge asks the
   owner to supply it locally and never downloads one.
-- Work on feature branches (`coop/<topic>`) and open **draft** pull requests
-  against `main`. Reference the issue the work closes.
+- Work on feature branches (`coop/<issue>-<topic>`) and open **draft** pull
+  requests against `pokerecomp-online-coop`. Reference the issue the work closes.
 - Commits may carry AI attribution trailers; the fork's pre-push hook allows them.
 - Do not claim something works on a platform or in a mode that was not run.
   `progress.md` separates static inspection, passing tests, builds and played
@@ -51,7 +57,7 @@ Read before working:
 ## Workflow
 
 - **One issue per session.** Pick the issue with the owner, branch
-  `coop/<issue>-<topic>` from `main`, reproduce the problem (a failing GUT test
+  `coop/<issue>-<topic>` from `pokerecomp-online-coop`, reproduce the problem (a failing GUT test
   or scenario first), fix it, run `tools/verify.sh`, update the docs below, push
   and open a draft pull request that says `Closes #N`. Then write the handoff
   note (open pull requests, branch state, next candidates) and stop: the owner
@@ -60,7 +66,7 @@ Read before working:
   follow-ups become issues; there is no task file in the repository.
 - **The owner merges.** A pull request is merged only when the owner says so.
 - **Scratch lives on disk, outside the repository**, under
-  `~/dev-scratch/pokerecomp-coop/`: captures, seeds, logs, verify runs, extra
+  `~/dev-scratch/pokerecomp-online-coop/`: captures, seeds, logs, verify runs, extra
   git worktrees, pull request bodies. /tmp is a small RAM disk on the owner's
   machine. Delete an issue's scratch when its pull request is open.
 
@@ -68,6 +74,7 @@ Read before working:
 
 ```bash
 git config core.hooksPath .githooks   # ROM guard on commit, release gates on push
+git config user.name Claude && git config user.email noreply@anthropic.com
 git remote add upstream https://github.com/Decryptu/pokerecomp.git
 git remote set-url --push upstream DISABLED   # fetch only; merges follow architecture.md
 ```
@@ -85,7 +92,7 @@ check of a branch is one command, unattended, with a summary at the end:
 
 ```bash
 # Import, GUT, release gates, boot, ENet demo, three processes, then the named
-# two-window scenarios; logs in ~/dev-scratch/pokerecomp-coop/verify/<stamp>/.
+# two-window scenarios; logs in ~/dev-scratch/pokerecomp-online-coop/verify/<stamp>/.
 GODOT=godot tools/verify.sh [--coop] [scenario ...]
 ```
 
@@ -111,21 +118,21 @@ GODOT=godot tools/coop_two_process.sh 24690
 
 # Two windows on the imported cartridge, driven by a scenario, captures outside the
 # repository and a private user folder (the owner's campaigns are never touched).
-GODOT=godot tools/coop_screens.sh leave_rejoin_takeover ~/dev-scratch/pokerecomp-coop/coop_screens/leave
+GODOT=godot tools/coop_screens.sh leave_rejoin_takeover ~/dev-scratch/pokerecomp-online-coop/coop_screens/leave
 # Two windows that play themselves from Oak's speech to BROCK's (or MISTY's) badge,
 # about five (ten) minutes; exits non-zero if either window fails.
-GODOT=godot tools/coop_screens.sh playthrough_brock ~/dev-scratch/pokerecomp-coop/coop_screens/brock
+GODOT=godot tools/coop_screens.sh playthrough_brock ~/dev-scratch/pokerecomp-online-coop/coop_screens/brock
 # A campaign at a later point of the story (`list` names the legs), then a stretch
 # played from it: SEED= starts the run there, the autopilot's from=<leg> skips ahead.
-godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower ~/dev-scratch/pokerecomp-coop/seeds/tower
-SEED=~/dev-scratch/pokerecomp-coop/seeds/tower GODOT=godot tools/coop_screens.sh story_seed ~/dev-scratch/pokerecomp-coop/coop_screens/seed
+godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower ~/dev-scratch/pokerecomp-online-coop/seeds/tower
+SEED=~/dev-scratch/pokerecomp-online-coop/seeds/tower GODOT=godot tools/coop_screens.sh story_seed ~/dev-scratch/pokerecomp-online-coop/coop_screens/seed
 # An autoplayed run's host snapshots the campaign and each window's leg every 10 s; rerun a
 # stalled or killed run from its last snapshot (or <n>, or -<seconds> before its end).
-GODOT=godot tools/coop_resume.sh ~/dev-scratch/pokerecomp-coop/coop_screens/elite [<n> | -600] [out dir]
+GODOT=godot tools/coop_resume.sh ~/dev-scratch/pokerecomp-online-coop/coop_screens/elite [<n> | -600] [out dir]
 
 # Session logs (user://coop_logs): one timeline, a summary, or a host log replayed
 # (replay needs the cartridge imported); demo and check write logs only with `logs`.
-godot --headless --path . -s res://tools/coop_log.gd -- merge user://coop_logs out=$HOME/dev-scratch/pokerecomp-coop/merged.jsonl
+godot --headless --path . -s res://tools/coop_log.gd -- merge user://coop_logs out=$HOME/dev-scratch/pokerecomp-online-coop/merged.jsonl
 godot --headless --path . -s res://tools/coop_log.gd -- summary user://coop_logs
 godot --headless --path . -s res://tools/coop_log.gd -- replay <host log>.jsonl
 
@@ -142,7 +149,7 @@ godot --headless --path . -s res://tools/coop_session.gd -- host 24680 red
 godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p1 red   # window 1
 godot --path . -s res://tools/coop_play.gd -- 127.0.0.1 24680 p2 red   # window 2
 # In a window, SELECT opens the session menu (fight, join, save). Scripted runs:
-#   keys=SELECT,A,D,A   capture=$HOME/dev-scratch/pokerecomp-coop/shot.png@600
+#   keys=SELECT,A,D,A   capture=$HOME/dev-scratch/pokerecomp-online-coop/shot.png@600
 
 # Engine-free gates (version, release notes, comment ceiling); also the pre-push hook.
 tools/release.sh --gates

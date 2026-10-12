@@ -9,7 +9,7 @@
 #
 # Stages: import, GUT, release gates, boot smoke test, ENet demo, three
 # processes, then each scenario. Full logs and captures go to
-# $VERIFY_OUT/<stamp>/ (default ~/dev-scratch/pokerecomp-coop/verify), the
+# $VERIFY_OUT/<stamp>/ (default ~/dev-scratch/pokerecomp-online-coop/verify), the
 # summary to <stamp>/summary.txt and stdout. Exits 0 only if every stage passed.
 #
 # Headless stages run with a private XDG_DATA_HOME, so tests never see the
@@ -30,7 +30,7 @@ for a in "$@"; do
 	esac
 done
 
-out="${VERIFY_OUT:-$HOME/dev-scratch/pokerecomp-coop/verify}/$(date +%Y%m%d-%H%M%S)"
+out="${VERIFY_OUT:-$HOME/dev-scratch/pokerecomp-online-coop/verify}/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$out/xdg" "$out/tmp"
 summary="$out/summary.txt"
 export TMPDIR="$out/tmp"
