@@ -25,6 +25,8 @@ every row marked done below was closed then. Work after that branches from
 | `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
 | `coop/upstream-sync` | `main` | upstream `v0.1.75` merged, the pin moved to Godot 4.8-dev7 (D97) | merged into `main` (#97, 2026-10-10) |
 
+| `coop/coop-tab` | `main` | pushed: the Co-op tab redesign (D103), both games' campaigns on Host, the controller pick | draft #109 |
+| `coop/both-versions` | `coop/coop-tab` | pushed: wild Pokémon from both versions (#110, D104) | draft against `coop/coop-tab` while #109 is open |
 | `coop/friend-menu` | `coop/link-room-continue` | verified: friend invitations, PvP and direct native trades (#104, D100) | draft against `main`, depends on #101 and #103 |
 
 ## Issues
