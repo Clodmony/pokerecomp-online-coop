@@ -85,6 +85,7 @@ func _one_game() -> void:
 	_object_events()
 	_player_avatars()
 	_held_movements()
+	_object_patrols()
 	_boulder_landings()
 	_rotating_gates()
 	_world_scripts()
@@ -1157,3 +1158,72 @@ func _gate_probe(avatar: Gen3PlayerAvatar, count: int, prefix: Array) -> String:
 		var effect: Dictionary = result["requests"][0]
 		values.append_array([effect["gate"], effect["orientation"], effect["rotation"]])
 	return _script_numbers(values)
+
+
+## ARM callbacks over every supported map template on a uniform grid, 512
+## frames each. The oracle reads template bytes and direction tables from ROM.
+const PATROL_DIGESTS: Dictionary = {
+	&"ruby": "2cbcf7f9a589f26fca38c6dde264312ab4585b1a",
+	&"sapphire": "2cbcf7f9a589f26fca38c6dde264312ab4585b1a",
+	&"firered": "7d7f689cc66ff26242a175f1ad7efbaac0638767",
+	&"leafgreen": "7d7f689cc66ff26242a175f1ad7efbaac0638767",
+	&"emerald": "1f8001244af2bc6d2d53db53baed1d6a7526d9a8",
+}
+
+
+func _object_patrols() -> void:
+	var data: GameData = _r.data
+	var camera := Gen3FieldCamera.new()
+	camera.data = data
+	camera.pos = Vector2i(100, 100)
+	camera.header = {"map_type": 0}
+	camera.grid = Gen3MapGrid.new()
+	camera.grid.width = 512
+	camera.grid.height = 512
+	camera.grid.blocks.resize(512 * 512)
+	camera.grid.blocks.fill(0x3000)
+	camera.grid._behaviors.resize(1024)
+	var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+	var lines := PackedStringArray(["object patrols"])
+	for header: Dictionary in data.world_map_headers():
+		camera.group = int(header["group"])
+		camera.number = int(header["number"])
+		var rows: Array = data.world_map_events(camera.group, camera.number)["objects"]
+		for index: int in rows.size():
+			for object: Gen3ObjectEvents.ObjectEvent in objects.objects:
+				object.active = false
+			var template: Dictionary = rows[index].duplicate()
+			template["x"] = 5
+			template["y"] = 5
+			var slot: int = objects.spawn(template, camera.number, camera.group)
+			if not _r.check(slot == 0, "patrol template did not spawn"):
+				continue
+			var object: Gen3ObjectEvents.ObjectEvent = objects.objects[slot]
+			var type: int = object.movement_type
+			if type not in range(7, 11) + range(0x19, 0x35) + range(0x40, 0x4D) \
+					and not (data.id == RomRegistry.EMERALD and type in range(0x4D, 0x51)):
+				continue
+			object.initial += MOVEMENT_ORIGIN
+			object.current += MOVEMENT_ORIGIN
+			object.previous = MOVEMENT_ORIGIN + Vector2i(11, 12)
+			object.pixel_position = object.current * 16
+			object.current_elevation = 3
+			object.previous_elevation = 3
+			lines.append_array(_patrol_frames(objects, index))
+	_r.digest_matches("gen3_object_patrols", lines, PATROL_DIGESTS[data.id])
+
+
+func _patrol_frames(objects: Gen3ObjectEvents, index: int) -> PackedStringArray:
+	var object: Gen3ObjectEvents.ObjectEvent = objects.objects[0]
+	var lines := PackedStringArray()
+	for frame: int in range(1, 513):
+		objects.step_movements()
+		var pixels: Vector2i = object.pixel_position - (MOVEMENT_ORIGIN + Vector2i(12, 12)) * 16
+		var current: Vector2i = object.current - MOVEMENT_ORIGIN
+		var previous: Vector2i = object.previous - MOVEMENT_ORIGIN
+		lines.append(",".join([objects.camera.group, objects.camera.number, index, frame,
+			current.x, current.y, previous.x, previous.y, pixels.x, pixels.y,
+			object.facing, object.movement_direction, object.previous_movement_direction, object.direction_sequence_index,
+			object.movement_state, object.movement_action, int(object.single_movement_active),
+			int(object.held_movement_active), int(object.held_movement_finished), int(object.frozen), int(object.invisible)]))
+	return lines
