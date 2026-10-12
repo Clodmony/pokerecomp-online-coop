@@ -210,7 +210,7 @@ Kept small so upstream merges stay cheap (#14):
 | `tests/unit/test_link.gd` | `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved`, the regression test for D64 |
 | `tools/preview_world_story.gd` | `_gen1_story_path` split into `_gen1_story_start` and `_gen1_story_legs`, so `tools/coop_seed.gd` can stop after a leg; output unchanged (D78) |
 | `tools/checks/played.gd` | `_warp_press`: on Generation 1, a player standing on a stair warp with nothing to press against steps off it, so a route can take back the stairs it arrived by (#88) |
-| `.github/workflows/ci.yml` | co-op ENet demo and three-process check steps |
+| `.github/workflows/ci.yml` | co-op ENet demo and three-process check steps; also runs on pushes to `pokerecomp-online-coop` |
 | `.github/workflows/release.yml`, `export-templates.yml` | run only in `Decryptu/pokerecomp` |
 | `.githooks/pre-push` | attribution-trailer check removed |
 | `game/rom/rom_registry.gd` | `red_de` and `blue_de` rows, `base_of`, `pick`, `language_of` (D95, #50) |
