@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
 ##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join [name=RED] [starter=0..2]
-##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright
 
 const LAUNCHER: String = "res://game/main/main.tscn"
 const STEP_FRAMES: int = 20
@@ -21,6 +21,7 @@ var _starter: int = -1
 var _rival: int = -1
 var _rival_name: String = ""
 var _by_address: bool = false
+var _both_versions: bool = false
 var _tour: String = ""
 var _rounds: Array = []
 var _round: int = -1
@@ -73,6 +74,8 @@ func _read_option(arg: String) -> bool:
 			_rival_name = value.to_upper()
 		"by_address":
 			_by_address = true
+		"both_versions":
+			_both_versions = true
 		"tour":
 			_tour = value if not PokeToolPath.refuses(value) else ""
 		"round":
@@ -273,6 +276,8 @@ func _fill_new_campaign(campaign: String) -> bool:
 		_type("rival", _rival_name)
 	_type("name", _trainer)
 	_choose_start()
+	if _both_versions:
+		_press("Wild Pokémon from both versions")
 	return true
 
 

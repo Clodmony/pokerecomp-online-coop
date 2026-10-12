@@ -11,6 +11,7 @@ const ENCOUNTER_DONE: StringName = &"done"
 var campaign_id: String = ""
 var title: String = ""
 var rival_name: String = ""
+var both_versions: bool = false
 var game_id: StringName = &""
 var rom_sha1: String = ""
 var flags: Dictionary = {}
@@ -170,7 +171,7 @@ func to_dict() -> Dictionary:
 	commits.sort()
 	return {
 		"campaign_id": campaign_id, "title": title, "rival_name": rival_name, "game_id": String(game_id), "rom_sha1": rom_sha1,
-		"flags": _sorted_flags(), "badges": badges, "revision": revision,
+		"both_versions": both_versions, "flags": _sorted_flags(), "badges": badges, "revision": revision,
 		"defeated": done, "commits": commits, "world": world.duplicate(true),
 		"next_battle_serial": next_battle_serial, "next_player_serial": next_player_serial,
 	}
@@ -188,6 +189,7 @@ static func from_dict(raw: Variant) -> PokeCoopCampaign:
 		return null
 	out.title = String(source.get("title", "")) if source.get("title", "") is String else ""
 	out.rival_name = String(source.get("rival_name", "")) if source.get("rival_name", "") is String else ""
+	out.both_versions = source.get("both_versions") is bool and bool(source["both_versions"])
 	for flag: Variant in source.get("flags", []) as Array:
 		out.flags[int(flag)] = true
 	for encounter: Variant in source.get("defeated", []) as Array:

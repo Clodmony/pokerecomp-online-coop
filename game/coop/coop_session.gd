@@ -80,6 +80,8 @@ var _paused_at: int = 0
 var _continuing: int = -1
 var _direct_trade: int = 0
 var _direct_open: bool = false
+var _wild_told: int = 0
+var _both_versions: BothVersions = null
 
 
 static func campaign_path(game: GameData, id: String = "", folder: StringName = &"") -> String:
@@ -98,6 +100,8 @@ static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_
 		move_legacy(game)
 	var directory: String = campaign_path(game, "", game_id).get_base_dir()
 	var out: Array = []
+	if not DirAccess.dir_exists_absolute(directory):
+		return out
 	for name: String in DirAccess.get_files_at(directory):
 		if not name.ends_with(".json"):
 			continue
@@ -115,6 +119,7 @@ static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_
 			"members": members.map(func(member: PokeCoopPlayer) -> Dictionary: return {"name": member.name, "game": member.game_id}),
 			"badges": String.num_int64(campaign.badges, 2).count("1") if campaign != null else 0, "readable": campaign != null,
 			"rival": campaign.rival_name if campaign != null else "", "you": you[0].name if not you.is_empty() else "",
+			"both_versions": campaign != null and campaign.both_versions,
 			"place": PokeCoopLobby.place(game, you[0].map) if not you.is_empty() else "",
 		})
 	out.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return int(first["saved"]) > int(second["saved"]))
@@ -133,23 +138,27 @@ static func host_key(game_id: StringName, port: int) -> String:
 	return "%s/host:%d" % [String(game_id), port]
 
 
-static func new_campaign(game: GameData, title: String, rival: String = "") -> String:
+static func new_campaign(game: GameData, title: String, rival: String = "", both_versions: bool = false) -> String:
 	var id: String = new_campaign_id(game)
 	var campaign := PokeCoopCampaign.create(id, game.id, game.sha1)
 	campaign.title = title
 	campaign.rival_name = rival
+	campaign.both_versions = both_versions
 	PokeCoopPolicy.start_campaign(campaign)
 	move_legacy(game)
 	return id if PokeCoopSave.write(campaign_path(game, id), campaign, []) == OK else ""
 
 
-static func edit_campaign(game: GameData, id: String, title: String, rival: String, folder: StringName = &"") -> Error:
+static func edit_campaign(
+	game: GameData, id: String, title: String, rival: String, folder: StringName = &"", both_versions: Variant = null
+) -> Error:
 	var loaded: Dictionary = PokeCoopSave.read(campaign_path(game, id, folder))
 	if loaded.is_empty():
 		return ERR_FILE_UNRECOGNIZED
 	var campaign: PokeCoopCampaign = loaded["campaign"]
 	campaign.title = title
 	campaign.rival_name = rival
+	campaign.both_versions = bool(both_versions) if both_versions is bool else campaign.both_versions
 	return PokeCoopSave.write(campaign_path(game, id, folder), campaign, loaded["players"])
 
 
@@ -326,6 +335,7 @@ func process() -> void:
 		client.ended_reason = "host_unreachable"
 		journal.add(PokeCoopLog.CLIENT, "unreachable", {"waited_msec": Time.get_ticks_msec() - _dialled_at})
 	_keep_connected()
+	_share_wild_tables()
 	_note_opening()
 	_follow_session_end()
 	_advance_links()
@@ -338,6 +348,16 @@ func process() -> void:
 		_remember(_identity_key, client.campaign_id, client.player_id)
 	if screen != null and is_instance_valid(screen) and panel != null:
 		_tend_world()
+
+
+func _share_wild_tables() -> void:
+	if client.welcomes != _wild_told and client.connected and not PokeCoopPolicy.other_version(data.id).is_empty():
+		_wild_told = client.welcomes
+		client.send_wild_tables(PokeCoopPolicy.wild_tables(data))
+	if _both_versions == null and not (client.other_wild.get("tables", {}) as Dictionary).is_empty():
+		_both_versions = BothVersions.new()
+		_both_versions.client = client
+		Gen2ModHost.instance().register_wild_substitute(BothVersions.ID, _both_versions)
 
 
 func _announce() -> void:
@@ -869,6 +889,9 @@ func close() -> void:
 
 
 func _release_seams() -> void:
+	if _both_versions != null:
+		Gen2ModHost.instance().unregister_wild_substitute(BothVersions.ID)
+		_both_versions = null
 	if _actor != null and _actor.client == client:
 		_actor.client = null
 		_takeover.client = null
@@ -893,3 +916,11 @@ static func _remember(key: String, campaign_id: String, player_id: String) -> vo
 	var file: FileAccess = FileAccess.open(identity_path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(table, "\t"))
+
+
+class BothVersions extends RefCounted:
+	const ID: StringName = &"coop_both_versions"
+	var client: PokeCoopClient = null
+
+	func substitute_wild(context: Dictionary) -> Dictionary:
+		return PokeCoopPolicy.other_wild(context, client.other_wild.get("tables", {})) if client != null else {}
