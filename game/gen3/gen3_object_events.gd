@@ -21,7 +21,6 @@ const ELEVATION_MULTI_LEVEL: int = 15
 const PYRAMID_LAYOUTS: Array[int] = [361, 378]
 const TRAINER_HILL_LAYOUTS: Array[int] = [415, 416, 417, 418]
 const HILL_TRAINERS_PER_FLOOR: int = 2
-## A cleared template slot past the map's own.
 const EMPTY_TEMPLATE: Dictionary = {
 	"local_id": 0, "graphics_id": 0, "kind": 0, "x": 0, "y": 0, "elevation": 0, "movement_type": 0,
 	"movement_range_x": 0, "movement_range_y": 0, "trainer_type": 0,
@@ -30,7 +29,9 @@ const EMPTY_TEMPLATE: Dictionary = {
 
 enum Collision { NONE, OUTSIDE_RANGE, IMPASSABLE, ELEVATION_MISMATCH, OBJECT_EVENT }
 enum Direction { NONE, SOUTH, NORTH, WEST, EAST }
-enum Motion { FACE, WALK, IN_PLACE, JUMP, DELAY, LOCK, UNLOCK }
+enum Motion { FACE, WALK, IN_PLACE, JUMP, DELAY, LOCK, UNLOCK, CONTEXT_FACE, SET_FLAG, EMOTE }
+enum Facing { PLAYER, AWAY_PLAYER, ORIGINAL }
+enum ObjectFlag { LANDING_EFFECT, INVISIBLE, FIXED_PRIORITY }
 enum Jump { FAR, SPECIAL, NORMAL, IN_PLACE, TURN }
 enum Pace { SLOW, NORMAL, FAST, CURRENT, FASTER, SLIDE, FRLG_SLOW }
 const STEP_PIXELS: Array = [[1, 0], [1], [2], [2, 3, 3, 2, 3, 3], [4], [8], [1, 1, 0]]
@@ -50,6 +51,17 @@ const MOTION_FAMILIES: Array = [
 	[0x35, 0x3D, Motion.WALK, Pace.FAST], [0x3A, 0x46, Motion.JUMP, Jump.SPECIAL],
 	[0x42, 0x4E, Motion.JUMP, Jump.NORMAL], [0x46, 0x52, Motion.JUMP, Jump.IN_PLACE],
 	[0x4A, 0x56, Motion.JUMP, Jump.TURN],
+]
+const INSTANT_MOTIONS: Array = [
+	[0x3E, 0x4A, Motion.CONTEXT_FACE, Facing.PLAYER],
+	[0x3F, 0x4B, Motion.CONTEXT_FACE, Facing.AWAY_PLAYER],
+	[0x4E, 0x5A, Motion.CONTEXT_FACE, Facing.ORIGINAL],
+	[0x50, 0x5C, Motion.SET_FLAG, ObjectFlag.LANDING_EFFECT, false],
+	[0x51, 0x5D, Motion.SET_FLAG, ObjectFlag.LANDING_EFFECT, true],
+	[0x54, 0x60, Motion.SET_FLAG, ObjectFlag.INVISIBLE, true],
+	[0x55, 0x61, Motion.SET_FLAG, ObjectFlag.INVISIBLE, false],
+	[0x5C, 0x6A, Motion.SET_FLAG, ObjectFlag.FIXED_PRIORITY, true],
+	[0x5D, 0x6B, Motion.SET_FLAG, ObjectFlag.FIXED_PRIORITY, false],
 ]
 
 ## `MetatileBehavior_Is*Blocked` by the side each blocks. Ruby, Sapphire and
@@ -100,6 +112,9 @@ class ObjectEvent:
 			previous_behavior = value & 0xFF
 	var previous_movement_direction: int = 0
 	var facing_locked: bool = false
+	var invisible: bool = false
+	var disable_jump_landing_effect: bool = false
+	var fixed_priority: bool = false
 	var frozen: bool = false
 	var single_movement_active: bool = false
 	var held_movement_active: bool = false
@@ -387,6 +402,11 @@ func _build_motions() -> void:
 		_motions[(0x18 if _frlg else 0x10) + delay] = [Motion.DELAY, 0, 1 << delay]
 	_motions[0x4C if _frlg else 0x40] = [Motion.LOCK, 0, 0]
 	_motions[0x4D if _frlg else 0x41] = [Motion.UNLOCK, 0, 0]
+	for row: Array in INSTANT_MOTIONS:
+		_motions[int(row[1 if _frlg else 0])] = [int(row[2]), 0, int(row[3])] + row.slice(4)
+	var emotes: Array = [0, 33, 46, 66, 64] if _frlg else [0, 33, 46]
+	for index: int in emotes.size():
+		_motions[(0x62 if _frlg else 0x56) + index] = [Motion.EMOTE, 0, emotes[index]]
 	if _frlg:
 		for direction: int in range(1, 5):
 			_motions[0x08 + direction - 1] = [Motion.WALK, direction, 0]
@@ -507,6 +527,7 @@ func _advance_motion(object: ObjectEvent, slot: int, requests: Array) -> void:
 	var parameter: int = int(row[2])
 	if object.movement_frame == 0:
 		_start_motion(object, motion, direction, parameter, slot, requests)
+		_start_instant_motion(object, row, slot, requests)
 	match motion:
 		Motion.WALK:
 			var pixels: Array = STEP_PIXELS[parameter]
@@ -541,6 +562,42 @@ func _start_motion(object: ObjectEvent, motion: int, direction: int, parameter: 
 			object.facing_locked = true
 		Motion.UNLOCK:
 			object.facing_locked = false
+
+
+func _start_instant_motion(object: ObjectEvent, row: Array, slot: int, requests: Array) -> void:
+	match int(row[0]):
+		Motion.CONTEXT_FACE:
+			var direction: int = _context_facing(object, int(row[2]))
+			if direction >= 0:
+				set_direction(object, direction)
+				_shift_coords(object, object.current)
+		Motion.SET_FLAG:
+			match int(row[2]):
+				ObjectFlag.LANDING_EFFECT:
+					object.disable_jump_landing_effect = bool(row[3])
+				ObjectFlag.INVISIBLE:
+					object.invisible = bool(row[3])
+				ObjectFlag.FIXED_PRIORITY:
+					object.fixed_priority = bool(row[3])
+		Motion.EMOTE:
+			requests.append({"kind": "field_effect", "effect_id": int(row[2]), "object_id": slot,
+				"local_id": object.local_id, "map_number": object.map_number, "map_group": object.map_group})
+
+
+## `GetDirectionToFace` prefers x; an absent local-ID player leaves coords.
+func _context_facing(object: ObjectEvent, mode: int) -> int:
+	if mode == Facing.ORIGINAL:
+		return _facing[object.movement_type]
+	for player: ObjectEvent in objects:
+		if not player.active or player.local_id != LOCALID_PLAYER:
+			continue
+		var direction: int = Direction.SOUTH
+		if object.current.x != player.current.x:
+			direction = Direction.WEST if object.current.x > player.current.x else Direction.EAST
+		elif object.current.y > player.current.y:
+			direction = Direction.NORTH
+		return OPPOSITE[direction] if mode == Facing.AWAY_PLAYER else direction
+	return -1
 
 
 func _advance_jump(object: ObjectEvent, parameter: int, slot: int, requests: Array) -> void:

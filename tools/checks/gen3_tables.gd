@@ -852,11 +852,11 @@ func _player_avatars() -> void:
 ## Reset at unsupported actions; this checks supported runs, not execution.
 const MOVEMENT_ORIGIN := Vector2i(256, 256)
 const MOVEMENT_DIGESTS: Dictionary = {
-	&"ruby": "8dc4e9953bd5e1a5a5c2987d39abb26d6b065166",
-	&"sapphire": "73518982f9957f5f972446deab039f2d987126f3",
-	&"firered": "53ea9deff74607824cfede02c82b973e439da8f1",
-	&"leafgreen": "2c87fd40ac2344a6bff127ab2c7ef634f1cee794",
-	&"emerald": "319266b3d42053f151280a710b1089cde2457df3",
+	&"ruby": "68dd375d03c7bd7575575fd937d713cea3455e05",
+	&"sapphire": "caaba9ce33644a9c24767eb82b9cf295322291f3",
+	&"firered": "6d6bfbc37414e2998bbd541f88e57b610db875ea",
+	&"leafgreen": "14ee35c5696c699e0581e08ad2955ba906f4eeb8",
+	&"emerald": "7611e5da2097fc9c7122c2085e91eae7a5c22c23",
 }
 
 
@@ -887,14 +887,18 @@ func _held_action_trace(objects: Gen3ObjectEvents, action: int, offset: int, ind
 		_reset_mover(objects)
 		return lines
 	for frame: int in range(1, 41):
-		objects.step_movements()
+		var effects: Array = objects.step_movements().filter(
+			func(request: Dictionary) -> bool: return request["kind"] == "field_effect")
+		var effect: Array = [-1, 0, 0, 0] if effects.is_empty() else [effects[0]["effect_id"],
+			effects[0]["local_id"], effects[0]["map_number"], effects[0]["map_group"]]
 		var pixels: Vector2i = object.pixel_position - (MOVEMENT_ORIGIN + Vector2i(12, 12)) * 16
 		var current: Vector2i = object.current - MOVEMENT_ORIGIN
 		var previous: Vector2i = object.previous - MOVEMENT_ORIGIN
 		lines.append(",".join([offset, index, frame, current.x, current.y,
 			previous.x, previous.y, pixels.x, pixels.y, object.jump_y,
 			object.facing, object.movement_direction, object.previous_movement_direction,
-			int(object.facing_locked), int(object.held_movement_finished)]))
+			int(object.facing_locked), int(object.held_movement_finished),
+			int(object.invisible), int(object.disable_jump_landing_effect), int(object.fixed_priority)] + effect))
 		if object.held_movement_finished:
 			break
 	Gen3ObjectEvents.clear_held_movement(object)
@@ -904,6 +908,9 @@ func _held_action_trace(objects: Gen3ObjectEvents, action: int, offset: int, ind
 static func _reset_mover(objects: Gen3ObjectEvents) -> void:
 	var object := Gen3ObjectEvents.ObjectEvent.new()
 	object.active = true
+	object.local_id = 0
+	object.map_number = 0
+	object.map_group = 0
 	object.current = MOVEMENT_ORIGIN + Vector2i(12, 12)
 	object.previous = MOVEMENT_ORIGIN + Vector2i(11, 12)
 	object.pixel_position = object.current * 16
