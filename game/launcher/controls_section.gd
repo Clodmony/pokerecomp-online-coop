@@ -15,6 +15,7 @@ var _theme: Gen2LauncherTheme = null
 var _options: Gen2Options = null
 var _host: Control = null
 var _rows: Dictionary = {}
+var _pad_row: Control = null
 
 
 static func create(
@@ -34,6 +35,15 @@ func _build() -> void:
 		_theme,
 		"Keyboard, controller and the on-screen buttons all press the same eight."
 	))
+	_pad_row = _controller_row()
+	add_child(_pad_row)
+	add_child(Gen2LauncherUI.muted(
+		_theme,
+		"With several controllers plugged in, pick the one that plays; the others "
+		+ "are ignored, and it is found again when it is plugged back in. The "
+		+ "keyboard and mouse always work."
+	))
+	Input.joy_connection_changed.connect(_on_pads_changed)
 	for button: int in PokeButton.ALL:
 		add_child(_binding_row(button))
 	_build_mod_actions()
@@ -141,6 +151,31 @@ func _open_mod_editor(action: Dictionary) -> void:
 		changed.emit()
 	)
 	sheet.open(_host)
+
+
+func _controller_row() -> Control:
+	var rows: Array = PokePadChoice.choices(_options.pad)
+	var at: int = rows.find_custom(func(row: Dictionary) -> bool: return row["picked"])
+	return Gen2LauncherUI.choice(
+		_theme, &"pad", "Controller", rows.map(func(row: Dictionary) -> String: return row["label"]), maxi(at, 0),
+		func(index: int) -> void:
+			_options.pad = rows[index]["choice"]
+			changed.emit(),
+		_host
+	)
+
+
+func _on_pads_changed(_device: int, _connected: bool) -> void:
+	if not is_instance_valid(_pad_row):
+		return
+	var focused: bool = _pad_row.has_focus()
+	var fresh: Control = _controller_row()
+	add_child(fresh)
+	move_child(fresh, _pad_row.get_index())
+	_pad_row.queue_free()
+	_pad_row = fresh
+	if focused:
+		fresh.grab_focus.call_deferred()
 
 
 func _binding_row(button: int) -> HBoxContainer:

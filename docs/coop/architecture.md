@@ -219,6 +219,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/world/gen1_movie.gd`, `world_effects.gd`, `world_screen.gd`, `game/launcher/cartridge.gd`, `launcher_theme.gd`, `tools/checks/played.gd`, `tools/preview_world_story.gd` | tables and art fall back to the base game for the German ids (#50) |
 | `tests/unit/test_gen1_layout.gd`, `test_gen1_text.gd`, `test_rom_verifier.gd`, `test_gen1_sram.gd` | German layout, charmap, registry and save-start cases (#50) |
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
+| `autoload/input_runtime.gd`, `game/options/options.gd`, `game/launcher/controls_section.gd`, `game/input/input_actions.gd` | the owner's controller pick: `Gen2Options.pad`, applied by the new `game/input/pad_choice.gd` (`PokePadChoice`) after each install and plug; Settings > Controls > Controller; other pads' events are dropped in `_input`; Auto letters read the picked pad |
 | `README.md` | AI-authorship notice at the top |
 
 `game/gen1/gen1_layout_de.gd` also carries the friend invitation and battle
