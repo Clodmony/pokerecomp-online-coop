@@ -1270,12 +1270,12 @@ func test_a_trainer_win_closes_with_the_defeat_the_trainers_line_and_the_prize()
 	var me: String = String(_red.state["players"][_red.player_id]["name"])
 	field._queue_victory({
 		"trainer": true, "trainer_name": "GARY", "trainer_class": 1, "gym": true, "prizes": {_red.player_id: 120, "p9": 119},
-		"win_text": "I lost!%sOh well.%sNext time." % [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK],
+		"win_text": "I lost!%s<PLAYER> wins.%sNext time." % [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK],
 	})
 
 	assert_eq(field._messages, [
 		{"fanfare": true, "gym": true}, {"text": "%s defeated\nGARY!" % me},
-		{"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY, "trainer": 1}, {"text": "I lost!\nOh well."},
+		{"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY, "trainer": 1}, {"text": "I lost!\n%s wins." % me},
 		{"text": "Next time."}, {"text": "%s got ¥120\nfor winning!" % me},
 	])
 
