@@ -2,8 +2,8 @@ extends SceneTree
 
 ## One co-op player's window on the real world screen, the Co-op tab's session, against `tools/coop_session.gd -- host [port] <game>`:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## SELECT opens the session menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
-## picks the panel's first matching row); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
+## SELECT opens the CO-OP menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
+## picks the menu's first matching row, or walks the battle's menus to the panel's); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
@@ -21,6 +21,7 @@ var _keys: Array = []
 var _captures: Array = []
 var _frames: int = 0
 var _held: int = PokeButton.NONE
+var _auto_battle: bool = false
 
 
 func _initialize() -> void:
@@ -51,6 +52,9 @@ func _initialize() -> void:
 
 
 func _read_option(arg: String) -> bool:
+	if arg == "auto_battle":
+		_auto_battle = true
+		return true
 	if arg == "opening":
 		_opening = true
 		return true
@@ -86,6 +90,8 @@ func _process(_delta: float) -> bool:
 		_frames += 1
 		_drive_keys()
 		_capture_due()
+		if _auto_battle and _frames % KEY_HOLD_FRAMES == 0:
+			_drive_battle()
 	return false
 
 
@@ -106,12 +112,19 @@ func _drive_keys() -> void:
 
 
 func _point_at_row(pattern: String) -> bool:
-	var panel: PokeCoopBattlePanel = _session.panel
 	var matcher := RegEx.create_from_string(pattern)
-	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(
-		func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null)
+	var matches: Callable = func(row: Dictionary) -> bool: return matcher.search(String(row.get("text", ""))) != null
+	var session: PokeCoopSession = _session if _session != null else Gen2GameRuntime.instance().coop
+	var menu: PokeCoopMenu = session.menu
+	if menu != null and menu.is_open():
+		var row: int = menu._rows.find_custom(matches)
+		if row >= 0:
+			menu._set_cursor(row)
+		return row >= 0
+	var panel: PokeCoopBattlePanel = session.panel
+	var index: int = -1 if panel == null or not panel.is_open() else panel._rows.find_custom(matches)
 	if index >= 0:
-		panel._set_cursor(index)
+		panel.point_at(index)
 	return index >= 0
 
 
@@ -122,3 +135,18 @@ func _capture_due() -> void:
 		var image: Image = root.get_viewport().get_texture().get_image()
 		print("coop play: capture %s %s" % [shot["path"], error_string(image.save_png(shot["path"]))])
 		_captures.erase(shot)
+
+
+func _drive_battle() -> void:
+	var panel: PokeCoopBattlePanel = _session.panel
+	if panel == null or not panel.is_open() or _session.field.is_playing():
+		return
+	var view: Dictionary = panel.battle_view()
+	if not _session.client.is_controller(String(view.get("battle", ""))):
+		return
+	var kind: String = "move" if view.get("phase") == "action" else "send_out" if view.get("phase") == "send_out" else "decline"
+	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
+		return String((entry.get("command", {}) as Dictionary).get("type", "")) == kind)
+	if row >= 0:
+		panel.point_at(row)
+		panel._press(PokeButton.A)

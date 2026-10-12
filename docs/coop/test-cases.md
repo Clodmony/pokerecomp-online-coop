@@ -24,7 +24,7 @@ Red (or Blue) cartridge, the same one.
 | S08 | Close both apps and host the campaign again | Every player, the story and the PC come back as saved | `test_a_save_waits_for_a_safe_checkpoint_and_reloads_everyone` | | |
 | S09 | Pull the joiner's network for a minute | "Lost the host: reconnecting...", then "Back in the session." | `test_a_device_whose_link_drops_comes_back_on_its_own` | | |
 | S10 | Send a phone app to the background and back | A host saves first; a joiner redials at once | `test_a_hosting_device_sent_to_the_background_keeps_the_campaign` | | |
-| S11 | LEAVE SESSION on the joiner, then on the host | The joiner returns to the launcher's Co-op tab saying "You left the session."; the host ending sends everyone back there saying "The host closed the session." | `test_a_host_that_leaves_saves_the_campaign_and_tells_the_others` | launcher_leave_rehost | |
+| S11 | LEAVE SESSION in START > CO-OP (YES) on the joiner, then on the host | The joiner returns to the launcher's Co-op tab saying "You left the session."; the host ending sends everyone back there saying "The host closed the session." | `test_a_host_that_leaves_saves_the_campaign_and_tells_the_others` | launcher_leave_rehost | |
 | S12 | Close the hosting window with the window's close button | The joiner hears "ended" at once instead of redialling | `test_closing_a_hosting_window_tells_the_joiner_before_the_app_quits` | | |
 | S13 | Kill the hosting app (no goodbye) right after a trainer win while the partner is in another battle, then host again | The win, its badge, its prize and anything handed out with it are still there | `test_a_win_and_a_gift_while_another_battle_runs_survive_a_crash_of_the_host`, `test_story_journaled_after_the_last_checkpoint_survives...` | | |
 | S14 | Open the Co-op tab with a pad or keyboard | Host is focused and in view; the name and address are the ones last used | `test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on`, `test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with` | launcher_host_join | |
@@ -33,6 +33,10 @@ Red (or Blue) cartridge, the same one.
 | S17 | A world reopened after the Hall of Fame's reset | It shows no earlier battle's result on the panel | `test_coop_session` (continued world test) | playthrough_elite | |
 | S18 | `tools/coop_seed.gd -- red <leg> <dir> party=6` | Each player opens with six of their own Pokémon on the host (p1:1 to p1:6); the files are identical each time | `test_coop_state` (seed party test) | | |
 | S19 | Reopen a campaign saved while a player stood in the Seafoam Islands (or in a Safari Game) | The walk flag is gone from the campaign; story flags and gifts stay | `test_a_campaign_saved_while_a_player_was_in_seafoam_hands_the_walk_back` | | |
+| S20 | START in a co-op world, then in a solo game | CO-OP between OPTION and EXIT in co-op; absent alone | `test_start_lists_co_op_only_while_a_co_op_world_is_up` | start_coop_menu | |
+| S21 | START > CO-OP (or SELECT) while a partner fights | Partners, where they are and the last save above; FIGHT offers, JOIN <partner> / VS <foe>, REJOIN after leaving, LEAVE SESSION, CANCEL; JOIN closes START and joins | `test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving` | start_coop_menu, leave_rejoin_takeover | |
+| S22 | LEAVE SESSION, then NO or B; again, then YES | NO and B return to the rows; YES leaves to the Co-op tab | `test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving` | start_coop_menu, launcher_leave_rehost | |
+| S23 | SELECT on the map, in the bag (Gen 1 swap) and in a co-op battle | Opens CO-OP on the map only; the bag swaps; in a battle nothing opens | `test_select_opens_the_co_op_menu_only_where_the_world_does_not_read_it` | start_coop_menu | |
 
 ## Exploration and story
 
@@ -45,7 +49,7 @@ Red (or Blue) cartridge, the same one.
 | W05 | Both take EEVEE, LAPRAS, a HITMON and the MAGIKARP for sale | Each player can take each once | `test_each_player_is_given_their_own_eevee_and_dojo_pokemon` | | |
 | W06 | Both pick up the same item ball at the same moment | Each player has it once | `test_a_gift_two_windows_hand_out_at_once_is_kept_once` | | |
 | W07 | Use a Pokémon Center, a Mart and Bill's PC in each world | Each works on that player's own team, bag, money and PC | `test_a_heal_and_a_deposit...`, `test_a_window_opened_later_finds_its_pc_as_it_left_it` | | |
-| W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "SELECT to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | launcher_host_join | |
+| W08 | The partner arrives, leaves or starts a battle | A line over the world says so, with "START > CO-OP to join" | `test_a_player_hears_when_the_partner_arrives_leaves_or_starts_a_battle` | launcher_host_join | |
 | W09 | Both walk into the same trainer | One battle both fight; once beaten the trainer stays beaten | `test_one_trainer_opened_in_two_windows_is_one_battle_both_fight` | playthrough_brock | |
 | W10 | Both reach SNORLAX or a legendary | One battle; caught or beaten, it is gone for both | `test_red_and_blues_one_off_wild_pokemon_are_one_encounter_each` | | |, playthrough_koga
 | W11 | A player who skipped the opening delivers OAK'S PARCEL | Oak is in the lab and takes it | `test_coop_session` (D58) | | |
@@ -119,11 +123,11 @@ Red (or Blue) cartridge, the same one.
 |---|---|---|---|---|---|
 | B01 | Meet a wild Pokémon in the grass; the partner joins with SELECT from another map | The battle is fought on the host; the joiner comes back where they were afterwards | `test_a_battle_the_world_opens_is_fought_on_the_host...` | leave_rejoin_takeover, playthrough_brock, catch_for_partner | |
 | B02 | Switch to the partner's Pokémon | The turn passes to its owner | `test_a_free_player_joins_and_the_turn_follows_the_pokemon_that_is_out` | switch_and_suggest | |
-| B03 | Move the cursor as the one not deciding | The partner sees "◀ NAME" and nothing happens | `test_a_suggestion_never_acts...` | switch_and_suggest | |
-| B04 | LEAVE BATTLE as the joiner | Back in your world; your Pokémon fight on under the partner; you start no other battle until it ends, and one your world starts waits | `test_a_joiner_who_leaves_walks_on...`, `test_a_fight_the_world_opens_waits...` | leave_rejoin_takeover | |
-| B05 | REJOIN from the panel or the SELECT menu | Back in the battle at once | `test_a_player_who_left_rejoins_from_the_session_menu` | leave_rejoin_takeover | |
+| B03 | Move the cursor as the one not deciding, in the main menu and inside PKMN, FIGHT or ITEM | The partner sees a hollow ▷ on the menu entry and on the row; nothing happens; A only sends the suggestion again | `test_a_suggestion_never_acts...`, `test_a_partners_pointer_is_marked_at_every_menu_level...` | switch_and_suggest | |
+| B04 | RUN as the joiner, then YES to "Leave the battle?" | Back in your world; your Pokémon fight on under the partner; you start no other battle until it ends, and one your world starts waits | `test_a_joiner_who_leaves_walks_on...`, `test_a_fight_the_world_opens_waits...` | leave_rejoin_takeover | |
+| B05 | REJOIN from START > CO-OP (or SELECT) | Back in the battle at once, its menus up | `test_a_player_who_left_rejoins_from_the_session_menu` | leave_rejoin_takeover | |
 | B06 | Try to leave a battle your own world started | Not offered | `test_a_joiner_who_leaves_hands_their_pokemon_to_whoever_is_left` | | |
-| B07 | Close the deciding player's app | The battle waits; after 30 s the other is asked TAKE OVER or KEEP WAITING; the owner takes over again on return | `test_a_partner_stands_in_for_a_controller_who_stays_away` | leave_rejoin_takeover | |
+| B07 | Close the deciding player's app | The battle waits; after 30 s the other is asked "Take over?" (YES/NO); the owner takes over again on return | `test_a_partner_stands_in_for_a_controller_who_stays_away` | leave_rejoin_takeover | |
 | B08 | Close the only player's app in a battle | Kept about 2 minutes, then ended as fled; saving works again | `test_a_battle_everyone_left_ends_and_stops_holding_up_saves` | | |
 | B09 | Throw a ball and name the partner | The catch is theirs (team, or PC when full) | `test_a_caught_pokemon_is_filed_once...` | catch_for_partner | |
 | B10 | Use a Potion | It comes from the user's bag only | `test_an_item_comes_out_of_the_acting_players_bag_only` | catch_for_partner | |
@@ -134,9 +138,16 @@ Red (or Blue) cartridge, the same one.
 | B15 | A trainer battle from start to end | Sliding intro, the trainer's lines, the defeat line, the prize | `test_a_trainer_win_closes_with_the_defeat...` | playthrough_brock | |
 | B16 | One player walks into Pokémon Tower's MAROWAK with the SILPH SCOPE; the other uses SELECT > JOIN | One host battle with both; afterwards gone for both, its cell starts nothing | | playthrough_tower | |
 | B17 | A wild battle in the tower without the SILPH SCOPE | The window's own GHOST battle; no host battle, no join offered; RUN escapes | `test_a_ghost_nobody_can_see_is_left_to_the_windows_own_battle` | | |
-| B18 | DISABLE hits a move; a move runs out of PP | The panel marks it (DISABLED) or (NO PP); choosing either says "That move can't be used now." | `test_the_panel_names_a_move_that_is_disabled_or_out_of_pp` | playthrough_erika | |
+| B18 | DISABLE hits a move; a move runs out of PP | Choosing it says "The move is disabled!" or "No PP left for this move!" in the text box and sends nothing | `test_the_panel_names_a_move_that_is_disabled_or_out_of_pp`, `test_a_move_that_cannot_be_used...` | playthrough_erika | |
 | B19 | One player fights ERIKA; the partner in the gym joins with SELECT | One battle; the badge and TM21 reach both, once each; the partner's window does not play ERIKA's lines | `test_brock_beaten_in_one_window_hands_each_player_one_tm34` (the same gym rule) | playthrough_erika | |
 | B20 | A joined battle won by the partner while the initiator's whole team fainted | The initiator is not blacked out and keeps their place, flag and money | `test_coop_session` (won side test) | playthrough_elite | |
+| B21 | The deciding player waits on the main menu while the partner points at a Pokémon | Their text box takes turns with the menu: "BLUE suggests / SQUIRTLE", then the menu with ▷ on PKMN; inside PKMN the ▷ is on SQUIRTLE; three players show each partner's initial | `test_a_partners_pointer_is_marked_at_every_menu_level...`, `test_coop_three_players` | switch_and_suggest | |
+| B22 | ITEM, a ball, in a two-player wild battle | "Who gets PIDGEY?" with both names; the catch is that player's | `test_every_battle_row_is_reached_through_the_cartridges_own_menus` | catch_for_partner | |
+| B23 | Every command from the cartridge menus: a move, a switch to the partner's Pokémon, an item, a ball, RUN, a send-out after a faint, forgetting a move, MIMIC | Each reaches the host as the old list's row did | `test_every_battle_row_is_reached...`, `test_a_move_to_forget_and_a_move_to_mimic...` | switch_and_suggest, catch_for_partner | |
+
+| B24 | Talk to a partner, BATTLE / TRADE / CANCEL; or START > CO-OP, BATTLE name | YES/NO at a rest point; B, NO or 30 s declines; busy/offline partners cannot start; both players see their own team and choose their own replacements | `test_friend_menu_invites_only_free_partners...`, `test_versus_waits_for_both_choices...`, `test_friend_talking_opens_the_partner_menu...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
+| B25 | Finish or forfeit a friend battle; both Pokémon participated; one benched | Full HP/PP/status for both teams in place, no whiteout or money, full unsplit EXP per foe faced, owner answers learning | `test_versus_heals_both_parties...`, `test_each_versus_participant...`, `test_versus_forced_turns...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
+| B26 | Disconnect during a friend battle; attempt ITEM, another invitation or JOIN | No opponent takeover or item use; two-minute grace releases the fight and heals both; stale/future commands rejected | `test_a_versus_disconnect...`, `test_invitation_timeout...` | | |
 
 ## Trades
 
@@ -146,16 +157,22 @@ Red (or Blue) cartridge, the same one.
 | T02 | Trade a MACHOKE, KADABRA, HAUNTER or GRAVELER | The trade movie shows it as sent (MACHOKE), then it evolves and arrives evolved | `test_a_pokemon_that_evolves_by_trade_arrives_evolved`, `test_a_trade_evolver_is_shown_as_sent_and_arrives_evolved` | cable_club_trade | |
 | T03 | Cancel the trade on either side | Nobody's party changes | `test_a_trade_either_side_cancels_moves_nobody` | cable_club_trade | |
 | T04 | Fight in the Colosseum | The cartridge's link battle against the partner's team (not yet tried) | | | |
+| T05 | In the Trade Center or Colosseum, reset the window, or close and host the campaign again | Like the cartridge (whose only way out is a reset), the player continues at the Cable Club receptionist, and the center's door leads back to the city | `test_a_world_continued_in_a_cable_club_room_opens_at_the_receptionist...` | | played 2026-10-11 (stuck before the fix) |
+| T06 | Host a campaign saved in a Cable Club room before this fix | Each player in the room opens in front of the Pokémon Center they last used, where a whiteout would put them | `test_a_campaign_saved_in_a_cable_club_room_before_its_entry_was_kept...` | | |
+
+| T07 | Invite a remote friend to TRADE, accept, swap, then choose CANCEL | Native trade movie, each UID swaps once; cancelling leaves both worlds in place and available for another invitation | `test_direct_trade_uses_the_existing_cable...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
 
 ## Platforms and input
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
 | P01 | Windows build joins a Linux host | Plays as on Linux | Wine run only (#44) | | |
-| P02 | Tap or click panel rows | First tap moves the cursor, the second chooses | `test_a_tap_on_a_row_moves_the_cursor...` | | |
-| P03 | A tall (portrait) window in a battle | The panel sits under the battle field | | | |
+| P02 | Swipe and tap over the game screen in a co-op battle or the CO-OP menu | A swipe moves the cursor one row per row of travel, a tap is A | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | |
+| P03 | A tall (portrait) window in a battle | The battle fills the game screen at the top; the on-screen pad below stays visible | | 540x1170 scratch run | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |
 | P05 | After an upstream merge (0.1.75, Godot 4.8-dev7), with every cartridge imported again: host, join, a trainer battle, a Cable Club trade, a SAVE | As before the merge; a cache from before the merge shows "Update needed" until the same dump is imported again | the whole suite, the ENet demo and the three-process check on dev7 (D97) | `playthrough_brock`, `cable_club_trade`: not yet run on the merge | |
+| P06 | A phone in a co-op battle and in START > CO-OP; win, lose or run | The on-screen pad still presses A and B; the battle returns to the world by itself | `test_a_world_held_under_the_panel_keeps_its_touch_controls`, `test_a_finished_battle_closes_itself...` | catch_for_partner, lose_and_white_out | |
+| P07 | A phone over the CO-OP menu or a co-op battle: swipe up, down, left, right, tap; then two fingers, a thumb on the pad, and walking on the map | One cursor step per row of travel, a tap is A; two fingers and pad touches do nothing extra; the map is untouched | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | not yet played on a phone |
 | G01 | A German campaign and an English window, or the reverse | The host refuses the join ("same game file"); campaigns, caches and saves stay apart by id (D95) | `test_coop_session` (stranger test) | | |
 | G02 | Rote Edition from the opening to BROCK in two windows | Both reach BROCK's badge with the cartridge's German words | | `playthrough_brock` with `GAME=red_de` | |
 | G03 | START menu, SAVE question and a wild battle on a German cartridge | The cartridge's own German words, not English | | `german_menus` (red_de; blue_de in a scratch run) | |

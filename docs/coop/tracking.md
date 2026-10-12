@@ -23,7 +23,9 @@ every row marked done below was closed then. Work after that branches from
 | `coop/playthrough` | `coop/owner-rules` | pushed: test cases, two-window runner, autoplayed runs to LT. SURGE and a Cable Club trade, the launcher check, campaign seeds, #39, #66, #82, #85, #86, D67 to D78 | merged into `main` (#83, 2026-10-08) |
 | `coop/german` | `coop/playthrough` | German Red and Blue (D95) | merged into `main` (#89, 2026-10-08) |
 | `coop/autoplay-surge` | `coop/playthrough` at `72a724fb` | merged into `coop/playthrough` (`91e8c1c6`, #87) | none |
-| `coop/upstream-sync` | `main` | upstream `v0.1.75` merged, the pin moved to Godot 4.8-dev7 (D97) | draft pull request (#14) |
+| `coop/upstream-sync` | `main` | upstream `v0.1.75` merged, the pin moved to Godot 4.8-dev7 (D97) | merged into `main` (#97, 2026-10-10) |
+
+| `coop/friend-menu` | `coop/link-room-continue` | verified: friend invitations, PvP and direct native trades (#104, D100) | draft against `main`, depends on #101 and #103 |
 
 ## Issues
 
@@ -81,6 +83,8 @@ every row marked done below was closed then. Work after that branches from
 | 86 | Upstream: the Cerulean thief's TM28 box stays on screen after its scene | done (D76): a row's end closes a no-press box | `coop/playthrough` (`fa244045`) | close when the branch merges |
 | 87 | Review and merge coop/autoplay-surge | done: merged (`91e8c1c6`), D73 to D75; `playthrough_surge` passes from a new campaign | `coop/playthrough` | closed 2026-10-07 |
 | 88 | Autoplayed two-window run to the Hall of Fame | done: every stretch chained in ROUTES; a new campaign reached both Halls of Fame in two windows on 2026-10-08, resumed from snapshots after each autopilot fix (D96); one unbroken run is the next check | | |
+
+| 104 | Battle and trade with a co-op friend from anywhere | done: co-op 243/243, whole suite 5098/5098, English/German windows (D100) | `coop/friend-menu` | open; close on merge |
 
 ## Found while GitHub was paused
 

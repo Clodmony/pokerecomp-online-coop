@@ -82,16 +82,21 @@ Further findings that shape the design:
    `Gen1TrainerAI.select_slot`. Joins queue and apply at the next boundary by
    appending to the allied party (`Gen2Party.add_members`). Results are grouped
    by owner and uid; evolvable Pokémon are reported by uid.
+   `PokeCoopVersus` extends this session for two human opponents, with a view
+   mirrored per player, simultaneous choices and post-fight awards (D100).
 5. **Client presentation**: `PokeCoopClient` sends numbered intentions and keeps
    the last state and battle views; no game rule runs on it.
    `PokeCoopRemoteActor` is registered as a world actor (D19): it draws the
    other connected players on the current map, eased between cells, in a fixed
    colour each, with the "!" emote while they battle, and reports this player's
-   position. `PokeCoopBattlePanel` is a `PanelContainer` on a `CanvasLayer` over
-   the world: SELECT opens the session menu (fight an offered encounter, join a
-   running battle, save), and a shared battle shows the roster with owners, who
-   decides and the partner's suggestion (D22). Under it `PokeCoopBattleField`
-   draws the same battle on the cartridge's battle field (D32), its pictures
+   position. `PokeCoopMenu` is the session menu, START > CO-OP or SELECT on the
+   map (fight an offered encounter, join or rejoin a running battle, invite a
+   friend to battle or trade, leave),
+   drawn on the world's own screen (D99). In a shared battle
+   `PokeCoopBattlePanel` holds the choices, who decides and the partners'
+   suggestions, `PokeCoopBattleMenu` shows them as the cartridge's
+   FIGHT/PKMN/ITEM/RUN menus, and `PokeCoopBattleField` draws the battle inside
+   the world's 160x144 screen (D98), its pictures
    kept in a `PokeCoopBattleStage` tilemap (D39), and
    `PokeCoopLinkTransport` is the Cable Club's cable to the partner (D31).
    `tools/coop_play.gd` assembles a
@@ -127,7 +132,8 @@ Peer 1 is the host.
 | `suggest` | `seq`, `battle`, `suggestion` (`type`, `value`) |
 | `join` | `seq`, `battle` |
 | `save` | `seq` |
-| `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL) or `leave` |
+| `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL), `leave`, or `end` (leave a direct pairing, D100) |
+| `challenge` | `seq`, `partner`, `kind` (`battle` or `trade`), or `id`, `answer` (1 YES, 0 NO); host rechecks both players (protocol 6, D100) |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
@@ -149,7 +155,13 @@ Peer 1 is the host.
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
 
-The protocol is version 5 (`PokeCoopHost.PROTOCOL`); a peer of another version is
+A private `you.challenge` carries incoming/outgoing invitations and the last
+answer; `you.trade.direct` names the paired player and serial. Public players
+carry `meeting` while paired. A `versus` battle view shows only the viewer's
+team as allies, their choices and learning offer, with events mirrored for
+the opponent. Friend battles stay private to their two participants.
+
+The protocol is version 6 (`PokeCoopHost.PROTOCOL`); a peer of another version is
 refused with `protocol_mismatch`.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
@@ -201,6 +213,9 @@ Kept small so upstream merges stay cheap (#14):
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
 | `README.md` | AI-authorship notice at the top |
 
+`game/gen1/gen1_layout_de.gd` also carries the friend invitation and battle
+menu translations (D100); no new world or battle engine seam was needed.
+
 ## Merging upstream
 
 Upstream is merged by release tag, never by its `main` (#14, D97):
@@ -229,6 +244,6 @@ In order of the backlog:
 
 1. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
-2. Drive `Gen2BattleScreen` from session events (#26) in place of the panel,
+2. Drive `Gen2BattleScreen` from session events (#26) in place of the field's replay,
    and share the enemy AI choice between the screen and sessions (#27).
 3. Route map-script flags and badges through campaign commits (#32).

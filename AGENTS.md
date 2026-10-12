@@ -137,6 +137,7 @@ before pushing.
 | `game/coop/coop_player.gd` | `PokeCoopPlayer`: one player's team (uids), box, bag, money, position |
 | `game/coop/coop_roster.gd` | `PokeCoopRoster`: owner and uid of every allied battle index |
 | `game/coop/coop_battle_session.gd` | `PokeCoopBattleSession`: one battle, turn authority, suggestions, joins, results |
+| `game/coop/coop_versus.gd` | `PokeCoopVersus`: friend battle, both human sides, mirrored views and post-fight healing/experience |
 | `game/coop/coop_policy.gd` | `PokeCoopPolicy`: provisional rules kept out of the simulation |
 | `game/coop/coop_host.gd` | `PokeCoopHost`: authoritative validation, protocol, save checkpoints, lifecycle |
 | `game/coop/coop_client.gd` | `PokeCoopClient`: intentions out, authoritative state in |
@@ -144,10 +145,13 @@ before pushing.
 | `game/coop/coop_enet_transport.gd` | `PokeCoopEnetTransport`: LAN/direct-IP over ENet |
 | `game/coop/coop_save.gd` | `PokeCoopSave`: versioned campaign file |
 | `game/coop/coop_remote_actor.gd` | `PokeCoopRemoteActor`: other players as world actors; reports this player's position |
-| `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: session menu and co-op battle overlay over the world screen |
+| `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: a battle's rows, presses, refusals and closing |
+| `game/coop/coop_menu.gd` | `PokeCoopMenu`: START > CO-OP, the session menu on the world's own screen |
+| `game/coop/coop_touch_gestures.gd` | `PokeCoopTouchGestures`: swipes and taps over the screen while a co-op menu or battle is up |
+| `game/coop/coop_battle_menu.gd` | `PokeCoopBattleMenu`: a battle's rows as the cartridge's FIGHT/PKMN/ITEM/RUN, move, party and bag lists and YES/NO boxes, with partners' marks |
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
 | `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |
-| `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the cartridge's battle field |
+| `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the world's own 160x144 screen, the touch pad free beside it |
 | `game/coop/coop_battle_stage.gd` | `PokeCoopBattleStage`: the field's tilemap, faints, recalls, send-outs and per-side panels |
 | `game/coop/coop_trades.gd` | `PokeCoopTrades`: Cable Club trades between players, swapped on the host |
 | `game/coop/coop_link_transport.gd` | `PokeCoopLinkTransport`: the Cable Club's cable to the partner the host names |

@@ -39,7 +39,7 @@ everyone gets their own trainer back, with their team, bag and place. A
 device remembers who it played as in each campaign; a player joining from
 another device or address gets their trainer back by typing the same name as
 before. Only the campaign the host picked is played: the others see its name
-at the top of the SELECT menu.
+at the top of the CO-OP menu (START > CO-OP).
 
 ## The opening
 
@@ -58,7 +58,7 @@ or one after another:
 - Once you leave the lab with your starter, the campaign's story is yours: the
   same shared flags, badges and beaten trainers as everyone else's. The rival
   keeps the starter he took in the first opening to finish. Someone still in
-  the opening shows in the SELECT menu's list but not in the world.
+  the opening shows in the CO-OP menu's list but not in the world.
 
 ## Playing over the internet
 
@@ -94,45 +94,67 @@ or one after another:
   VOUCHER, the GOLD TEETH) is taken from everyone; fossils are not, so each of
   you revives your own. What you buy, trade for or use stays yours. Hidden
   items are each player's own to find.
-- **Saving**: START > SAVE and "Save the campaign" in the SELECT menu do the
-  same thing: the host saves the whole campaign, everyone in it. You see
+- **Saving**: START > SAVE saves the whole campaign, everyone in it. You see
   "Campaign saved." and the others see "BLUE saved the campaign."; a save
   refused during a battle says so. The host also saves by itself after
-  battles, every thirty seconds of changes and when it closes, and the SELECT
-  menu shows when it last saved. Nobody has to save before leaving.
+  battles, every thirty seconds of changes and when it closes, and START > CO-OP
+  shows when it last saved. Nobody has to save before leaving.
 
 ## Battles
 
-- The session menu (SELECT) says where your partner is ("With RED (ROUTE 1)").
+- **START > CO-OP** (or SELECT on the map) says where your partner is ("BLUE
+  ROUTE 1") and when the campaign was last saved, and lists the battles you
+  can join from any map, REJOIN and LEAVE SESSION.
 - Wild and trainer battles your world starts are fought on the host, so the
   partner can join; their window says so ("RED is in a battle against wild
-  RATTATA. SELECT to join."), and also when a player joins or leaves. **SELECT** opens the session menu: join a running battle
-  (from any map), save the campaign, leave the session.
-- A shared battle is one Pokémon a side, with both teams on your side (up to
-  twelve), listed in the panel under each player's name in their colour.
-  Whoever owns the Pokémon that is out decides; switching to the partner's
-  Pokémon hands them the turn. Your cursor in the panel is a suggestion the
-  partner sees ("◀ NAME") and never acts by itself.
-- The panel works with the d-pad and A, or by touch or mouse: tap a row to put
-  the cursor on it, tap it again to choose it.
-- Balls are listed once per player ("GREAT BALL x10, catch for BLUE"): the
-  catch goes to whoever you name.
+  RATTATA. START > CO-OP to join."), and also when a player joins or leaves.
+- A battle uses the game's own screen and menus: FIGHT, PKMN, ITEM, RUN. A
+  shared battle is one Pokémon a side, with both teams on your side (up to
+  twelve) in the PKMN list; the text box names whose Pokémon the cursor is on.
+  Whoever owns the Pokémon that is out decides ("RED decides" on the left of
+  the menu); switching to the partner's Pokémon hands them the turn.
+- When it is your partner's turn you still move through the menus: where your
+  cursor rests is a suggestion, shown on their screen as a hollow ▷ on the
+  menu and on the row, and spelled out in their text box while they wait
+  ("BLUE suggests / EMBER"). It never acts by itself.
+- After choosing a ball you pick whom the catch is for.
 - If the deciding player drops, the battle waits. After thirty seconds the
-  others are asked: TAKE OVER decides for that player's Pokémon until they are
-  back, KEEP WAITING goes on waiting. Nobody plays your Pokémon unless they
+  others are asked "Take over?": YES decides for that player's Pokémon until
+  they are back, NO goes on waiting. Nobody plays your Pokémon unless they
   choose to.
-- If you joined a partner's battle, LEAVE BATTLE in the panel takes you back
-  to your world. Your Pokémon stay in the fight under the partner and keep
-  what they earn, so you cannot start another battle until it ends; REJOIN in
-  the panel or the SELECT menu takes you back in. A battle your own world
-  started can't be left.
+- If you joined a partner's battle, RUN asks whether to leave: YES takes you
+  back to your world. Your Pokémon stay in the fight under the partner and
+  keep what they earn, so you cannot start another battle until it ends;
+  REJOIN in START > CO-OP takes you back in. RUN in a battle your own world
+  started flees as usual. A finished battle returns to the world by itself.
+- On a phone the on-screen pad stays usable below the battle. While the
+  CO-OP menu or a co-op battle is open you can also swipe over the game
+  screen to move the cursor (one row per swipe of about a row) and tap to
+  choose.
 - A won battle pays every participant the whole prize. One EXP.ALL in anyone's
   bag shares experience over each player's own team, as it would alone.
 - Gift Pokémon (EEVEE, LAPRAS, a HITMON, the MAGIKARP for sale, fossils) can
   be had once by each player.
 - Evolutions and the whiteout after a loss happen in each owner's own world.
 
+## Battle a friend
+
+Talk to the other player and choose BATTLE, or open START > CO-OP and choose
+BATTLE followed by their name (SELECT also opens it). They receive a YES/NO
+invitation when their current scene ends; B or no answer for 30 seconds
+means NO. Both players choose their own moves, switches and replacements.
+RUN forfeits; items are unavailable. Afterwards both teams recover full HP,
+PP and status at their original positions, with experience for the opponents
+each Pokémon faced. No prize or whiteout occurs.
+
 ## Trading
+
+Talk to the partner and choose TRADE, or choose TRADE and their name from
+START > CO-OP. After they accept, both see the normal trade screen wherever
+they are. Select a Pokémon, select TRADE, advance the text and confirm TRADE.
+To leave, move below your party to CANCEL and press A; both return to their
+worlds in place. A disconnected player also ends the direct pairing.
+
 
 Both players go to a Pokémon Center's Cable Club receptionist, enter the Trade
 Center, sit at the table facing right and press A. The trade screen shows the
@@ -140,7 +162,7 @@ partner's real party; trade-evolving Pokémon evolve on arrival.
 
 ## Leaving
 
-LEAVE SESSION in the SELECT menu returns you to the launcher's Co-op tab,
+LEAVE SESSION in START > CO-OP asks YES/NO, then returns you to the launcher's Co-op tab,
 which says "You left the session.". When the host leaves, everyone is told why
 and returned to the Co-op tab, which says so again. A dropped
 connection is retried for about two minutes ("Lost the host: reconnecting...",

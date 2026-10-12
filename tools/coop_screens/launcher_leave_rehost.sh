@@ -1,5 +1,5 @@
 # Both windows start from the launcher, skipping the opening with a starter. RED hosts FIRST and
-# BLUE joins; BLUE leaves from the SELECT menu, then RED. RED hosts a new SECOND, BLUE joins, RED
+# BLUE joins; BLUE leaves from the CO-OP menu (SELECT), then RED. RED hosts a new SECOND, BLUE joins, RED
 # leaves under BLUE, who is told and sent back. RED picks FIRST again from the campaign list and
 # BLUE joins as the same trainer, then saves. Each campaign file holds RED and BLUE once (test
 # cases S01, S03, S06, S11). Seconds count from each window's launch; a round presses Host or
@@ -12,18 +12,18 @@ P2_ARGS="join name=BLUE starter=2 round=60 round=1320 round=2340"
 DURATION=56
 shot p1 5.3 red_first_filled          # BULBASAUR, a new campaign named FIRST
 shot p1 12 red_with_blue              # BLUE stands by the house beside RED's
-press p1 16 SELECT D A                # LEAVE SESSION
+press p1 16 SELECT @LEAVE.SESSION A   # LEAVE SESSION, YES
 shot p1 17.5 red_left                 # back on the Co-op tab: "You left the session."
 shot p1 19.4 red_second_tab           # the campaign list starts on FIRST, the latest
 shot p1 23.2 red_second_filled        # a new campaign named SECOND
-press p1 34 SELECT D A                # RED leaves while BLUE plays
+press p1 34 SELECT @LEAVE.SESSION A   # RED leaves while BLUE plays
 shot p1 37.4 red_third_tab            # SECOND is the latest now
 shot p1 40.3 red_campaign_list        # FIRST picked from the list
 shot p1 41.3 red_third_filled
 shot p1 50 red_back_in_first
 shot p2 5.3 blue_filled               # SQUIRTLE, address 127.0.0.1
 shot p2 7 blue_first
-press p2 9 SELECT D A                 # LEAVE SESSION
+press p2 9 SELECT @LEAVE.SESSION A    # LEAVE SESSION, YES
 shot p2 9.4 blue_menu
 shot p2 11 blue_left                  # "You left the session."
 shot p2 22.4 blue_second_tab
@@ -31,9 +31,10 @@ shot p2 29 blue_second
 shot p2 31 blue_host_left             # "The session ended: host shutdown."
 shot p2 35 blue_sent_back             # "The host closed the session."
 shot p2 39.4 blue_third_tab
-shot p2 46 blue_back_in_first         # where BLUE left FIRST, with SQUIRTLE
-press p2 47 SELECT A                  # SAVE CAMPAIGN
-shot p2 48 blue_saved                 # "Campaign saved."
+shot p2 43.5 blue_back_in_first       # where BLUE left FIRST, with SQUIRTLE
+press p2 44 START D D D A             # START > SAVE
+press p2 49 A                         # YES, once the question is printed
+shot p2 52 blue_saved                 # "Campaign saved."
 
 check() {
 	local file names ok=0 first third

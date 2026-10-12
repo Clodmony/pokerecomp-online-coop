@@ -1,7 +1,7 @@
 class_name PokeCoopBattleField
 extends Control
 
-## The panel's battle drawn as the cartridge draws one, through [Gen2BattleRenderer] and the text box, from the host's view alone.
+## The panel's battle drawn on the world's own screen through [Gen2BattleRenderer], the text box and [PokeCoopBattleMenu].
 
 const HOLD_FRAMES: int = 50
 const BOX_COLUMNS: int = 18
@@ -12,20 +12,15 @@ const WORDED: Array[StringName] = [
 	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
 	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN,
 ]
-const GAP: int = 16
 
 var panel: PokeCoopBattlePanel = null
 var data: GameData = null
-## The world's audio player, and what puts the map's music back after a battle.
 var audio: Gen2AudioPlayer = null
 var restore_music: Callable = Callable()
 var _music_for: String = ""
-var _stage: Control = null
 var _renderer: Gen2BattleRenderer = null
 var _box: Gen2TextBox = null
-## The turn's steps in order, each keyed as [method _take_step] reads it.
 var _messages: Array = []
-## The HP each side's bar shows while the turn plays, and where one is going.
 var _drawn_hp: Dictionary = {}
 var _bar_goal: Dictionary = {}
 var _hp_before: Dictionary = {}
@@ -43,9 +38,13 @@ var _hold: int = 0
 var _revision_key: String = ""
 var _idle_text: String = ""
 var _idle_seen: String = ""
-## Who was out on each side when the last view was taken, by species.
 var _out: Dictionary = {}
 var _frames: float = 0.0
+var _menu_layer: TextureRect = null
+var _menu_drawn: String = ""
+var _clicks: int = 0
+var _screen: Gen2Screen = null
+var _masked: bool = false
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -56,24 +55,22 @@ static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> Poke
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var backdrop := ColorRect.new()
-	backdrop.color = Color(0.03, 0.03, 0.05)
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(backdrop)
-	_stage = Control.new()
-	_stage.size = Vector2(Gen2Screen.WIDTH, Gen2Screen.HEIGHT)
-	_stage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_stage.clip_contents = true
-	add_child(_stage)
+	size = Vector2(Gen2Screen.WIDTH, Gen2Screen.HEIGHT)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	clip_contents = true
 	_renderer = Gen2BattleRenderer.new()
-	_renderer.size = _stage.size
-	_stage.add_child(_renderer)
+	_renderer.size = size
+	add_child(_renderer)
 	if not _renderer.set_battle_data(data):
 		_renderer.visible = false
 	_box = Gen2TextBox.for_screen(data)
-	_stage.add_child(_box)
+	add_child(_box)
+	_menu_layer = TextureRect.new()
+	_menu_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_menu_layer.visible = false
+	add_child(_menu_layer)
 	visible = false
 
 
@@ -81,11 +78,9 @@ func _process(delta: float) -> void:
 	if panel == null:
 		return
 	var view: Dictionary = panel.battle_view()
-	visible = not view.is_empty()
+	_stand(not view.is_empty())
 	_follow_music(view)
 	if not visible:
-		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		panel.position = Vector2(get_viewport_rect().size.x - panel.size.x - GAP, GAP)
 		_revision_key = ""
 		_idle_seen = ""
 		_scene_seen = {}
@@ -98,7 +93,6 @@ func _process(delta: float) -> void:
 		_anim_after = {}
 		_anim = null
 		return
-	_place()
 	_take_events(view)
 	var scene: Dictionary = scene_view(view, data)
 	_renderer.set_view(_with_animation(scene.duplicate()))
@@ -106,8 +100,49 @@ func _process(delta: float) -> void:
 	while _frames >= 1.0:
 		_frames -= 1.0
 		_advance_text()
+		if _menu_layer.visible:
+			panel.menu.advance()
 	if not is_playing():
 		_board.settle(scene)
+	_draw_menu()
+
+
+func _stand(up: bool) -> void:
+	if up == visible:
+		return
+	visible = up
+	_screen = Gen2Screen.owner_of(self) if up else _screen
+	if _screen == null:
+		return
+	if up:
+		get_parent().move_child(self, -1)
+		_masked = _screen.interface_masked
+		_screen.interface_masked = true
+		return
+	_screen.interface_masked = _masked
+	_screen.clear_field()
+
+
+## `MenuClickSound` for each press that took.
+func _draw_menu() -> void:
+	var menu: PokeCoopBattleMenu = panel.menu
+	if menu.clicks != _clicks:
+		_clicks = menu.clicks
+		_play_cue({"sound": Gen1Sfx.SFX_PRESS_AB})
+	var shown: bool = not is_playing() and menu.page != PokeCoopBattleMenu.NONE
+	_menu_layer.visible = shown
+	var drawn: String = menu.signature() if shown else ""
+	if drawn == _menu_drawn:
+		return
+	_menu_drawn = drawn
+	if shown:
+		_menu_layer.texture = Gen2PicImage.refreshed_texture(_menu_layer.texture as ImageTexture, menu.image())
+		_menu_layer.size = size
+
+
+func say(line: String) -> void:
+	for page: String in pages(line):
+		_messages.append({"text": page})
 
 
 func is_playing() -> bool:
@@ -135,22 +170,6 @@ func _follow_music(view: Dictionary) -> void:
 		audio.play_record(record, &"battle_music", data.audio_assets())
 
 
-## At a whole multiple: left of the panel on a wide window, above it on a tall one.
-func _place() -> void:
-	var room: Vector2 = get_viewport_rect().size
-	var tall: bool = room.y > room.x
-	var across: float = room.x - GAP * 2 - (0.0 if tall else PokeCoopBattlePanel.WIDTH + GAP)
-	var down: float = (room.y * 0.6 if tall else room.y) - GAP * 2
-	var factor: int = maxi(1, int(minf(across / Gen2Screen.WIDTH, down / Gen2Screen.HEIGHT)))
-	_stage.scale = Vector2(factor, factor)
-	var shown: Vector2 = Vector2(Gen2Screen.WIDTH, Gen2Screen.HEIGHT) * factor
-	_stage.position = (Vector2((room.x - shown.x) / 2.0, GAP) if tall \
-		else Vector2(GAP, (room.y - shown.y) / 2.0)).floor()
-	if tall:
-		panel.position = Vector2(maxf(GAP, (room.x - panel.size.x) / 2.0), GAP * 2 + shown.y).floor()
-
-
-## What [Gen2BattleRenderer] draws for [param view]: the enemy and the ally out.
 static func scene_view(view: Dictionary, game: GameData) -> Dictionary:
 	var enemy: Dictionary = view.get("enemy", {})
 	var allies: Array = view.get("allies", [])
@@ -398,7 +417,6 @@ static func pages(line: String) -> PackedStringArray:
 	return out
 
 
-## The species out on each side in [param view].
 static func out_now(view: Dictionary) -> Dictionary:
 	return {
 		Gen2Battle.PLAYER: species_at(view, Gen2Battle.PLAYER, int(view.get("active", 0))),
@@ -440,10 +458,14 @@ func _advance_text() -> void:
 	if not _messages.is_empty():
 		_take_step(_messages.pop_front())
 	elif not _idle_text.is_empty():
-		_show(_idle_text)
-		_idle_text = ""
+		_show_idle()
 	if _messages.is_empty() and _bar_goal.is_empty() and _anim == null and not _board.busy():
 		_drawn_hp.clear()
+
+
+func _show_idle() -> void:
+	_show(_idle_text if panel.menu.page == PokeCoopBattleMenu.NONE else "")
+	_idle_text = ""
 
 
 func _take_step(step: Dictionary) -> void:
@@ -576,9 +598,9 @@ func _play_cue(cue: Dictionary) -> void:
 	if audio == null:
 		return
 	if cue.has("cry") or cue.has("sound"):
-		var record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
-		if not record.is_empty():
-			audio.play_record(record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
+		var cue_record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
+		if not cue_record.is_empty():
+			audio.play_record(cue_record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
 		return
 	var music: int = Gen1Layout.MUSIC_DEFEATED_GYM_LEADER if bool(cue.get("gym", false)) else \
 		(Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON)
@@ -643,7 +665,7 @@ func _waiting_text(view: Dictionary) -> String:
 	var controller: String = String(view.get("controller", ""))
 	var allies: Array = view.get("allies", [])
 	var active: int = int(view.get("active", 0))
-	var out_now: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
+	var species_name: String = _species_name(data, int((allies[active] as Dictionary).get("species", 0))) \
 		if active >= 0 and active < allies.size() else ""
 	if bool(view.get("paused", false)):
 		return _de(data, "%s is away.\nWaiting...") % _player_name(controller)
@@ -653,7 +675,7 @@ func _waiting_text(view: Dictionary) -> String:
 				return _de(data, "Bring out which\nPOKéMON?")
 			PokeCoopBattleSession.AWAITING_LEARN:
 				return _de(data, "Which move should\nbe forgotten?")
-		return _de(data, "What will\n%s do?") % out_now
+		return _de(data, "What will\n%s do?") % species_name
 	return _de(data, "%s is\ndeciding...") % _player_name(controller)
 
 
