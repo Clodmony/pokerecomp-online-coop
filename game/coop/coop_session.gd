@@ -23,9 +23,9 @@ const INTRO_SCENE: String = "res://game/world/intro_screen.tscn"
 const SELECT_OWNERS: Array[StringName] = [&"_start_menu_host", &"_battle_host", &"_party_host"]
 ## A scratch root for the window's own saves; the campaign is the host's.
 const WINDOW_SAVES: String = "user://coop_window"
-const CAMPAIGNS_DIR: String = "user://coop_campaigns"
 ## Which player this device was on each host (by cartridge, address and port) in each campaign.
 static var identity_path: String = "user://coop_identity.json"
+static var campaigns_dir: String = "user://coop_campaigns"
 ## Why the last [method hosting] gave nothing back, for the launcher to say.
 static var last_failure: String = ""
 ## Why this device last left a session ("left" when its player chose to), for the Co-op tab to say once.
@@ -86,7 +86,7 @@ var _both_versions: BothVersions = null
 
 static func campaign_path(game: GameData, id: String = "", folder: StringName = &"") -> String:
 	var game_id: String = String(folder if not folder.is_empty() else game.id)
-	return "%s/%s/%s.json" % [CAMPAIGNS_DIR, game_id, id if not id.is_empty() else game_id]
+	return "%s/%s/%s.json" % [campaigns_dir, game_id, id if not id.is_empty() else game_id]
 
 
 static func new_campaign_id(game: GameData) -> String:
