@@ -29,6 +29,7 @@ var _mod_controls: Dictionary = {}
 var _touch_mode: StringName = Gen2Options.TOUCH_AUTO
 ## Which letters a badge prints for a pad button. See [member Gen2Options.pad_layout].
 var _pad_layout: StringName = PokeInputActions.PAD_LAYOUT_AUTO
+var _pad: Dictionary = {}
 var _layout: PokeTouchLayout = PokeTouchLayout.new()
 var _device: StringName = PokeInputDevice.KEYBOARD
 var _handheld: bool = PokeInputDevice.is_handheld()
@@ -128,6 +129,7 @@ func apply_options(options: Gen2Options) -> void:
 	_touch_mode = options.touch_mode
 	_layout = options.touch_layout
 	_pad_layout = options.pad_layout
+	_pad = options.pad
 	PokeInputActions.install(_scheme)
 	install_mod_actions()
 	scheme_changed.emit()
@@ -140,6 +142,7 @@ func apply_options(options: Gen2Options) -> void:
 func install_mod_actions() -> void:
 	var actions: Array = Gen2ModHost.instance().actions()
 	PokeInputActions.install_mod_actions(actions, _mod_controls)
+	PokePadChoice.apply(_pad)
 	# The on-screen controller places one button per action, so it needs the
 	# labels; where each one sits, and whether they are drawn at all, is the
 	# player's and stays in the layout.
@@ -401,7 +404,7 @@ static func _button_down(button: int) -> bool:
 ## counts as another device being picked up is
 ## [method PokeInputDevice.evidence_of] rather than where the event came from.
 func _input(event: InputEvent) -> void:
-	if _hold_back(event) or _gate_direction_repeat(event):
+	if not PokePadChoice.heard(event) or _hold_back(event) or _gate_direction_repeat(event):
 		var viewport: Viewport = get_viewport()
 		if viewport != null:
 			viewport.set_input_as_handled()
@@ -413,6 +416,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_joypad_changed(_device_id: int, _connected: bool) -> void:
+	PokePadChoice.apply(_pad)
 	if _pad_layout == PokeInputActions.PAD_LAYOUT_AUTO:
 		scheme_changed.emit()
 

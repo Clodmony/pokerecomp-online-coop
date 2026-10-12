@@ -103,7 +103,8 @@ Further findings that shape the design:
    window: data from the local cache, the world screen on a local save, the
    actor, the panel, and the world held still while the panel is open.
    `PokeCoopSession` is that assembly as one class, used by the launcher's
-   Co-op tab (`PokeCoopPage`) and by the tool; `Gen2GameRuntime.coop` holds the
+   Co-op tab (`PokeCoopPage`, its pieces in `PokeCoopTabParts`, the beacon,
+   dial and memory in `PokeCoopLobby`) and by the tool; `Gen2GameRuntime.coop` holds the
    live session and drives it each frame. After a host battle the session runs
    the window's own evolution and whiteout for its player (D26, D27).
 6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version` (2), the
@@ -143,10 +144,14 @@ Peer 1 is the host.
 | `log` | `lines` (no `seq`): a sharing device's own session-log lines; the host passes them on (D59) |
 | `leave_battle` | `seq`, `battle`: back to the player's world while their Pokémon fight on, or a queued join called off (protocol 4, D62) |
 | `stand_in` | `seq`, `battle`: decide for the Pokémon of an owner who dropped, once the view says `stand_in_due` (protocol 4, D62) |
+| `probe` | `protocol`, `build`, `name`, `game_id`, `rom_sha1`, `known` (no `seq`): asked before `hello` on the same link, answered whatever the protocol and creating nobody (protocol 7, D103) |
+| `hello` (protocol 7) | adds `via`, the address the device dialled; the host keeps it and the `game_id` with the player |
+| `wild_tables` | `tables` (no `seq`): this cartridge's Generation 1 wild slots, `{grass, water}` by map number as `[species, level]` rows; sent after each `welcome` by a window of a paired game, kept on the host for the session only, never written (protocol 8, D104) |
 | `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.RIVAL_SCENES` started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
 
 | Host to client | Fields |
 |---|---|
+| `probe` | the lobby view (`kind`, `protocol`, `build`, `game_id`, `rom_sha1`, `campaign`, `title`, `host`, `players` with `name`, `game`, `connected`, `badges`, `place`, `new_players`), `refused` (empty, `protocol_mismatch` or `content_mismatch`) and `you` (`player_id`, `name` of the trainer this device or name gets back, empty for a new player) |
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
@@ -154,6 +159,7 @@ Peer 1 is the host.
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |
+| `wild_tables` | `game_id`, `tables`: the other version's wild slots, sent to each player of the pair's other game while the campaign takes both versions, once a device of that version has sent them (protocol 8, D104) |
 
 A private `you.challenge` carries incoming/outgoing invitations and the last
 answer; `you.trade.direct` names the paired player and serial. Public players
@@ -161,8 +167,12 @@ carry `meeting` while paired. A `versus` battle view shows only the viewer's
 team as allies, their choices and learning offer, with events mirrored for
 the opponent. Friend battles stay private to their two participants.
 
-The protocol is version 6 (`PokeCoopHost.PROTOCOL`); a peer of another version is
-refused with `protocol_mismatch`.
+The protocol is version 8 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104); a peer of another version is
+refused with `protocol_mismatch`. A hosting session also sends the lobby view with its
+ENet `port` as a JSON UDP beacon to port 24681 once a second (broadcast, each
+network's `.255` and 127.0.0.1); the Co-op tab's Join screen lists the hosts heard in
+the last four seconds (`PokeCoopLobby`). A version 6 host answers a `probe` with
+`rejected` `hello_first`, which the tab reads as an older host.
 
 A refused `hello` is answered with `rejected` (`seq` -1) and the peer is dropped
 after `SHUTDOWN_GRACE_MSEC`. On shutdown the host sends `ended`, ignores further messages and closes once all
@@ -211,6 +221,8 @@ Kept small so upstream merges stay cheap (#14):
 | `game/world/gen1_movie.gd`, `world_effects.gd`, `world_screen.gd`, `game/launcher/cartridge.gd`, `launcher_theme.gd`, `tools/checks/played.gd`, `tools/preview_world_story.gd` | tables and art fall back to the base game for the German ids (#50) |
 | `tests/unit/test_gen1_layout.gd`, `test_gen1_text.gd`, `test_rom_verifier.gd`, `test_gen1_sram.gd` | German layout, charmap, registry and save-start cases (#50) |
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
+| `autoload/input_runtime.gd`, `game/options/options.gd`, `game/launcher/controls_section.gd`, `game/input/input_actions.gd` | the owner's controller pick: `Gen2Options.pad`, applied by the new `game/input/pad_choice.gd` (`PokePadChoice`) after each install and plug; Settings > Controls > Controller; other pads' events are dropped in `_input`; Auto letters read the picked pad |
+| `game/mods/mod_host.gd`, `game/world/world_api.gd`, `tests/unit/test_world_api.gd` | `unregister_wild_substitute`; the wild substitute's context carries the drawn `slot` (D104) |
 | `README.md` | AI-authorship notice at the top |
 
 `game/gen1/gen1_layout_de.gd` also carries the friend invitation and battle

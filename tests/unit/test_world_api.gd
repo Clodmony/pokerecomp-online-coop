@@ -7326,8 +7326,9 @@ func test_a_wild_substitute_replaces_the_wild_a_step_met() -> void:
 	var world := _world(Vector2i(8, 6))
 	var provider := WildSubstitute.new()
 	Gen2ModHost.instance().register_wild_substitute(&"legends", provider)
-	var rolled: int = int(world.encounter_request(null, true, Gen2WorldEncounter.METHOD_GRASS)["pokemon"])
-	assert_eq(provider.asked["species"], rolled)
+	var first: Dictionary = world.encounter_request(null, true, Gen2WorldEncounter.METHOD_GRASS)
+	var rolled: int = int(first["pokemon"])
+	assert_eq([provider.asked["species"], provider.asked["slot"]], [rolled, first["slot"]])
 
 	provider.answer = {
 		"species": 19, "level": 30, "dvs": 0xABCD, "hp": 7, "status": Gen2Status.BURN,

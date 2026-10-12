@@ -337,6 +337,8 @@ static func resolve_pad_layout(chosen: StringName) -> StringName:
 	if OS.has_feature("switch"):
 		return PAD_LAYOUT_NINTENDO
 	for device: int in Input.get_connected_joypads():
+		if PokePadChoice.device() not in [PokeInputActions.ALL_DEVICES, device]:
+			continue
 		var name: String = Input.get_joy_name(device).to_lower()
 		for word: String in NINTENDO_PAD_WORDS:
 			if name.contains(word):

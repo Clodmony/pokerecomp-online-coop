@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 6
+const PROTOCOL: int = 8
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -22,6 +22,7 @@ var scenes: Dictionary = {}
 var transport: PokeCoopTransport = null
 var save_path: String = ""
 var allow_new_players: bool = false
+var host_player_id: String = ""
 var seeds: RandomNumberGenerator = RandomNumberGenerator.new()
 var ended: bool = false
 var _closing_at: int = -1
@@ -58,6 +59,7 @@ var notes: Dictionary = {}
 var challenges: Dictionary = {}
 var _challenge_serial: int = 0
 var _challenge_told: Dictionary = {}
+var wild_tables: Dictionary = {}
 
 
 static func create(
@@ -154,7 +156,13 @@ func _on_message(peer: int, message: Dictionary) -> StringName:
 	if kind == "note":
 		_take_note(String(_peers.get(peer, "")), message.get("text"))
 		return &""
+	if kind == "wild_tables":
+		_take_wild_tables(String(_peers.get(peer, "")), message.get("tables"))
+		return &""
 	var line: Dictionary = journal.add(PokeCoopLog.HOST, "in", {"peer": peer, "message": message}, String(_peers.get(peer, "")))
+	if kind == "probe":
+		transport.send(peer, probe_answer(message))
+		return &""
 	var result: StringName = _hello(peer, message) if kind == "hello" else _answer(peer, kind, message)
 	if not line.is_empty():
 		line["data"]["result"] = String(result) if result != &"" else "ok"
@@ -197,6 +205,30 @@ func _take_note(sender: String, text: Variant) -> void:
 	if not sender.is_empty() and text is String:
 		notes[sender] = (text as String).left(MAX_NOTE)
 		journal.add(PokeCoopLog.HOST, "note", {"text": notes[sender]}, sender)
+
+
+func _take_wild_tables(sender_id: String, raw: Variant) -> void:
+	var sender: PokeCoopPlayer = player(sender_id)
+	var tables: Dictionary = PokeCoopPolicy.sane_wild_tables(raw)
+	if sender == null or tables.is_empty() or wild_tables.has(sender.game_id):
+		return
+	wild_tables[sender.game_id] = tables
+	journal.add(PokeCoopLog.HOST, "wild_tables", {"game": sender.game_id, "maps": (tables["grass"] as Dictionary).size()}, sender_id)
+	for peer: int in _peers:
+		_send_wild_tables(peer)
+
+
+func _send_wild_tables(peer: int) -> void:
+	var member: PokeCoopPlayer = player(String(_peers.get(peer, "")))
+	var other: String = String(PokeCoopPolicy.other_version(StringName(member.game_id))) if member != null else ""
+	if campaign.both_versions and wild_tables.has(other):
+		transport.send(peer, {"type": "wild_tables", "game_id": other, "tables": wild_tables[other]})
+
+
+func wild_tables_missing() -> Array:
+	if not campaign.both_versions:
+		return []
+	return PokeCoopLobby.partners(campaign.game_id).filter(func(game: StringName) -> bool: return not wild_tables.has(String(game)))
 
 
 static func _is_log(message: Dictionary) -> bool:
@@ -331,6 +363,8 @@ func _hello(peer: int, message: Dictionary) -> StringName:
 		_refused_peers[peer] = Time.get_ticks_msec() + SHUTDOWN_GRACE_MSEC
 		return refusal
 	_peers[peer] = joining.player_id
+	joining.game_id = PokeCoopTransport.text(message.get("game_id"))
+	joining.via = PokeCoopTransport.text(message.get("via"))
 	_log_peers[peer] = _log_peer(message.get("logs"))
 	_box_sent.erase(peer)
 	joining.connected = true
@@ -341,6 +375,7 @@ func _hello(peer: int, message: Dictionary) -> StringName:
 		"last_seq": int(_last_seq.get(joining.player_id, 0)),
 	})
 	_send_backlog(peer)
+	_send_wild_tables(peer)
 	broadcast()
 	return &""
 
@@ -391,6 +426,33 @@ func _brought_save(raw: Variant) -> Gen2SaveData:
 		))
 		save.world.world_state = Gen2WorldState.from_dict(kept)
 	return save
+
+
+func lobby_view() -> Dictionary:
+	var members: Array = []
+	for member: PokeCoopPlayer in players.values():
+		members.append({"name": member.name, "game": member.game_id, "connected": member.connected})
+	var hosting: PokeCoopPlayer = player(host_player_id)
+	return {
+		"kind": PokeCoopLobby.KIND, "protocol": PROTOCOL, "build": PokeCoopLobby.build(),
+		"game_id": String(campaign.game_id), "rom_sha1": campaign.rom_sha1, "campaign": campaign.campaign_id,
+		"title": campaign.title, "host": hosting.name if hosting != null else "", "players": members,
+		"badges": String.num_int64(campaign.badges, 2).count("1"), "new_players": allow_new_players,
+		"place": PokeCoopLobby.place(data, hosting.map) if hosting != null else "",
+	}
+
+
+## Answered whatever the asker's protocol, so an older or newer build is told exactly what differs.
+func probe_answer(message: Dictionary) -> Dictionary:
+	var out: Dictionary = lobby_view()
+	out["type"] = "probe"
+	out["refused"] = String(_hello_refusal(message))
+	var known: Variant = message.get("known", {})
+	var mine: PokeCoopPlayer = player(PokeCoopTransport.text((known as Dictionary).get(campaign.campaign_id))) \
+		if known is Dictionary else null
+	mine = mine if mine != null else _returning(PokeCoopTransport.text(message.get("name")))
+	out["you"] = {"player_id": mine.player_id, "name": mine.name} if mine != null and not mine.connected else {}
+	return out
 
 
 func _hello_refusal(message: Dictionary) -> StringName:
