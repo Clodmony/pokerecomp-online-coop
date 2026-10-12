@@ -724,15 +724,15 @@ func test_player_water_query_reads_each_engines_source_of_water() -> void:
 
 
 ## ARM-handler traces protect destination reservation, slow-walk cadence,
-## midpoint jumps and locked facings. Endpoint-only checks miss frame drift;
-## substituting a generic tween or Hoenn action ids on FRLG changes this stream.
+## midpoint jumps, locked/contextual facings, persistent flags and emote requests.
+## Substituting a generic tween or Hoenn action ids on FRLG changes this stream.
 func test_held_movement_frames_match_each_cartridge_engine() -> void:
 	var digests: Dictionary = {
-		RomRegistry.RUBY: "e8850179d6a0660a9626b59748eaa14ca69baea6",
-		RomRegistry.SAPPHIRE: "e8850179d6a0660a9626b59748eaa14ca69baea6",
-		RomRegistry.FIRERED: "a39340a2eef7068ff2f3ed0c3fdcf465a7260434",
-		RomRegistry.LEAFGREEN: "a39340a2eef7068ff2f3ed0c3fdcf465a7260434",
-		RomRegistry.EMERALD: "d4f9c758c075bdc96e396c4456d3fa937a8722ea",
+		RomRegistry.RUBY: "8f601df9948184cd1f4b9395a546e524f7194864",
+		RomRegistry.SAPPHIRE: "8f601df9948184cd1f4b9395a546e524f7194864",
+		RomRegistry.FIRERED: "556512c4f0d98afaab7d753f5e9b11ef6930373d",
+		RomRegistry.LEAFGREEN: "556512c4f0d98afaab7d753f5e9b11ef6930373d",
+		RomRegistry.EMERALD: "1f482a1870310797065be38c27f2a7d97262f427",
 	}
 	for id: StringName in digests:
 		assert_eq(_held_movement_trace(id).sha1_text(), digests[id], str(id))
@@ -745,6 +745,9 @@ func _held_movement_trace(id: StringName) -> String:
 		for locked: int in 2:
 			var object := Gen3ObjectEvents.ObjectEvent.new()
 			object.active = true
+			object.local_id = 0
+			object.map_number = 0
+			object.map_group = 0
 			object.current = Vector2i(12, 12)
 			object.previous = Vector2i(11, 12)
 			object.pixel_position = object.current * 16
@@ -756,12 +759,16 @@ func _held_movement_trace(id: StringName) -> String:
 			if objects.set_held_movement(object, action):
 				continue
 			for frame: int in range(1, 41):
-				objects.step_movements()
+				var effects: Array = objects.step_movements().filter(
+					func(request: Dictionary) -> bool: return request["kind"] == "field_effect")
+				var effect: Array = [-1, 0, 0, 0] if effects.is_empty() else [effects[0]["effect_id"],
+					effects[0]["local_id"], effects[0]["map_number"], effects[0]["map_group"]]
 				var pixels: Vector2i = object.pixel_position - Vector2i(192, 192)
 				lines.append(",".join([action, locked, frame, object.current.x, object.current.y,
 					object.previous.x, object.previous.y, pixels.x, pixels.y, object.jump_y,
 					object.facing, object.movement_direction, object.previous_movement_direction,
-					int(object.facing_locked), int(object.held_movement_finished)]))
+					int(object.facing_locked), int(object.held_movement_finished),
+					int(object.invisible), int(object.disable_jump_landing_effect), int(object.fixed_priority)] + effect))
 	return "\n".join(lines) + "\n"
 
 
@@ -985,3 +992,100 @@ func test_ledge_collision_starts_two_cell_jump_without_stealing_a_hold() -> void
 	avatar.begin_collision_movement(4)
 	assert_true(avatar.object().held_movement_finished)
 	assert_eq(avatar.object().movement_action, 0x0F)
+
+
+## The ARM lookup uses active local IDs, not the player bit or map identity;
+## nearest-axis facing and unconditional coordinate shifts both corrupt it.
+## Isolated action traces have no player and cannot detect these substitutions.
+func test_contextual_facing_matches_cartridge_lookup_and_axis_priority() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.SAPPHIRE, RomRegistry.FIRERED,
+			RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		assert_eq(_context_facing_trace(id).sha1_text(), "42f8b1b53021ea18a3e0f8d3c5869651ddf336f3", str(id))
+
+
+func _context_facing_trace(id: StringName) -> String:
+	var field: Gen3ObjectEvents = _field_objects(id)
+	for entry: Vector2i in [Vector2i(7, 2), Vector2i(9, 3), Vector2i(10, 4)]:
+		field.camera.data._world_scripts["movement_types"][entry.x]["facing"] = entry.y
+	var objects := Gen3ObjectEvents.new(field.camera, field.events)
+	var actions: Array = [0x4A, 0x4B, 0x5A] if objects._frlg else [0x3E, 0x3F, 0x4E]
+	var lines := PackedStringArray()
+	for mode: int in 3:
+		for locked: int in 2:
+			for presence: int in 4:
+				for type: int in [0, 7, 8, 9, 10]:
+					for dx: int in range(-2, 3):
+						for dy: int in range(-2, 3):
+							lines.append_array(_context_frames(objects, int(actions[mode]),
+								[mode, locked, presence, type, dx, dy]))
+	return "\n".join(lines) + "\n"
+
+
+func _context_frames(objects: Gen3ObjectEvents, action: int, setup: Array) -> PackedStringArray:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.local_id = 42
+	object.map_number = 7
+	object.map_group = 9
+	object.movement_type = int(setup[3])
+	object.current = Vector2i(12, 12)
+	object.previous = Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = 4
+	object.movement_direction = 4
+	object.facing_locked = int(setup[1]) != 0
+	objects.objects[0] = object
+	var player := Gen3ObjectEvents.ObjectEvent.new()
+	player.active = int(setup[2]) in [1, 3]
+	player.is_player = int(setup[2]) == 3
+	player.local_id = 42 if player.is_player else Gen3ObjectEvents.LOCALID_PLAYER
+	player.map_number = 33
+	player.map_group = 44
+	player.current = object.current + Vector2i(int(setup[4]), int(setup[5]))
+	objects.objects[1] = player
+	objects.set_held_movement(object, action)
+	var lines := PackedStringArray()
+	for frame: int in range(1, 3):
+		objects.step_movements()
+		lines.append(",".join(setup + [frame, object.current.x, object.current.y,
+			object.previous.x, object.previous.y, 0, 0, 0, object.facing, object.movement_direction,
+			object.previous_movement_direction, int(object.facing_locked), int(object.held_movement_finished),
+			0, 0, 0, -1, 0, 0, 0]))
+	return lines
+
+
+## State actions must survive hold clearing without freeing an invisible NPC's
+## collision cells; emotes identify it once rather than repeating on each frame.
+## Isolated frame traces reset state before every action and use identity zero.
+func test_instant_actions_persist_without_changing_occupancy_or_repeating_emotes() -> void:
+	for id: StringName in [RomRegistry.RUBY, RomRegistry.SAPPHIRE, RomRegistry.FIRERED,
+			RomRegistry.LEAFGREEN, RomRegistry.EMERALD]:
+		var objects: Gen3ObjectEvents = _field_objects(id)
+		var template: Dictionary = Gen3ObjectEvents.EMPTY_TEMPLATE.duplicate()
+		template.merge({"local_id": 42, "x": 5, "y": 5}, true)
+		var object: Gen3ObjectEvents.ObjectEvent = objects.objects[objects.spawn(template, 7, 9)]
+		var offset: int = 12 if objects._frlg else 0
+		for action: int in [0x54 + offset, 0x51 + offset, 0x5C + (14 if objects._frlg else 0)]:
+			assert_false(objects.set_held_movement(object, action))
+			objects.step_movements()
+			assert_eq(Gen3ObjectEvents.clear_held_movement_if_finished(object), 1)
+		assert_true(object.invisible)
+		assert_true(object.disable_jump_landing_effect)
+		assert_true(object.fixed_priority)
+		var probe := Gen3ObjectEvents.ObjectEvent.new()
+		assert_eq(objects.collision_at(probe, 12, 12, 4), Gen3ObjectEvents.Collision.OBJECT_EVENT)
+		assert_false(objects.set_held_movement(object, 0x56 + offset))
+		assert_eq(objects.step_movements(), [{"kind": "field_effect", "effect_id": 0,
+			"object_id": 0, "local_id": 42, "map_number": 7, "map_group": 9}])
+		assert_eq(objects.step_movements(), [])
+		assert_true(object.held_movement_active)
+		Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		for action: int in [0x55 + offset, 0x50 + offset, 0x5D + (14 if objects._frlg else 0)]:
+			assert_false(objects.set_held_movement(object, action))
+			objects.step_movements()
+			Gen3ObjectEvents.clear_held_movement_if_finished(object)
+		assert_false(object.invisible)
+		assert_false(object.disable_jump_landing_effect)
+		assert_false(object.fixed_priority)
+		assert_eq(object.current, Vector2i(12, 12))
+		assert_eq(object.previous, Vector2i(12, 12))
