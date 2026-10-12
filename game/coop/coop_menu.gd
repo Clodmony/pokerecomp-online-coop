@@ -289,8 +289,7 @@ func _header() -> PackedStringArray:
 	if lines.size() == titled:
 		lines.append(_ui("NO PARTNER YET"))
 	if not address.is_empty():
-		var invite: String = _ui("JOIN AT %s") % address
-		lines.append(invite if invite.length() <= COLUMNS - 2 else address)
+		lines.append("IP " + address)
 	lines = lines.slice(0, HEADER_LINES - 1)
 	lines.append(last_saved(client, data.id if data != null else &""))
 	return lines

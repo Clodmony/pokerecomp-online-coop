@@ -492,7 +492,7 @@ const UI: Dictionary = {
 	"%s learned\n%s!": "%s lernt\n%s!", "%s is\ntrying to learn\n%s!": "%s\nversucht,\n%s zu" + SCROLL + "erlernen!",
 	"JOIN %s": "HILF %s", "VS %s": "GEGEN %s", "REJOIN": "WIEDER HELFEN", "LEAVE SESSION": "SITZUNG VERLASSEN",
 	"Leave the co-op": "Die Sitzung", "session?": "verlassen?", "IN A BATTLE": "IM KAMPF", "IN THE OPENING": "AM ANFANG",
-	"NO PARTNER YET": "NOCH ALLEIN", "NOT SAVED YET": "NICHT GESICHERT", "SAVED JUST NOW": "GERADE GESICHERT", "JOIN AT %s": "ADRESSE %s",
+	"NO PARTNER YET": "NOCH ALLEIN", "NOT SAVED YET": "NICHT GESICHERT", "SAVED JUST NOW": "GERADE GESICHERT",
 	"SAVED %d SEC. AGO": "GESICHERT: %d SEK.", "SAVED %d MIN. AGO": "GESICHERT: %d MIN.",
 	"GHOST": "GEIST", "%s\nappeared!": "%s\ntaucht auf!", "The hooked\n%s%sattacked!": "Das gefangene\n%s%sgreift an!",
 	"It dodged the\nthrown BALL!" + PAGE + "This #MON\ncan't be caught!":

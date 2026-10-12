@@ -24,7 +24,9 @@ func before_each() -> void:
 	_data = Fixture.build(_directory, "testgame", RomRegistry.GEN1)
 	_identity_before = PokeCoopSession.identity_path
 	PokeCoopSession.identity_path = IDENTITY
-	PokeCoopPage.remembered_path = TAB
+	PokeCoopLobby.memory_path = TAB
+	PokeCoopLobby.beacon_port = PORT + 50
+	PokeCoopPage.host_port = PORT
 	PokeCoopSession.move_legacy(_data)
 	_sessions = []
 
@@ -33,7 +35,11 @@ func after_each() -> void:
 	for session: PokeCoopSession in _sessions:
 		session.close()
 	PokeCoopSession.identity_path = _identity_before
-	PokeCoopPage.remembered_path = PokeCoopPage.REMEMBERED
+	PokeCoopLobby.memory_path = "user://coop_tab.json"
+	PokeCoopLobby.beacon_port = PokeCoopLobby.BEACON_PORT
+	PokeCoopLobby.open_game = Callable()
+	PokeCoopPage.host_port = PokeCoopEnetTransport.DEFAULT_PORT
+	Gen2GameRuntime.instance().coop = null
 	PokeCoopSession.ended_note = ""
 	if _window_size != Vector2i.ZERO:
 		get_tree().root.size = _window_size
@@ -436,10 +442,12 @@ func test_each_campaign_keeps_its_own_trainers_and_a_device_is_remembered_in_eac
 	assert_eq(back.client.player_id, blue_in_a, "the device is BLUE again in BLUE's campaign")
 	assert_eq([hosting.host.players.size(), hosting.host.campaign.title], [2, "WITH BLUE"])
 	var listed: Dictionary = {}
-	for row: Dictionary in PokeCoopSession.campaigns(_data):
+	for row: Dictionary in PokeCoopSession.campaigns(_data, PORT):
 		listed[row["id"]] = row
 	assert_eq(listed.keys().size(), 2)
-	assert_string_contains(PokeCoopPage.campaign_label(listed["testgame-b"]), "WITH GREEN: RED, GREEN, BLUE, 0 badges, saved ")
+	assert_eq([listed["testgame-a"]["you"], listed["testgame-b"]["you"]], ["RED", ""], "who this device is where it hosted")
+	assert_eq(listed["testgame-b"]["members"], [{"name": "RED", "game": "testgame"}, {"name": "GREEN", "game": "testgame"},
+		{"name": "BLUE", "game": "testgame"}], "each player with the cartridge they play")
 
 
 func test_the_campaign_file_of_earlier_builds_moves_into_the_folder_and_still_loads() -> void:
@@ -485,19 +493,6 @@ func _launcher_on_coop_tab(pick_tab: bool = true) -> Control:
 	return launcher
 
 
-func test_the_co_op_tab_offers_the_name_and_address_this_device_last_joined_with() -> void:
-	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
-	var no_cartridge: Array[StringName] = []
-	page.set("_games", no_cartridge)
-	(page.get("_name") as LineEdit).text = "blue "
-
-	page.join_campaign("10.0.0.1")
-
-	var again: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
-	assert_eq([(again.get("_name") as LineEdit).text, (again.get("_address") as LineEdit).text], ["BLUE", "10.0.0.1"],
-		"not RED and an empty address on every visit")
-
-
 func test_a_host_alone_in_a_new_campaign_hears_the_first_partner_arrive() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
 	_sessions.append(hosting)
@@ -533,14 +528,211 @@ func test_a_device_the_host_sent_away_is_back_on_the_co_op_tab_and_told_why() ->
 	Gen2OptionsStore.use_test_path()
 
 
-func test_a_pad_entering_the_co_op_tab_sees_the_button_it_lands_on() -> void:
+func test_a_new_campaign_names_its_rival_and_renaming_or_deleting_it_keeps_a_backup() -> void:
+	var id: String = PokeCoopSession.new_campaign(_data, "WITH BLUE", "GARY")
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", PokeCoopPolicy.PLAY_OPENING, null, id)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", PokeCoopPolicy.PLAY_OPENING)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	assert_eq([hosting.host.campaign.title, joining.rival_name()], ["WITH BLUE", "GARY"], "Oak asks nobody for the rival's name")
+	_close_all()
+
+	assert_eq(PokeCoopSession.edit_campaign(_data, id, "RIVALS", "JOHN"), OK)
+	var listed: Dictionary = PokeCoopSession.campaigns(_data, PORT)[0]
+	assert_eq([listed["title"], listed["rival"], listed["players"]], ["RIVALS", "JOHN", ["RED", "BLUE"]], "the players stay")
+
+	assert_eq(PokeCoopSession.delete_campaign(_data, id), OK)
+	var path: String = PokeCoopSession.campaign_path(_data, id)
+	assert_eq(PokeCoopSession.campaigns(_data, PORT), [])
+	assert_false(FileAccess.file_exists(path))
+	var kept: Dictionary = PokeCoopSave.read(path + PokeCoopSave.BACKUP_SUFFIX)
+	assert_eq([(kept["campaign"] as PokeCoopCampaign).title, (kept["players"] as Array).size()], ["RIVALS", 2],
+		"the last checkpoint stays as the backup")
+
+
+func test_a_device_asks_the_host_first_and_says_hello_on_the_same_link() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "", "WITH BLUE")
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	var dial: PokeCoopLobby.Dial = PokeCoopLobby.Dial.to("127.0.0.1", PORT, _data, "BLUE")
+	assert_true(_until(func() -> bool:
+		dial.process()
+		return dial.step == PokeCoopLobby.Dial.Step.ANSWERED, WAIT_MSEC))
+	assert_eq([dial.answer()["title"], dial.answer()["host"], dial.answer()["you"]], ["WITH BLUE", "RED", {}])
+	assert_eq(hosting.host.players.size(), 1, "asking made nobody")
+
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR, "", null, null, dial.take())
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	assert_eq(dial.step, PokeCoopLobby.Dial.Step.CLOSED)
+	var blue: PokeCoopPlayer = hosting.host.player(joining.client.player_id)
+	assert_eq([blue.name, blue.game_id, blue.via], ["BLUE", String(_data.id), "127.0.0.1"])
+
+
+func _tab() -> PokeCoopPage:
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
+	PokeCoopPage.forget()
+	return add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+
+
+func _press(page: Node, label: String) -> bool:
+	var roots: Array = page.get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).filter(func(node: Node) -> bool:
+		return node is PokeCoopTabParts.Sheet)
+	roots.append(page)
+	for root: Node in roots:
+		for node: Node in PokeCoopPage._find(root, func(node: Node) -> bool:
+				return node is BaseButton and (node as Control).is_visible_in_tree() and (node.get_meta("label", "") == label \
+					or (node is Gen2LauncherButton and (node as Gen2LauncherButton).text == label))):
+			if node is PokeCoopTabParts.Tile:
+				(node as PokeCoopTabParts.Tile).chosen.emit()
+			else:
+				(node as BaseButton).pressed.emit()
+			return true
+	return false
+
+
+func _type(page: Node, field: String, text: String) -> void:
+	var edit: LineEdit = PokeCoopPage._find(page, func(node: Node) -> bool: return node is LineEdit and node.name == field)[0]
+	edit.text = text
+	edit.text_changed.emit(text)
+
+
+func _refresh(page: PokeCoopPage) -> void:
+	page.set("_refreshed_at", -PokeCoopPage.REFRESH_MSEC)
+	page._process(0.0)
+
+
+func test_the_co_op_tab_hosts_a_new_campaign_and_shows_who_joins() -> void:
+	var page: PokeCoopPage = _tab()
+	assert_eq(page.screen(), PokeCoopPage.START)
+
+	assert_true(_press(page, "HOST"))
+	assert_eq(page.screen(), PokeCoopPage.HOST)
+	assert_true(_press(page, "+ New campaign"))
+	assert_eq(page.screen(), PokeCoopPage.NEW_CAMPAIGN)
+	_type(page, "title", "with blue")
+	_type(page, "rival", "gary")
+	_type(page, "name", "red")
+	assert_true(_press(page, "Start in Pallet Town"))
+	assert_true(_press(page, "Create and host"))
+
+	assert_eq(page.screen(), PokeCoopPage.HOSTING)
+	var hosting: PokeCoopSession = Gen2GameRuntime.instance().coop
+	_sessions.append(hosting)
+	assert_eq([hosting.host.campaign.title, hosting.host.campaign.rival_name], ["WITH BLUE", "GARY"])
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	_refresh(page)
+	var states: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is Label and node.text in ["Here", "Joined"])
+	assert_eq(states.map(func(label: Label) -> String: return label.text), ["Here", "Joined"], "RED here, BLUE joined")
+
+	assert_true(_press(page, "Stop hosting"))
+	assert_eq(page.screen(), PokeCoopPage.HOSTING, "a partner is in: asked first")
+	assert_true(_press(page, "Stop hosting"))
+	assert_eq(page.screen(), PokeCoopPage.START)
+	assert_true(_until(func() -> bool: return joining.ended_reason() == "host_shutdown", WAIT_MSEC), "BLUE is told, not left redialling")
+	assert_eq(PokeCoopSession.ended_note, "", "and the host's own tab does not say it left")
+
+
+func test_the_co_op_tab_joins_by_address_and_a_new_player_names_themself() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "", "WITH BLUE")
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	var page: PokeCoopPage = _tab()
+
+	assert_true(_press(page, "JOIN"))
+	assert_eq(page.screen(), PokeCoopPage.JOIN)
+	_type(page, "address", "127.0.0.1:%d" % PORT)
+	assert_true(_press(page, "Join"))
+	assert_true(_until(func() -> bool:
+		_refresh(page)
+		return page.screen() == PokeCoopPage.NEW_PLAYER, WAIT_MSEC), "asked, and the host does not know this device")
+	assert_eq((page.get("_title") as Label).text, "New in WITH BLUE")
+	_type(page, "name", "blue")
+	assert_true(_press(page, "Start in Pallet Town"))
+	assert_true(_press(page, "Join as BLUE"))
+	var joining: PokeCoopSession = Gen2GameRuntime.instance().coop
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	PokeCoopPage.forget()
+	assert_eq(int(joining.client.me()["team"][0]["species"]), PokeCoopPolicy.STARTERS[1])
+	assert_eq(hosting.host.players.size(), 2)
+
+	var again: PokeCoopPage = _tab()
+	_press(again, "JOIN")
+	assert_eq((PokeCoopPage._find(again, func(node: Node) -> bool: return node is LineEdit)[0] as LineEdit).text,
+		"127.0.0.1:%d" % PORT, "the address last joined")
+	assert_true(_press(again, "127.0.0.1:%d · WITH BLUE" % PORT), "and among the recent hosts")
+
+
+func test_a_device_the_host_knows_joins_as_its_trainer_in_one_press() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER, null, "", "WITH BLUE")
+	var first: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, first])
+	assert_true(_until_ready([hosting, first]))
+	var blue_id: String = first.client.player_id
+	first.close()
+	_sessions.erase(first)
+	assert_true(_until(func() -> bool: return not hosting.host.player(blue_id).connected, 5000))
+	var page: PokeCoopPage = _tab()
+	_press(page, "JOIN")
+	_type(page, "address", "127.0.0.1:%d" % PORT)
+	_press(page, "Join")
+
+	assert_true(_until(func() -> bool:
+		_refresh(page)
+		return _press(page, "Join as BLUE"), WAIT_MSEC), "the sheet says who this device is")
+	var joining: PokeCoopSession = Gen2GameRuntime.instance().coop
+	_sessions.append(joining)
+	assert_true(_until_ready([hosting, joining]))
+	PokeCoopPage.forget()
+	assert_eq(joining.client.player_id, blue_id)
+
+
+func test_a_failed_join_says_what_to_check_for_the_address_and_keeps_trying() -> void:
+	var page: PokeCoopPage = _tab()
+	_press(page, "JOIN")
+	_type(page, "address", "127.0.0.1:%d" % (PORT + 9))
+	_press(page, "Join")
+	var dial: PokeCoopLobby.Dial = PokeCoopPage.dialling()
+	dial.process(dial.started_at + PokeCoopLobby.RETRY_MSEC)
+	_refresh(page)
+
+	var said: String = " ".join(PokeCoopPage._find(page.get_tree().root, func(node: Node) -> bool: return node is Label).map(
+		func(label: Label) -> String: return label.text))
+	assert_string_contains(said, "Still looking for 127.0.0.1:%d" % (PORT + 9))
+	assert_string_contains(said, "of 1:00")
+	assert_string_contains(said, "Host on the other window first", "a loopback address gets this device's advice")
+	assert_true(_press(page, "Cancel"))
+	assert_null(PokeCoopPage.dialling(), "Cancel closes the dial")
+
+
+func test_a_phone_held_upright_stacks_the_tab_and_raises_its_sheets_from_the_bottom() -> void:
+	var page: PokeCoopPage = _tab()
+	page.set_compact(true)
+	assert_true((page.get("_bar") as BoxContainer).vertical, "the primary button is pinned full width")
+	var strips: Array = PokeCoopPage._find(page, func(node: Node) -> bool:
+		return node is ScrollContainer and (node as ScrollContainer).vertical_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED)
+	assert_eq(strips.size(), 1, "the cartridges are a sideways strip")
+	for entry: Dictionary in page.hints():
+		if entry["action"] == &"ui_menu":
+			(entry["run"] as Callable).call()
+	await wait_frames(3)
+
+	var sheet: Control = page.get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP)[0]
+	var card: Control = sheet.get("_card")
+	assert_almost_eq(card.position.y + card.size.y, sheet.size.y, 1.0, "the sheet rises from the bottom edge")
+	assert_almost_eq(card.size.x, sheet.size.x, 1.0)
+	page.set_compact(false)
+	assert_false((page.get("_bar") as BoxContainer).vertical)
+
+
+func test_a_pad_entering_the_co_op_tab_lands_on_host() -> void:
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
+	PokeCoopPage.forget()
 	var launcher: Control = await _launcher_on_coop_tab()
 
 	var focused: Control = launcher.get_viewport().gui_get_focus_owner()
-	assert_true(focused is Gen2LauncherButton and (focused as Gen2LauncherButton).text == "Host", "a pad lands on Host")
-	var scroll: Node = focused
-	while scroll != null and not scroll is ScrollContainer:
-		scroll = scroll.get_parent()
-	assert_true((scroll as ScrollContainer).get_global_rect().encloses(focused.get_global_rect()),
-		"Host is scrolled into view once the page has its height")
+	assert_eq(focused.get_meta("label", "") if focused != null else "", "HOST", "a pad lands on Host")
 	Gen2OptionsStore.use_test_path()

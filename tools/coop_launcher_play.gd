@@ -1,25 +1,37 @@
 extends "res://tools/coop_play.gd"
 
-## The launcher's Co-op tab worked through its own tab, rows, fields and buttons, then the world as coop_play.gd's:
+## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
 ##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join [name=RED] [starter=0..2]
-##     [rival=1..3 (reads Oak's speech)] [round=<frame>[:<NEW_TITLE>]]... [keys=] [capture=]; frames count from launch.
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright
 
 const LAUNCHER: String = "res://game/main/main.tscn"
-const STEP_FRAMES: int = 30
-const OPENING_ROW: String = "The opening, if you are new to the campaign"
+const STEP_FRAMES: int = 20
+const SHOT_FRAMES: int = 24
+const WIDE: Vector2i = Vector2i(1152, 648)
+const UPRIGHT: Vector2i = Vector2i(390, 844)
+const LOOKS: Array = [[&"light", WIDE], [&"light", UPRIGHT], [&"dark", UPRIGHT], [&"dark", WIDE]]
+const NOTCHED: Dictionary = {"left": 0.0, "top": 47.0, "right": 0.0, "bottom": 34.0}
 
 var _role: String = ""
+var _game: StringName = &"red"
 var _trainer: String = ""
 var _address: String = ""
 var _port: int = PokeCoopEnetTransport.DEFAULT_PORT
 var _starter: int = -1
 var _rival: int = -1
+var _rival_name: String = ""
+var _by_address: bool = false
+var _tour: String = ""
 var _rounds: Array = []
 var _round: int = -1
-var _round_at: int = 0
 var _steps: Array = []
-var _sheet_pick: String = ""
+var _step_at: int = 0
 var _in_world: bool = false
+var _look: int = -1
+var _look_at: int = 0
+var _theme_now: StringName = &"light"
+var _shot_name: String = ""
+var _shot_reopen: Callable = Callable()
 
 
 func _initialize() -> void:
@@ -28,13 +40,17 @@ func _initialize() -> void:
 		if not _read_option(arg):
 			positional.append(arg)
 	if positional.size() < 3 or not _role in ["host", "join"]:
-		push_error("usage: <address> <port> <player> [game] host|join [name=] [starter=] [round=<frame>[:<title>]]")
+		push_error("usage: <address> <port> <player> [game] host|join [name=] [starter=] [round=<frame>[:<title>]] [tour=<dir>]")
 		quit(2)
 		return
 	_address = positional[0]
 	_port = int(positional[1])
 	_player_id = positional[2]
+	_game = StringName(positional[3]) if positional.size() > 3 else &"red"
 	_trainer = _trainer if not _trainer.is_empty() else _player_id.to_upper()
+	PokeCoopPage.host_port = _port
+	PokeCoopLobby.beacon_port = _port + 1
+	PokeCoopLobby.memory_path = "user://coop_tab_%s.json" % _player_id
 	if _rounds.is_empty():
 		_rounds.append({"at": KEYS_START_FRAMES, "campaign": ""})
 	var launcher: Node = (load(LAUNCHER) as PackedScene).instantiate()
@@ -43,19 +59,26 @@ func _initialize() -> void:
 
 
 func _read_option(arg: String) -> bool:
-	if arg in ["host", "join"]:
-		_role = arg
-	elif arg.begins_with("name="):
-		_trainer = arg.trim_prefix("name=").to_upper()
-	elif arg.begins_with("starter="):
-		_starter = clampi(arg.trim_prefix("starter=").to_int(), 0, PokeCoopPage.STARTER_NAMES.size() - 1)
-	elif arg.begins_with("rival="):
-		_rival = clampi(arg.trim_prefix("rival=").to_int(), 1, 3)
-	elif arg.begins_with("round="):
-		var spec: String = arg.trim_prefix("round=")
-		_rounds.append({"at": spec.get_slice(":", 0).to_int(), "campaign": spec.get_slice(":", 1).replace("_", " ")})
-	else:
-		return super(arg)
+	var value: String = arg.get_slice("=", 1)
+	match arg.get_slice("=", 0):
+		"host", "join":
+			_role = arg
+		"name":
+			_trainer = value.to_upper()
+		"starter":
+			_starter = clampi(value.to_int(), 0, PokeCoopPolicy.STARTERS.size() - 1)
+		"rival":
+			_rival = clampi(value.to_int(), 1, 3)
+		"rival_name":
+			_rival_name = value.to_upper()
+		"by_address":
+			_by_address = true
+		"tour":
+			_tour = value if not PokeToolPath.refuses(value) else ""
+		"round":
+			_rounds.append({"at": value.get_slice(":", 0).to_int(), "campaign": value.get_slice(":", 1).replace("_", " ")})
+		_:
+			return super(arg)
 	return true
 
 
@@ -69,7 +92,7 @@ func _process(_delta: float) -> bool:
 		_read_speech()
 	else:
 		_hold_keys()
-		_drive_round(launcher)
+	_drive_round()
 	_capture_due()
 	return false
 
@@ -78,10 +101,6 @@ func _hold_keys() -> void:
 	if _held != PokeButton.NONE:
 		Gen2InputRuntime.instance().release(_held)
 		_held = PokeButton.NONE
-	var at: int = _frames - KEYS_START_FRAMES
-	if at >= 0 and at % KEY_HOLD_FRAMES == 0 and at / KEY_HOLD_FRAMES < _keys.size() \
-			and int(_keys[at / KEY_HOLD_FRAMES]) != PokeButton.NONE:
-		print("coop launcher: %s dropped key slot %d at the launcher" % [_player_id, at / KEY_HOLD_FRAMES])
 	if _in_world:
 		_in_world = false
 		var shell: Gen2LauncherShell = current_scene.get("_shell")
@@ -93,7 +112,6 @@ func _note_world() -> void:
 	if _in_world or session == null or not session.is_ready() or current_scene == null:
 		return
 	_in_world = true
-	_steps.clear()
 	var me: Dictionary = session.client.me()
 	var team: Array = (me.get("team", []) as Array).map(func(mon: Dictionary) -> String:
 		return "%s:%d" % [session.data.species(int(mon["species"])).get("name", "?"), int(mon["level"])])
@@ -117,114 +135,275 @@ func _read_speech() -> void:
 	intro.release_button(PokeButton.A)
 
 
-func _drive_round(launcher: Control) -> void:
+func _drive_round() -> void:
+	if _look >= 0:
+		_shoot_next()
+		return
 	if _steps.is_empty():
 		if _round + 1 >= _rounds.size() or _frames < int(_rounds[_round + 1]["at"]):
 			return
 		_round += 1
-		_round_at = _frames
-		_steps = _plan(launcher, String(_rounds[_round]["campaign"]))
-	if (_frames - _round_at) % STEP_FRAMES == 0:
-		var step: Variant = _steps.pop_front()
-		if step is Callable:
-			(step as Callable).call()
+		_steps = _plan(String(_rounds[_round]["campaign"]))
+		_step_at = _frames
+	if (_frames - _step_at) % STEP_FRAMES != 0:
+		return
+	var step: Callable = _steps.front()
+	if bool(step.call()):
+		_steps.pop_front()
+		_step_at = _frames
 
 
-func _plan(launcher: Control, campaign: String) -> Array:
-	var plan: Array = [_open_tab.bind(launcher), _type.bind(&"_name", _trainer)]
-	if _starter >= 0:
-		plan.append_array([_choose.bind(OPENING_ROW, PokeCoopPage.OPENINGS[1]), _pick,
-			_choose.bind("Starter", PokeCoopPage.STARTER_NAMES[_starter]), _pick])
-	else:
-		plan.append_array([null, null, null, null])
+func _plan(campaign: String) -> Array:
+	var plan: Array = [_open_tab, _choose_cartridge]
 	if _role == "host":
-		plan.append_array([_choose.bind("Campaign", campaign), _pick, _name_campaign.bind(campaign)])
+		plan.append_array([_shot.bind("start"), _press.bind("HOST"), _shot.bind("host"), _host_or_create.bind(campaign)])
+		plan.append_array(_tour_host() if not _tour.is_empty() else [_until_hosting, _press.bind("Enter the world")])
 	else:
-		plan.append_array([_type.bind(&"_address", _address), null, null])
-	plan.append_array([_press, _status])
+		plan.append_array(_tour_join() if not _tour.is_empty() else [_press.bind("JOIN"), _join_host, _join_as])
 	return plan
 
 
-func _open_tab(launcher: Control) -> void:
-	var shell: Gen2LauncherShell = launcher.get("_shell")
+func _tour_host() -> Array:
+	return [_until_hosting, _shot.bind("hosting"), _until_partner, _wait.bind(240), _shot.bind("hosting_joined"),
+		_press.bind("Stop hosting"), _shot.bind("stop_hosting", _press.bind("Stop hosting")), _press.bind("Stop hosting"),
+		_wait.bind(60), _shot.bind("start_last_session"), _open_troubleshooting, _shot.bind("troubleshooting", _open_troubleshooting),
+		_press.bind("Close"), _press.bind("HOST"), _shot.bind("host_cards"), _edit_first, _shot.bind("edit_campaign", _edit_first),
+		_press.bind("Delete campaign…"), _shot.bind("delete_campaign", _ask_delete), _press.bind("Keep it"), _press.bind("Back"),
+		_press.bind("Host again"), _until_partner, _press.bind("Enter the world")]
+
+
+func _tour_join() -> Array:
+	return [_until_heard, _shot.bind("start_nearby"), _press.bind("JOIN"), _shot.bind("join"),
+		_type.bind("address", "127.0.0.1:%d" % (_port + 7)), _press.bind("Join"), _shot.bind("connecting"), _wait.bind(260),
+		_shot.bind("failure"), _press.bind("Cancel"), _join_host, _until_screen.bind(PokeCoopPage.NEW_PLAYER), _fill_new_player,
+		_shot.bind("new_player"), _press_join_as, _until_world, _until_launcher, _wait.bind(30), _shot.bind("sent_back"),
+		_press.bind("Join again"), _until_known, _shot.bind("connecting_known"), _join_as]
+
+
+func _page() -> PokeCoopPage:
+	var found: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool: return node is PokeCoopPage) \
+		if current_scene != null else []
+	return found[0] if not found.is_empty() else null
+
+
+func _launcher() -> Control:
+	return current_scene as Control if current_scene != null and current_scene.scene_file_path == LAUNCHER else null
+
+
+func _open_tab() -> bool:
+	var shell: Gen2LauncherShell = _launcher().get("_shell") if _launcher() != null else null
+	if shell == null:
+		return false
 	print("coop launcher: %s round %d opens the launcher's %s page" % [_player_id, _round + 1, shell.current_page()])
 	for tab: Gen2LauncherButton in shell.tabs():
 		if tab.tooltip_text == "Co-op":
 			tab.pressed.emit()
+	return true
 
 
-func _page() -> PokeCoopPage:
-	var found: Array = _find(current_scene, func(node: Node) -> bool: return node is PokeCoopPage)
-	return found[0] if not found.is_empty() else null
+func _until_heard() -> bool:
+	return _page() != null and not PokeCoopPage.nearby().is_empty()
 
 
-func _type(field: StringName, text: String) -> void:
-	var edit: LineEdit = _page().get(field)
-	if not edit.is_visible_in_tree() or not edit.editable:
-		print("coop launcher: %s cannot reach the field %s" % [_player_id, edit.placeholder_text])
-	edit.text = text
-	edit.text_changed.emit(text)
+func _choose_cartridge() -> bool:
+	return _press(PokeCoopLobby.title(_game)) or true
 
 
-func _choose(label: String, wanted: String) -> void:
-	_sheet_pick = ""
-	var rows: Array = _find(_page(), func(node: Node) -> bool:
-		return node is Gen2LauncherUI.SettingRow and node.get("_name").text == label)
-	if rows.is_empty():
-		print("coop launcher: %s finds no %s row" % [_player_id, label])
-		return
-	var row: Gen2LauncherUI.SettingRow = rows[0]
-	var choices: Array = row.get("_choices")
-	var matching: Array = choices.filter(func(text: String) -> bool: return text == wanted or text.begins_with(wanted + ":"))
-	var target: String = String(matching[0] if not matching.is_empty() else choices[0])
-	print("coop launcher: %s %s shows \"%s\"%s" % [_player_id, label, row.value_text(),
-		"" if row.value_text() == target else ", choosing \"%s\"" % target])
-	if row.value_text() != target:
-		_sheet_pick = target
-		row.pressed.emit()
+func _buttons(label: String) -> Array:
+	var roots: Array = root.get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).filter(func(node: Node) -> bool:
+		return node is PokeCoopTabParts.Sheet and (node as Control).is_visible_in_tree())
+	roots.append(current_scene)
+	for scope: Node in roots:
+		var found: Array = PokeCoopPage._find(scope, func(node: Node) -> bool:
+			return node is BaseButton and (node as Control).is_visible_in_tree() and not (node as BaseButton).disabled \
+				and (node.get_meta("label", "") == label or (node is Gen2LauncherButton and (node as Gen2LauncherButton).text == label)))
+		if not found.is_empty():
+			return found
+	return []
 
 
-func _pick() -> void:
-	var sheets: Array = current_scene.get_children().filter(func(node: Node) -> bool: return node is Gen2LauncherSheet)
-	if _sheet_pick.is_empty() or sheets.is_empty():
-		return
-	var picks: Array = _find(sheets.back(), func(node: Node) -> bool:
-		return node is Gen2LauncherButton and node.text == _sheet_pick)
-	if picks.is_empty():
-		print("coop launcher: %s's list has no \"%s\"" % [_player_id, _sheet_pick])
-		return
-	(picks[0] as Gen2LauncherButton).pressed.emit()
-
-
-func _name_campaign(campaign: String) -> void:
-	var title: LineEdit = _page().get(&"_title")
-	if title.is_visible_in_tree():
-		_type(&"_title", campaign)
-
-
-func _press() -> void:
-	var page: PokeCoopPage = _page()
-	var label: String = "Host" if _role == "host" else "Join"
-	var buttons: Array = _find(page, func(node: Node) -> bool: return node is Gen2LauncherButton and node.text == label)
-	var button: Gen2LauncherButton = buttons[0]
-	print("coop launcher: %s presses %s%s" % [_player_id, label,
-		"" if button.is_visible_in_tree() and not button.disabled else ", which a player cannot reach"])
-	if _port == PokeCoopEnetTransport.DEFAULT_PORT:
-		button.pressed.emit()
-	elif _role == "host":
-		page.host_campaign(_port)
+func _press(label: String) -> bool:
+	var found: Array = _buttons(label)
+	if found.is_empty():
+		return false
+	print("coop launcher: %s presses %s" % [_player_id, label])
+	if found[0] is PokeCoopTabParts.Tile:
+		(found[0] as PokeCoopTabParts.Tile).chosen.emit()
 	else:
-		page.join_campaign((page.get(&"_address") as LineEdit).text.strip_edges(), _port)
+		(found[0] as BaseButton).pressed.emit()
+	return true
 
 
-func _status() -> void:
-	print("coop launcher: %s's tab says \"%s\"" % [_player_id, (_page().get(&"_status") as Label).text])
+func _type(field: String, text: String) -> bool:
+	var found: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool:
+		return node is LineEdit and node.name == field and (node as Control).is_visible_in_tree())
+	if found.is_empty():
+		return false
+	(found[0] as LineEdit).text = text
+	(found[0] as LineEdit).text_changed.emit(text)
+	return true
 
 
-static func _find(node: Node, wanted: Callable) -> Array:
-	var out: Array = []
-	for child: Node in (node.get_children() if node != null else []):
-		if wanted.call(child):
-			out.append(child)
-		out.append_array(_find(child, wanted))
-	return out
+func _wait(frames: int) -> bool:
+	return _frames - _step_at >= frames
+
+
+func _until_screen(screen: StringName) -> bool:
+	return _page() != null and _page().screen() == screen
+
+
+func _host_or_create(campaign: String) -> bool:
+	if not campaign.is_empty() and _press(campaign):
+		print("coop launcher: %s picks %s" % [_player_id, campaign])
+		_steps.insert(1, _press.bind("Host %s" % campaign))
+		_steps.insert(2, _new_player_if_asked.bind("Host"))
+		return true
+	if not _press("+ New campaign"):
+		return false
+	_steps.insert(1, _fill_new_campaign.bind(campaign))
+	_steps.insert(2, _shot.bind("new_campaign"))
+	_steps.insert(3, _press.bind("Create and host"))
+	return true
+
+
+func _fill_new_campaign(campaign: String) -> bool:
+	if not campaign.is_empty():
+		_type("title", campaign)
+	if not _rival_name.is_empty():
+		_type("rival", _rival_name)
+	_type("name", _trainer)
+	_choose_start()
+	return true
+
+
+func _choose_start() -> void:
+	if _starter < 0:
+		return
+	_press("Start in Pallet Town")
+	var data: GameData = GameData.open(_game)
+	_press(String(data.species(PokeCoopPolicy.STARTERS[_starter]).get("name", "")) if data != null else "")
+
+
+func _new_player_if_asked(verb: String) -> bool:
+	if not _until_screen(PokeCoopPage.NEW_PLAYER):
+		return true
+	_fill_new_player()
+	_steps.insert(1, _press.bind("%s as %s" % [verb, _trainer]))
+	return true
+
+
+func _fill_new_player() -> bool:
+	_type("name", _trainer)
+	_choose_start()
+	return true
+
+
+func _until_hosting() -> bool:
+	return _until_screen(PokeCoopPage.HOSTING)
+
+
+func _until_partner() -> bool:
+	var session: PokeCoopSession = Gen2GameRuntime.instance().coop
+	return session != null and session.host != null and session.host.players.values().any(func(member: PokeCoopPlayer) -> bool:
+		return member.connected and member.player_id != session.client.player_id)
+
+
+func _join_host() -> bool:
+	if not _by_address and _press("Join with %s" % PokeCoopLobby.short_title(_game)):
+		return true
+	if _frames - _step_at < 240 and not _by_address:
+		return false
+	return _type("address", "%s:%d" % [_address, _port]) and _press("Join")
+
+
+func _join_as() -> bool:
+	if _until_screen(PokeCoopPage.NEW_PLAYER):
+		_fill_new_player()
+		_steps.insert(1, _press_join_as)
+		return true
+	var known: Array = _buttons("Join as %s" % _trainer) + PokeCoopPage._find(root, func(node: Node) -> bool:
+		return node is Gen2LauncherButton and (node as Gen2LauncherButton).text.begins_with("Join as ") and (node as Control).is_visible_in_tree())
+	if known.is_empty():
+		return false
+	print("coop launcher: %s presses %s" % [_player_id, (known[0] as Gen2LauncherButton).text])
+	(known[0] as BaseButton).pressed.emit()
+	return true
+
+
+func _press_join_as() -> bool:
+	return _press("Join as %s" % _trainer)
+
+
+func _until_known() -> bool:
+	return PokeCoopPage._find(root, func(node: Node) -> bool:
+		return node is Gen2LauncherButton and (node as Gen2LauncherButton).text.begins_with("Join as ") and (node as Control).is_visible_in_tree()).size() > 0
+
+
+func _until_world() -> bool:
+	return _launcher() == null
+
+
+func _until_launcher() -> bool:
+	return _launcher() != null and _page() != null
+
+
+func _open_troubleshooting() -> bool:
+	for entry: Dictionary in _page().hints() if _page() != null else []:
+		if entry["action"] == &"ui_menu":
+			(entry["run"] as Callable).call()
+			return true
+	return false
+
+
+func _edit_first() -> bool:
+	var cards: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool:
+		return node is PokeCoopTabParts.Tile and node.has_meta("campaign"))
+	if cards.is_empty():
+		return false
+	(cards[0] as PokeCoopTabParts.Tile).secondary.emit()
+	return true
+
+
+func _ask_delete() -> bool:
+	return _edit_first() and _press("Delete campaign…")
+
+
+func _shot(name: String, reopen: Callable = Callable()) -> bool:
+	if _tour.is_empty():
+		return true
+	_look = 0
+	_shot_name = name
+	_shot_reopen = reopen
+	_apply_look(0)
+	return true
+
+
+func _shoot_next() -> void:
+	if _frames - _look_at < SHOT_FRAMES:
+		return
+	var look: Array = LOOKS[_look]
+	var path: String = "%s/%s_%s_%s.png" % [_tour, _shot_name, look[0], "wide" if look[1] == WIDE else "upright"]
+	var image: Image = root.get_viewport().get_texture().get_image()
+	print("coop launcher: %s tour %s %s" % [_player_id, path.get_file(), error_string(image.save_png(path))])
+	_look += 1
+	if _look >= LOOKS.size():
+		_look = -1
+		_apply_look(-1)
+		_step_at = _frames
+		return
+	_apply_look(_look)
+
+
+func _apply_look(index: int) -> void:
+	var look: Array = LOOKS[index] if index >= 0 else [&"light", WIDE]
+	Gen2LauncherUI.preview_insets = NOTCHED if look[1] == UPRIGHT else {}
+	DisplayServer.window_set_size(look[1])
+	root.set_content_scale_size(look[1])
+	root.size = look[1]
+	if look[0] != _theme_now and _launcher() != null:
+		_theme_now = look[0]
+		_launcher().call(&"preview_theme", look[0])
+		_launcher().call(&"select_page", &"coop")
+		if _shot_reopen.is_valid():
+			_shot_reopen.call_deferred()
+	_look_at = _frames

@@ -282,6 +282,10 @@ func is_ready() -> bool:
 	return not _closed and not client.me().is_empty()
 
 
+func closing() -> bool:
+	return _closed
+
+
 func ended_reason() -> String:
 	return client.ended_reason
 
