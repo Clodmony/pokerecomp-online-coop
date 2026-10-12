@@ -626,3 +626,46 @@ func test_german_battle_lines_and_stat_names_come_from_the_cartridges_words() ->
 	assert_eq(Gen1LayoutDe.ui(&"red_de", "Wild %s\nappeared!") % "TAUBSI", "Ein wildes\nTAUBSI!")
 	assert_eq(Gen1LayoutDe.STAT_MODS["DEFENSE"], "VERT")
 	assert_eq(Gen1LayoutDe.ui(&"red", "%s defeated\n%s!"), "%s defeated\n%s!")
+
+
+func test_every_german_line_takes_the_values_its_english_line_is_given() -> void:
+	var dropped: Array[String] = [
+		"%s was\ncured of poison!", "%s's\nrid of paralysis!", "It didn't affect\n%s!",
+		"%s is\nabout to use" + Gen1LayoutDe.SCROLL + "%s!" + Gen1LayoutDe.PAGE + "Will %s\nchange #MON?",
+	]
+	for english: String in Gen1LayoutDe.UI:
+		var german: String = Gen1LayoutDe.UI[english]
+		for mark: String in ["%s", "%d"]:
+			if not dropped.has(english):
+				assert_eq(german.count(mark), english.count(mark), "%s %s" % [english.c_escape(), mark])
+
+
+func test_german_engine_lines_route_through_the_cartridges_words_and_english_stays() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(Gen2MoveForget.stop_text("GLUT", RomRegistry.GEN1), "GLUT\nnicht erlernen?")
+	assert_eq(Gen2ItemActionText.text(&"poison", "TAUBSI", {}, true), "Die Vergiftung\nwurde geheilt!")
+	assert_eq(Gen2BattleSwitchMenu.offer_text("ROCKO", "ONIX", "ROT", true).get_slice(Gen1LayoutDe.PAGE, 1),
+		"Möchtest Du das\n#MON wechseln?")
+	assert_eq(Gen2WorldTMHM.not_compatible_text("TAUBSI", "GLUT", RomRegistry.GEN1).get_slice("\n", 0), "GLUT")
+	assert_eq(Gen2WorldPartyHost.poison_faint_text("TAUBSI"), "TAUBSI\nwurde besiegt!")
+	assert_eq(Gen1LayoutDe.ui(&"blue_de", "%s joined the session.") % "ROT", "ROT ist der Sitzung beigetreten.")
+	assert_eq(Gen2Font.fit("HOME", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("BEENDEN"))
+	Gen1Text.use_language("en")
+	assert_eq(Gen2MoveForget.stop_text("EMBER", RomRegistry.GEN1), "Abandon learning\nEMBER?")
+	assert_eq(Gen2ItemActionText.text(&"poison", "PIDGEY", {}, true), "PIDGEY was\ncured of poison!")
+	assert_eq(Gen2WorldTMHM.not_compatible_text("PIDGEY", "EMBER", RomRegistry.GEN1).get_slice("\n", 0), "PIDGEY is not")
+	assert_eq(Gen1LayoutDe.ui(&"red", "%s joined the session.") % "RED", "RED joined the session.")
+	assert_eq(Gen2Font.fit("HOME", -1, Gen2Text.FONT_MAIN, RomRegistry.GEN1), Gen1Text.encode("HOME"))
+
+
+func test_german_menus_take_the_german_cartridges_columns() -> void:
+	Gen1Text.use_language("de")
+	assert_eq(Gen2BattleMenu.main_box().left, 6)
+	assert_eq(Gen2BattleMenu.main_box().column_spacing, 5)
+	assert_eq(Gen2BattleMenu.safari_options("BALL×      KÖDER", "STEIN      FLUCHT"), ["BALL×", "KÖDER", "STEIN", "FLUCHT"])
+	assert_eq(Gen2MenuBox.yes_no().left, 13)
+	Gen1Text.use_language("en")
+	assert_eq(Gen2BattleMenu.main_box().left, 8)
+	assert_eq(Gen2BattleMenu.main_box().column_spacing, 6)
+	assert_eq(Gen2BattleMenu.safari_options("BALL×       BAIT", "THROW ROCK  RUN"), ["BALL×", "BAIT", "THROW ROCK", "RUN"])
+	assert_eq(Gen2MenuBox.yes_no().left, 14)

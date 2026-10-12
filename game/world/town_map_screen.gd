@@ -619,7 +619,7 @@ func _header_codes() -> PackedByteArray:
 	var species_name: String = String(_data.species(_species).get("name", ""))
 	if _gen1:
 		var gen1: PackedByteArray = Gen1Text.encode(species_name)
-		gen1.append_array(Gen1Text.encode(GEN1_NEST_HEADER_SUFFIX))
+		gen1.append_array(Gen1Text.encode(Gen1LayoutDe.localized(GEN1_NEST_HEADER_SUFFIX)))
 		return gen1
 	var out: PackedByteArray = Gen2Text.encode(species_name)
 	out.append_array(Gen2Text.encode(NEST_HEADER_SUFFIX))

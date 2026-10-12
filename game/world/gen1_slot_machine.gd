@@ -759,11 +759,12 @@ func _draw_bet_menu() -> void:
 
 
 func _draw_yes_no() -> void:
-	_draw_box(YES_NO_BOX_AT, YES_NO_BOX_INNER)
+	var wider: int = Gen1LayoutDe.yes_no_widened()
+	_draw_box(YES_NO_BOX_AT - Vector2i(wider, 0), YES_NO_BOX_INNER + Vector2i(wider, 0))
 	for row: int in YES_NO_ROWS.size():
-		var at: Vector2i = YES_NO_TEXT_AT + Vector2i(0, row * LINE_STEP)
-		_place_string(at, YES_NO_ROWS[row])
-		_write(Vector2i(YES_NO_CURSOR_X, at.y), CURSOR if row == _yes_no_cursor - 1 else Gen1Text.SPACE)
+		var at: Vector2i = YES_NO_TEXT_AT + Vector2i(-wider, row * LINE_STEP)
+		_place_string(at, Gen1LayoutDe.localized(YES_NO_ROWS[row]))
+		_write(Vector2i(YES_NO_CURSOR_X - wider, at.y), CURSOR if row == _yes_no_cursor - 1 else Gen1Text.SPACE)
 
 
 func _draw_box(at: Vector2i, inner: Vector2i) -> void:

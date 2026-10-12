@@ -12,9 +12,8 @@ const PKMN: int = 2
 const PACK: int = 3
 const RUN: int = 4
 
-## `BattleMenuHeader`: `menu_coords 8, 12, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1`,
-## `STATICMENU_CURSOR | STATICMENU_DISABLE_B`, `dn 2, 2` and `db 6`. No
-## STATICMENU_WRAP, so neither axis wraps (`_2DMenuInterpretJoypad`).
+## `BattleMenuHeader`: `menu_coords 8, 12, 19, 17`, cursor, no B, `dn 2, 2`, `db 6` and no wrap. German
+## `BATTLE_MENU_TEMPLATE` is `6, 12, 19, 17` with its right column at 12, for FLUCHT.
 const MAIN_LEFT: int = 8
 const MAIN_TOP: int = 12
 const MAIN_RIGHT: int = 19
@@ -100,8 +99,12 @@ static func safari_box() -> Gen2MenuBox:
 		SAFARI_LEFT, MAIN_TOP, MAIN_RIGHT, MAIN_BOTTOM, MAIN_FLAGS
 	)
 	box.columns = MAIN_COLUMNS
-	box.column_spacing = Gen1Layout.SAFARI_MENU_COLUMN
+	box.column_spacing = _safari_column()
 	return box
+
+
+static func _safari_column() -> int:
+	return Gen1Layout.SAFARI_MENU_COLUMN - (1 if Gen1LayoutDe.active() else 0)
 
 
 ## `SafariZoneBattleMenuText`'s two rows split at the second word's own column.
@@ -109,19 +112,18 @@ static func safari_options(top: String, bottom: String) -> Array[String]:
 	var out: Array[String] = []
 	for row: String in [top, bottom]:
 		for column: int in MAIN_COLUMNS:
-			out.append(row.substr(
-				column * Gen1Layout.SAFARI_MENU_COLUMN, Gen1Layout.SAFARI_MENU_COLUMN
-			).rstrip(" "))
+			out.append(row.substr(column * _safari_column(), _safari_column()).rstrip(" "))
 	return out
 
 
 static func main_box(contest: bool = false) -> Gen2MenuBox:
+	var german: int = 1 if Gen1LayoutDe.active() and not contest else 0
 	var box: Gen2MenuBox = Gen2MenuBox.from_coords(
-		CONTEST_LEFT if contest else MAIN_LEFT,
+		CONTEST_LEFT if contest else MAIN_LEFT - 2 * german,
 		MAIN_TOP, MAIN_RIGHT, MAIN_BOTTOM, MAIN_FLAGS
 	)
 	box.columns = MAIN_COLUMNS
-	box.column_spacing = CONTEST_SPACING if contest else MAIN_SPACING
+	box.column_spacing = CONTEST_SPACING if contest else MAIN_SPACING - german
 	return box
 
 

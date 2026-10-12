@@ -82,7 +82,7 @@ static func options(data: GameData, moves: Array) -> Array:
 
 
 static func _text(key: StringName, generation: int) -> String:
-	return String((GEN1_TEXTS if generation == RomRegistry.GEN1 else TEXTS)[key])
+	return Gen1LayoutDe.localized(GEN1_TEXTS[key]) if generation == RomRegistry.GEN1 else String(TEXTS[key])
 
 
 ## `AskForgetMoveText` and `TryingToLearnText`.

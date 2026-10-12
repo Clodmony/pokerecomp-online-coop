@@ -96,9 +96,8 @@ const SAVE_INFO_BOTTOM: int = 9
 ## `.MenuData_Dex`'s own `db 0`: no cursor, no title and the ordinary top
 ## spacing, so the four rows start at (5, 2) and step two.
 const SAVE_INFO_FLAGS: int = 0
-## `Continue_DisplayBadgesDexPlayerName`'s three `decoord`s and
-## `Continue_PrintGameTime`'s, each an offset from `MenuBoxCoord2Tile`'s corner
-## and so four columns right of what the source writes.
+## `Continue_DisplayBadgesDexPlayerName`'s three `decoord`s and `Continue_PrintGameTime`'s, each an
+## offset from `MenuBoxCoord2Tile`'s corner and so four columns right of what the source writes.
 const SAVE_NAME_AT: Vector2i = Vector2i(SAVE_INFO_LEFT + 8, 2)
 const SAVE_BADGES_AT: Vector2i = Vector2i(SAVE_INFO_LEFT + 13, 4)
 const SAVE_DEX_AT: Vector2i = Vector2i(SAVE_INFO_LEFT + 12, 6)
@@ -208,14 +207,14 @@ func render_save(state: Dictionary, behind: Image = null) -> Image:
 	if behind != null:
 		_blit(image, behind, Vector2i.ZERO)
 	if bool(state.get("info", true)):
-		_blit(image, _render_save_info(state), Vector2i(SAVE_INFO_LEFT, SAVE_INFO_TOP))
+		_blit(image, _render_save_info(state), Vector2i(SAVE_INFO_LEFT - _save_info_shift(), SAVE_INFO_TOP))
 	if state.get("box") != null:
 		_blit(image, _render_save_textbox(state["box"] as Gen2TextBox), SAVE_TEXTBOX_AT)
 	var cursor: int = int(state.get("cursor", -1))
 	if cursor >= 0:
 		var box: Gen2MenuBox = Gen2MenuBox.from_coords(
 			SAVE_YES_NO_AT.x, SAVE_YES_NO_AT.y,
-			SAVE_YES_NO_AT.x + SAVE_YES_NO_SPAN.x,
+			SAVE_YES_NO_AT.x + SAVE_YES_NO_SPAN.x + Gen1LayoutDe.yes_no_widened(),
 			SAVE_YES_NO_AT.y + SAVE_YES_NO_SPAN.y, SAVE_YES_NO_FLAGS
 		)
 		_blit(
@@ -231,33 +230,39 @@ func render_save(state: Dictionary, behind: Image = null) -> Image:
 ## before its own `PrintNum`, so a player without the Pokedex is shown neither.
 func _render_save_info(state: Dictionary) -> Image:
 	var dex: bool = bool(state.get("pokedex", false))
+	var shift: int = _save_info_shift()
 	var box: Gen2MenuBox = Gen2MenuBox.from_coords(
-		SAVE_INFO_LEFT, SAVE_INFO_TOP, SAVE_INFO_RIGHT, SAVE_INFO_BOTTOM,
+		SAVE_INFO_LEFT - shift, SAVE_INFO_TOP, SAVE_INFO_RIGHT, SAVE_INFO_BOTTOM,
 		SAVE_INFO_FLAGS
 	)
 	var extras: Array = [
-		{"text": String(state.get("player_name", "")), "at": SAVE_NAME_AT},
+		{"text": String(state.get("player_name", "")), "at": SAVE_NAME_AT + Vector2i(shift, 0)},
 		{
 			"text": ("%d" % int(state.get("badges", 0))).lpad(SAVE_BADGE_CELLS),
-			"at": SAVE_BADGES_AT,
+			"at": SAVE_BADGES_AT + Vector2i(shift, 0),
 		},
 		{
 			"text": "%s:%02d" % [
 				("%d" % int(state.get("hours", 0))).lpad(SAVE_HOUR_CELLS),
 				int(state.get("minutes", 0)),
 			],
-			"at": SAVE_TIME_AT,
+			"at": SAVE_TIME_AT + Vector2i(shift, 0),
 		},
 	]
 	if dex:
 		extras.append({
 			"text": ("%d" % int(state.get("caught", 0))).lpad(SAVE_DEX_CELLS),
-			"at": SAVE_DEX_AT,
+			"at": SAVE_DEX_AT + Vector2i(shift, 0),
 		})
 	return menu.render(
 		box, ["PLAYER", "BADGES", "#DEX" if dex else " ", "TIME"], -1, "", 0, extras,
 		palette
 	)
+
+
+## German `PrintSaveScreenText` draws its box from `hlcoord 3, 0`, one column wider for SPIELER.
+func _save_info_shift() -> int:
+	return 1 if font.font_generation() == RomRegistry.GEN1 and Gen1Text.language() == "de" else 0
 
 
 func _render_save_textbox(box: Gen2TextBox) -> Image:

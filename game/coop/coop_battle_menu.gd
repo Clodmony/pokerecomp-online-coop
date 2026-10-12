@@ -531,7 +531,7 @@ func _suggestion_words(said: Dictionary) -> String:
 			var whom: String = _name(String(said.get("recipient", "")))
 			var whole: String = _de("%s for %s") % [named, whom]
 			return whole if not String(said.get("recipient", "")).is_empty() and whole.length() <= 18 else named
-	return "RUN"
+	return _de("RUN")
 
 
 func _spelling() -> int:

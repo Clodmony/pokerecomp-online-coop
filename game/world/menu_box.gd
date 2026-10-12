@@ -70,7 +70,7 @@ var quantity_format: String = "×%2d"
 ## the five-wide, four-tall box at (14, 7). Every YES/NO in the game is this one.
 static func yes_no() -> Gen2MenuBox:
 	return from_coords(
-		14, 7, 19, 11, STATICMENU_CURSOR | STATICMENU_NO_TOP_SPACING
+		14 - Gen1LayoutDe.yes_no_widened(), 7, 19, 11, STATICMENU_CURSOR | STATICMENU_NO_TOP_SPACING
 	)
 
 

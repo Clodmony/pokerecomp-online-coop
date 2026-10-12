@@ -36,10 +36,9 @@ var flags: int = 0
 var rows: int = 0
 var columns: int = 1
 var cursor: int = 0
-## `menu_coords x1, y1, x2, y2`, imported off the `LoadMenuHeader` a scripted
-## `verticalmenu`/`2dmenu` reads. [const YES_NO_LEFT] and its three siblings
-## when there is no such header.
-var box_left: int = YES_NO_LEFT
+## `menu_coords x1, y1, x2, y2`, imported off the `LoadMenuHeader` a scripted `verticalmenu`/`2dmenu`
+## reads. [const YES_NO_LEFT] and its three siblings when there is no such header.
+var box_left: int = YES_NO_LEFT - Gen1LayoutDe.yes_no_widened()
 var box_top: int = YES_NO_TOP
 var box_right: int = YES_NO_RIGHT
 var box_bottom: int = YES_NO_BOTTOM
@@ -125,7 +124,7 @@ static func from_input(input: Dictionary) -> Gen2WorldMenu:
 		menu._spacing = int(header.get("spacing", 0))
 	var default_position: int = int(header.get("default", 1)) - 1
 	menu.cursor = menu._clamp_position(default_position)
-	menu.box_left = int(header.get("left", YES_NO_LEFT))
+	menu.box_left = int(header.get("left", YES_NO_LEFT - Gen1LayoutDe.yes_no_widened()))
 	menu.box_top = int(header.get("top", YES_NO_TOP))
 	menu.box_right = int(header.get("right", YES_NO_RIGHT))
 	menu.box_bottom = int(header.get("bottom", YES_NO_BOTTOM))

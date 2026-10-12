@@ -472,7 +472,7 @@ static func gen1_top_menu(
 	var named: String = player_name if not player_name.is_empty() else "PLAYER"
 	var labels: Dictionary = {
 		GEN1_PC_BILLS: "BILL's PC" if met_bill else "SOMEONE's PC",
-		GEN1_PC_PLAYERS: "%s's PC" % named,
+		GEN1_PC_PLAYERS: Gen1LayoutDe.localized("%s's PC") % named,
 		GEN1_PC_OAKS: "PROF.OAK's PC",
 		GEN1_PC_LEAGUE: "<PKMN>LEAGUE",
 		GEN1_PC_LOG_OFF: "LOG OFF",
