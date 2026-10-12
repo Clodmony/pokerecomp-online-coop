@@ -81,6 +81,11 @@ the screen's main button sits at the bottom, sheets rise from the bottom and
 the address field opens the number keypad. Nearby needs the platform to allow
 local network broadcast; where it does not, the address path still works.
 
+With several controllers plugged in, every one of them plays until you pick
+one under Settings > Controls > **Controller**; then only that one does, two
+of one model show as (1) and (2), and an unplugged pick is taken back when it
+is plugged in again. The keyboard and mouse always work.
+
 ## The opening
 
 Everyone who plays the opening plays it in their own world, at the same time

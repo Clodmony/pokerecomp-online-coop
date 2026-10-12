@@ -121,7 +121,6 @@ static func campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_
 	return out
 
 
-## The campaigns of both games of [param game]'s pair (D101): a Blue cartridge hosts a Red campaign from its own folder.
 static func pair_campaigns(game: GameData, port: int = PokeCoopEnetTransport.DEFAULT_PORT) -> Array:
 	var out: Array = []
 	for game_id: StringName in PokeCoopLobby.partners(game.id):
@@ -177,7 +176,6 @@ static func move_legacy(game: GameData) -> void:
 
 
 ## Hosts on [param port], loading or starting the campaign; [param brought] is a save in place of a starter.
-## [param folder] is the campaign's own game when it is the other version of [param game]'s pair.
 static func hosting(
 	game: GameData, port: int, player_name: String, starter: int, brought: Gen2SaveData = null,
 	campaign_id: String = "", title: String = "", session_log: PokeCoopLog = null, folder: StringName = &""
