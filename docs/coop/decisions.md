@@ -1725,3 +1725,23 @@ unexpanded `~`) started nothing and reported "done". Now verify takes
 exported `SEED` rather than guess which scenarios want it (playthroughs take
 one optionally). The runner fails when `GODOT` is no program and when its
 tool host never listens; `run.env` records the seed a run started from.
+
+
+## D115. A controller types on the Co-op tab's own keys (#128, owner's choice, 2026-10-13)
+
+A controller reached every field on the Co-op tab but could not type in one:
+the fields are plain `LineEdit`s and a desktop has no keyboard on screen. The
+owner chose one on-screen keyboard over the cartridge's naming screen. A on a
+field, from a pad or the touch pad, opens a sheet of keys
+(`PokeCoopTabParts.keys`): letters, digits, `-` and `.`, Space, Delete and Done
+for names and titles; 0 to 9, `.` and `:` for the address. Each key types into
+the field at once, so B and Done both keep what was typed. A keyboard, a mouse
+and touch still type in the field itself, and Enter still joins. The keys stay
+in the co-op tab: upstream's own fields (save names, mod sources) are
+unchanged.
+
+Found with it, from a played session: Join read the form, which only learned
+what a field held when it was edited, so a remembered address showed in the
+field and Join said "Type the host's address first" until a digit was deleted
+and typed again. A field now enters the form with what it shows.
+
