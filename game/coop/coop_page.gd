@@ -319,7 +319,12 @@ func _field(id: String, text_value: String, hint: String, longest: int) -> LineE
 	out.custom_minimum_size = Vector2(0, Gen2LauncherUI.TOUCH_TARGET)
 	out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	out.add_theme_font_size_override("font_size", Gen2LauncherTheme.FONT_TITLE)
+	_form[id] = text_value
 	out.text_changed.connect(func(typed: String) -> void: _form[id] = typed)
+	out.gui_input.connect(func(event: InputEvent) -> void:
+		if event.is_action_pressed(&"ui_accept") and not event is InputEventKey:
+			out.accept_event()
+			PokeCoopTabParts.keys(_theme, out, id == "address", _compact).open(_overlay_host()))
 	return out
 
 
@@ -1315,8 +1320,12 @@ func _open_sheet(kind: StringName, again: Callable = Callable()) -> PokeCoopTabP
 	_sheet_kind = kind
 	_sheet_again = again
 	_sheet.dismissed.connect(_dismiss_sheet)
-	_sheet.open(_host_control if _host_control != null and _host_control.is_inside_tree() else get_tree().root)
+	_sheet.open(_overlay_host())
 	return _sheet
+
+
+func _overlay_host() -> Node:
+	return _host_control if _host_control != null and _host_control.is_inside_tree() else get_tree().root
 
 
 func _dismiss_sheet() -> void:
