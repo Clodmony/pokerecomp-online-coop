@@ -1745,3 +1745,28 @@ what a field held when it was edited, so a remembered address showed in the
 field and Join said "Type the host's address first" until a digit was deleted
 and typed again. A field now enters the form with what it shows.
 
+
+## D116. Split screen is a second window on the same PC (#53, owner's choice, 2026-10-13)
+
+`Gen2GameRuntime` is one per process and holds the save, the world and the
+co-op session, so two players in one process would mean a runtime, a save and
+a world per player across upstream's code. The owner chose the cheap way:
+Split screen on the Hosting screen starts a second game process that joins
+127.0.0.1 like any partner, and the two windows share the screen side by
+side, borderless, as one split screen. Desktop only (Linux and Windows); a
+phone runs one process.
+
+The second window gets its request as one base64 JSON argument after `--`
+(port, game, controller, screen), so exported builds, which ignore `-s`, start
+it through the launcher. It keeps its own tab memory (`coop_tab_split.json`),
+so its player's name and identity do not overwrite the host's, and the same
+trainer comes back next time. Controllers: one goes to the right half and the
+keyboard plays on the left; two give each half its own; none leaves both
+halves on the keyboard of whichever has the focus. A half's controller is
+held in `PokePadChoice.held`, over the one Settings picked, because the
+runtime re-applies the Settings pick whenever mods load, and nothing is
+written to the options file. Both halves turn off
+`ignore_joypad_on_unfocused_application`, which the project sets, so the half
+without the focus still hears its pad. The right window quits when its
+session ends; the left gets its size, frame, controller and that setting back
+once the right window's process is gone.

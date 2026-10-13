@@ -107,6 +107,18 @@ or one after another:
   keeps the starter he took in the first opening to finish. Someone still in
   the opening shows in the CO-OP menu's list but not in the world.
 
+## Split screen on one PC
+
+On Linux or Windows, two players can share one computer: press **Split
+screen** on the Hosting screen. The window moves to the left half of the
+screen and a second window opens on the right, already joining the session;
+the second player names themself there and joins as usual. With one
+controller, the keyboard plays on the left and the controller on the right;
+with two, each half has its own (the first for the left). The right half
+remembers its player, so the same trainer comes back next time. When the
+session ends, the right window closes and the left one gets the whole screen
+back.
+
 ## Playing over the internet
 
 - **Same version, same cartridge.** Both players run builds made from the same
