@@ -22,6 +22,7 @@ commit, booted, and zipped with `BUILD.txt` and `PLAYING.md`. Branch
 |---|---|
 | Before | builds were exported by hand from the working tree; the newest (2026-10-12, old checkout) predate 0.1.78, the bag and the party balls |
 | `tools/verify.sh --coop --builds`, commit ed2866ac | import, co-op suites 286/286, gates, boot, ENet demo, three processes, then the builds: `Linux` (88 MB) and `Windows Desktop` (121 MB) exported in seconds from the archive, the Linux build boots headless and the Windows build under Wine 11.19 in a fresh prefix, both in the run's private user folder; the zips (40 MB, 49 MB) hold the binary, `BUILD.txt` (0.1.78, protocol 8, the commit) and `PLAYING.md` |
+| `tools/verify.sh --builds=builds`, commit 0f58e0f8 | all passed: whole suite 5167/5167, gates, boot, ENet demo, three processes; both builds boot (Linux headless, Windows under Wine) and sit zipped in the checkout's `builds/` for the owner's session |
 | The same with uncommitted doc edits | every other stage passes, builds: FAILED (uncommitted changes at the start), exit 1 |
 | Not run | a build on a real Windows PC or a second Linux machine, a hand-played session (the issue stays open for it) |
 
