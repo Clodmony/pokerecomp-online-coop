@@ -112,12 +112,15 @@ or one after another:
 On Linux or Windows, two players can share one computer: press **Split
 screen** on the Hosting screen. The window moves to the left half of the
 screen and a second window opens on the right, already joining the session;
-the second player names themself there and joins as usual. With one
-controller, the keyboard plays on the left and the controller on the right;
-with two, each half has its own (the first for the left). The right half
-remembers its player, so the same trainer comes back next time. When the
-session ends, the right window closes and the left one gets the whole screen
-back.
+the second player names themself there and joins as usual. Together the
+halves cover the whole screen, the taskbar too where the system lets a window
+cover it. On KDE Plasma it does not: set the panel to Auto hide (or Windows
+can cover) first, or it stays visible below the game. With one controller,
+the keyboard plays on the left and the controller on the right; with two,
+each half has its own (the first for the left). The halves stay above other
+windows while you play. The right half remembers its player, so the same
+trainer comes back next time. When the session ends, the right window closes
+and the left one gets its own size back.
 
 ## Playing over the internet
 

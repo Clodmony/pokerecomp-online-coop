@@ -463,17 +463,20 @@ class SplitScreen extends RefCounted:
 	static func take(side: int, pad: Dictionary, screen: int) -> void:
 		if _before.is_empty():
 			_before = {"mode": DisplayServer.window_get_mode(), "borderless": DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS),
+				"on_top": DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP),
 				"rect": Rect2i(DisplayServer.window_get_position(), DisplayServer.window_get_size()),
 				"ignore": Input.ignore_joypad_on_unfocused_application}
-		var rect: Rect2i = half(DisplayServer.screen_get_usable_rect(screen), side)
+		var whole := Rect2i(DisplayServer.screen_get_position(screen), DisplayServer.screen_get_size(screen))
+		var rect: Rect2i = half(whole, side)
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 		DisplayServer.window_set_position(rect.position)
 		DisplayServer.window_set_size(rect.size)
 		Input.ignore_joypad_on_unfocused_application = false
 		PokePadChoice.held = pad
 		PokePadChoice.apply()
-		print("coop split: %s half at %s, controller %s" % ["left" if side == 0 else "right", rect, pad.get("name", "every")])
+		print("coop split: %s half at %s of screen %s, controller %s" % ["left" if side == 0 else "right", rect, whole, pad.get("name", "every")])
 
 	static func watch() -> void:
 		if partner_pid > 0 and not OS.is_process_running(partner_pid):
@@ -485,6 +488,7 @@ class SplitScreen extends RefCounted:
 			return
 		var rect: Rect2i = _before["rect"]
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, bool(_before["borderless"]))
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, bool(_before["on_top"]))
 		DisplayServer.window_set_position(rect.position)
 		DisplayServer.window_set_size(rect.size)
 		DisplayServer.window_set_mode(_before["mode"])
