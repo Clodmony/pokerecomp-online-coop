@@ -2,13 +2,16 @@
 # One unattended check of the checked-out branch: what CI runs, then any
 # two-window scenarios, with a summary of a few lines at the end.
 #
-#   GODOT=<4.8-dev7 binary> tools/verify.sh [--coop] [scenario ...]
+#   GODOT=<4.8-dev7 binary> tools/verify.sh [--coop] [--builds[=<dir>]] [scenario ...]
 #
 #   --coop      only the co-op GUT suites (test_coop*) instead of the whole suite
+#   --builds    also the private Windows and Linux builds of HEAD (a clean tree
+#               only): exported, booted (Windows under Wine) and zipped with
+#               docs/coop/playing.md into <dir> (default <stamp>/builds)
 #   scenario    names under tools/coop_screens/, run after the headless stages
 #
 # Stages: import, GUT, release gates, boot smoke test, ENet demo, three
-# processes, then each scenario. Full logs and captures go to
+# processes, then each scenario, then the builds. Full logs and captures go to
 # $VERIFY_OUT/<stamp>/ (default ~/dev-scratch/pokerecomp-online-coop/verify), the
 # summary to <stamp>/summary.txt and stdout. Exits 0 only if every stage passed.
 #
@@ -21,16 +24,20 @@ set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 godot="${GODOT:-godot}"
 coop_only=0
+builds=""
 scenarios=()
 for a in "$@"; do
 	case "$a" in
 		--coop) coop_only=1 ;;
-		-h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+		--builds) builds=default ;;
+		--builds=*) builds="${a#--builds=}" ;;
+		-h|--help) sed -n '2,21p' "$0"; exit 0 ;;
 		*) scenarios+=("$a") ;;
 	esac
 done
 
 out="${VERIFY_OUT:-$HOME/dev-scratch/pokerecomp-online-coop/verify}/$(date +%Y%m%d-%H%M%S)"
+[[ "$builds" == default ]] && builds="$out/builds"
 mkdir -p "$out/xdg" "$out/tmp"
 summary="$out/summary.txt"
 export TMPDIR="$out/tmp"
@@ -44,6 +51,8 @@ case "$version" in
 	4.8.dev7*) ;;
 	*) note "godot: '$godot' is '${version:-missing}', not 4.8-dev7"; note "RESULT: FAILURES"; cat "$summary"; exit 1 ;;
 esac
+# Before any stage touches the tree: a build names its commit.
+dirty="$(git -C "$root" status --porcelain --untracked-files=no)"
 
 sandbox=()
 command -v bwrap >/dev/null && sandbox=(bwrap --dev-bind / / --dev /dev)
@@ -103,6 +112,71 @@ for s in "${scenarios[@]}"; do
 		failed=$((failed + 1))
 	fi
 done
+
+# boot <name> <log> <command...>: the launcher came up (it prints the cartridges
+# it accepts) with no error, in the private user folder.
+boot() {
+	local name="$1" log="$2"; shift 2
+	if XDG_DATA_HOME="$out/xdg" GODOT_CAP=300 tools/ci_godot.sh "$@" --headless --quit-after 60 > "$log" 2>&1 \
+		&& grep -q "pokerecomp supported cartridges:" "$log" && ! grep -q "ERROR" "$log"; then
+		note "  $name: boots"
+	else
+		note "  $name: FAILED to boot (see ${log#"$out"/})"
+		return 1
+	fi
+}
+
+# Private builds (#44), both from one commit so their protocol matches, and from
+# a git archive of it so nothing untracked (a cartridge, a cache) can reach them.
+make_builds() {
+	local sha name src work game_version
+	sha="$(git -C "$root" rev-parse --short=8 HEAD)"
+	name="$(git -C "$root" rev-parse --abbrev-ref HEAD)"
+	name="${name#coop/}-$sha"
+	name="${name//\//-}"
+	src="$out/builds-src"
+	work="$out/builds-work/$name"
+	mkdir -p "$src" "$work/linux" "$work/windows" "$builds"
+	git -C "$root" archive HEAD | tar -x -C "$src"
+	(cd "$src" && "$godot" --headless --import --path . \
+		&& "$godot" --headless --path . --export-release "Linux" "$work/linux/pokerecomp.x86_64" \
+		&& "$godot" --headless --path . --export-release "Windows Desktop" "$work/windows/pokerecomp.exe") \
+		> "$out/builds-export.log" 2>&1 || { note "  export: FAILED (see builds-export.log)"; return 1; }
+	game_version="$(sed -n 's/^const VERSION: String = "\(.*\)"$/\1/p' "$src/game/main/app_version.gd")"
+	printf '%s\n' "pokerecomp co-op $game_version, protocol $(sed -n 's/^const PROTOCOL: int = //p' "$src/game/coop/coop_host.gd")" \
+		"commit $(git -C "$root" rev-parse HEAD) ($(git -C "$root" rev-parse --abbrev-ref HEAD)), built $(date '+%F %T') with Godot $version" \
+		"Players join only a host with a build of the same version. How to play: PLAYING.md." > "$work/BUILD.txt"
+	(cd "$root" && boot linux "$out/builds-boot-linux.log" "$work/linux/pokerecomp.x86_64") || return 1
+	if command -v wine >/dev/null; then
+		(cd "$root" && WINEPREFIX="$out/wine" WINEDEBUG=-all WINEDLLOVERRIDES="mscoree,mshtml=" \
+			boot windows "$out/builds-boot-windows.log" wine "$work/windows/pokerecomp.exe") || return 1
+		rm -rf "$out/wine"
+	else
+		note "  windows: not booted (no wine)"
+	fi
+	for os in linux windows; do
+		cp "$work/BUILD.txt" "$work/$os/"
+		cp "$src/docs/coop/playing.md" "$work/$os/PLAYING.md"
+		(cd "$work/$os" && python3 -m zipfile -c "$work/pokerecomp-$name-$os.zip" ./*) || return 1
+	done
+	rm -rf "${builds:?}/$name"
+	mv "$work/pokerecomp-$name-linux.zip" "$work/pokerecomp-$name-windows.zip" "$builds/"
+	mv "$work" "$builds/$name"
+	rm -rf "$src" "$out/builds-work"
+	note "  $builds/pokerecomp-$name-{linux,windows}.zip"
+}
+
+if [[ -n "$builds" ]]; then
+	if [[ -n "$dirty" ]]; then
+		note "builds: FAILED (uncommitted changes at the start; a build names its commit)"
+		failed=$((failed + 1))
+	elif make_builds; then
+		note "builds: ok"
+	else
+		note "builds: FAILED"
+		failed=$((failed + 1))
+	fi
+fi
 
 rm -rf "$out/tmp"
 if (( failed )); then
