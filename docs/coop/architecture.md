@@ -105,7 +105,7 @@ Further findings that shape the design:
    actor, the panel, and the world held still while the panel is open.
    `PokeCoopSession` is that assembly as one class, used by the launcher's
    Co-op tab (`PokeCoopPage`, its pieces in `PokeCoopTabParts`, the beacon,
-   dial and memory in `PokeCoopLobby`) and by the tool; `Gen2GameRuntime.coop` holds the
+   dial, memory and split screen in `PokeCoopLobby`) and by the tool; `Gen2GameRuntime.coop` holds the
    live session and drives it each frame. After a host battle the session runs
    the window's own evolution and whiteout for its player (D26, D27).
 6. **Persistence** (`PokeCoopSave`): JSON with `kind`, `format_version` (2), the
@@ -223,6 +223,7 @@ Kept small so upstream merges stay cheap (#14):
 | `tests/unit/test_gen1_layout.gd`, `test_gen1_text.gd`, `test_rom_verifier.gd`, `test_gen1_sram.gd` | German layout, charmap, registry and save-start cases (#50) |
 | `docs/REFERENCES.md`, `references.lock` | einstein95/pokered-de and its symbols branch pinned (D95) |
 | `autoload/input_runtime.gd`, `game/options/options.gd`, `game/launcher/controls_section.gd`, `game/input/input_actions.gd` | the owner's controller pick: `Gen2Options.pad`, applied by the new `game/input/pad_choice.gd` (`PokePadChoice`) after each install and plug; Settings > Controls > Controller; other pads' events are dropped in `_input`; Auto letters read the picked pad |
+| `game/input/pad_choice.gd` | `held`: a split screen's half keeps its own controller over the one Settings picked (D116, #53) |
 | `game/mods/mod_host.gd`, `game/world/world_api.gd`, `tests/unit/test_world_api.gd` | `unregister_wild_substitute`; the wild substitute's context carries the drawn `slot` (D104) |
 | `game/mods/mod_host.gd`, `game/world/town_map_screen.gd`, `docs/MODS.md` | `register_town_map_marks`: more player icons on the Generation 1 region map and fly map (D106) |
 | `game/world/world_api.gd`, `tests/unit/test_world_api.gd` | `sight_gate`, asked with a trainer's event row before it looks; a co-op window refuses a trainer the team is fighting or has beaten (D107) |
