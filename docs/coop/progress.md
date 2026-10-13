@@ -11,6 +11,25 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Split screen top and bottom (#144, D119, 2026-10-14)
+
+Asked by the owner: split screen was side by side only. Split screen on the
+Hosting screen now asks **How to split the screen?**: Side by side (first and
+focused) or Top and bottom. Top and bottom gives the host's window the top
+half and the second window the bottom half, both the screen's full width;
+Who plays where? and the toast name the halves for the layout. The layout
+reaches the second window in its argument (`stacked`). Branch
+`coop/144-split-layout`.
+
+| Verification | Result |
+|---|---|
+| GUT, before | `test_a_split_screen_stacks_its_halves_top_and_bottom_when_asked` failed ("Invalid call to function 'half' in base 'GDScript'. Expected 2 argument(s)"), and the second window's request had no layout (`read` returned no `stacked`) |
+| GUT, after | `test_coop_lobby` 11/11; source budget at the comment ceiling (41583, net zero) |
+| Screens (scripted), Red | `local_split_stacked`: How to split the screen? with Side by side focused; Top and bottom picked; Who plays where? asks for the top half, then the bottom; RED's window 1920,0 2560x720 and BLUE's 1920,720 2560x720 on the owner's 2560x1440 monitor; both in Pallet Town, each seeing the other in the wider view; RED leaves, BLUE's window quits and RED's tab is 1152x648 again. `local_split` (Side by side): halves 1280x1440, as before. All captures looked at |
+| Probe, partner arrow in a wide half | `partner_tracker_split` with Top and bottom: RED's arrow at the top while BLUE walks onto Route 1 (22 px from the window's top), BLUE's at the bottom (23 px from its bottom), both inside the window. In these runs the developer's debug line (shown only with debug keys on) is drawn over part of each arrow |
+| `tools/verify.sh local_split local_split_stacked split_quit partner_tracker_split`, commit 306b53bd | whole suite 5183/5183, gates, boot, three processes and all four scenarios ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16 |
+| Not run | split screen on Windows; a portrait monitor; played by hand |
+
 ## The partner arrow inside the window, split screen included (#142, 2026-10-14)
 
 Found by the owner in split screen, everywhere: player 2 never saw the arrow,
@@ -34,7 +53,7 @@ it. Branch `coop/142-partner-arrow`.
 | Screens (scripted), Red | `partner_tracker_split`, before: no arrow in any of the 8 captures. After: RED's arrow on the right edge while BLUE stands at their door, at the top when BLUE walks onto Route 1; BLUE's on the left edge, then at the bottom left from Route 1; 6 of 8 captures show it, the other two fall in the blink. All captures looked at |
 | `partner_tracker_cabins`, from an `ss_anne` seed moved onto SS_ANNE_1F | BLUE's arrow over the cabin door RED took; RED's, inside the cabin, over its door in the top row, now fully inside the 1152x648 window (it was 4 pixels from the buffer's top, 7 of which the window cuts off) |
 | `tools/verify.sh partner_tracker partner_tracker_split partner_tracker_cabins local_split`, commit 7e883375 | whole suite 5182/5182, gates, boot, three processes, `partner_tracker`, `partner_tracker_split`, `local_split` ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16. `partner_tracker_cabins` failed for want of its seed; rerun with one (above): ok |
-| Not run | a top-and-bottom split (split screen is side by side only); split screen on Windows; a phone in portrait |
+| Not run | a top-and-bottom split (split screen was side by side only; see #144 above); split screen on Windows; a phone in portrait |
 
 ## Split screen's controllers and quitting; the Co-op tab after a re-import (#140, #139, #138, D117, D118, 2026-10-13)
 

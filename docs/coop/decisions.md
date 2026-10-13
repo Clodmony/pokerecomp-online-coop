@@ -1808,3 +1808,15 @@ message was needed. The right half no longer redials a host that dropped:
 the host runs on the same device, so a dropped link means its window is gone,
 and the right half gives up at once instead of after 60 tries of 2 s.
 
+## D119. The split's layout is its own step before Who plays where? (#144, 2026-10-14)
+
+The owner asked for a top-and-bottom split beside side by side. Split screen
+now opens **How to split the screen?** with two choices, Side by side first
+and focused, so one press keeps the old layout. It is a sheet of its own
+because Who plays where? listens for A and Enter to hand out the halves, so a
+choice on it could not be pressed with a controller or the keyboard; and with
+no controller plugged in, Who plays where? never opens. The layout travels to
+the second window in its argument (`stacked`, side by side when absent), and
+`SplitScreen.half` cuts the screen along its height instead of its width.
+The choice lasts until the game closes and is not written to the tab's
+memory; the issue asked for a default, not for remembering it.
