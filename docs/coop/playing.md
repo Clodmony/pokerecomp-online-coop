@@ -110,27 +110,29 @@ or one after another:
 ## Split screen on one PC
 
 On Linux or Windows, two players can share one computer: press **Split
-screen** on the Hosting screen. The window moves to the left half of the
-screen and a second window opens on the right, already joining the session;
-the second player names themself there and joins as usual. Together the
+screen** on the Hosting screen, then pick **Side by side** (the default) or
+**Top and bottom**. The window moves to the left (or top) half of the screen
+and a second window opens on the right (or bottom), already joining the
+session; the second player names themself there and joins as usual. Together the
 halves cover the whole screen, the taskbar too where the system lets a window
 cover it. On KDE Plasma it does not: set the panel to Auto hide (or Windows
 can cover) first, or it stays visible below the game.
 
 Before the second window opens, **Who plays where?** asks each half's player
 to press A on their controller, or Enter to play by keyboard (one half
-only). The controller picked in Settings > Controls plays on the left without
-asking. Each half then hears only its own controller, so a controller nobody
+only). The controller picked in Settings > Controls plays on the left (top)
+half without asking. Each half then hears only its own controller, so a controller nobody
 pressed, a virtual one included, moves neither player. With no controller
 plugged in, both halves play by keyboard, each while it has the focus. The
-halves stay above other windows while you play. The right half remembers its
-player, so the same trainer comes back next time.
+halves stay above other windows while you play. The second half remembers its
+player, so the same trainer comes back next time. The layout picked is offered
+first the next time you split, until the game closes.
 
 **Quitting.** SELECT > **QUIT BOTH** (on either half) saves the campaign and
-closes both windows; so does closing the left (host) window. To play on
-alone, the right player picks LEAVE SESSION: their window closes and the left
-one gets its own size back. LEAVE SESSION on the left ends the session for
-both and goes back to the Co-op tab.
+closes both windows; so does closing the host's (left or top) window. To play
+on alone, the second player picks LEAVE SESSION: their window closes and the
+host's gets its own size back. LEAVE SESSION on the host's half ends the
+session for both and goes back to the Co-op tab.
 
 ## Playing over the internet
 
