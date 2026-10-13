@@ -11,6 +11,23 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A controller types on the Co-op tab (#128, D115, 2026-10-13)
+
+A controller reached every field on the Co-op tab but could not type in one.
+A on a field (pad or touch pad) now opens the tab's own keys: letters, digits,
+`-` and `.` for names and the title; digits, `.` and `:` for the address; each
+key types at once, B or Done goes back to the field. Found with it in a played
+session: a remembered address showed in the field, and Join asked to type it
+until a digit was deleted and typed again. Branch `coop/128-controller-typing`.
+
+| Verification | Result |
+|---|---|
+| GUT, before the fix | `test_join_dials_the_remembered_address_the_field_shows`: no dial ("Join dials what the field shows without a keystroke"); `test_a_pad_types_an_address_and_a_name_on_the_tabs_own_keys`: no sheet after A on the address field |
+| GUT, after | both pass: the pad lands on a key, the d-pad reaches every key, keys type the address (one Delete), B returns to the field, Join dials it; on New player the letter keys rename the trainer and Done closes them |
+| Screens (scripted), Red | `coop_tab_tour` with two new shots, `keys_address` and `keys_name`, light and dark, wide and upright: every key on the card (a first run clipped the tenth and seventh column; now 8 wide, 5 upright, 3 for the address) |
+| `tools/verify.sh coop_tab_tour launcher_host_join`, commit 98ceb52f | all passed: whole suite 5175/5175, gates, boot, ENet demo, three processes, both scenarios |
+| Not run | a real controller by hand, a phone, Windows; the keys on Edit campaign's fields (same code path, not shot) |
+
 ## BROCK's leg autoplayed from a seed next to a plain window (#133, 2026-10-13)
 
 From a seed, `route=brock from=pewter_gym` did walk to BROCK, but only after
@@ -81,7 +98,7 @@ cartridge's menus walk on. Both now read after the filter. Branch
 |---|---|
 | GUT, before the fix | the new menu and battle tests failed: the co-op menu moved 7 / 3 / 1 rows (stick / held key / held touch pad) while the cartridge's path heard none of it |
 | GUT, after | menu and battle move exactly as often as a reader on the cartridge's path, for all three; whole suite 5167/5167 (three new tests) |
-| Co-op tab | `test_a_pad_reaches_every_button_and_field_on_the_co_op_tabs_screens`: on Start, Host, New campaign, Join and New player the focus lands on the screen and the d-pad reaches every button and field. Typing needs a keyboard (#128). Hosting and the sheets not walked |
+| Co-op tab | `test_a_pad_reaches_every_button_and_field_on_the_co_op_tabs_screens`: on Start, Host, New campaign, Join and New player the focus lands on the screen and the d-pad reaches every button and field. Typing with a pad came with #128. Hosting and the sheets not walked |
 | Screens (scripted), Red | `held_directions` (new; scripted windows can hold a button, `D*8`): START > CO-OP walks its rows while DOWN is held; in a battle's move list a press log showed the first repeat 29 frames after the press, then one every 5 frames, round SCRATCH, GROWL, EMBER |
 | Two windows, existing scenarios | `start_coop_menu`, `switch_and_suggest`, `catch_for_partner`, `versus_from_menus`, `leave_rejoin_takeover`, `lose_and_white_out` passed; captures looked at. `friend_menu` failed once in `tools/verify.sh`: BLUE's window answered the trade invitation NO at the moment of its scripted A, with YES under the cursor a second before. Not reproduced: three runs alone on the branch and one on the base branch passed. Cause unknown; the owner's controllers reach scripted windows on this machine |
 | Not run | a real stick or touch pad by hand, a phone, Windows; Cable Club, the TOWN MAP and taken-over battles are the cartridge's own screens and were not changed |

@@ -84,7 +84,9 @@ local network broadcast; where it does not, the address path still works.
 With several controllers plugged in, every one of them plays until you pick
 one under Settings > Controls > **Controller**; then only that one does, two
 of one model show as (1) and (2), and an unplugged pick is taken back when it
-is plugged in again. The keyboard and mouse always work.
+is plugged in again. The keyboard and mouse always work. With only a
+controller, press A on a field of the Co-op tab: keys open under it (digits
+for the address), each key types at once, and B or **Done** goes back.
 
 ## The opening
 
