@@ -2398,6 +2398,22 @@ func test_a_partner_off_the_screen_is_an_arrow_on_its_edge_in_their_colour() -> 
 	assert_eq(wide.partner_marks()[0]["at"], Vector2i(244, 64), "a widened screen's own edge")
 
 
+func test_the_arrow_stays_on_the_part_of_the_buffer_the_window_shows() -> void:
+	var atlas := Atlas.new()
+	_room(atlas, 1, Vector2i(40, 40))
+	var half: Rect2 = PokeCoopRemoteActor.shown_on(Vector2i(192, 208), Vector2(1344, 1456), Vector2(1152, 1296))
+	assert_eq([half.position * 7.0, half.size * 7.0], [Vector2(96, 80), Vector2(1152, 1296)], "a split half crops its buffer on every side")
+	assert_eq(PokeCoopRemoteActor.shown_on(Vector2i(288, 176), Vector2(1152, 704), Vector2(1152, 648)), Rect2(0, 7, 288, 162), "a wide window its top and bottom")
+	for away: Vector2i in [Vector2i(0, -15), Vector2i(15, -15), Vector2i(15, 0), Vector2i(15, 15), Vector2i(0, 15), Vector2i(-15, 15), Vector2i(-15, 0), Vector2i(-15, -15), Vector2i(0, -6)]:
+		var actor: PokeCoopRemoteActor = _tracker(atlas, 1, Vector2i(20, 20), 1, Vector2i(20, 20) + away)
+		actor._world.view_pixels = Vector2i(192, 208)
+		actor.shown_area = half
+		var marks: Array = actor.partner_marks()
+		assert_eq(marks.size(), 1, "an arrow towards %s" % away)
+		if marks.size() == 1:
+			assert_true(half.encloses(Rect2(marks[0]["at"], Vector2.ONE * PokeCoopRemoteActor.ARROW_SIZE)), "towards %s at %s, inside %s" % [away, marks[0]["at"], half])
+
+
 func test_a_partner_across_the_maps_edge_is_drawn_there_and_never_lost() -> void:
 	var atlas := Atlas.new()
 	_room(atlas, 1, Vector2i(10, 10), [], [{"direction": "north", "map_group": 0, "map_number": 2, "x_offset": 0, "y_offset": 0}])
