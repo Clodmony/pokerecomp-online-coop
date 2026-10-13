@@ -125,7 +125,8 @@ GODOT=godot tools/coop_screens.sh leave_rejoin_takeover ~/dev-scratch/pokerecomp
 # about five (ten) minutes; exits non-zero if either window fails.
 GODOT=godot tools/coop_screens.sh playthrough_brock ~/dev-scratch/pokerecomp-online-coop/coop_screens/brock
 # A campaign at a later point of the story (`list` names the legs), then a stretch
-# played from it: SEED= starts the run there, the autopilot's from=<leg> skips ahead.
+# played from it: SEED= starts the run there, the autopilot's from=<leg> skips ahead
+# (partner=none when the other window is not autoplayed: it meets nobody, as brock_from_seed does).
 godot --headless --path . -s res://tools/coop_seed.gd -- red pokemon_tower ~/dev-scratch/pokerecomp-online-coop/seeds/tower
 SEED=~/dev-scratch/pokerecomp-online-coop/seeds/tower GODOT=godot tools/coop_screens.sh story_seed ~/dev-scratch/pokerecomp-online-coop/coop_screens/seed
 # An autoplayed run's host snapshots the campaign and each window's leg every 10 s; rerun a
