@@ -115,12 +115,22 @@ screen and a second window opens on the right, already joining the session;
 the second player names themself there and joins as usual. Together the
 halves cover the whole screen, the taskbar too where the system lets a window
 cover it. On KDE Plasma it does not: set the panel to Auto hide (or Windows
-can cover) first, or it stays visible below the game. With one controller,
-the keyboard plays on the left and the controller on the right; with two,
-each half has its own (the first for the left). The halves stay above other
-windows while you play. The right half remembers its player, so the same
-trainer comes back next time. When the session ends, the right window closes
-and the left one gets its own size back.
+can cover) first, or it stays visible below the game.
+
+Before the second window opens, **Who plays where?** asks each half's player
+to press A on their controller, or Enter to play by keyboard (one half
+only). The controller picked in Settings > Controls plays on the left without
+asking. Each half then hears only its own controller, so a controller nobody
+pressed, a virtual one included, moves neither player. With no controller
+plugged in, both halves play by keyboard, each while it has the focus. The
+halves stay above other windows while you play. The right half remembers its
+player, so the same trainer comes back next time.
+
+**Quitting.** SELECT > **QUIT BOTH** (on either half) saves the campaign and
+closes both windows; so does closing the left (host) window. To play on
+alone, the right player picks LEAVE SESSION: their window closes and the left
+one gets its own size back. LEAVE SESSION on the left ends the session for
+both and goes back to the Co-op tab.
 
 ## Playing over the internet
 
