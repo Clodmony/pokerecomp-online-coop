@@ -11,6 +11,21 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Private builds by script (#44, D112, 2026-10-13)
+
+`tools/verify.sh --builds[=<dir>]` makes the private Windows and Linux builds
+of HEAD as the last stage of a branch's check: both from a `git archive` of one
+commit, booted, and zipped with `BUILD.txt` and `PLAYING.md`. Branch
+`coop/44-private-builds`.
+
+| Verification | Result |
+|---|---|
+| Before | builds were exported by hand from the working tree; the newest (2026-10-12, old checkout) predate 0.1.78, the bag and the party balls |
+| `tools/verify.sh --coop --builds`, commit ed2866ac | import, co-op suites 286/286, gates, boot, ENet demo, three processes, then the builds: `Linux` (88 MB) and `Windows Desktop` (121 MB) exported in seconds from the archive, the Linux build boots headless and the Windows build under Wine 11.19 in a fresh prefix, both in the run's private user folder; the zips (40 MB, 49 MB) hold the binary, `BUILD.txt` (0.1.78, protocol 8, the commit) and `PLAYING.md` |
+| `tools/verify.sh --builds=builds`, commit 0f58e0f8 | all passed: whole suite 5167/5167, gates, boot, ENet demo, three processes; both builds boot (Linux headless, Windows under Wine) and sit zipped in the checkout's `builds/` for the owner's session |
+| The same with uncommitted doc edits | every other stage passes, builds: FAILED (uncommitted changes at the start), exit 1 |
+| Not run | a build on a real Windows PC or a second Linux machine, a hand-played session (the issue stays open for it) |
+
 ## Keyboard, controller and touch pad in co-op menus (#43, D111, 2026-10-13)
 
 An audit of every co-op menu on the three inputs. The CO-OP menu and the
@@ -528,8 +543,9 @@ has **played** it by hand yet.
   checkpoints each story change is journaled with the players' state and read
   back after a crash, and format 1 files are upgraded once on read (D66); a
   real host crash, a power loss and a phone are untried.
-- Private Windows and Linux builds are exported, but the Windows build has only
-  run under Wine; there is no Android or iOS build (#44, #45, #46).
+- Private Windows and Linux builds come from `tools/verify.sh --builds`, but
+  the Windows build has only run under Wine; there is no Android or iOS build
+  (#44, #45, #46).
 - Per-walk event flags such as `EVENT_IN_SAFARI_ZONE` are still the
   campaign's (D79). A gift two windows hand out at once is kept once (D62), but a race
   that also moves new story, or one that gives coins, is not caught.

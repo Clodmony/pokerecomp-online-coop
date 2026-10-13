@@ -211,7 +211,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 
 | ID | Case | Expected | Automated | Two windows | Hand |
 |---|---|---|---|---|---|
-| P01 | Windows build joins a Linux host | Plays as on Linux | Wine run only (#44) | | |
+| P01 | Windows build joins a Linux host | Plays as on Linux | `tools/verify.sh --builds` boots both builds of one commit, Windows under Wine (#44) | | |
 | P02 | Swipe and tap over the game screen in a co-op battle or the CO-OP menu | A swipe moves the cursor one row per row of travel, a tap is A | `test_over_a_co_op_menu_a_swipe_is_one_press_a_row_and_a_tap_is_a` | | |
 | P03 | A tall (portrait) window in a battle | The battle fills the game screen at the top; the on-screen pad below stays visible | | 540x1170 scratch run | |
 | P04 | Android: touch pad, pause and resume | Blocked: no Android build yet (#45) | | | |

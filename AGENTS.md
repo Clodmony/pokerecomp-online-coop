@@ -93,7 +93,8 @@ check of a branch is one command, unattended, with a summary at the end:
 ```bash
 # Import, GUT, release gates, boot, ENet demo, three processes, then the named
 # two-window scenarios; logs in ~/dev-scratch/pokerecomp-online-coop/verify/<stamp>/.
-GODOT=godot tools/verify.sh [--coop] [scenario ...]
+# --builds[=<dir>] also exports, boots and zips private Windows and Linux builds of HEAD.
+GODOT=godot tools/verify.sh [--coop] [--builds[=<dir>]] [scenario ...]
 ```
 
 The single steps, for debugging one of them:
@@ -197,7 +198,7 @@ before pushing.
 | `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
 | `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
-| `tools/verify.sh` | one unattended check of a branch: CI's stages, then two-window scenarios, with a short summary |
+| `tools/verify.sh` | one unattended check of a branch: CI's stages, then two-window scenarios and the private builds, with a short summary |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |

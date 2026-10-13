@@ -1678,3 +1678,17 @@ the world screen. A Control holding focus over the world would take `ui_*`
 presses first, as it would from the world itself. The launcher's Co-op tab
 already moved by focus; typing in its fields with a controller is #128.
 
+
+## D112. Private builds come from `tools/verify.sh --builds` (#44, 2026-10-13)
+
+The owner chose private Windows and Linux builds as the next issue. They were
+exported by hand from the working tree, so a build could carry uncommitted
+changes, a folder named after a guess, and a Windows build zipped without its
+guide. `tools/verify.sh --builds[=<dir>]` makes them as one more stage of the
+branch's check rather than a new script (CONTRIBUTING: extend, do not add):
+it refuses a tree with uncommitted changes, exports both from a `git archive`
+of HEAD, so they share the commit and its protocol and nothing untracked
+reaches them, boots the Linux build headless and the Windows build under Wine
+in the run's private user folder and a fresh prefix, and zips each with
+`BUILD.txt` and `docs/coop/playing.md`. Each commit gets its own folder, so
+a build someone is playing is never replaced under them.
