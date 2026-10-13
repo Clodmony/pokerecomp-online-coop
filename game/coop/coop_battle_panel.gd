@@ -112,7 +112,7 @@ func _say(line: String) -> void:
 		say.call(line)
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	var button: int = PokeButton.pressed_in(event)
 	if button == PokeButton.NONE or client == null or not is_open():
 		return

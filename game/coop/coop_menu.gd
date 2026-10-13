@@ -115,7 +115,7 @@ func _process(_delta: float) -> void:
 	_refresh()
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	var button: int = PokeButton.pressed_in(event)
 	if button == PokeButton.NONE or client == null:
 		return
