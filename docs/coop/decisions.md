@@ -1662,3 +1662,19 @@ imports only; no Generation 1 import code changed, so the cartridge checks ran
 on a private copy of the Red cache stamped 174 (`REAL_USER_DIR`), and the
 owner's own caches show "Update needed" until each dump is imported again.
 The co-op campaign format and saves are unchanged.
+
+## D111. Co-op menus read buttons where the cartridge's screens do (#43, owner's choice, 2026-10-13)
+
+The owner chose an audit of co-op input on keyboard, controller and touch pad.
+The CO-OP menu and the battle panel read buttons in `_input`. Godot sends
+`_input` to later nodes first, so they took each event before
+`Gen2InputRuntime`, whose filter turns a stick's stream of motion events into
+one press, gives a held direction the cartridge's repeat and holds back a
+stalled menu's presses. One stick push walked seven rows, and a held key or
+touch-pad button moved one row, or three where the OS repeated the key. Both now read in
+`_unhandled_input`, after the filter, as `Gen2WorldScreen` and
+`Gen2BattleScreen` do. They still come before the world, since they sit under
+the world screen. A Control holding focus over the world would take `ui_*`
+presses first, as it would from the world itself. The launcher's Co-op tab
+already moved by focus; typing in its fields with a controller is #128.
+
