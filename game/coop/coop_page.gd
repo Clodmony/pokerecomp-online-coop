@@ -44,6 +44,7 @@ var _sheet: PokeCoopTabParts.Sheet = null
 var _sheet_kind: StringName = &""
 var _sheet_key: String = ""
 var _sheet_again: Callable = Callable()
+var _split_halves: Array = []
 var _landing: Control = null
 var _form: Dictionary = {}
 var _campaigns: Array = []
@@ -115,7 +116,6 @@ static func nearby() -> Array:
 	return _listener.hosts()
 
 
-## A cartridge imported again on the Play tab is ready once the tab is shown.
 func _read_cartridges() -> void:
 	var now: Array = PokeCoopLobby.cartridges() if is_visible_in_tree() else _cartridges
 	var status: Callable = func(rows: Array) -> Array: return rows.map(func(row: Dictionary) -> StringName: return row["status"])
@@ -894,13 +894,47 @@ func _build_hosting() -> void:
 
 
 func _split_screen() -> void:
+	_split_halves = PokeCoopLobby.SplitScreen.halves(Gen2OptionsStore.current().pad, PokePadChoice.connected())
+	_ask_split()
+
+
+func _ask_split() -> void:
+	if not _split_halves.has(null):
+		_start_split()
+		return
+	var sheet: PokeCoopTabParts.Sheet = _open_sheet(&"split", _ask_split)
+	sheet.listens = true
+	sheet.heard.connect(_split_heard)
+	sheet.body().add_child(Gen2LauncherUI.title(_theme, "Who plays where?", Gen2LauncherTheme.FONT_TITLE + 3))
+	var asking: int = _split_halves.find(null)
+	var keyboard: String = "" if _split_halves.has(PokeCoopLobby.SplitScreen.NO_PAD) else ", or Enter for the keyboard"
+	for side: int in 2:
+		var pad: Variant = _split_halves[side]
+		sheet.body().add_child(PokeCoopTabParts.step(_theme, str(side + 1), &"done" if pad != null else &"now" if side == asking else &"todo",
+			"%s half: %s" % ["Left" if side == 0 else "Right", String(pad["name"]) if pad != null else "press A on your controller" + keyboard
+			if side == asking else "next"]))
+	_note(sheet.body(), "Only the controller each half chose plays in it.", _theme.muted)
+	_sheet_buttons(sheet, [["Cancel", _close_sheet]])
+
+
+func _split_heard(event: InputEvent) -> void:
+	if PokeCoopLobby.SplitScreen.choosing(event):
+		get_viewport().set_input_as_handled()
+	var now: Array = PokeCoopLobby.SplitScreen.pressed(_split_halves, event, PokePadChoice.connected())
+	if now != _split_halves:
+		_split_halves = now
+		_ask_split.call_deferred()
+
+
+func _start_split() -> void:
+	_close_sheet()
 	var session: PokeCoopSession = Gen2GameRuntime.instance().coop
-	if session == null or session.host == null or not PokeCoopLobby.SplitScreen.start(session.port, session.data.id):
+	if session == null or session.host == null or not PokeCoopLobby.SplitScreen.start(session.port, session.data.id, _split_halves):
 		_toast("The second window did not start.")
 		return
-	var pads: int = PokePadChoice.connected().size()
-	_toast("A second player joins on the right.", "Plug in a controller for each player." if pads == 0 else
-		"The keyboard plays on the left, the controller on the right." if pads == 1 else "Each half has its own controller.")
+	var names: Array = _split_halves.map(func(pad: Dictionary) -> String: return String(pad.get("name", "the keyboard")))
+	_toast("A second player joins on the right.", "Plug in a controller for each player." if _split_halves[0].is_empty() else
+		"%s plays on the left, %s on the right. SELECT, then QUIT BOTH, closes both windows." % names)
 	_show(HOSTING)
 
 
