@@ -1756,6 +1756,16 @@ Split screen on the Hosting screen starts a second game process that joins
 side, borderless, as one split screen. Desktop only (Linux and Windows); a
 phone runs one process.
 
+The halves ask for the whole monitor, not its work area, and stay on top, so
+they cover the taskbar where the system allows it. KWin does not: it caps a
+window's size at the work area, so an always-visible Plasma panel stays below
+the game (1400 of 1440 lines on the owner's monitor) unless it is set to Auto
+hide. Only a fullscreen window may cover it, and one window per half cannot
+be fullscreen. The owner asked for one window holding both games instead;
+that needs either embedding another process's window, which Godot offers
+only to its editor in C++, or streaming the second game's picture into the
+first, both far larger than this, so the owner kept two windows.
+
 The second window gets its request as one base64 JSON argument after `--`
 (port, game, controller, screen), so exported builds, which ignore `-s`, start
 it through the launcher. It keeps its own tab memory (`coop_tab_split.json`),
