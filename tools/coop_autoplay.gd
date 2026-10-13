@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [partner=none: meets no partner] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -99,6 +99,7 @@ var _played: Variant = null
 var _kit: GDScript = null
 var _route: String = "brock"
 var _from: String = ""
+var _alone: bool = false
 var _speed: float = 1.0
 var _ball: int = 0
 var _shots: String = ""
@@ -131,7 +132,7 @@ var _other_shot_at: int = -1
 
 
 func _read_option(arg: String) -> bool:
-	for option: String in ["route=", "from=", "speed=", "ball=", "shots=", "whiteout="]:
+	for option: String in ["route=", "from=", "speed=", "ball=", "shots=", "whiteout=", "partner="]:
 		if arg.begins_with(option):
 			var value: String = arg.trim_prefix(option)
 			match option:
@@ -141,6 +142,7 @@ func _read_option(arg: String) -> bool:
 				"ball=": _ball = clampi(value.to_int(), 0, 2)
 				"shots=": _shots = value if not PokeToolPath.refuses(value) else ""
 				"whiteout=": _whiteout = value == "1"
+				"partner=": _alone = value == "none"
 			return true
 	return super(arg)
 
@@ -1920,7 +1922,7 @@ func _either(first: Callable, second: Callable) -> Callable:
 
 
 func _meet_partner(label: String, or_done: Callable) -> Array:
-	return [label, _standing, _either(func(_world: Gen2WorldAPI) -> bool: return not _session.client.nearby().is_empty(), or_done)]
+	return [label, _standing, _either(func(_world: Gen2WorldAPI) -> bool: return _alone or not _session.client.nearby().is_empty(), or_done)]
 
 
 func _partner_fight(anywhere: bool = false) -> String:
@@ -2057,7 +2059,8 @@ func _fail(why: String) -> int:
 	if _done:
 		return PokeButton.NONE
 	_done = true
-	print("coop autoplay: %s FAILED at leg %d: %s" % [_player_id, _leg, why])
+	var label: String = String(_labels[_skipped + _leg]) if _leg < _legs.size() else ""
+	print("coop autoplay: %s FAILED at leg %d %s: %s" % [_player_id, _leg, label, why])
 	_shot("failed")
 	return PokeButton.NONE
 
