@@ -11,6 +11,18 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A seed per scenario, and a runner that fails without Godot (#132, D114, 2026-10-13)
+
+`tools/verify.sh` takes `<scenario>=<seed dir>` and refuses an exported `SEED`;
+`tools/coop_screens.sh` fails when `GODOT` is no program or its host never
+listens. Branch `coop/132-scenario-runner`.
+
+| Verification | Result |
+|---|---|
+| Before (probes with a stand-in Godot that records the host's user folder) | `GODOT='~/nonexistent' tools/coop_screens.sh switch_and_suggest` exited 0, "no captures", "done"; `SEED=<dir> tools/verify.sh switch_and_suggest story_seed` gave the seed to both: `switch_and_suggest seeded=yes` |
+| After, same probes | the missing binary exits 2 naming it; an exported `SEED` makes verify exit 2 before any stage; `switch_and_suggest story_seed=<dir>`: `seeded=no`, then `seeded=yes`; a host that never listens fails the scenario (exit 1) |
+| `tools/verify.sh switch_and_suggest story_seed=~/…` (a `viridian_forest` seed, the `~` left to verify), on 60d76fdb plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `story_seed` reloaded the seed (map 0/2, cell 18,35, `SEED=` in its `run.env`), `switch_and_suggest` started fresh (map 0/0, empty `SEED=`); captures looked at |
+
 ## SHIFT's switch offer in co-op battles (#28, D113, 2026-10-13)
 
 Co-op battles used SET style, so a trainer's next Pokémon came out unasked. Now
