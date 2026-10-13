@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Split screen on one PC (#53, D116, 2026-10-13)
+
+Two players on one computer: Split screen on the Hosting screen (Linux and
+Windows) moves the window to the left half of its screen, borderless, and
+starts a second game process on the right half, which opens on the Co-op tab
+and joins 127.0.0.1. Each half has its own controller (one controller: the
+keyboard on the left, the controller on the right), and the right window
+quits when its session ends, giving the left its window back. Branch
+`coop/53-local-split-screen`, on top of #136's branch.
+
+| Verification | Result |
+|---|---|
+| GUT, before | `test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked`: parse error, no `PokeCoopLobby.SplitScreen` or `PokePadChoice.held` |
+| GUT, after | passes: controllers per half for none, one and two pads, the halves of a screen, the second window's argument read back, a held pad over "Every controller" and the keyboard's half hearing no pad |
+| Screens (scripted), Red | `local_split`: RED hosts SPLIT and presses Split screen; RED's window at 1920,0 1280x1400 and BLUE's at 3200,0 1280x1400 (the owner's second monitor, halves side by side), with the two connected controllers split between them by name; BLUE names themself on the right half and both play in Pallet Town; RED leaves, BLUE's window quits by itself and RED's tab is 1152x648 again. One of four runs failed before the split: an A press from a real controller opened Red's save screen in the focused window |
+| `tools/verify.sh local_split launcher_host_join coop_tab_tour`, commit f009f001 | all passed: whole suite 5176/5176, gates, boot, ENet demo, three processes, three scenarios; the tour's Hosting shots show Split screen wide and upright |
+| Not run | a button pressed on a real controller in the half without the focus (the setting is Godot's `Input.ignore_joypad_on_unfocused_application`, off in both halves); an exported build; Windows; Wayland's own driver (the project runs on X11, where a game may place its window) |
+
 ## A controller types on the Co-op tab (#128, D115, 2026-10-13)
 
 A controller reached every field on the Co-op tab but could not type in one.

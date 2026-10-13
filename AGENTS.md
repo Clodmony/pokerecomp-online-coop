@@ -195,7 +195,7 @@ before pushing.
 | `game/coop/coop_session.gd` | `PokeCoopSession`: one device's co-op run, held by `Gen2GameRuntime.coop` |
 | `game/coop/coop_page.gd` | `PokeCoopPage`: the launcher's Co-op tab, its screens and sheets |
 | `game/coop/coop_tab_parts.gd` | `PokeCoopTabParts`: the tab's cards, chips, steps, its sheet and a controller's keys |
-| `game/coop/coop_lobby.gd` | `PokeCoopLobby`: LAN beacon and listener, the dial that retries and probes, addresses, cartridges, the tab's memory |
+| `game/coop/coop_lobby.gd` | `PokeCoopLobby`: LAN beacon and listener, the dial that retries and probes, addresses, cartridges, the tab's memory, the split screen's second window (`SplitScreen`) |
 | `game/coop/coop_log.gd` | `PokeCoopLog`: a device's session log, its debug-stream batches and the setting that shares them |
 | `tools/coop_log.gd` | `merge`, `summary` and `replay` of session logs |
 | `tools/coop_session.gd` | `demo`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
