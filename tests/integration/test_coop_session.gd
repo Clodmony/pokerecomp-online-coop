@@ -2089,6 +2089,42 @@ func test_a_co_op_menu_hears_keys_sticks_and_the_touch_pad_as_the_cartridges_men
 	Gen2InputRuntime.instance().apply_options(Gen2Options.new())
 
 
+class CountingPanel:
+	extends PokeCoopBattlePanel
+	var downs: int = 0
+
+	func _press(button: int) -> void:
+		if button == PokeButton.DOWN:
+			downs += 1
+		super(button)
+
+
+func test_a_co_op_battle_hears_keys_sticks_and_the_touch_pad_as_the_cartridges_menus_do() -> void:
+	var options := Gen2Options.new()
+	options.touch_mode = Gen2Options.TOUCH_ALWAYS
+	Gen2InputRuntime.instance().apply_options(options)
+	var pad: Gen2TouchPad = add_child_autofree(Gen2TouchPad.new())
+	pad.size = Vector2(640, 1100)
+	var panel: CountingPanel = CountingPanel.new()
+	panel.client = _red
+	panel.data = _data
+	panel.menu = PokeCoopBattleMenu.over(_red, _data)
+	add_child_autofree(panel)
+	var cartridge: CartridgeMenu = add_child_autofree(CartridgeMenu.new())
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	panel._process(0.0)
+	assert_true(panel.is_open())
+
+	for device: String in ["stick", "held key", "held touch pad"]:
+		await _quiet_input()
+		cartridge.heard = 0
+		panel.downs = 0
+		await _down_by(device)
+		assert_gt(cartridge.heard, 0, "%s: the cartridge's menus hear it" % device)
+		assert_eq(panel.downs, cartridge.heard, "%s: the battle's menus move as often as the cartridge's" % device)
+	Gen2InputRuntime.instance().apply_options(Gen2Options.new())
+
+
 func test_select_opens_the_co_op_menu_only_where_the_world_does_not_read_it() -> void:
 	var menu: PokeCoopMenu = add_child_autofree(PokeCoopMenu.over(_red, _data))
 	var select := InputEventAction.new()

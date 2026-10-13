@@ -7,7 +7,7 @@
 #
 # A scenario (tools/coop_screens/<name>.sh) is sourced and calls, with seconds
 # counted from the moment that window's world opens (60 frames a second):
-#   press <p1|p2> <second> KEY...   KEYs one per 0.3 s from that second (U D L R A B START SELECT, - waits)
+#   press <p1|p2> <second> KEY...   KEYs one per 0.3 s from that second (U D L R A B START SELECT, - waits, D*6 holds D six)
 #   shot  <p1|p2> <second> <name>   writes <out>/<name>.png
 #   close <p1|p2> <second>          closes that window, in seconds after it was launched
 # and may set GAME (red), P2_GAME (GAME: Blue joins a Red host), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
@@ -47,7 +47,15 @@ press() {
 	IFS=, read -r -a list <<< "${keys[$who]}"
 	while (( ${#list[@]} < slot )); do list+=("-"); done
 	(( ${#list[@]} == slot )) || { echo "coop_screens: $who press at ${at}s overlaps earlier keys" >&2; exit 2; }
-	list+=("$@")
+	local key
+	for key in "$@"; do
+		if [[ "$key" == *"*"* ]]; then
+			list+=("${key%%\**}")
+			for (( n = 1; n < ${key##*\*}; n++ )); do list+=("~"); done
+		else
+			list+=("$key")
+		fi
+	done
 	keys[$who]="$(IFS=,; echo "${list[*]}")"
 }
 shot() { shots[$1]+=" capture=$out/$3.png@$(awk -v t="$2" -v r="$fps" 'BEGIN { printf "%d", t * r }')"; }

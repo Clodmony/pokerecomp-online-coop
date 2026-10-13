@@ -2,11 +2,12 @@ extends SceneTree
 
 ## One co-op player's window on the real world screen, the Co-op tab's session, against `tools/coop_session.gd -- host [port] <game>`:
 ##   Godot --path . -s res://tools/coop_play.gd -- <address> [port] <player_id> [game] [options]
-## SELECT opens the CO-OP menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `@THROW.+BLUE`
+## SELECT opens the CO-OP menu. `keys=R,SELECT,A` presses buttons once the world is up (`-` waits a slot, `~` holds the last, `@THROW.+BLUE`
 ## picks the menu's first matching row, or walks the battle's menus to the panel's); `capture=<png>@<frames>` writes a PNG outside the project; `opening` plays it.
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
+const HELD_ON: int = -1
 const KEYS: Dictionary = {
 	"U": PokeButton.UP, "D": PokeButton.DOWN, "L": PokeButton.LEFT, "R": PokeButton.RIGHT,
 	"A": PokeButton.A, "B": PokeButton.B, "START": PokeButton.START, "SELECT": PokeButton.SELECT,
@@ -60,7 +61,7 @@ func _read_option(arg: String) -> bool:
 		return true
 	if arg.begins_with("keys="):
 		for key: String in arg.trim_prefix("keys=").split(",", false):
-			_keys.append(key.substr(1) if key.begins_with("@") else KEYS.get(key.to_upper(), PokeButton.NONE))
+			_keys.append(key.substr(1) if key.begins_with("@") else HELD_ON if key == "~" else KEYS.get(key.to_upper(), PokeButton.NONE))
 		return true
 	if arg.begins_with("capture="):
 		var spec: String = arg.trim_prefix("capture=")
@@ -101,10 +102,11 @@ func _drive_keys() -> void:
 		return
 	var slot: int = at / KEY_HOLD_FRAMES
 	var input: Gen2InputRuntime = Gen2InputRuntime.instance()
-	if _held != PokeButton.NONE and at % KEY_HOLD_FRAMES == KEY_HOLD_FRAMES - 2:
+	var kept: bool = slot + 1 < _keys.size() and _keys[slot + 1] is int and int(_keys[slot + 1]) == HELD_ON
+	if _held != PokeButton.NONE and at % KEY_HOLD_FRAMES == KEY_HOLD_FRAMES - 2 and not kept:
 		input.release(_held)
 		_held = PokeButton.NONE
-	elif at % KEY_HOLD_FRAMES == 0 and slot < _keys.size() and (_keys[slot] is String or int(_keys[slot]) != PokeButton.NONE):
+	elif at % KEY_HOLD_FRAMES == 0 and slot < _keys.size() and (_keys[slot] is String or int(_keys[slot]) > PokeButton.NONE):
 		if _keys[slot] is String and not _point_at_row(String(_keys[slot])):
 			return
 		_held = PokeButton.A if _keys[slot] is String else int(_keys[slot])
