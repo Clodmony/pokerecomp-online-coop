@@ -1714,3 +1714,14 @@ over the player's own Pokémon. A scripted window's `auto_battle` leaves the
 question up three seconds before it answers NO, so a capture can catch it. Baton Pass and
 the Generation 2 half of #28 stay with the later milestone (D61); Mimic
 already asks the owner of the Pokémon that used it.
+
+## D114. A verify run names a seed per scenario (#132, 2026-10-13)
+
+`SEED=<dir> tools/verify.sh a b c` gave the seed to every scenario, so one
+written for a fresh campaign ran on the seed and its loose check still passed;
+and `tools/coop_screens.sh` with a `GODOT` that named no program (an
+unexpanded `~`) started nothing and reported "done". Now verify takes
+`<scenario>=<seed dir>`, runs the others with no seed and refuses an
+exported `SEED` rather than guess which scenarios want it (playthroughs take
+one optionally). The runner fails when `GODOT` is no program and when its
+tool host never listens; `run.env` records the seed a run started from.

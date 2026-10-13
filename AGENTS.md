@@ -94,7 +94,8 @@ check of a branch is one command, unattended, with a summary at the end:
 # Import, GUT, release gates, boot, ENet demo, three processes, then the named
 # two-window scenarios; logs in ~/dev-scratch/pokerecomp-online-coop/verify/<stamp>/.
 # --builds[=<dir>] also exports, boots and zips private Windows and Linux builds of HEAD.
-GODOT=godot tools/verify.sh [--coop] [--builds[=<dir>]] [scenario ...]
+# <scenario>=<seed dir> runs that scenario on a seed; the others start fresh.
+GODOT=godot tools/verify.sh [--coop] [--builds[=<dir>]] [scenario[=<seed dir>] ...]
 ```
 
 The single steps, for debugging one of them:
