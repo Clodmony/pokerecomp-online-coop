@@ -79,7 +79,17 @@ func _one_game() -> void:
 	_world_headers()
 	_world_events()
 	_world_graphics()
+	_tileset_animations()
+	_map_grids()
+	_field_camera()
+	_object_events()
+	_player_avatars()
+	_held_movements()
+	_object_patrols()
+	_boulder_landings()
+	_rotating_gates()
 	_world_scripts()
+	_world_script_data()
 	_wild_encounters()
 	_undecoded_text()
 
@@ -234,6 +244,9 @@ func _undecoded_text() -> void:
 		texts.append(data.move(move)["name"])
 	for trainer: int in range(1, data.trainer_count() + 1):
 		texts.append_array([data.trainer(trainer)["name"], data.trainer(trainer)["class_name"]])
+	for offset: int in data.world_script_offsets("texts"):
+		var bytes: PackedByteArray = data.world_script_data("texts", offset)["bytes"]
+		texts.append(Gen3Text.decode_fixed(data.id, bytes, 0, bytes.size()))
 	var undecoded: Array = texts.filter(func(text: String) -> bool: return text.contains("<$"))
 	_r.check(undecoded.is_empty(), "%d texts hold codes with no glyph, first %s." % [
 		undecoded.size(), str(undecoded.slice(0, 1)),
@@ -497,10 +510,523 @@ func _world_graphics() -> void:
 	_r.digest_matches("gen3_graphics", lines, GRAPHICS_DIGESTS[data.id])
 
 
+## Each map tileset pair's queued copies; Unicorn runs of the pret builds agree.
+const ANIMATION_FRAMES: int = 3840
+const ANIMATION_DIGESTS: Dictionary = {
+	&"ruby": "1118b45f88345dc03fa06f3a6a5dfac496d57d1b",
+	&"sapphire": "fee0acb9fb18121628a09f7c123e52034e6ae80e",
+	&"firered": "28c1178aff4a9d2c3f92261453b54a1e7555df87",
+	&"leafgreen": "2118a87db78e2704aecf8d7291fdf7d5f4f99213",
+	&"emerald": "1bc8ce0710c20ae0a70f8e79cd3b0c80b5b864ae",
+}
+
+
+func _tileset_animations() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["tileset animations"])
+	var seen: Dictionary = {}
+	for header: Dictionary in data.world_map_headers():
+		var group: int = int(header["group"])
+		var number: int = int(header["number"])
+		var key: String = "%d,%d" % [header["primary_tileset_offset"], header["secondary_tileset_offset"]]
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var animations: Array = [data.world_map_tileset(group, number)["animation"],
+			data.world_map_tileset(group, number, true)["animation"]]
+		lines.append("pair|%s|%s|%s" % [key, animations[0].get("name", ""), animations[1].get("name", "")])
+		for animation: Dictionary in animations:
+			for frame: String in animation.get("frames", {}):
+				lines.append("frame|%s|%s" % [frame, _graphics_hash(animation["frames"][frame])])
+		var state: Dictionary = Gen3TilesetAnims.start(animations[0], animations[1])
+		for frame: int in ANIMATION_FRAMES:
+			for copy: Dictionary in Gen3TilesetAnims.step(state):
+				lines.append("%d|%d|%d|%d|%d" % [frame, copy.get("tile", -1), copy.get("palette", -1),
+					copy["frame"], copy["bytes"]])
+	_r.digest_matches("gen3_tileset_animations", lines, ANIMATION_DIGESTS[data.id])
+
+
+## Each map's backup buffer, `MapGridGet*` and `GetMapBorderIdAt` from one
+## cell outside it, the words `DrawMetatileAt` reads for each id met, and the
+## palettes `LoadMapTilesetPalettes` leaves, loading the maps in cache order;
+## Unicorn runs of the pret builds agree.
+const GRID_DIGESTS: Dictionary = {
+	&"ruby": "73999b15622028930ea28c3ea77cb32c933ad07c",
+	&"sapphire": "73999b15622028930ea28c3ea77cb32c933ad07c",
+	&"firered": "5deba892bfe9c44296f89ea40eccc21d96092e9f",
+	&"leafgreen": "5deba892bfe9c44296f89ea40eccc21d96092e9f",
+	&"emerald": "91c9bea88f20ff61c8f0165b523ec28a9c71c4f1",
+}
+
+
+func _map_grids() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["map grids"])
+	var grid: Gen3MapGrid = null
+	for header: Dictionary in data.world_map_headers():
+		grid = Gen3MapGrid.open(data, int(header["group"]), int(header["number"]), grid)
+		var vram: Gen3FieldVram = Gen3FieldVram.load(grid.primary, grid.secondary)
+		var words := PackedByteArray()
+		for block: int in grid.blocks:
+			words.append_array(_u16(block))
+		var readers: Array = [PackedByteArray(), PackedByteArray(), PackedByteArray(),
+			PackedByteArray(), PackedByteArray(), PackedByteArray()]
+		var ids: Dictionary = {}
+		for y: int in range(-1, grid.height + 1):
+			for x: int in range(-1, grid.width + 1):
+				ids[grid.metatile_id_at(x, y)] = true
+				readers[0].append_array(_u16(grid.metatile_id_at(x, y)))
+				readers[1].append_array(_u16(grid.collision_at(x, y)))
+				readers[2].append_array(_u16(grid.elevation_at(x, y)))
+				readers[3].append_array(_u16(grid.behavior_at(x, y)))
+				readers[4].append_array(_u16(grid.layer_type_at(x, y)))
+				readers[5].append_array(_u16(grid.border_id_at(x, y)))
+		var drawn := PackedByteArray()
+		var sorted: Array = ids.keys()
+		sorted.sort()
+		for id: int in sorted:
+			drawn.append_array(_u16(id))
+			for tile: Dictionary in grid.metatile(id)["tiles"]:
+				drawn.append_array(_u16(Gen3FieldVram.entry(tile)))
+		var hashes := PackedStringArray([_graphics_hash({"bytes": words})])
+		for reader: PackedByteArray in readers + [drawn]:
+			hashes.append(_graphics_hash({"bytes": reader}))
+		var palettes: int = int(grid.secondary["palette_offset"]) + int(grid.secondary["palette_count"])
+		hashes.append(_graphics_hash({"bytes": vram.palettes.slice(0, palettes * 32)}))
+		lines.append("%d:%d|%d|%d|%s" % [header["group"], header["number"], grid.width, grid.height,
+			"|".join(hashes)])
+	_r.digest_matches("gen3_map_grids", lines, GRID_DIGESTS[data.id])
+
+
+## Per map, `GetMapConnectionAtPos` from one cell outside the backup map and
+## `CanCameraMoveInDirection` from the layout's edge cells; then every step,
+## diagonals included, that `CameraMove` takes off that edge into another map,
+## from the map freshly loaded with its view rewritten through the `MapGridSet*`s
+## (Ruby and Sapphire lack the impassability one). Unicorn runs of the pret
+## builds agree, `LoadMapFromCameraTransition` reduced to `InitMapLayoutData`;
+## `null` is a step whose connection the cartridge reads from address 0.
+const CAMERA_DIGESTS: Dictionary = {
+	&"ruby": "ec5ee5d414055c5028ec98dd9b5012c7c6f13ce5",
+	&"sapphire": "ec5ee5d414055c5028ec98dd9b5012c7c6f13ce5",
+	&"firered": "d4663b8087cebfce8245ec7f8e39e7964437d5e8",
+	&"leafgreen": "d4663b8087cebfce8245ec7f8e39e7964437d5e8",
+	&"emerald": "5d7e7243855373cb52c471df9c584472827caa70",
+}
+
+
+func _field_camera() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["field camera"])
+	var camera: Gen3FieldCamera = null
+	for header: Dictionary in data.world_map_headers():
+		var group: int = int(header["group"])
+		var number: int = int(header["number"])
+		camera = _camera_at(camera, data, group, number, Vector2i.ZERO)
+		var connections := PackedByteArray()
+		for y: int in range(-1, camera.grid.height + 1):
+			for x: int in range(-1, camera.grid.width + 1):
+				connections.append(header["connections"].find(camera.connection_at(x, y)) & 0xFF)
+		var moves := PackedByteArray()
+		var crossings: Array = []
+		for at: Vector2i in _edge_cells(header):
+			camera.pos = at
+			for direction: int in range(1, Gen3FieldCamera.DIRECTIONS.size()):
+				moves.append(int(camera.can_move(direction)))
+				var target: Vector2i = at + Gen3FieldCamera.DIRECTIONS[direction] \
+					+ Vector2i.ONE * Gen3MapGrid.MAP_OFFSET
+				if camera.grid.border_id_at(target.x, target.y) > Gen3MapGrid.Connection.NONE:
+					crossings.append([at, direction])
+		lines.append("%d:%d|%s|%s" % [group, number, _graphics_hash({"bytes": connections}),
+			_graphics_hash({"bytes": moves})])
+		for crossing: Array in crossings:
+			camera = _camera_at(camera, data, group, number, crossing[0])
+			_mark_view(camera)
+			if not camera.move(Gen3FieldCamera.DIRECTIONS[crossing[1]]):
+				lines.append("%d,%d|%d|null" % [crossing[0].x, crossing[0].y, crossing[1]])
+				continue
+			lines.append("%d,%d|%d|%d:%d|%d,%d|%d,%d|%s" % [crossing[0].x, crossing[0].y, crossing[1],
+				camera.group, camera.number, camera.pos.x, camera.pos.y, camera.shift.x, camera.shift.y,
+				_graphics_hash({"bytes": camera.grid.blocks.to_byte_array()})])
+	_r.digest_matches("gen3_field_camera", lines, CAMERA_DIGESTS[data.id])
+
+
+func _camera_at(camera: Gen3FieldCamera, data: GameData, group: int, number: int,
+		at: Vector2i) -> Gen3FieldCamera:
+	if camera == null:
+		return Gen3FieldCamera.open(data, group, number, at)
+	camera.load_map(group, number)
+	camera.pos = at
+	return camera
+
+
+func _edge_cells(header: Dictionary) -> Array[Vector2i]:
+	var width: int = int(header["width"])
+	var height: int = int(header["height"])
+	var out: Array[Vector2i] = []
+	for y: int in height:
+		for x: int in width:
+			if x == 0 or y == 0 or x == width - 1 or y == height - 1:
+				out.append(Vector2i(x, y))
+	return out
+
+
+## Distinct ids with collision over the whole view, one whole word, and one
+## cell's collision cleared.
+func _mark_view(camera: Gen3FieldCamera) -> void:
+	for y: int in Gen3FieldCamera.VIEW_HEIGHT:
+		for x: int in Gen3FieldCamera.VIEW_WIDTH:
+			camera.grid.set_metatile_id(camera.pos.x + x, camera.pos.y + y, 0xFC00 | (x + y * 15) * 7)
+	camera.grid.set_metatile_entry(camera.pos.x, camera.pos.y, 0xABCD)
+	camera.grid.set_impassable(camera.pos.x + 7, camera.pos.y + 7, false)
+
+
+## Per map: a snake over every fourth layout position spawning and removing
+## objects; `GetCollisionAtCoords` and `ObjectEventUpdateElevation` for a probe
+## varied by cell over the whole backup map, and for each object left around it;
+## every fourth straight crossing from a fresh spawn. Flags divisible by three
+## below 0x900 are set; graphics var v holds 7v + 1. Unicorn runs of the pret
+## builds agree, spawning reduced to `InitObjectEventStateFromTemplate` and the
+## camera transition to the header, location, templates, temporary clear and grid.
+const OBJECT_DIGESTS: Dictionary = {
+	&"ruby": "28e50c92a767aba32f76a40356e08d6f29690f93",
+	&"sapphire": "28e50c92a767aba32f76a40356e08d6f29690f93",
+	&"firered": "e60c99f8a372d163804ef679f1a69aa8f9c06691",
+	&"leafgreen": "e60c99f8a372d163804ef679f1a69aa8f9c06691",
+	&"emerald": "9182c519b823d158a6b16870c7759709d7d36673",
+}
+const PROBE_BEHAVIORS: Array[int] = [0, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0xBE, 0xC0, 0xC1]
+const STRAIGHT: Array[int] = [Gen3ObjectEvents.Direction.SOUTH, Gen3ObjectEvents.Direction.NORTH,
+	Gen3ObjectEvents.Direction.WEST, Gen3ObjectEvents.Direction.EAST]
+
+
+func _object_events() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["object events"])
+	var camera: Gen3FieldCamera = null
+	for header: Dictionary in data.world_map_headers():
+		var group: int = int(header["group"])
+		var number: int = int(header["number"])
+		camera = _camera_at(camera, data, group, number, Vector2i.ZERO)
+		var objects: Gen3ObjectEvents = _fresh_objects(camera)
+		var walk := PackedStringArray()
+		for at: Vector2i in _snake(header):
+			camera.pos = at
+			objects.spawn_in_view()
+			objects.remove_outside_view()
+			walk.append(_objects_state(objects))
+		lines.append("%d:%d|%s|%s|%s" % [group, number, "\n".join(walk).sha1_text(),
+			_graphics_hash({"bytes": _probe_sweep(objects)}),
+			_graphics_hash({"bytes": _object_sweep(objects)})])
+		for at: Vector2i in _edge_cells(header):
+			if (at.x + at.y) % 4 != 0:
+				continue
+			for direction: int in STRAIGHT:
+				var step: Vector2i = Gen3FieldCamera.DIRECTIONS[direction]
+				var target: Vector2i = at + step + Vector2i.ONE * Gen3MapGrid.MAP_OFFSET
+				camera = _camera_at(camera, data, group, number, at)
+				if camera.grid.border_id_at(target.x, target.y) <= Gen3MapGrid.Connection.NONE:
+					continue
+				objects = _fresh_objects(camera)
+				objects.spawn_in_view()
+				objects.remove_outside_view()
+				camera.move(step)
+				objects.follow_camera()
+				lines.append("%d,%d|%d|%d:%d|%s" % [at.x, at.y, direction, camera.group, camera.number,
+					_objects_state(objects).sha1_text()])
+	_r.digest_matches("gen3_object_events", lines, OBJECT_DIGESTS[data.id])
+
+
+func _fresh_objects(camera: Gen3FieldCamera) -> Gen3ObjectEvents:
+	var events := Gen3EventData.new(camera.data.id)
+	for flag: int in range(3, 0x900, 3):
+		events.flag_set(flag)
+	for slot: int in 16:
+		events.var_set(Gen3ObjectEvents.VAR_OBJ_GFX_ID_0 + slot, slot * 7 + 1)
+	return Gen3ObjectEvents.new(camera, events)
+
+
+func _snake(header: Dictionary) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var columns: Array = range(0, int(header["width"]), 4)
+	for y: int in range(0, int(header["height"]), 4):
+		for x: int in columns:
+			out.append(Vector2i(x, y))
+		columns.reverse()
+	return out
+
+
+func _objects_state(objects: Gen3ObjectEvents) -> String:
+	var out := PackedStringArray()
+	for object: Gen3ObjectEvents.ObjectEvent in objects.objects:
+		if not object.active:
+			out.append("-")
+			continue
+		out.append(",".join(Array([object.local_id, object.map_number, object.map_group,
+			object.graphics_id, object.movement_type, object.trainer_type, object.trainer_range,
+			object.initial.x, object.initial.y, object.current.x, object.current.y,
+			object.previous.x, object.previous.y, object.current_elevation, object.previous_elevation,
+			object.facing, object.movement_direction, object.movement_range.x, object.movement_range.y,
+			object.previous_movement_direction]).map(str)))
+	var temp: int = 0
+	for flag: int in 0x20:
+		temp |= int(objects.events.flag_get(flag)) << flag
+	out.append(str(temp))
+	return "/".join(out)
+
+
+## One probe step onto every cell from one outside the backup map: the
+## collision, then the elevations `ObjectEventUpdateElevation` leaves.
+func _probe_sweep(objects: Gen3ObjectEvents) -> PackedByteArray:
+	var grid: Gen3MapGrid = objects.camera.grid
+	var out := PackedByteArray()
+	for y: int in range(-1, grid.height + 1):
+		for x: int in range(-1, grid.width + 1):
+			var direction: int = 1 + posmod(x + y, 4)
+			var probe := Gen3ObjectEvents.ObjectEvent.new()
+			var from: Vector2i = Vector2i(x, y) - Gen3FieldCamera.DIRECTIONS[direction]
+			probe.initial = Vector2i(x + posmod(x, 5) - 2, y + posmod(y, 5) - 2)
+			probe.movement_range = Vector2i(posmod(x + y, 3), posmod(x * y, 3))
+			probe.current_elevation = posmod(x + 2 * y, 16)
+			probe.current_behavior = PROBE_BEHAVIORS[posmod(x * 5 + y * 3, PROBE_BEHAVIORS.size())]
+			probe.tracked_by_camera = posmod(x * y, 2) == 1
+			out.append(objects.collision_at(probe, x, y, direction))
+			probe.current = Vector2i(x, y)
+			probe.previous = from
+			objects.update_elevation(probe)
+			out.append(probe.current_elevation | probe.previous_elevation << 4)
+	return out
+
+
+## Each object left after the walk stepping onto the 5x5 cells around it.
+func _object_sweep(objects: Gen3ObjectEvents) -> PackedByteArray:
+	var out := PackedByteArray()
+	for object: Gen3ObjectEvents.ObjectEvent in objects.objects:
+		if not object.active:
+			continue
+		for dy: int in range(-2, 3):
+			for dx: int in range(-2, 3):
+				out.append(objects.collision_at(object, object.current.x + dx, object.current.y + dy,
+					STRAIGHT[posmod(dx * 3 + dy, 4)]))
+	return out
+
+
+## `InitPlayerAvatar`, graphics/state queries and player collisions on every
+## backup-map cell. The cartridge oracle stubs sprite creation, movement tasks,
+## statistics and rotating gates; it records the collision and requested effect.
+const AVATAR_DIGESTS: Dictionary = {
+	&"ruby": "70c026c1da56b0013580db93ddbe0d392350c547",
+	&"sapphire": "70c026c1da56b0013580db93ddbe0d392350c547",
+	&"firered": "0db911d2e298eddf74855562006ff21bbcf9373b",
+	&"leafgreen": "0db911d2e298eddf74855562006ff21bbcf9373b",
+	&"emerald": "607af253e0924fac53aeb378b91761d822cdb1b5",
+}
+
+
+func _player_avatars() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["player avatars"])
+	var camera: Gen3FieldCamera = null
+	for header: Dictionary in data.world_map_headers():
+		var group: int = int(header["group"])
+		var number: int = int(header["number"])
+		var at := Vector2i(int(header["width"]) >> 1, int(header["height"]) >> 1)
+		camera = _camera_at(camera, data, group, number, at)
+		var initial := PackedStringArray()
+		var avatar: Gen3PlayerAvatar
+		for gender: int in 2:
+			for direction: int in STRAIGHT:
+				var objects: Gen3ObjectEvents = _fresh_objects(camera)
+				avatar = Gen3PlayerAvatar.open(objects, at + Vector2i.ONE * Gen3MapGrid.MAP_OFFSET, direction, gender)
+				if not _r.check(avatar != null, "player spawn at %d:%d" % [group, number]):
+					return
+				initial.append("%s|%d|%d|%d" % [_objects_state(objects), avatar.flags, avatar.gender,
+					int(avatar.object().is_player)])
+		if lines.size() == 1:
+			lines.append(_avatar_states(avatar))
+		avatar.objects.spawn_in_view()
+		avatar.objects.events.flag_set(Gen3EventData.STRENGTH_FLAG[data.id])
+		lines.append("%d:%d|%s|%s" % [group, number, "\n".join(initial).sha1_text(),
+			_graphics_hash({"bytes": _avatar_sweep(avatar)})])
+	_r.digest_matches("gen3_player_avatars", lines, AVATAR_DIGESTS[data.id])
+
+
+## ARM held-dispatcher traces over cached lists on a uniform synthetic grid.
+## Reset at unsupported actions; this checks supported runs, not execution.
+const MOVEMENT_ORIGIN := Vector2i(256, 256)
+const MOVEMENT_DIGESTS: Dictionary = {
+	&"ruby": "68dd375d03c7bd7575575fd937d713cea3455e05",
+	&"sapphire": "caaba9ce33644a9c24767eb82b9cf295322291f3",
+	&"firered": "6d6bfbc37414e2998bbd541f88e57b610db875ea",
+	&"leafgreen": "14ee35c5696c699e0581e08ad2955ba906f4eeb8",
+	&"emerald": "7611e5da2097fc9c7122c2085e91eae7a5c22c23",
+}
+
+
+func _held_movements() -> void:
+	var data: GameData = _r.data
+	var camera := Gen3FieldCamera.new()
+	camera.data = data
+	camera.grid = Gen3MapGrid.new()
+	camera.grid.width = 512
+	camera.grid.height = 512
+	camera.grid.blocks.resize(512 * 512)
+	camera.grid.blocks.fill(0x3000)
+	camera.grid._behaviors.resize(1024)
+	var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+	var lines := PackedStringArray(["object movements"])
+	for offset: int in data.world_script_offsets("movements"):
+		_reset_mover(objects)
+		var bytes: PackedByteArray = data.world_script_data("movements", offset)["bytes"]
+		for index: int in bytes.size():
+			lines.append_array(_held_action_trace(objects, bytes[index], offset, index))
+	_r.digest_matches("gen3_object_movements", lines, MOVEMENT_DIGESTS[data.id])
+
+
+func _held_action_trace(objects: Gen3ObjectEvents, action: int, offset: int, index: int) -> PackedStringArray:
+	var object: Gen3ObjectEvents.ObjectEvent = objects.objects[0]
+	var lines := PackedStringArray()
+	if objects.set_held_movement(object, action):
+		_reset_mover(objects)
+		return lines
+	for frame: int in range(1, 41):
+		var effects: Array = objects.step_movements().filter(
+			func(request: Dictionary) -> bool: return request["kind"] == "field_effect")
+		var effect: Array = [-1, 0, 0, 0] if effects.is_empty() else [effects[0]["effect_id"],
+			effects[0]["local_id"], effects[0]["map_number"], effects[0]["map_group"]]
+		var pixels: Vector2i = object.pixel_position - (MOVEMENT_ORIGIN + Vector2i(12, 12)) * 16
+		var current: Vector2i = object.current - MOVEMENT_ORIGIN
+		var previous: Vector2i = object.previous - MOVEMENT_ORIGIN
+		lines.append(",".join([offset, index, frame, current.x, current.y,
+			previous.x, previous.y, pixels.x, pixels.y, object.jump_y,
+			object.facing, object.movement_direction, object.previous_movement_direction,
+			int(object.facing_locked), int(object.held_movement_finished),
+			int(object.invisible), int(object.disable_jump_landing_effect), int(object.fixed_priority)] + effect))
+		if object.held_movement_finished:
+			break
+	Gen3ObjectEvents.clear_held_movement(object)
+	return lines
+
+
+static func _reset_mover(objects: Gen3ObjectEvents) -> void:
+	var object := Gen3ObjectEvents.ObjectEvent.new()
+	object.active = true
+	object.local_id = 0
+	object.map_number = 0
+	object.map_group = 0
+	object.current = MOVEMENT_ORIGIN + Vector2i(12, 12)
+	object.previous = MOVEMENT_ORIGIN + Vector2i(11, 12)
+	object.pixel_position = object.current * 16
+	object.facing = Gen3ObjectEvents.Direction.EAST
+	object.movement_direction = object.facing
+	object.frozen = true
+	objects.objects[0] = object
+
+
+## ARM landing routines over every hole/switch cell on each boulder's map.
+const BOULDER_DIGESTS: Dictionary = {
+	&"firered": "ee2cd591c7bee7b593f9be4717990bf815f4ca6c",
+	&"leafgreen": "c20bfa2f1fb4b51cf3aebd75e8e2bb432d5f5add",
+}
+
+
+func _boulder_landings() -> void:
+	var data: GameData = _r.data
+	if not BOULDER_DIGESTS.has(data.id):
+		return
+	var lines := PackedStringArray(["boulder landings"])
+	for header: Dictionary in data.world_map_headers():
+		var boulders: Array = data.world_map_events(int(header["group"]), int(header["number"])).get("objects", []).filter(
+			func(row: Dictionary) -> bool: return int(row["graphics_id"]) == 97 and int(row["kind"]) == 0)
+		if boulders.is_empty():
+			continue
+		var camera: Gen3FieldCamera = Gen3FieldCamera.open(data, int(header["group"]), int(header["number"]), Vector2i.ZERO)
+		var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+		var targets: Array[Vector2i] = _boulder_targets(camera.grid)
+		for template: Dictionary in boulders:
+			for at: Vector2i in targets:
+				lines.append(_boulder_landing_trace(objects, template, at))
+	_r.digest_matches("gen3_boulder_landings", lines, BOULDER_DIGESTS[data.id])
+
+
+static func _boulder_targets(grid: Gen3MapGrid) -> Array[Vector2i]:
+	var targets: Array[Vector2i] = []
+	for y: int in range(Gen3MapGrid.MAP_OFFSET, Gen3MapGrid.MAP_OFFSET + grid.layout_height):
+		for x: int in range(Gen3MapGrid.MAP_OFFSET, Gen3MapGrid.MAP_OFFSET + grid.layout_width):
+			if grid.behavior_at(x, y) in [0x20, 0x66]:
+				targets.append(Vector2i(x, y))
+	return targets
+
+
+static func _boulder_landing_trace(objects: Gen3ObjectEvents, template: Dictionary, at: Vector2i) -> String:
+	var boulder := Gen3ObjectEvents.ObjectEvent.new()
+	boulder.active = true
+	boulder.local_id = int(template["local_id"])
+	boulder.map_group = objects.camera.group
+	boulder.map_number = objects.camera.number
+	boulder.current = at
+	objects.objects[0] = boulder
+	var hide: int = int(template["flag"])
+	var reveal: int = int(template["trainer_type"])
+	objects.events.flag_clear(hide)
+	objects.events.flag_set(reveal)
+	var requests: Array = objects.boulder_landing(boulder)
+	var values: Array = [boulder.map_group, boulder.map_number, boulder.local_id, at.x, at.y,
+		objects.camera.grid.behavior_at(at.x, at.y), int(boulder.active),
+		int(objects.events.flag_get(hide)), int(objects.events.flag_get(reveal))]
+	for request: Dictionary in requests:
+		if request["kind"] == "script":
+			values.append(int(request["offset"]))
+	return "|".join(values)
+
+
+func _avatar_states(avatar: Gen3PlayerAvatar) -> String:
+	var out := PackedByteArray()
+	for gender: int in 2:
+		avatar.gender = gender
+		for flags: int in 256:
+			avatar.flags = flags
+			out.append(avatar.graphics_by_current_state())
+			out.append(avatar.state_flag_by_graphics(flags))
+			avatar.set_state_mask(flags ^ 0x55)
+			out.append(avatar.flags)
+	avatar.gender = 1
+	return _graphics_hash({"bytes": out})
+
+
+func _avatar_sweep(avatar: Gen3PlayerAvatar) -> PackedByteArray:
+	var grid: Gen3MapGrid = avatar.objects.camera.grid
+	var out := PackedByteArray()
+	avatar.flags = Gen3PlayerAvatar.Flag.SURFING
+	var player: Gen3ObjectEvents.ObjectEvent = avatar.object()
+	for y: int in range(-1, grid.height + 1):
+		for x: int in range(-1, grid.width + 1):
+			var direction: int = 1 + posmod(x + y, 4)
+			player.current = Vector2i(x, y) - Gen3FieldCamera.DIRECTIONS[direction]
+			player.previous = player.current
+			player.current_elevation = posmod(x + 2 * y, 16)
+			player.previous_elevation = posmod(x + y, 16)
+			player.current_behavior = grid.behavior_at(player.current.x, player.current.y)
+			Gen3ObjectEvents.set_direction(player, direction)
+			var result: Dictionary = avatar.check_collision(direction)
+			out.append(int(result["collision"]))
+			out.append(result["requests"].size())
+			out.append(int(result["requests"][0].get("object_id", 255)) if not result["requests"].is_empty() else 255)
+			out.append(int(avatar.facing_fishable_water()))
+			if avatar.objects.camera.data.id == RomRegistry.EMERALD:
+				out.append(int(avatar.collision_at(player, Vector2i(x, y), direction, true)["collision"]))
+	return out
+
+
+
+static func _u16(value: int) -> PackedByteArray:
+	return PackedByteArray([value & 0xFF, (value >> 8) & 0xFF])
+
+
 func _graphics_hash(record: Dictionary) -> String:
 	var context := HashingContext.new()
 	context.start(HashingContext.HASH_SHA1)
-	context.update(record["bytes"])
+	if not record["bytes"].is_empty():
+		context.update(record["bytes"])
 	return context.finish().hex_encode()
 
 
@@ -543,4 +1069,161 @@ func _world_scripts() -> void:
 		lines.append("%d,%d,%s,%d,%d;%s;%s;%s" % [offset, row["opcode"], row["command"],
 			row["next_offset"], int(row["fallthrough"]), _script_numbers(row["operands"]),
 			_script_numbers(row["script_offsets"]), bytes.hex_encode()])
+		_script_data_operands(data, offset, row)
 	_r.digest_matches("gen3_scripts", lines, SCRIPT_DIGESTS[data.id])
+
+
+func _script_data_operands(data: GameData, offset: int, row: Dictionary) -> void:
+	for pointer: Array in Gen3Script._data_pointers(row):
+		var value: int = int(pointer[1])
+		if value != 0 and (value < Gen3Script.RAM_START or value >= Gen3Script.RAM_END):
+			_r.check(not data.world_script_data(pointer[0], Gen3Layout.rom_offset(value)).is_empty(),
+				"script %d names an uncached %s record." % [offset, pointer[0]])
+
+
+## Every record starts on a label of the byte-matching pret build and ends where
+## its source list or string does; movements and marts reassembled from source.
+const SCRIPT_DATA_DIGESTS: Dictionary = {
+	&"ruby": "adf843177e3fc84a9e67199835af88391b0052eb",
+	&"sapphire": "cbf6d27dddc0ea9a396d63d1bafeeffc75d522ce",
+	&"firered": "2e0b76b0898635673fb7b72ba33036e9077a6b25",
+	&"leafgreen": "e313963370453f727d429f456889d46b7070d2d8",
+	&"emerald": "2dc9c549056906b3dffb7c1d921b817e915a5768",
+}
+
+
+func _world_script_data() -> void:
+	var data: GameData = _r.data
+	var lines := PackedStringArray(["script data"])
+	for table: String in Gen3Script.DATA_TABLES:
+		for offset: int in data.world_script_offsets(table):
+			var record: Dictionary = data.world_script_data(table, offset)
+			lines.append("%s,%d;%s;%s;%s" % [table, offset,
+				(record.get("bytes", PackedByteArray()) as PackedByteArray).hex_encode(),
+				_script_numbers(record.get("format", [])), _script_numbers(record.get("entries", []))])
+	_r.digest_matches("gen3_script_data", lines, SCRIPT_DATA_DIGESTS[data.id])
+
+
+## ARM gate routines on every puzzle cell and orientation, with real layouts.
+const GATE_DIGESTS: Dictionary = {
+	&"ruby": "d2404bf15714b745fac5a6e0c0651bbd829ced55",
+	&"sapphire": "d2404bf15714b745fac5a6e0c0651bbd829ced55",
+	&"emerald": "7815a603ccec3a1f13b0cd795d4f3888493696aa",
+}
+
+
+func _rotating_gates() -> void:
+	var data: GameData = _r.data
+	if not GATE_DIGESTS.has(data.id):
+		return
+	var lines := PackedStringArray()
+	var configs: Dictionary = Gen3PlayerAvatar.EMERALD_GATES if data.id == RomRegistry.EMERALD else Gen3PlayerAvatar.RS_GATES
+	for key: String in configs:
+		var pair: PackedStringArray = key.split(":")
+		var camera: Gen3FieldCamera = Gen3FieldCamera.open(data, int(pair[0]), int(pair[1]), Vector2i.ZERO)
+		var avatar: Gen3PlayerAvatar = Gen3PlayerAvatar.open(_fresh_objects(camera), Vector2i(7, 7), 1, 0)
+		for word: int in 16:
+			avatar.objects.events.var_set(0x4000 + word, 0xA5A5)
+		avatar.load_rotating_gates(true)
+		var bytes: Array = []
+		for byte: int in 16:
+			bytes.append(avatar.gate_orientation(byte))
+		lines.append("%s|%s" % [key, _script_numbers(bytes)])
+		_gate_puzzle_sweep(avatar, configs[key], lines)
+	_r.digest_matches("gen3_rotating_gates", lines, GATE_DIGESTS[data.id])
+
+
+func _gate_puzzle_sweep(avatar: Gen3PlayerAvatar, rows: Array, lines: PackedStringArray) -> void:
+	for gate: int in rows.size():
+		var center := Vector2i(int(rows[gate][0]) + 7, int(rows[gate][1]) + 7)
+		for orientation: int in 4:
+			for y: int in range(center.y - 3, center.y + 3):
+				for x: int in range(center.x - 3, center.x + 3):
+					for direction: int in range(1, 5):
+						for read_only: int in (2 if avatar.objects.events.game == RomRegistry.EMERALD else 1):
+							lines.append(_gate_probe(avatar, rows.size(), [gate, orientation, x, y, -1, 0, direction, read_only]))
+
+
+func _gate_probe(avatar: Gen3PlayerAvatar, count: int, prefix: Array) -> String:
+	var orientation: int = int(prefix[1])
+	for word: int in (count + 1) / 2:
+		avatar.objects.events.var_set(0x4000 + word, orientation | (orientation << 8))
+	var result: Dictionary = avatar.rotating_gate_collision(int(prefix[6]), Vector2i(int(prefix[2]), int(prefix[3])), int(prefix[7]) != 0)
+	var values: Array = prefix + [int(result["collision"] != 0)]
+	for gate: int in count:
+		values.append(avatar.gate_orientation(gate))
+	if result["requests"].is_empty():
+		values.append_array([-1, -1, -1])
+	else:
+		var effect: Dictionary = result["requests"][0]
+		values.append_array([effect["gate"], effect["orientation"], effect["rotation"]])
+	return _script_numbers(values)
+
+
+## ARM callbacks over every supported map template on a uniform grid, 512
+## frames each. The oracle reads template bytes and direction tables from ROM.
+const PATROL_DIGESTS: Dictionary = {
+	&"ruby": "2cbcf7f9a589f26fca38c6dde264312ab4585b1a",
+	&"sapphire": "2cbcf7f9a589f26fca38c6dde264312ab4585b1a",
+	&"firered": "7d7f689cc66ff26242a175f1ad7efbaac0638767",
+	&"leafgreen": "7d7f689cc66ff26242a175f1ad7efbaac0638767",
+	&"emerald": "1f8001244af2bc6d2d53db53baed1d6a7526d9a8",
+}
+
+
+func _object_patrols() -> void:
+	var data: GameData = _r.data
+	var camera := Gen3FieldCamera.new()
+	camera.data = data
+	camera.pos = Vector2i(100, 100)
+	camera.header = {"map_type": 0}
+	camera.grid = Gen3MapGrid.new()
+	camera.grid.width = 512
+	camera.grid.height = 512
+	camera.grid.blocks.resize(512 * 512)
+	camera.grid.blocks.fill(0x3000)
+	camera.grid._behaviors.resize(1024)
+	var objects := Gen3ObjectEvents.new(camera, Gen3EventData.new(data.id))
+	var lines := PackedStringArray(["object patrols"])
+	for header: Dictionary in data.world_map_headers():
+		camera.group = int(header["group"])
+		camera.number = int(header["number"])
+		var rows: Array = data.world_map_events(camera.group, camera.number)["objects"]
+		for index: int in rows.size():
+			for object: Gen3ObjectEvents.ObjectEvent in objects.objects:
+				object.active = false
+			var template: Dictionary = rows[index].duplicate()
+			template["x"] = 5
+			template["y"] = 5
+			var slot: int = objects.spawn(template, camera.number, camera.group)
+			if not _r.check(slot == 0, "patrol template did not spawn"):
+				continue
+			var object: Gen3ObjectEvents.ObjectEvent = objects.objects[slot]
+			var type: int = object.movement_type
+			if type not in range(7, 11) + range(0x19, 0x35) + range(0x40, 0x4D) \
+					and not (data.id == RomRegistry.EMERALD and type in range(0x4D, 0x51)):
+				continue
+			object.initial += MOVEMENT_ORIGIN
+			object.current += MOVEMENT_ORIGIN
+			object.previous = MOVEMENT_ORIGIN + Vector2i(11, 12)
+			object.pixel_position = object.current * 16
+			object.current_elevation = 3
+			object.previous_elevation = 3
+			lines.append_array(_patrol_frames(objects, index))
+	_r.digest_matches("gen3_object_patrols", lines, PATROL_DIGESTS[data.id])
+
+
+func _patrol_frames(objects: Gen3ObjectEvents, index: int) -> PackedStringArray:
+	var object: Gen3ObjectEvents.ObjectEvent = objects.objects[0]
+	var lines := PackedStringArray()
+	for frame: int in range(1, 513):
+		objects.step_movements()
+		var pixels: Vector2i = object.pixel_position - (MOVEMENT_ORIGIN + Vector2i(12, 12)) * 16
+		var current: Vector2i = object.current - MOVEMENT_ORIGIN
+		var previous: Vector2i = object.previous - MOVEMENT_ORIGIN
+		lines.append(",".join([objects.camera.group, objects.camera.number, index, frame,
+			current.x, current.y, previous.x, previous.y, pixels.x, pixels.y,
+			object.facing, object.movement_direction, object.previous_movement_direction, object.direction_sequence_index,
+			object.movement_state, object.movement_action, int(object.single_movement_active),
+			int(object.held_movement_active), int(object.held_movement_finished), int(object.frozen), int(object.invisible)]))
+	return lines

@@ -689,10 +689,8 @@ func _exit_tree() -> void:
 	if _current == self:
 		_current = null
 	stop_all()
-	# Stopping the player is not enough to let go of its playback: the audio
-	# server holds one per stream, and only taking the stream off the player
-	# releases it. A headless tool that builds a world screen and exits reported
-	# one leaked `AudioStreamGeneratorPlayback` per screen without this.
+	# Detach the stream as well as stopping it. AudioServer can keep its own
+	# playback until a mix step; its shutdown fix is godotengine/godot#122742.
 	if _player != null:
 		_player.stream = null
 	_generator = null
