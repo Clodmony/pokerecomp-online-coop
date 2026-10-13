@@ -411,10 +411,12 @@ class SplitScreen extends RefCounted:
 	const NO_PAD: Dictionary = {"guid": "keyboard", "name": "Keyboard", "serial": "", "nth": 0}
 	const MEMORY: String = "user://coop_tab_split.json"
 	const QUIT_BOTH: int = 3
+	const SIDES: Array = [["left", "right"], ["top", "bottom"]]
 
 	static var partner_pid: int = 0
 	static var quit_both: bool = false
 	static var asked: Dictionary = {}
+	static var stacked: bool = false
 	static var tool_args: PackedStringArray = []
 	static var _read: bool = false
 	static var _before: Dictionary = {}
@@ -446,19 +448,28 @@ class SplitScreen extends RefCounted:
 		out[out.find(null)] = pad
 		return out
 
-	static func half(area: Rect2i, side: int) -> Rect2i:
-		var left: int = area.size.x / 2
-		return Rect2i(area.position + Vector2i(left * side, 0), Vector2i(left if side == 0 else area.size.x - left, area.size.y))
+	static func half(area: Rect2i, side: int, top_and_bottom: bool = false) -> Rect2i:
+		var axis: int = int(top_and_bottom)
+		var first: int = area.size[axis] / 2
+		var out := Rect2i(area.position, area.size)
+		out.position[axis] += first * side
+		out.size[axis] = first if side == 0 else area.size[axis] - first
+		return out
 
-	static func argument(port: int, game: StringName, pad: Dictionary, screen: int) -> String:
-		return ARG + Marshalls.utf8_to_base64(JSON.stringify({"port": port, "game": String(game), "pad": pad, "screen": screen}))
+	static func named(side: int, top_and_bottom: bool = stacked) -> String:
+		return SIDES[int(top_and_bottom)][side]
+
+	static func argument(port: int, game: StringName, pad: Dictionary, screen: int, top_and_bottom: bool = false) -> String:
+		return ARG + Marshalls.utf8_to_base64(JSON.stringify({"port": port, "game": String(game), "pad": pad, "screen": screen,
+			"stacked": top_and_bottom}))
 
 	static func read(args: PackedStringArray) -> Dictionary:
 		for arg: String in args:
 			var parsed: Variant = JSON.parse_string(Marshalls.base64_to_utf8(arg.trim_prefix(ARG))) if arg.begins_with(ARG) else null
 			if parsed is Dictionary and int((parsed as Dictionary).get("port", 0)) > 0:
 				return {"port": clampi(int(parsed["port"]), 1, 65535), "game": StringName(String(parsed.get("game", ""))),
-					"pad": PokePadChoice.sanitize(parsed.get("pad", {})), "screen": int(parsed.get("screen", 0))}
+					"pad": PokePadChoice.sanitize(parsed.get("pad", {})), "screen": int(parsed.get("screen", 0)),
+					"stacked": bool(parsed.get("stacked", false))}
 		return {}
 
 	static func asked_once() -> Dictionary:
@@ -473,7 +484,7 @@ class SplitScreen extends RefCounted:
 		args.append_array(tool_args)
 		if not args.has("--"):
 			args.append("--")
-		args.append(argument(port, game, halves[1], screen))
+		args.append(argument(port, game, halves[1], screen, stacked))
 		partner_pid = maxi(OS.create_process(OS.get_executable_path(), args), 0)
 		if partner_pid > 0:
 			take(0, halves[0], screen)
@@ -486,7 +497,7 @@ class SplitScreen extends RefCounted:
 				"rect": Rect2i(DisplayServer.window_get_position(), DisplayServer.window_get_size()),
 				"ignore": Input.ignore_joypad_on_unfocused_application}
 		var whole := Rect2i(DisplayServer.screen_get_position(screen), DisplayServer.screen_get_size(screen))
-		var rect: Rect2i = half(whole, side)
+		var rect: Rect2i = half(whole, side, stacked)
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
@@ -495,7 +506,7 @@ class SplitScreen extends RefCounted:
 		Input.ignore_joypad_on_unfocused_application = false
 		PokePadChoice.held = pad
 		PokePadChoice.apply()
-		print("coop split: %s half at %s of screen %s, controller %s" % ["left" if side == 0 else "right", rect, whole, pad.get("name", "every")])
+		print("coop split: %s half at %s of screen %s, controller %s" % [named(side), rect, whole, pad.get("name", "every")])
 
 	static func active() -> bool:
 		return partner_pid > 0 or not asked.is_empty()

@@ -209,6 +209,19 @@ func test_split_screen_halves_play_only_the_controllers_their_players_press_a_on
 	assert_eq(split.halves(dualsense, pads.slice(0, 2)), [null, null], "a pick that is unplugged is asked for like the rest")
 
 
+func test_a_split_screen_stacks_its_halves_top_and_bottom_when_asked() -> void:
+	var split: GDScript = PokeCoopLobby.SplitScreen
+	var whole := Rect2i(0, 30, 1921, 1051)
+
+	assert_eq([split.half(whole, 0, true), split.half(whole, 1, true)], [Rect2i(0, 30, 1921, 525), Rect2i(0, 555, 1921, 526)],
+		"each the screen's full width, the second below the first")
+	assert_eq(split.half(whole, 1), Rect2i(960, 30, 961, 1051), "side by side stays the default")
+	assert_eq([split.named(0, true), split.named(1, true), split.named(0, false), split.named(1, false)], ["top", "bottom", "left", "right"])
+	var asked: Dictionary = split.read([split.argument(24850, &"red", {}, 0, true)])
+	assert_true(asked["stacked"], "the second window learns the layout from its argument")
+	assert_false(split.read([split.ARG + Marshalls.utf8_to_base64("{\"port\": 24850}")])["stacked"], "an argument without it is side by side")
+
+
 func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked() -> void:
 	var first: Dictionary = {"guid": "030000005e0400008e02000010010000", "name": "Xbox 360 Controller", "serial": "", "nth": 0}
 	var second: Dictionary = first.merged({"nth": 1}, true)
@@ -218,7 +231,7 @@ func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_setting
 	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 0), Rect2i(0, 30, 960, 1050))
 	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 1), Rect2i(960, 30, 961, 1050))
 	var asked: Dictionary = PokeCoopLobby.SplitScreen.read(["127.0.0.1", PokeCoopLobby.SplitScreen.argument(24850, &"blue", second, 1)])
-	assert_eq(asked, {"port": 24850, "game": &"blue", "pad": second, "screen": 1})
+	assert_eq(asked, {"port": 24850, "game": &"blue", "pad": second, "screen": 1, "stacked": false})
 	assert_eq(PokeCoopLobby.SplitScreen.read([PokeCoopLobby.SplitScreen.ARG + Marshalls.utf8_to_base64("[24850]")]), {})
 
 	PokePadChoice.held = second
