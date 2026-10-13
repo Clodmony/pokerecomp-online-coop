@@ -432,3 +432,80 @@ func test_the_panel_names_a_move_that_is_disabled_or_out_of_pp() -> void:
 	var labels: Array = panel._move_rows(view).map(func(row: Dictionary) -> String: return String(row["label"]))
 	assert_eq(labels, ["%s (NO PP)" % _data.move(Fixture.GROWL)["name"], "%s (DISABLED)" % _data.move(Fixture.TACKLE)["name"]])
 	assert_true(PokeCoopBattlePanel.REFUSALS.has(&"invalid_move"), "a refused move is told in words")
+
+
+func _leader(lead: PokeCoopPlayer) -> PokeCoopBattleSession:
+	return PokeCoopBattleSession.start(_data, "b1", 1, lead, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0),
+		{"id": "trainer:leader", "trainer_class": Fixture.GEN1_LEADER})
+
+
+## TACKLE from whoever decides until the trainer's first Pokémon, left on one HP, is down.
+func _knock_out_lead(session: PokeCoopBattleSession, players: Dictionary) -> void:
+	session.battle.mon(Gen2Battle.ENEMY).hp = 1
+	for _turn: int in 20:
+		if session.battle.mon(Gen2Battle.ENEMY).is_fainted() or session.battle.party(Gen2Battle.ENEMY).active != 0:
+			return
+		_act(session, players[session.controller()], {"type": "move", "slot": 1})
+
+
+func test_shift_asks_the_owner_of_the_pokemon_out_before_the_trainer_sends_the_next() -> void:
+	var red: PokeCoopPlayer = _red(2)
+	red.battle_shift = true
+	var session: PokeCoopBattleSession = _leader(red)
+	_knock_out_lead(session, {"red": red})
+
+	assert_eq(session.phase(), PokeCoopBattleSession.AWAITING_OFFER)
+	assert_eq([session.controller(), int(session.view()["offer"]), session.battle.party(Gen2Battle.ENEMY).active],
+		["red", 1, 0], "asked before the trainer's next Pokémon is out")
+	assert_true(bool(_act(session, red, {"type": "stay"})["ok"]))
+	assert_eq([session.phase(), session.battle.party(Gen2Battle.ENEMY).active, session.battle.party(Gen2Battle.PLAYER).active],
+		[PokeCoopBattleSession.AWAITING_ACTION, 1, 0], "NO keeps the one out and the trainer sends the next")
+
+
+func test_set_style_sends_the_trainers_next_pokemon_out_unasked() -> void:
+	var red: PokeCoopPlayer = _red(2)
+	var session: PokeCoopBattleSession = _leader(red)
+	_knock_out_lead(session, {"red": red})
+
+	assert_eq(session.phase(), PokeCoopBattleSession.AWAITING_ACTION)
+	assert_eq([session.battle.party(Gen2Battle.ENEMY).active, int(session.view()["offer"])], [1, -1])
+
+
+## Red's Pokémon out first, then Blue's: the offer reads the BATTLE STYLE of the player whose Pokémon is out.
+func _offer_when_blue_is_out(red_shift: bool, blue_shift: bool) -> PokeCoopBattleSession:
+	var red: PokeCoopPlayer = _red()
+	var blue: PokeCoopPlayer = _blue()
+	red.battle_shift = red_shift
+	blue.battle_shift = blue_shift
+	var session: PokeCoopBattleSession = _leader(red)
+	session.request_join(_data, blue)
+	_act(session, red, {"type": "switch", "index": 1})
+	_knock_out_lead(session, {"red": red, "blue": blue})
+	return session
+
+
+func test_the_offer_goes_to_the_owner_of_the_pokemon_out_by_their_own_setting() -> void:
+	assert_eq(_offer_when_blue_is_out(true, false).phase(), PokeCoopBattleSession.AWAITING_ACTION,
+		"Red's SHIFT does not ask while Blue, on SET, has the Pokémon out")
+
+	var session: PokeCoopBattleSession = _offer_when_blue_is_out(false, true)
+	var red: PokeCoopPlayer = session._members["red"]
+	var blue: PokeCoopPlayer = session._members["blue"]
+	assert_eq([session.phase(), session.controller()], [PokeCoopBattleSession.AWAITING_OFFER, "blue"])
+	assert_eq(StringName(_act(session, red, {"type": "stay"})["reason"]), &"not_controller")
+	assert_eq(session.suggest("red", {"type": "stay", "value": 0}), &"", "the partner may suggest staying")
+	assert_eq(StringName(_act(session, blue, {"type": "switch", "index": 1})["reason"]), &"invalid_switch",
+		"the one already out is refused, the question still standing")
+
+	assert_true(bool(_act(session, blue, {"type": "switch", "index": 0})["ok"]))
+	assert_eq([session.controller(), session.battle.party(Gen2Battle.PLAYER).active, session.battle.party(Gen2Battle.ENEMY).active],
+		["red", 0, 1], "YES on Red's Pokémon hands the next turn to Red as the trainer sends its next")
+
+
+func test_the_trainers_question_is_worded_as_the_cartridge_words_it() -> void:
+	var line: String = PokeCoopBattleField.message(
+		{"type": Gen2Battle.SWITCH_OFFERED, "side": Gen2Battle.PLAYER, "index": 1, "species": Fixture.CHARMANDER},
+		{Gen2Battle.PLAYER: Fixture.PIKACHU, Gen2Battle.ENEMY: Fixture.GEODUDE}, _data, {}, "LEADER")
+	assert_eq(PokeCoopBattleField.pages(line), PackedStringArray([
+		"LEADER is\nabout to use", PokeCoopBattleField._species_name(_data, Fixture.CHARMANDER) + "!",
+	]))

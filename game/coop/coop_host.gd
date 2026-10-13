@@ -281,6 +281,8 @@ func _note_campaign() -> void:
 
 func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> StringName:
 	var battle_id: String = PokeCoopTransport.text(message.get("battle"))
+	if message.get("shift") is bool:
+		sender.battle_shift = message["shift"]
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),

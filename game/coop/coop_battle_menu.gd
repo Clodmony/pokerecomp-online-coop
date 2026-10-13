@@ -97,13 +97,15 @@ func _open_phase() -> void:
 			_go(NONE if bool(_view.get("paused", false)) else MAIN, _main)
 		"send_out":
 			if _controls() and not bool(_view.get("trainer", false)):
-				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY}, _run_or_leave())
+				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY}, _run_or_leave(), true)
 			else:
 				_go(PARTY, 0)
 		"learn":
 			_go(LEARN if _controls() else NONE, 0)
 		"mimic":
 			_go(MIMIC if _controls() else NONE, 0)
+		"offer":
+			_question(_offer_text(), {"page": PARTY}, {"choose": _command("stay")}, true)
 
 
 func press(button: int) -> Dictionary:
@@ -220,7 +222,7 @@ func _back() -> Dictionary:
 		MIMIC:
 			return {}
 		PARTY:
-			if String(_view.get("phase", "")) == "send_out":
+			if String(_view.get("phase", "")) in ["send_out", "offer"]:
 				reopen()
 				return {}
 	return _go(MAIN, _main)
@@ -288,8 +290,8 @@ func _go(to: StringName, at: int) -> Dictionary:
 	return {"point": _pointed()} if to != NONE else {}
 
 
-func _question(text: String, yes: Dictionary, no: Dictionary) -> Dictionary:
-	_ask = {"text": text, "yes": yes, "no": no}
+func _question(text: String, yes: Dictionary, no: Dictionary, battle_box: bool = false) -> Dictionary:
+	_ask = {"text": text, "yes": yes, "no": no, "battle_box": battle_box}
 	return _go(ASK, 0)
 
 
@@ -495,6 +497,8 @@ func _partners() -> Array:
 func _mark_at(said: Dictionary) -> int:
 	if page == MAIN:
 		return int(MAIN_OF.get(String(said.get("type", "")), -1))
+	if page == ASK and String(_view.get("phase", "")) == "offer":
+		return int({"switch": 0, "stay": 1}.get(String(said.get("type", "")), -1))
 	if not page in [MOVES, PARTY, BAG, RECIPIENT]:
 		return -1
 	for at: int in _count():
@@ -540,6 +544,8 @@ func _suggestion_words(said: Dictionary) -> String:
 			var whom: String = _name(String(said.get("recipient", "")))
 			var whole: String = _de("%s for %s") % [named, whom]
 			return whole if not String(said.get("recipient", "")).is_empty() and whole.length() <= 18 else named
+		"stay":
+			return _de("NO")
 	return _de("RUN")
 
 
@@ -592,7 +598,7 @@ func image() -> Image:
 			_draw_bag(out)
 		ASK:
 			_text_box(out, _box_lines(String(_ask["text"])))
-			_put(out, Gen2MenuBox.yes_no(), ["YES", "NO"], cursor)
+			_put(out, _yes_no_box(), ["YES", "NO"], cursor)
 		LEARN:
 			_text_box(out, _box_lines(_de("Which move should\nbe forgotten?")))
 			_put(out, Gen2BattleMenu.forget_box(true), _learner_moves(), cursor)
@@ -622,6 +628,8 @@ func _mark_tile(at: int) -> Vector2i:
 	match page:
 		MAIN:
 			return Gen2BattleMenu.main_box().cursor_position(at)
+		ASK:
+			return _yes_no_box().cursor_position(at)
 		MOVES:
 			return Gen2BattleMenu.move_box().cursor_position(at)
 		RECIPIENT:
@@ -784,6 +792,20 @@ func _row_move_name(row: int) -> String:
 		var moves: Array = (_view.get("enemy", {}) as Dictionary).get("moves", [])
 		return _move_name(int(moves[int(command["choice"])]))
 	return _move_name(int((_active().get("moves", []) as Array)[int(command.get("slot", 0))]))
+
+
+func _yes_no_box() -> Gen2MenuBox:
+	if not bool(_ask.get("battle_box", false)):
+		return Gen2MenuBox.yes_no()
+	var left: int = Gen2BattleScreen.YES_NO_LEFT
+	var top: int = Gen2BattleScreen.YES_NO_TOP
+	return Gen2MenuBox.from_coords(left, top, left + Gen2BattleScreen.YES_NO_SPAN.x + Gen1LayoutDe.yes_no_widened(),
+		top + Gen2BattleScreen.YES_NO_SPAN.y, Gen2BattleScreen.YES_NO_FLAGS)
+
+
+func _offer_text() -> String:
+	return Gen2BattleSwitchMenu.offer_text("", "", _name(String(_view.get("controller", ""))), true) \
+		.get_slice(Gen2TextStream.PAGE_BREAK, 1)
 
 
 func _take_over_text() -> String:

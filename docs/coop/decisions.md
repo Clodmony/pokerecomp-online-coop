@@ -109,7 +109,7 @@ the code cannot say.
 
 The SHIFT "will you switch" offer is a question in the middle of an enemy
 replacement with no natural owner yet. Shared sessions use SET style until #28
-gives it one.
+gives it one. Superseded by D113.
 
 ## D15. Encounters are registered on the host; the slice uses synthetic content (2026-10-05)
 
@@ -1692,3 +1692,25 @@ reaches them, boots the Linux build headless and the Windows build under Wine
 in the run's private user folder and a fresh prefix, and zips each with
 `BUILD.txt` and `docs/coop/playing.md`. Each commit gets its own folder, so
 a build someone is playing is never replaced under them.
+
+
+## D113. SHIFT's offer goes to the owner of the Pokémon that is out, by their own setting (#28, owner's choice, 2026-10-13)
+
+Co-op battles used SET style (D14), so a trainer's next Pokémon came out
+without "Will RED change POKéMON?". The owner chose the cartridge's own
+rule for each player: the question goes to the player whose Pokémon is out
+(or whoever stands in for them), and only if that player's own OPTIONS say
+SHIFT. A window sends its BATTLE STYLE with every battle it starts, opens or
+joins (`"shift"`, no protocol change: an older window sends none and counts
+as SET, an older host ignores it). The session asks in a new `offer` phase:
+YES is a switch to any standing ally, which hands the turn over as any switch
+does, and NO (`stay`) keeps the one out; then the trainer's Pokémon comes out.
+The field says "X is about to use Y!" to every window, the deciding window
+asks the question, and a partner may suggest either answer. As on the
+cartridge, the trainer's balls stand under the question and go before "X sent
+out" (D108's one difference is gone where SHIFT asks), and its YES/NO, like
+"Use next POKéMON?"'s, stands where the battle screen puts `OfferSwitch`'s,
+over the player's own Pokémon. A scripted window's `auto_battle` leaves the
+question up three seconds before it answers NO, so a capture can catch it. Baton Pass and
+the Generation 2 half of #28 stay with the later milestone (D61); Mimic
+already asks the owner of the Pokémon that used it.

@@ -11,6 +11,21 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## SHIFT's switch offer in co-op battles (#28, D113, 2026-10-13)
+
+Co-op battles used SET style, so a trainer's next Pokémon came out unasked. Now
+the player whose Pokémon is out is asked "Will RED change POKéMON?" if their own
+BATTLE STYLE is SHIFT; the partner may suggest an answer. Mimic already asked
+the Pokémon's owner; Baton Pass is not in Red and Blue. Branch
+`coop/28-battle-offers`.
+
+| Verification | Result |
+|---|---|
+| GUT, before the fix | the four new tests failed: after a trainer's Pokémon fainted the phase was `action`, not `offer`, for the owner on SHIFT; the view had no `offer`; the field had no line for the question; the host never learned the window's style and the menu stayed shut |
+| GUT, after | the new tests pass (five session, one window end to end, one field); whole suite 5173/5173 in `tools/verify.sh` on 6965b198. The first verify run (8fcd2433) had one failure outside co-op, `test_a_turn_on_the_spot_in_grass_rolls_a_wild_encounter`; it passed alone (76/76) and in the final run |
+| Screens (scripted), Red | `switch_offer` (new; a `viridian_forest` seed with `level=25 party=3` moved onto ROUTE 3 as `party_balls`', RED's lead knowing only EMBER): both windows on SHIFT, BLUE joins RED's fight with the LASS; when RATTATA faints both say "LASS is about to use NIDORAN♂!" over her ball row (one crossed out), RED's window asks "Will P1 change POKéMON?" with YES/NO over CHARMANDER where the battle screen puts it, BLUE's shows the same question; after NO the row goes and "LASS sent out NIDORAN♂!". `party_balls` now passes through the same question; `switch_and_suggest` and `catch_for_partner` unchanged. All passed in `tools/verify.sh`; every capture looked at. A first try from the same seed with the autoplay's BROCK leg (`route=brock from=pewter_gym`) never moved: it found no walk to BROCK, before any battle |
+| Not run | a hand-played session; YES in two windows (switching to the partner's Pokémon is covered by GUT only); German, Blue, Windows |
+
 ## Private builds by script (#44, D112, 2026-10-13)
 
 `tools/verify.sh --builds[=<dir>]` makes the private Windows and Linux builds
