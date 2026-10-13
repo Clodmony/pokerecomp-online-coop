@@ -30,6 +30,7 @@ var _streamed_at: int = 0
 var _welcomed: bool = false
 var _close_at: int = -1
 var other_wild: Dictionary = {}
+var options: Gen2Options = null
 
 
 static func over(link: PokeCoopTransport) -> PokeCoopClient:
@@ -161,7 +162,11 @@ func step(map: Vector2i, cell: Vector2i, facing: int, warp: bool = false, places
 
 
 func start_battle(encounter_id: String) -> int:
-	return send({"type": "start_battle", "encounter": encounter_id})
+	return send({"type": "start_battle", "encounter": encounter_id, "shift": shifts()})
+
+
+func shifts() -> bool:
+	return options != null and not options.battle_style_set
 
 
 ## [param command] at the battle's last known revision unless it names one.
@@ -180,7 +185,7 @@ func suggest(battle_id: String, kind: String, value: int, recipient: String = ""
 
 
 func join_battle(battle_id: String) -> int:
-	return send({"type": "join", "battle": battle_id})
+	return send({"type": "join", "battle": battle_id, "shift": shifts()})
 
 
 func leave_battle(battle_id: String) -> int:

@@ -208,6 +208,9 @@ func _battle_rows(view: Dictionary) -> Array:
 			return _learn_rows(view)
 		"mimic":
 			return _mimic_rows(view)
+		"offer":
+			return _switch_rows(view, "switch") + [{"text": "STAY", "label": "Stay in", "section": " ",
+				"command": {"type": "stay"}, "suggest": "stay", "value": 0}]
 	return _leave_rows(view)
 
 

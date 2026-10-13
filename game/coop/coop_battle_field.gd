@@ -10,7 +10,7 @@ const WORDED: Array[StringName] = [
 	Gen2Battle.FAINTED, Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW, Gen2Battle.CAUGHT, Gen2Battle.FLED,
 	Gen2Battle.EXP_GAINED, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
 	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
-	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN,
+	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN, Gen2Battle.SWITCH_OFFERED,
 ]
 
 var panel: PokeCoopBattlePanel = null
@@ -28,6 +28,7 @@ var _hp_seen: Dictionary = {}
 var _anim_after: Dictionary = {}
 var _board := PokeCoopBattleStage.new()
 var _words: Gen2BattleScreen = null
+var _offered: bool = false
 var _scene_seen: Dictionary = {}
 var _anim_data: Gen2BattleAnimData = null
 var _anim: Gen2BattleAnimPlayer = null
@@ -286,6 +287,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_sound_wait = false
 	_fanfared = false
 	_enemy_down = false
+	_offered = false
 	_box.visible = false
 
 
@@ -330,8 +332,9 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 		Gen2Battle.SENT_OUT:
 			out[side] = int(event.get("species", species_at(view, side, int(event.get("index", 0)))))
 			if side == Gen2Battle.ENEMY and _enemy_down and bool(view.get("trainer", false)):
-				_messages.append({"balls": {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
+				_messages.append({"balls": {} if _offered else {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
 			_enemy_down = false if side == Gen2Battle.ENEMY else _enemy_down
+			_offered = _offered and side != Gen2Battle.ENEMY
 			_messages.append({"enter": event})
 		Gen2Battle.FAINTED:
 			_enemy_down = _enemy_down or side == Gen2Battle.ENEMY
@@ -340,6 +343,9 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			if side == Gen2Battle.ENEMY and not bool(view.get("trainer", false)) and String(view.get("outcome", "")) == "won":
 				_messages.append({"fanfare": false, "gym": false})
 				_fanfared = true
+		Gen2Battle.SWITCH_OFFERED:
+			_offered = true
+			_messages.append({"balls": {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
 		Gen2Battle.CRY:
 			_messages.append({"cry": int(event.get("species", 0))})
 		Gen2Battle.GREW_LEVEL:
@@ -764,6 +770,9 @@ static func message(
 			return _de(game, "%s used\n%s!") % [who_acted, game.item_name(int(event.get("item", 0)))]
 		PokeCoopBattleSession.BALL_THROWN:
 			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
+		Gen2Battle.SWITCH_OFFERED:
+			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "", true) \
+				.get_slice(Gen2TextStream.PAGE_BREAK, 0)
 	return ""
 
 
