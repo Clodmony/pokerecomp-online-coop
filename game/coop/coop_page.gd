@@ -85,6 +85,7 @@ func _build() -> void:
 	_cartridges = PokeCoopLobby.cartridges()
 	_game = _first_game()
 	tree_exiting.connect(_on_leaving)
+	visibility_changed.connect(_read_cartridges)
 	var ended: String = PokeCoopSession.ended_note
 	PokeCoopSession.ended_note = ""
 	if not ended.is_empty() and not PokeCoopLobby.SplitScreen.asked_once().is_empty():
@@ -112,6 +113,17 @@ static func dialling() -> PokeCoopLobby.Dial:
 
 static func nearby() -> Array:
 	return _listener.hosts()
+
+
+## A cartridge imported again on the Play tab is ready once the tab is shown.
+func _read_cartridges() -> void:
+	var now: Array = PokeCoopLobby.cartridges() if is_visible_in_tree() else _cartridges
+	var status: Callable = func(rows: Array) -> Array: return rows.map(func(row: Dictionary) -> StringName: return row["status"])
+	if status.call(now) == status.call(_cartridges):
+		return
+	_cartridges = now
+	_game = _first_game()
+	_show(_screen)
 
 
 func _first_game() -> StringName:

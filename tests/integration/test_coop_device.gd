@@ -919,3 +919,24 @@ func test_a_pad_entering_the_co_op_tab_lands_on_host() -> void:
 	var focused: Control = launcher.get_viewport().gui_get_focus_owner()
 	assert_eq(focused.get_meta("label", "") if focused != null else "", "HOST", "a pad lands on Host")
 	Gen2OptionsStore.use_test_path()
+
+
+func test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_shown_again() -> void:
+	PokeCoopLobby.remember({"game": String(RomRegistry.RED)})
+	PokeCoopLobby.open_game = func(_id: StringName) -> GameData: return null
+	PokeCoopPage.forget()
+	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	var red: Callable = func() -> PokeCoopTabParts.Tile:
+		return PokeCoopPage._find(page, func(node: Node) -> bool:
+			return node is PokeCoopTabParts.Tile and node.get_meta("label", "") == PokeCoopLobby.title(RomRegistry.RED))[0]
+	var says: Callable = func(tile: Node) -> Array:
+		return PokeCoopPage._find(tile, func(node: Node) -> bool: return node is Label).map(func(label: Label) -> String: return label.text)
+	assert_false(says.call(red.call()).has("Ready"))
+
+	page.visible = false
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
+	page.visible = true
+
+	assert_true(says.call(red.call()).has("Ready"), "the tab reads the cartridges again when it comes back")
+	var host: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is PokeCoopTabParts.Tile and node.get_meta("label", "") == "HOST")
+	assert_false((host[0] as PokeCoopTabParts.Tile).disabled, "and hosts with it")
