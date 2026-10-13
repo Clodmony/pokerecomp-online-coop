@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The other players as world actors, registered as a mod's are, eased at their own pace in one colour each in
 ## every window and wearing the shock emote in a battle; this player's position goes to the host, and B held runs.
-## A partner off the screen is an arrow on its edge, or over the door or edge on the way to them, and an icon on the TOWN MAP.
+## A partner off the screen is an arrow on the edge the window shows of its centred buffer, or over the door or edge on the way to them, and an icon on the TOWN MAP.
 
 const STEP_FRAMES: int = 16
 const PLAYER_COLORS: Array = [
@@ -31,6 +31,7 @@ var _routes: Dictionary = {}
 var _marks: TextureRect = null
 var _marks_shown: String = ""
 var _mark_frame: int = 0
+var shown_area: Rect2 = Rect2()
 
 
 static func over(session: PokeCoopClient) -> PokeCoopRemoteActor:
@@ -182,6 +183,8 @@ func show_marks(hardware: Gen2Screen, quiet: bool) -> void:
 	var marks: Array = partner_marks() if quiet and _mark_frame % MARK_CYCLE_FRAMES < MARK_BLINK_FRAMES else []
 	if _marks != null and not is_instance_valid(_marks):
 		_marks = null
+	if hardware != null:
+		shown_area = shown_on(hardware.view_size(), Vector2(hardware.native_size()), hardware.size)
 	if marks.is_empty() or hardware == null:
 		if _marks != null:
 			_marks.visible = false
@@ -241,24 +244,31 @@ func _goal(player_id: String, view: Dictionary) -> Dictionary:
 
 
 func _mark_towards(goal: Dictionary) -> Dictionary:
-	var size := Vector2(_world.view_pixels)
+	var shown: Rect2 = shown_area if shown_area.has_area() else Rect2(Vector2.ZERO, Vector2(_world.view_pixels))
 	var middle: Vector2 = SCREEN_MIDDLE + Vector2(_world.view_surround_offset())
 	var away: Vector2 = goal.get("direction", Vector2.ZERO)
 	if not goal.has("direction"):
 		var cell: Vector2 = goal.get("partner", goal.get("cell", Vector2.ZERO))
 		var drawn: Vector2 = (cell - _world.visible_origin_cells()) * float(Gen2WorldAPI.CELL_PIXELS) + middle - SCREEN_MIDDLE + Vector2(8, 4)
-		if Rect2(Vector2.ZERO, size).has_point(drawn):
+		if shown.has_point(drawn):
 			if goal.has("partner") or Vector2i(cell) == _world.player_cell:
 				return {}
-			var over: Vector2 = (drawn - Vector2(ARROW_SIZE / 2, ARROW_SIZE + 6)).clamp(Vector2.ONE * MARK_INSET, size - Vector2.ONE * (MARK_INSET + ARROW_SIZE))
+			var over: Vector2 = (drawn - Vector2(ARROW_SIZE / 2, ARROW_SIZE + 6)).clamp(shown.position + Vector2.ONE * MARK_INSET, shown.end - Vector2.ONE * (MARK_INSET + ARROW_SIZE))
 			return {"at": Vector2i(over), "direction": Vector2i.DOWN}
 		away = drawn - middle
-	var low := Vector2.ONE * float(MARK_INSET + ARROW_SIZE / 2)
+	var low: Vector2 = shown.position + Vector2.ONE * float(MARK_INSET + ARROW_SIZE / 2)
+	var high: Vector2 = shown.end - Vector2.ONE * float(MARK_INSET + ARROW_SIZE / 2)
 	var reach := Vector2(
-		((size.x - low.x - middle.x) if away.x > 0.0 else (middle.x - low.x)) / maxf(absf(away.x), 0.001),
-		((size.y - low.y - middle.y) if away.y > 0.0 else (middle.y - low.y)) / maxf(absf(away.y), 0.001))
-	var at: Vector2 = (middle + away * minf(reach.x, reach.y)).clamp(low, size - low)
+		((high.x - middle.x) if away.x > 0.0 else (middle.x - low.x)) / maxf(absf(away.x), 0.001),
+		((high.y - middle.y) if away.y > 0.0 else (middle.y - low.y)) / maxf(absf(away.y), 0.001))
+	var at: Vector2 = (middle + away * minf(reach.x, reach.y)).clamp(low, high)
 	return {"at": Vector2i(at) - Vector2i.ONE * (ARROW_SIZE / 2), "direction": eighth(away)}
+
+
+static func shown_on(view: Vector2i, drawn: Vector2, area: Vector2) -> Rect2:
+	var scale: float = drawn.x / maxf(float(view.x), 1.0)
+	var corner: Vector2 = ((area - drawn) * 0.5).floor()
+	return Rect2(-corner / scale, area / scale).intersection(Rect2(Vector2.ZERO, Vector2(view)))
 
 
 static func eighth(away: Vector2) -> Vector2i:

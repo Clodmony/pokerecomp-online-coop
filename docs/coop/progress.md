@@ -11,6 +11,31 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The partner arrow inside the window, split screen included (#142, 2026-10-14)
+
+Found by the owner in split screen, everywhere: player 2 never saw the arrow,
+player 1 lost it at the top. A screen centres a buffer a little larger than
+itself (`Gen2Screen._fit` rounds it up to 32 hardware pixels past 160x144), so
+its edges are cut off: about 14 hardware pixels left and right and 11 at the
+top and bottom in a split half (buffer 192x208 at 7x in a 1152x1296 screen), 7
+at the top and bottom in a 1152x648 window. The arrow sat 4 pixels in from the
+buffer's edge, so in a half it was drawn where nobody saw it, and a partner in
+the cut-off strip counted as on the screen and got none. Now
+`PokeCoopRemoteActor.shown_on` works out the shown part from the screen's own
+size, `view_size()` and `native_size()`, for any window shape (a top-and-bottom
+split too), and the arrow, the arrow over a door and the on-screen test all use
+it. Branch `coop/142-partner-arrow`.
+
+| Verification | Result |
+|---|---|
+| Probe, before | `partner_tracker` in two normal windows: both see arrows (so the bug needs split screen). A split probe printed each half's marks (RED's at (180, 96) on the right, BLUE's at (4, 96) on the left, buffer 192x208): the arrows were in each half's SubViewport texture but outside the window's crop (screen 1152x1296, buffer drawn 1344x1456 at (-96, -80)) |
+| GUT, before | `test_the_arrow_stays_on_the_part_of_the_buffer_the_window_shows` failed for all nine directions, e.g. "towards (0, -15) at (84, 4), inside [P: (13.71429, 11.42857), S: (164.5714, 185.1429)]", and "an arrow towards (0, -6)": a partner six cells up, in the hidden top strip, got none |
+| GUT, after | `test_coop_session` 167/167; source budget 4/4 at the comment ceiling (net zero) |
+| Screens (scripted), Red | `partner_tracker_split`, before: no arrow in any of the 8 captures. After: RED's arrow on the right edge while BLUE stands at their door, at the top when BLUE walks onto Route 1; BLUE's on the left edge, then at the bottom left from Route 1; 6 of 8 captures show it, the other two fall in the blink. All captures looked at |
+| `partner_tracker_cabins`, from an `ss_anne` seed moved onto SS_ANNE_1F | BLUE's arrow over the cabin door RED took; RED's, inside the cabin, over its door in the top row, now fully inside the 1152x648 window (it was 4 pixels from the buffer's top, 7 of which the window cuts off) |
+| `tools/verify.sh partner_tracker partner_tracker_split partner_tracker_cabins local_split`, commit 7e883375 | whole suite 5182/5182, gates, boot, three processes, `partner_tracker`, `partner_tracker_split`, `local_split` ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16. `partner_tracker_cabins` failed for want of its seed; rerun with one (above): ok |
+| Not run | a top-and-bottom split (split screen is side by side only); split screen on Windows; a phone in portrait |
+
 ## Split screen's controllers and quitting; the Co-op tab after a re-import (#140, #139, #138, D117, D118, 2026-10-13)
 
 Found by the owner in the #137 build. **#140:** the halves took the first two
