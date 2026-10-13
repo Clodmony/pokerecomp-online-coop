@@ -1281,6 +1281,32 @@ func test_every_battle_row_is_reached_through_the_cartridges_own_menus() -> void
 	assert_eq(int(_red.battle(battle_id)["active"]), 3, "A on Blue's BULBASAUR switches to it")
 
 
+func test_shift_asks_the_window_whose_pokemon_is_out_through_the_cartridges_yes_no() -> void:
+	_red.options = Gen2Options.new()
+	_send(func() -> void: _red.start_battle("trainer:leader"))
+	var battle_id: String = _battle_of(_red)
+	assert_true(_host.player(_red.player_id).battle_shift, "the start tells the host this window's BATTLE STYLE")
+	for _turn: int in 10:
+		if String(_red.battle(battle_id).get("phase", "")) == "offer":
+			break
+		_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 0}))
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	panel._process(0.0)
+
+	assert_eq(panel.menu.page, PokeCoopBattleMenu.ASK)
+	assert_true(String(panel.menu._ask["text"]).begins_with("Will RED\nchange"), "the question is the window's own player's")
+	panel._press(PokeButton.A)
+	assert_eq(panel.menu.page, PokeCoopBattleMenu.PARTY, "YES opens the party")
+	panel._press(PokeButton.B)
+	assert_eq(panel.menu.page, PokeCoopBattleMenu.ASK, "B there asks again")
+	panel._press(PokeButton.DOWN)
+	panel._press(PokeButton.A)
+	_pump()
+	var view: Dictionary = _red.battle(battle_id)
+	assert_eq([String(view["phase"]), int(view["active"]), int(view["offer"])], ["action", 0, -1], "NO keeps the one out")
+	assert_eq(int(view["enemy"]["species"]), Fixture.CHARMANDER, "and the trainer sends its next")
+
+
 func test_a_partners_pointer_is_marked_at_every_menu_level_and_spelled_out_while_the_controller_waits() -> void:
 	_host.player(_blue.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
 	_send(func() -> void: _red.start_battle("wild:stall"))

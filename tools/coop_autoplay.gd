@@ -227,6 +227,9 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 	if String(view.get("encounter", "")).begins_with("trainer:") and panel._controls(view) and not _filmed.has(view["battle"]):
 		_filmed[view["battle"]] = true
 		_shot("battle_%s_%s" % [view["battle"], String(view.get("trainer_name", "")).to_lower().validate_filename()])
+	if String(view.get("phase", "")) == "offer" and panel._controls(view) and not _filmed.has("offer"):
+		_filmed["offer"] = true
+		_shot("offer_%s" % view["battle"])
 	var target: int = -1
 	if bool(view.get("stand_in_due", false)):
 		target = panel._rows.find_custom(func(row: Dictionary) -> bool: return row.get("session") == "stand_in")
@@ -238,7 +241,7 @@ func _panel_button(panel: PokeCoopBattlePanel) -> int:
 
 
 func _target_row(view: Dictionary, rows: Array) -> int:
-	var wanted: String = {"send_out": "send_out", "learn": "decline", "mimic": "mimic"}.get(String(view.get("phase", "")), "move")
+	var wanted: String = {"send_out": "send_out", "learn": "decline", "mimic": "mimic", "offer": "stay"}.get(String(view.get("phase", "")), "move")
 	var active: Dictionary = {}
 	for ally: Dictionary in view.get("allies", []):
 		if int(ally["index"]) == int(view["active"]):

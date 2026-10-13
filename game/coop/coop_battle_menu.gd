@@ -104,6 +104,8 @@ func _open_phase() -> void:
 			_go(LEARN if _controls() else NONE, 0)
 		"mimic":
 			_go(MIMIC if _controls() else NONE, 0)
+		"offer":
+			_question(_offer_text(), {"page": PARTY}, {"choose": _command("stay")})
 
 
 func press(button: int) -> Dictionary:
@@ -220,7 +222,7 @@ func _back() -> Dictionary:
 		MIMIC:
 			return {}
 		PARTY:
-			if String(_view.get("phase", "")) == "send_out":
+			if String(_view.get("phase", "")) in ["send_out", "offer"]:
 				reopen()
 				return {}
 	return _go(MAIN, _main)
@@ -495,6 +497,8 @@ func _partners() -> Array:
 func _mark_at(said: Dictionary) -> int:
 	if page == MAIN:
 		return int(MAIN_OF.get(String(said.get("type", "")), -1))
+	if page == ASK and String(_view.get("phase", "")) == "offer":
+		return int({"switch": 0, "stay": 1}.get(String(said.get("type", "")), -1))
 	if not page in [MOVES, PARTY, BAG, RECIPIENT]:
 		return -1
 	for at: int in _count():
@@ -540,6 +544,8 @@ func _suggestion_words(said: Dictionary) -> String:
 			var whom: String = _name(String(said.get("recipient", "")))
 			var whole: String = _de("%s for %s") % [named, whom]
 			return whole if not String(said.get("recipient", "")).is_empty() and whole.length() <= 18 else named
+		"stay":
+			return _de("NO")
 	return _de("RUN")
 
 
@@ -622,6 +628,8 @@ func _mark_tile(at: int) -> Vector2i:
 	match page:
 		MAIN:
 			return Gen2BattleMenu.main_box().cursor_position(at)
+		ASK:
+			return Gen2MenuBox.yes_no().cursor_position(at)
 		MOVES:
 			return Gen2BattleMenu.move_box().cursor_position(at)
 		RECIPIENT:
@@ -784,6 +792,11 @@ func _row_move_name(row: int) -> String:
 		var moves: Array = (_view.get("enemy", {}) as Dictionary).get("moves", [])
 		return _move_name(int(moves[int(command["choice"])]))
 	return _move_name(int((_active().get("moves", []) as Array)[int(command.get("slot", 0))]))
+
+
+func _offer_text() -> String:
+	return Gen2BattleSwitchMenu.offer_text("", "", _name(String(_view.get("controller", ""))), true) \
+		.get_slice(Gen2TextStream.PAGE_BREAK, 1)
 
 
 func _take_over_text() -> String:

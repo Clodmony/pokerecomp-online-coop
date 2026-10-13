@@ -146,7 +146,7 @@ func _drive_battle() -> void:
 	var view: Dictionary = panel.battle_view()
 	if not _session.client.is_controller(String(view.get("battle", ""))):
 		return
-	var kind: String = "move" if view.get("phase") == "action" else "send_out" if view.get("phase") == "send_out" else "decline"
+	var kind: String = {"action": "move", "send_out": "send_out", "offer": "stay"}.get(view.get("phase"), "decline")
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
 		return String((entry.get("command", {}) as Dictionary).get("type", "")) == kind)
 	if row >= 0:

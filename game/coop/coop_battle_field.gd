@@ -10,7 +10,7 @@ const WORDED: Array[StringName] = [
 	Gen2Battle.FAINTED, Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW, Gen2Battle.CAUGHT, Gen2Battle.FLED,
 	Gen2Battle.EXP_GAINED, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
 	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
-	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN,
+	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN, Gen2Battle.SWITCH_OFFERED,
 ]
 
 var panel: PokeCoopBattlePanel = null
@@ -764,6 +764,9 @@ static func message(
 			return _de(game, "%s used\n%s!") % [who_acted, game.item_name(int(event.get("item", 0)))]
 		PokeCoopBattleSession.BALL_THROWN:
 			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
+		Gen2Battle.SWITCH_OFFERED:
+			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "", true) \
+				.get_slice(Gen2TextStream.PAGE_BREAK, 0)
 	return ""
 
 
