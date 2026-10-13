@@ -161,3 +161,33 @@ func test_the_tab_remembers_the_last_hosts_joined_newest_first_and_once_each() -
 	assert_eq(PokeCoopLobby.remembered()["name"], "MÖKI", "remembering one thing keeps the rest")
 	assert_eq(PokeCoopLobby.split_address(" 10.8.0.6:24850 ", 24680), ["10.8.0.6", 24850])
 	assert_eq(PokeCoopLobby.split_address("10.8.0.6", 24680), ["10.8.0.6", 24680])
+
+
+func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked() -> void:
+	var first: Dictionary = {"guid": "030000005e0400008e02000010010000", "name": "Xbox 360 Controller", "serial": "", "nth": 0}
+	var second: Dictionary = first.merged({"nth": 1}, true)
+	var pads: Array = [first.merged({"device": 0}), second.merged({"device": 1})]
+
+	assert_eq(PokeCoopLobby.SplitScreen.pads([]), [{}, {}], "no controller: both halves play by keyboard")
+	assert_eq(PokeCoopLobby.SplitScreen.pads(pads.slice(0, 1)), [PokeCoopLobby.SplitScreen.NO_PAD, first],
+		"one controller: the keyboard plays on the left, the controller on the right")
+	assert_eq(PokeCoopLobby.SplitScreen.pads(pads), [first, second])
+	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 0), Rect2i(0, 30, 960, 1050))
+	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 1), Rect2i(960, 30, 961, 1050))
+	var asked: Dictionary = PokeCoopLobby.SplitScreen.read(["127.0.0.1", PokeCoopLobby.SplitScreen.argument(24850, &"blue", second, 1)])
+	assert_eq(asked, {"port": 24850, "game": &"blue", "pad": second, "screen": 1})
+	assert_eq(PokeCoopLobby.SplitScreen.read([PokeCoopLobby.SplitScreen.ARG + Marshalls.utf8_to_base64("[24850]")]), {})
+
+	PokePadChoice.held = second
+	PokePadChoice.apply({}, pads)
+	var press := InputEventJoypadButton.new()
+	press.button_index = JOY_BUTTON_A
+	press.pressed = true
+	assert_false(press.is_action_pressed(PokeButton.action(PokeButton.A)), "Every controller in Settings, still only the half's own")
+	press.device = 1
+	assert_true(press.is_action_pressed(PokeButton.action(PokeButton.A)))
+	PokePadChoice.held = PokeCoopLobby.SplitScreen.NO_PAD
+	PokePadChoice.apply(first, pads)
+	assert_eq(PokePadChoice.device(), PokePadChoice.AWAY, "the keyboard's half hears no controller")
+	PokePadChoice.held = {}
+	PokePadChoice.apply({}, [])

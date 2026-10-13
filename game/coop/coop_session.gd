@@ -316,6 +316,7 @@ func ended_reason() -> String:
 
 
 func process() -> void:
+	PokeCoopLobby.SplitScreen.watch()
 	if _closed:
 		_finish_closing()
 		return

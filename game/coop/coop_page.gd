@@ -26,6 +26,7 @@ static var _kept: Dictionary = {}
 static var _dial: PokeCoopLobby.Dial = null
 static var _waiting: PokeCoopSession = null
 static var _listener: PokeCoopLobby.Listener = PokeCoopLobby.Listener.new()
+static var _split_joined: bool = false
 
 var _theme: Gen2LauncherTheme = null
 var _host_control: Control = null
@@ -86,10 +87,15 @@ func _build() -> void:
 	tree_exiting.connect(_on_leaving)
 	var ended: String = PokeCoopSession.ended_note
 	PokeCoopSession.ended_note = ""
-	if not ended.is_empty():
+	if not ended.is_empty() and not PokeCoopLobby.SplitScreen.asked_once().is_empty():
+		(Engine.get_main_loop() as SceneTree).quit.call_deferred()
+	elif not ended.is_empty():
 		forget()
 		_tell_ended.call_deferred("You left the session." if ended == "left" else why_not(ended))
 	_show(_restored())
+	if not _split_joined and not PokeCoopLobby.SplitScreen.asked_once().is_empty():
+		_split_joined = true
+		_join_split.call_deferred()
 
 
 static func forget() -> void:
@@ -140,6 +146,18 @@ func _tell_ended(text: String) -> void:
 	if shell != null:
 		(shell as Gen2LauncherShell).select(&"coop")
 		(shell as Gen2LauncherShell).toast().show_message(&"info", text, "")
+
+
+func _join_split() -> void:
+	var asked: Dictionary = PokeCoopLobby.SplitScreen.asked
+	PokeCoopLobby.memory_path = PokeCoopLobby.SplitScreen.MEMORY
+	PokeCoopLobby.SplitScreen.take(1, asked["pad"], int(asked["screen"]))
+	var shell: Node = get_parent()
+	while shell != null and not shell is Gen2LauncherShell:
+		shell = shell.get_parent()
+	if shell != null:
+		(shell as Gen2LauncherShell).select(&"coop")
+	_join("127.0.0.1", int(asked["port"]), asked["game"])
 
 
 func _toast(text: String, detail: String = "") -> void:
@@ -857,7 +875,21 @@ func _build_hosting() -> void:
 	var players: VBoxContainer = Gen2LauncherUI.column(0)
 	right.add_child(players)
 	_live["players"] = {"node": players, "key": ""}
-	_landing = _actions("", [["Stop hosting", _ask_stop_hosting]], ["Enter the world", _enter_world, &"play"])
+	var quiet: Array = [["Stop hosting", _ask_stop_hosting]]
+	if PokeCoopLobby.SplitScreen.available():
+		quiet.append(["Split screen", _split_screen])
+	_landing = _actions("", quiet, ["Enter the world", _enter_world, &"play"])
+
+
+func _split_screen() -> void:
+	var session: PokeCoopSession = Gen2GameRuntime.instance().coop
+	if session == null or session.host == null or not PokeCoopLobby.SplitScreen.start(session.port, session.data.id):
+		_toast("The second window did not start.")
+		return
+	var pads: int = PokePadChoice.connected().size()
+	_toast("A second player joins on the right.", "Plug in a controller for each player." if pads == 0 else
+		"The keyboard plays on the left, the controller on the right." if pads == 1 else "Each half has its own controller.")
+	_show(HOSTING)
 
 
 func _shown_address(address: String) -> String:
@@ -1436,6 +1468,7 @@ static func open_logs_folder() -> void:
 
 
 func _process(_delta: float) -> void:
+	PokeCoopLobby.SplitScreen.watch()
 	if _opening:
 		return
 	var now: int = Time.get_ticks_msec()
