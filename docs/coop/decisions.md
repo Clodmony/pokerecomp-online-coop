@@ -1706,6 +1706,11 @@ as SET, an older host ignores it). The session asks in a new `offer` phase:
 YES is a switch to any standing ally, which hands the turn over as any switch
 does, and NO (`stay`) keeps the one out; then the trainer's Pokémon comes out.
 The field says "X is about to use Y!" to every window, the deciding window
-asks the question, and a partner may suggest either answer. Baton Pass and
+asks the question, and a partner may suggest either answer. As on the
+cartridge, the trainer's balls stand under the question and go before "X sent
+out" (D108's one difference is gone where SHIFT asks), and its YES/NO, like
+"Use next POKéMON?"'s, stands where the battle screen puts `OfferSwitch`'s,
+over the player's own Pokémon. A scripted window's `auto_battle` leaves the
+question up three seconds before it answers NO, so a capture can catch it. Baton Pass and
 the Generation 2 half of #28 stay with the later milestone (D61); Mimic
 already asks the owner of the Pokémon that used it.
