@@ -106,14 +106,29 @@ over a one-pocket bag.
 
 Generation 3 is starting. Settings > Advanced > Dev cartridges puts these on
 the shelf. An import reads their species with Pokédex entries, moves, types,
-matchup chart, items, abilities, trainers, map headers, layouts, tilesets and
-events, map script entry points and reachable bytecode, wild encounters and
-front/back pictures with normal and shiny palettes. Picture frames and all 28 Unown forms are retained; none of these
-cartridges is playable.
-`tools/import_rom.gd` skips them unless given `--dev`. Static map previews use
-`godot --headless --path . -s res://tools/preview_world.gd -- emerald 0 9 /tmp/littleroot.png`;
-Script bytecode is decoded and cached; script execution and tileset animation
-await the GBA world model.
+matchup chart, items, abilities, trainers, map headers, layouts, tilesets with
+their animation frames and timing, events, map script entry points, reachable
+bytecode and the texts, braille, movement lists and marts it names, wild
+encounters and front/back pictures with normal and shiny palettes. Picture
+frames and all 28 Unown forms are retained; none of these cartridges is
+playable. `tools/import_rom.gd` skips them unless given `--dev`. Static map
+previews use
+`godot --headless --path . -s res://tools/preview_world.gd -- emerald 0 9 /tmp/littleroot.png`
+and draw the map as the field loads it, with the neighbouring maps' edges and
+the border around it; a frame count after the path renders the map that many
+tileset animation frames in. The field's camera steps across map connections
+as the cartridge's does, spawning and removing the map's objects as they enter
+and leave the view, and its collision test answers as the cartridge's. Basic
+held object movements run frame by frame through
+[Gen3ObjectEvents](game/gen3/gen3_object_events.gd),
+retaining each engine's action numbers, walk cadence, jump arcs and collision
+occupancy until arrival. [Gen3PlayerAvatar](game/gen3/gen3_player_avatar.gd)
+consumes ledge, surf dismount and Strength collision requests through per-frame
+movement tasks, including FireRed/LeafGreen boulder falls and switch dispatch.
+[Rotating-gate puzzles](game/gen3/gen3_player_avatar.gd) keep their orientations in
+temporary event variables and emit rotation requests. Autonomous movement and
+object and gate rendering await the field host. Script
+bytecode and its data are decoded and cached; script execution awaits the rest of the GBA world model.
 
 | Game | SHA-1 |
 |---|---|
@@ -409,7 +424,7 @@ or a group, or `all`; with no argument it lists them.
 | `art` | Both intro movies, the credits of all six cartridges, the region map, all 278 battle animations, the map name sign |
 | `tables` | TM/HM, naming, world scripts, the opening lane |
 | `trainers` | The Route 30 trainer on each profile |
-| `gen3` | Ruby, Sapphire, FireRed, LeafGreen and Emerald's content tables, individual trainer parties, map headers, layouts, tilesets and events, script entry points and bytecode, wild encounters and all imported Pokémon and trainer pictures |
+| `gen3` | Ruby, Sapphire, FireRed, LeafGreen and Emerald's content tables, individual trainer parties, map headers, layouts, tilesets, tileset animations and events, the field's map grids, camera crossings, object spawns, autonomous patrols, fixed facings and in-place paces, held movements with contextual facing, visibility and priority flags and emote requests, and collisions, player avatar initialization, collision requests and movement tasks, boulder falls and switches, Hoenn rotating-gate puzzles, script entry points, bytecode, texts, movements and marts, wild encounters and all imported Pokémon and trainer pictures |
 | `gen1` | Red, Blue and Yellow's species, move, type, item and trainer tables, the key-item and usable-item tables behind the bag, every picture their sprite codec decodes, all 226 or 227 maps with their tilesets, the text box, shop inventory and wild encounter a map reads, every trainer and standing wild an object stands on, all 202 or 203 battle animations, the Hall of Fame's own pages, the opening from the copyright screen to the title on all three, the Cable Club from its receptionist through a trade and a Colosseum fight against another save of the same cartridge, every sound a script row plays and the rival's own theme, Yellow's follower: its emotion table, its faces, its 42 voice clips and the spawn every warp leaves it, and a new game played on the real screens from the copyright screen to the first badge on all three, every button through `press_button` and the sound driver clocked a frame a frame |
 
 The rest are previews and dumps, each driving a real screen or table:

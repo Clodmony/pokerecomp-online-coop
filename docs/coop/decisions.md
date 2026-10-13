@@ -102,7 +102,7 @@ running battles as fled (D37). Story changes between checkpoints are journaled (
 Upstream's ceiling sat exactly at its own count (41016), leaving no room for a
 new subsystem. It was raised for `game/coop` and the co-op tools, to 41115 as
 of the real-screen slice, to 41342 with the battle stage (D39), and to
-41343 with upstream's own +1 in 0.1.75 (D97), and to 41347 with wild Pokémon from both versions (D104). Co-op code keeps upstream's comment style: only facts
+41343 with upstream's own +1 in 0.1.75 (D97), to 41347 with wild Pokémon from both versions (D104), and to 41583 with upstream's own +229 in 0.1.76 to 0.1.78 (D110). Co-op code keeps upstream's comment style: only facts
 the code cannot say.
 
 ## D14. SET battle style in shared battles (2026-10-05)
@@ -1646,3 +1646,19 @@ world opens and puts back the cartridge's twenty when it closes, so a solo
 game is unchanged. The host's own spill of a gift to the PC uses the same
 forty. A co-op bag never reaches a cartridge `.sav`: windows save JSON slots,
 and only the launcher exports solo saves. The PC keeps its fifty.
+
+## D110. Upstream 0.1.78 merged (owner's choice, #126, 2026-10-13)
+
+The owner picked an upstream sync as the next issue. The merge is the
+`v0.1.78` tag (`588d0f2`), three releases of Generation 3 field work since
+0.1.75; upstream's `main` past the tag only lists the release in its AltStore
+source. Godot stays at 4.8-dev7. The only conflict was the comment ceiling:
+both sides had raised 41017 (co-op +337, upstream +229), so it takes both
+raises, 41583. Upstream's export-template workflow gained a push trigger on
+`main`; its job keeps the `Decryptu/pokerecomp` guard, so it never runs in
+the fork. No upstream table keyed by game id was added, so the German ids need
+nothing. Upstream's cache format went from 170 to 174 through Generation 3
+imports only; no Generation 1 import code changed, so the cartridge checks ran
+on a private copy of the Red cache stamped 174 (`REAL_USER_DIR`), and the
+owner's own caches show "Update needed" until each dump is imported again.
+The co-op campaign format and saves are unchanged.

@@ -8,7 +8,8 @@ specified in [design.md](design.md); status is in [progress.md](progress.md).
 Baseline: `Decryptu/pokerecomp` at
 `696d1c9a1d345ae08fd7febac8aa320aed6608b5` (0.1.72, Godot 4.8-dev4). The
 review leads in the brief were checked against that checkout. The fork has
-since merged upstream `v0.1.75` (`17c8da8`, Godot 4.8-dev7, D97); see
+since merged upstream `v0.1.75` (`17c8da8`, Godot 4.8-dev7, D97) and `v0.1.78`
+(`588d0f2`, D110); see
 [Merging upstream](#merging-upstream).
 
 | Lead | Finding at `696d1c9` |
@@ -255,6 +256,10 @@ Upstream is merged by release tag, never by its `main` (#14, D97):
 5. Import, the whole suite, the boot smoke test, the ENet demo and the
    three-process check on the new pin; then the owner's cartridge checks
    (`playthrough_brock`, `cable_club_trade`) before the pull request merges.
+   A new `RomCache.FORMAT_VERSION` makes the owner's caches stale. When the
+   bump touched no Generation 1 import code, the checks run on a scratch copy
+   of the Red cache with the new number in its manifest, passed as
+   `REAL_USER_DIR` (D110); the owner's own folder stays as it was.
 
 ## Planned changes
 

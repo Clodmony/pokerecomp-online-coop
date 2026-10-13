@@ -12,9 +12,15 @@ on:
     paths:
       - tools/build_export_templates.sh
       - .github/workflows/export-templates.yml
+  # Tag caches cannot serve later tags; warm the shared default-branch cache.
+  push:
+    branches: [main]
+    paths:
+      - tools/build_export_templates.sh
+      - .github/workflows/export-templates.yml
   # Scheduled reads keep the costly template cache alive.
   schedule:
-    - cron: "17 4 * * 1"
+    - cron: "17 4 * * 1,4"
   workflow_dispatch:
     inputs:
       ref:

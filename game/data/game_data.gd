@@ -352,20 +352,26 @@ func world_map_script_entries(group: int, number: int) -> Array:
 	return world_map_header(group, number).get("map_scripts", [])
 
 
-func world_script_offsets() -> Array[int]:
+## Dump offsets of the instructions, or of one of [constant Gen3Script.DATA_TABLES].
+func world_script_offsets(table: String = "instructions") -> Array[int]:
 	var out: Array[int] = []
 	if generation != RomRegistry.GEN3:
 		return out
-	for key: String in _scripts().get("instructions", {}):
+	for key: String in _scripts().get(table, {}):
 		out.append(int(key))
 	out.sort()
 	return out
 
 
 func world_script_instruction(offset: int) -> Dictionary:
+	return world_script_data("instructions", offset)
+
+
+## A text, braille, movement or mart record a script operand names.
+func world_script_data(table: String, offset: int) -> Dictionary:
 	if generation != RomRegistry.GEN3 or offset < 0:
 		return {}
-	return _coerce_service_dictionary(_scripts().get("instructions", {}).get(str(offset), {}), _blob("scripts"))
+	return _coerce_service_dictionary(_scripts().get(table, {}).get(str(offset), {}), _blob("scripts"))
 
 
 func world_standard_script_offset(index: int) -> int:
@@ -373,6 +379,14 @@ func world_standard_script_offset(index: int) -> int:
 		return -1
 	var offsets: Array = _scripts().get("standard", [])
 	return int(offsets[index]) if index < offsets.size() else -1
+
+
+## `ranged` and `facing` for one `MOVEMENT_TYPE_*`; empty past the cartridge's.
+func world_movement_type(type: int) -> Dictionary:
+	if generation != RomRegistry.GEN3 or type < 0:
+		return {}
+	var types: Array = _scripts().get("movement_types", [])
+	return _coerce_service_dictionary(types[type]) if type < types.size() else {}
 
 
 func world_map_layout(group: int, number: int) -> Dictionary:
