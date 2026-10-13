@@ -23,6 +23,7 @@ var _rival_name: String = ""
 var _by_address: bool = false
 var _both_versions: bool = false
 var _tour: String = ""
+var _keys_field: String = ""
 var _rounds: Array = []
 var _round: int = -1
 var _steps: Array = []
@@ -177,9 +178,10 @@ func _tour_host() -> Array:
 
 func _tour_join() -> Array:
 	return [_until_heard, _shot.bind("start_nearby"), _press.bind("JOIN"), _shot.bind("join"),
+		_open_keys.bind("address"), _shot.bind("keys_address"), _close_keys,
 		_type.bind("address", "127.0.0.1:%d" % (_port + 7)), _press.bind("Join"), _shot.bind("connecting"), _wait.bind(260),
 		_shot.bind("failure"), _press.bind("Cancel"), _join_host, _until_screen.bind(PokeCoopPage.NEW_PLAYER), _fill_new_player,
-		_shot.bind("new_player"), _press_join_as, _until_world, _until_launcher, _wait.bind(30), _shot.bind("sent_back"),
+		_shot.bind("new_player"), _open_keys.bind("name"), _shot.bind("keys_name"), _close_keys, _press_join_as, _until_world, _until_launcher, _wait.bind(30), _shot.bind("sent_back"),
 		_press.bind("HOST"), _shot.bind("host_other_version"), _press.bind("Back"), _press.bind("Join again"), _until_known, _shot.bind("connecting_known"), _join_as]
 
 
@@ -245,6 +247,27 @@ func _type(field: String, text: String) -> bool:
 	(found[0] as LineEdit).text = text
 	(found[0] as LineEdit).text_changed.emit(text)
 	return true
+
+
+func _open_keys(field: String) -> bool:
+	_keys_field = field
+	var found: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool:
+		return node is LineEdit and node.name == field and (node as Control).is_visible_in_tree())
+	if found.is_empty():
+		return false
+	if not get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).any(func(sheet: Node) -> bool: return not sheet.is_queued_for_deletion()):
+		(found[0] as LineEdit).grab_focus()
+		for down: bool in [true, false]:
+			var press := InputEventJoypadButton.new()
+			press.button_index = JOY_BUTTON_A
+			press.pressed = down
+			root.push_input(press)
+	return true
+
+
+func _close_keys() -> bool:
+	_keys_field = ""
+	return _press("Done")
 
 
 func _wait(frames: int) -> bool:
@@ -411,4 +434,6 @@ func _apply_look(index: int) -> void:
 		_launcher().call(&"select_page", &"coop")
 		if _shot_reopen.is_valid():
 			_shot_reopen.call_deferred()
+	if not _keys_field.is_empty():
+		_open_keys.call_deferred(_keys_field)
 	_look_at = _frames

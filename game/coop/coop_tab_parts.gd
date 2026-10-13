@@ -6,6 +6,8 @@ extends RefCounted
 const LONG_PRESS_MSEC: int = 550
 const SHEET_WIDTH: float = 640.0
 const SHEET_MARGIN: float = 24.0
+const NAME_KEYS: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-."
+const ADDRESS_KEYS: String = "123456789.0:"
 
 
 static func text(theme: Gen2LauncherTheme, words: String, size: int = Gen2LauncherTheme.FONT_BODY,
@@ -121,6 +123,44 @@ static func badge(theme: Gen2LauncherTheme, glyph: StringName, fill: Color, ink:
 	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	out.add_child(mark)
+	return out
+
+
+static func keys(theme: Gen2LauncherTheme, field: LineEdit, address: bool, from_bottom: bool) -> Sheet:
+	var sheet: Sheet = Sheet.make(theme, from_bottom)
+	var shown: Label = text(theme, field.text + "_", Gen2LauncherTheme.FONT_TITLE + 3)
+	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sheet.body().add_child(shown)
+	var put := func(value: String) -> void:
+		if field.max_length > 0 and value.length() > field.max_length:
+			return
+		field.text = value
+		field.caret_column = value.length()
+		field.text_changed.emit(value)
+		shown.text = value + "_"
+	var grid := GridContainer.new()
+	grid.columns = 3 if address else (5 if from_bottom else 8)
+	grid.add_theme_constant_override("h_separation", Gen2LauncherUI.GAP_SM)
+	grid.add_theme_constant_override("v_separation", Gen2LauncherUI.GAP_SM)
+	sheet.body().add_child(grid)
+	for letter: String in (ADDRESS_KEYS if address else NAME_KEYS).split(""):
+		grid.add_child(_key(theme, letter, func() -> void: put.call(field.text + letter)))
+	var row: BoxContainer = sheet.actions()
+	if not address:
+		row.add_child(_key(theme, "Space", func() -> void: put.call(field.text + " ")))
+	row.add_child(_key(theme, "Delete", func() -> void: put.call(field.text.left(-1))))
+	row.add_child(_key(theme, "Done", sheet.close, Gen2LauncherButton.Variant.PRIMARY))
+	sheet.dismissed.connect(sheet.close)
+	field.tree_exiting.connect(sheet.queue_free)
+	return sheet
+
+
+static func _key(theme: Gen2LauncherTheme, label: String, run: Callable,
+		kind: Gen2LauncherButton.Variant = Gen2LauncherButton.Variant.NEUTRAL) -> Gen2LauncherButton:
+	var out: Gen2LauncherButton = Gen2LauncherButton.create(theme, label, kind)
+	out.custom_minimum_size = Vector2(Gen2LauncherUI.TOUCH_TARGET - 4.0, Gen2LauncherUI.TOUCH_TARGET - 4.0)
+	out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	out.pressed.connect(run)
 	return out
 
 

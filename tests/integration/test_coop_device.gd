@@ -777,6 +777,16 @@ func test_a_device_the_host_knows_joins_as_its_trainer_in_one_press() -> void:
 	assert_eq(joining.client.player_id, blue_id)
 
 
+func test_join_dials_the_remembered_address_the_field_shows() -> void:
+	PokeCoopLobby.remember({"address": "127.0.0.1:%d" % (PORT + 9)})
+	var page: PokeCoopPage = _tab()
+	_press(page, "JOIN")
+	_press(page, "Join")
+	var dial: PokeCoopLobby.Dial = PokeCoopPage.dialling()
+	assert_not_null(dial, "Join dials what the field shows without a keystroke")
+	_press(page, "Cancel")
+
+
 func test_a_failed_join_says_what_to_check_for_the_address_and_keeps_trying() -> void:
 	var page: PokeCoopPage = _tab()
 	_press(page, "JOIN")
@@ -849,6 +859,56 @@ func test_a_pad_reaches_every_button_and_field_on_the_co_op_tabs_screens() -> vo
 		).map(func(control: Control) -> String: return "%s %s" % [control.get_class(), control.get_meta("label", control.name)])
 		assert_eq(missed, [], "%s: the d-pad reaches every button and field" % screen)
 	Gen2OptionsStore.use_test_path()
+
+
+func test_a_pad_types_an_address_and_a_name_on_the_tabs_own_keys() -> void:
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
+	PokeCoopPage.forget()
+	var launcher: Control = await _launcher_on_coop_tab()
+	var page: PokeCoopPage = launcher.find_children("*", "Control", true, false).filter(
+		func(node: Node) -> bool: return node is PokeCoopPage)[0]
+	page._show(PokeCoopPage.JOIN)
+	await wait_frames(4)
+	var address: LineEdit = launcher.get_viewport().gui_get_focus_owner()
+	assert_eq(address.name, "address")
+	await _pad_press(JOY_BUTTON_A)
+	var keys: Array = get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP)
+	assert_eq(keys.size(), 1, "A on the field opens the keys")
+	if keys.is_empty():
+		Gen2OptionsStore.use_test_path()
+		return
+	var landed: Control = launcher.get_viewport().gui_get_focus_owner()
+	assert_true(landed != null and (keys[0] as Node).is_ancestor_of(landed), "the pad lands on a key")
+	var on_card: Array = (keys[0] as Node).find_children("*", "BaseButton", true, false)
+	assert_eq(on_card.filter(func(key: Control) -> bool: return not _pad_reach(landed).has(key)), [], "the d-pad reaches every key")
+	for key: String in Array("127.0.0.19".split("")) + ["Delete"] + Array((":%d" % (PORT + 9)).split("")):
+		assert_true(_press(page, key), "a key for %s" % key)
+	await _pad_press(JOY_BUTTON_B)
+	assert_eq(address.text, "127.0.0.1:%d" % (PORT + 9))
+	assert_eq(launcher.get_viewport().gui_get_focus_owner(), address, "B puts the pad back on the field")
+	_press(page, "Join")
+	assert_not_null(PokeCoopPage.dialling(), "Join dials what the keys typed")
+	_press(page, "Cancel")
+
+	page._show(PokeCoopPage.NEW_PLAYER)
+	await wait_frames(4)
+	await _pad_press(JOY_BUTTON_A)
+	for key: String in ["Delete", "Delete", "Delete", "A", "S", "H", "Space", "K"]:
+		assert_true(_press(page, key), "a key for %s" % key)
+	_press(page, "Done")
+	await wait_frames(2)
+	assert_eq(page._name(), "ASH K")
+	assert_eq(get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).size(), 0, "Done closes the keys")
+	Gen2OptionsStore.use_test_path()
+
+
+func _pad_press(button: JoyButton) -> void:
+	for down: bool in [true, false]:
+		var event := InputEventJoypadButton.new()
+		event.button_index = button
+		event.pressed = down
+		Input.parse_input_event(event)
+		await wait_frames(2)
 
 
 func test_a_pad_entering_the_co_op_tab_lands_on_host() -> void:
