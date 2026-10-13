@@ -1,5 +1,5 @@
 # RED holds DOWN in START > CO-OP, then in a wild PIDGEY's move list: the cursor walks on
-# at the cartridge's repeat rate rather than stopping after one row (#43, test cases P08).
+# at the cartridge's repeat rate rather than stopping after one row (#43, test cases P09).
 DURATION=30
 press p1 1.8 START D D D D D           # POKéMON, ITEM, RED, SAVE, OPTION, CO-OP
 press p1 4.2 A
