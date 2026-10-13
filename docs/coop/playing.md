@@ -183,6 +183,9 @@ or one after another:
   menu and on the row, and spelled out in their text box while they wait
   ("BLUE suggests / EMBER"). It never acts by itself.
 - After choosing a ball you pick whom the catch is for.
+- With BATTLE STYLE SHIFT in your OPTION menu, a trainer about to send out its
+  next Pokémon asks "Will RED change POKéMON?" whenever your Pokémon is out;
+  your partner's own setting decides for theirs. With SET you are not asked.
 - If the deciding player drops, the battle waits. After thirty seconds the
   others are asked "Take over?": YES decides for that player's Pokémon until
   they are back, NO goes on waiting. Nobody plays your Pokémon unless they
