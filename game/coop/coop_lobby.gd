@@ -404,3 +404,96 @@ class Dial extends RefCounted:
 		if client != null:
 			client.transport.close()
 		client = null
+
+
+class SplitScreen extends RefCounted:
+	const ARG: String = "coop-split="
+	const NO_PAD: Dictionary = {"guid": "keyboard", "name": "Keyboard", "serial": "", "nth": 0}
+	const MEMORY: String = "user://coop_tab_split.json"
+
+	static var partner_pid: int = 0
+	static var asked: Dictionary = {}
+	static var tool_args: PackedStringArray = []
+	static var _read: bool = false
+	static var _before: Dictionary = {}
+
+	static func available() -> bool:
+		return OS.has_feature("pc") and DisplayServer.get_name() != "headless" and partner_pid == 0 and asked.is_empty()
+
+	static func pads(connected: Array) -> Array:
+		if connected.is_empty():
+			return [{}, {}]
+		var first: Dictionary = PokePadChoice.sanitize(connected[0])
+		return [NO_PAD, first] if connected.size() == 1 else [first, PokePadChoice.sanitize(connected[1])]
+
+	static func half(area: Rect2i, side: int) -> Rect2i:
+		var left: int = area.size.x / 2
+		return Rect2i(area.position + Vector2i(left * side, 0), Vector2i(left if side == 0 else area.size.x - left, area.size.y))
+
+	static func argument(port: int, game: StringName, pad: Dictionary, screen: int) -> String:
+		return ARG + Marshalls.utf8_to_base64(JSON.stringify({"port": port, "game": String(game), "pad": pad, "screen": screen}))
+
+	static func read(args: PackedStringArray) -> Dictionary:
+		for arg: String in args:
+			var parsed: Variant = JSON.parse_string(Marshalls.base64_to_utf8(arg.trim_prefix(ARG))) if arg.begins_with(ARG) else null
+			if parsed is Dictionary and int((parsed as Dictionary).get("port", 0)) > 0:
+				return {"port": clampi(int(parsed["port"]), 1, 65535), "game": StringName(String(parsed.get("game", ""))),
+					"pad": PokePadChoice.sanitize(parsed.get("pad", {})), "screen": int(parsed.get("screen", 0))}
+		return {}
+
+	static func asked_once() -> Dictionary:
+		if not _read:
+			_read = true
+			asked = read(OS.get_cmdline_user_args())
+		return asked
+
+	static func start(port: int, game: StringName) -> bool:
+		var halves: Array = pads(PokePadChoice.connected())
+		var screen: int = DisplayServer.window_get_current_screen()
+		var args: PackedStringArray = [] if OS.has_feature("template") else ["--path", ProjectSettings.globalize_path("res://")]
+		args.append_array(tool_args)
+		if not args.has("--"):
+			args.append("--")
+		args.append(argument(port, game, halves[1], screen))
+		partner_pid = maxi(OS.create_process(OS.get_executable_path(), args), 0)
+		if partner_pid > 0:
+			take(0, halves[0], screen)
+		return partner_pid > 0
+
+	static func take(side: int, pad: Dictionary, screen: int) -> void:
+		if _before.is_empty():
+			_before = {"mode": DisplayServer.window_get_mode(), "borderless": DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS),
+				"on_top": DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP),
+				"rect": Rect2i(DisplayServer.window_get_position(), DisplayServer.window_get_size()),
+				"ignore": Input.ignore_joypad_on_unfocused_application}
+		var whole := Rect2i(DisplayServer.screen_get_position(screen), DisplayServer.screen_get_size(screen))
+		var rect: Rect2i = half(whole, side)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+		DisplayServer.window_set_position(rect.position)
+		DisplayServer.window_set_size(rect.size)
+		Input.ignore_joypad_on_unfocused_application = false
+		PokePadChoice.held = pad
+		PokePadChoice.apply()
+		print("coop split: %s half at %s of screen %s, controller %s" % ["left" if side == 0 else "right", rect, whole, pad.get("name", "every")])
+
+	static func watch() -> void:
+		if partner_pid > 0 and not OS.is_process_running(partner_pid):
+			end()
+
+	static func end() -> void:
+		partner_pid = 0
+		if _before.is_empty():
+			return
+		var rect: Rect2i = _before["rect"]
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, bool(_before["borderless"]))
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, bool(_before["on_top"]))
+		DisplayServer.window_set_position(rect.position)
+		DisplayServer.window_set_size(rect.size)
+		DisplayServer.window_set_mode(_before["mode"])
+		Input.ignore_joypad_on_unfocused_application = bool(_before["ignore"])
+		_before = {}
+		PokePadChoice.held = {}
+		PokePadChoice.apply()
+		print("coop split: the window has the whole screen again")

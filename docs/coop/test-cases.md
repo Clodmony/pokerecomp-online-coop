@@ -62,6 +62,8 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | K14 | START > CO-OP on the hosting device | The header shows `IP <address>` partners join at | | launcher_host_join | |
 | K15 | Host with Blaue selected on a device that has a Rote campaign (and Blue with a Red one) | The Rote campaign is listed, labelled "Rote campaign"; Host plays it with the Blaue cartridge and its file stays in `coop_campaigns/red_de/`; Rename and Delete work on it | `test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder` | coop_tab_tour (host_other_version) | |
 | K16 | JOIN on a device that joined by address before, then Join without touching the field | Join dials the address the field shows (it once asked to type it until a digit was deleted and typed again) | `test_join_dials_the_remembered_address_the_field_shows` | | |
+| K17 | On Hosting on a PC, Split screen; on the right, name the second player and join | The window takes the left half of the screen and a second window the right half, over the taskbar (on KDE only with the panel on Auto hide), joined at 127.0.0.1; with one controller the keyboard plays on the left and the controller on the right, with two each half has its own, also while the other half has the focus | `test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked` | local_split | |
+| K18 | The host leaves the split-screen session (or the right half's window closes) | The right window closes by itself; the left gets back its size, its frame and the controller Settings picked | | local_split | |
 
 ## Wild Pokémon from both versions
 

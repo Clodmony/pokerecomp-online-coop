@@ -1,8 +1,8 @@
 extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
-##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join [name=RED] [starter=0..2]
-##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright
+##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split]
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen, whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
 
 const LAUNCHER: String = "res://game/main/main.tscn"
 const STEP_FRAMES: int = 20
@@ -22,6 +22,7 @@ var _rival: int = -1
 var _rival_name: String = ""
 var _by_address: bool = false
 var _both_versions: bool = false
+var _split: bool = false
 var _tour: String = ""
 var _keys_field: String = ""
 var _rounds: Array = []
@@ -41,7 +42,7 @@ func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if not _read_option(arg):
 			positional.append(arg)
-	if positional.size() < 3 or not _role in ["host", "join"]:
+	if positional.size() < 3 or not _role in ["host", "join", "partner"]:
 		push_error("usage: <address> <port> <player> [game] host|join [name=] [starter=] [round=<frame>[:<title>]] [tour=<dir>]")
 		quit(2)
 		return
@@ -53,6 +54,9 @@ func _initialize() -> void:
 	PokeCoopPage.host_port = _port
 	PokeCoopLobby.beacon_port = _port + 1
 	PokeCoopLobby.memory_path = "user://coop_tab_%s.json" % _player_id
+	if _split:
+		PokeCoopLobby.SplitScreen.tool_args = PackedStringArray(["--max-fps", str(Engine.max_fps), "-s", "res://tools/coop_launcher_play.gd", "--"]) \
+			+ OS.get_environment("COOP_SPLIT_ARGS").split(" ", false)
 	if _rounds.is_empty():
 		_rounds.append({"at": KEYS_START_FRAMES, "campaign": ""})
 	var launcher: Node = (load(LAUNCHER) as PackedScene).instantiate()
@@ -63,8 +67,10 @@ func _initialize() -> void:
 func _read_option(arg: String) -> bool:
 	var value: String = arg.get_slice("=", 1)
 	match arg.get_slice("=", 0):
-		"host", "join":
+		"host", "join", "partner":
 			_role = arg
+		"split":
+			_split = true
 		"name":
 			_trainer = value.to_upper()
 		"starter":
@@ -82,7 +88,7 @@ func _read_option(arg: String) -> bool:
 		"round":
 			_rounds.append({"at": value.get_slice(":", 0).to_int(), "campaign": value.get_slice(":", 1).replace("_", " ")})
 		_:
-			return super(arg)
+			return arg.begins_with(PokeCoopLobby.SplitScreen.ARG) or super(arg)
 	return true
 
 
@@ -108,7 +114,7 @@ func _hold_keys() -> void:
 	if _in_world:
 		_in_world = false
 		var shell: Gen2LauncherShell = current_scene.get("_shell")
-		print("coop launcher: %s back at the launcher, on its %s page" % [_player_id, shell.current_page()])
+		print("coop launcher: %s back at the launcher, on its %s page%s" % [_player_id, shell.current_page(), _window()])
 
 
 func _note_world() -> void:
@@ -123,7 +129,11 @@ func _note_world() -> void:
 		_player_id, _round + 1, (session.client.state.get("campaign", {}) as Dictionary).get("title", ""),
 		session.client.campaign_id, session.client.player_id, me.get("name", ""), int(me.get("trainer_id", 0)),
 		",".join(team), (me.get("opening", {}) as Dictionary).get("stage", "done"), current_scene.name,
-	])
+	] + _window())
+
+
+func _window() -> String:
+	return ", window at %s" % Rect2i(DisplayServer.window_get_position(), DisplayServer.window_get_size()) if _split or _role == "partner" else ""
 
 
 func _read_speech() -> void:
@@ -158,9 +168,13 @@ func _drive_round() -> void:
 
 
 func _plan(campaign: String) -> Array:
+	if _role == "partner":
+		return [_join_as]
 	var plan: Array = [_open_tab, _choose_cartridge]
 	if _role == "host":
 		plan.append_array([_shot.bind("start"), _press.bind("HOST"), _shot.bind("host"), _host_or_create.bind(campaign)])
+		if _split:
+			plan.append_array([_until_hosting, _press.bind("Split screen"), _shot.bind("split_hosting"), _until_partner])
 		plan.append_array(_tour_host() if not _tour.is_empty() else [_until_hosting, _press.bind("Enter the world")])
 	else:
 		plan.append_array(_tour_join() if not _tour.is_empty() else [_press.bind("JOIN"), _join_host, _join_as])
