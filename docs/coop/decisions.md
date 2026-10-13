@@ -1780,3 +1780,31 @@ written to the options file. Both halves turn off
 without the focus still hears its pad. The right window quits when its
 session ends; the left gets its size, frame, controller and that setting back
 once the right window's process is gone.
+
+## D117. A split screen's halves take the controller their player presses (#140, 2026-10-13)
+
+Split screen gave the left half the first connected controller and the right
+half the second, ignoring Settings' pick. On a machine where another program
+plugs in virtual pads (two "Microsoft X-Box pad" devices, the same GUID and
+name, no serial), the halves got whichever came first, and a virtual pad
+pressed by that program moved a player by itself. Godot cannot tell a virtual
+pad from a real one, so the players say which is theirs: before the second
+window starts, a sheet asks each half to press A (or Enter for the keyboard,
+one half only); a controller already taken does not count. Settings' pick, if
+plugged in, plays on the left without asking. With no controller, both halves
+play by keyboard as before. In a normal window the pick already kept the
+virtual pads out: a probe with two virtual pads pressing showed their buttons
+in Godot's raw joypad state but no game action, also after one was unplugged
+and plugged back in.
+
+## D118. QUIT BOTH, and the right half's exit code (#139, 2026-10-13)
+
+The halves are borderless, so neither has a close button. SELECT > QUIT BOTH
+on either half closes both: on the host it is the window's own goodbye
+(`quit_after_goodbye`), which the right half already follows out; on the right
+half it says goodbye and quits with exit code 3, which the host reads from
+its child process (`OS.get_process_exit_code`) and follows. No protocol
+message was needed. The right half no longer redials a host that dropped:
+the host runs on the same device, so a dropped link means its window is gone,
+and the right half gives up at once instead of after 60 tries of 2 s.
+
