@@ -39,6 +39,8 @@ var next_mon_serial: int = 1
 var opening: Dictionary = {}
 ## The player's world state keys other than the bag and wallet ([member items], [member money]). See [PokeCoopOwnership].
 var world: Dictionary = {}
+## The BATTLE STYLE the player's own OPTIONS hold, told with each battle they start or join; not saved.
+var battle_shift: bool = false
 
 
 static func create(id: String, player_name: String, trainer: int) -> PokeCoopPlayer:

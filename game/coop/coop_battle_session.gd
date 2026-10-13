@@ -10,13 +10,14 @@ const AWAITING_ACTION: StringName = &"action"
 const AWAITING_SEND_OUT: StringName = &"send_out"
 const AWAITING_LEARN: StringName = &"learn"
 const AWAITING_MIMIC: StringName = &"mimic"
+const AWAITING_OFFER: StringName = &"offer"
 const OVER: StringName = &"over"
 
 const JOINED: StringName = &"coop_joined"
 const ITEM_USED: StringName = &"coop_item_used"
 const BALL_THROWN: StringName = &"coop_ball_thrown"
 const CAUGHT: StringName = &"caught"
-const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out"]
+const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out", "stay"]
 
 var id: String = ""
 var encounter: Dictionary = {}
@@ -123,6 +124,8 @@ func phase() -> StringName:
 		return OVER
 	if battle.awaiting_mimic() == Gen2Battle.PLAYER:
 		return AWAITING_MIMIC
+	if battle.awaiting_switch_offer() >= 0:
+		return AWAITING_OFFER
 	if battle.awaiting_baton_pass() == Gen2Battle.PLAYER or battle.must_replace(Gen2Battle.PLAYER):
 		return AWAITING_SEND_OUT
 	return AWAITING_ACTION
@@ -292,6 +295,8 @@ func _apply(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 				var events: Array = battle.answer_mimic(PokeCoopTransport.number(command.get("choice"), -1))
 				if battle.awaiting_mimic() != before:
 					return _done(events)
+		AWAITING_OFFER:
+			return _answer_offer(kind, PokeCoopTransport.number(command.get("index"), -1))
 	return _refused(&"invalid_command")
 
 
@@ -382,6 +387,14 @@ func _send_out(kind: String, index: int) -> Dictionary:
 	return _done(events)
 
 
+func _answer_offer(kind: String, index: int) -> Dictionary:
+	if kind == "stay":
+		return _done(battle.answer_switch_offer(-1))
+	if kind != "switch" or not battle.party(Gen2Battle.PLAYER).can_send_out(index):
+		return _refused(&"invalid_switch")
+	return _done(battle.answer_switch_offer(index))
+
+
 func _learn(kind: String, forget_slot: int) -> Dictionary:
 	var offer: Dictionary = battle.pending_learn(Gen2Battle.PLAYER)
 	var events: Array = []
@@ -394,10 +407,12 @@ func _learn(kind: String, forget_slot: int) -> Dictionary:
 	return _done(events)
 
 
-## The enemy's own side of a question, its replacement after a faint: SET style raises no switch offer for the player.
+## The enemy's replacement after a faint, offered first as a switch to whoever decides if their own BATTLE STYLE is SHIFT.
 func _settle(events: Array) -> void:
 	while not battle.is_over() and battle.must_replace(Gen2Battle.ENEMY) \
-			and not battle.must_replace(Gen2Battle.PLAYER):
+			and not battle.must_replace(Gen2Battle.PLAYER) and battle.awaiting_switch_offer() < 0:
+		var decider: PokeCoopPlayer = _members.get(controller(), null)
+		battle.battle_style_set = decider == null or not decider.battle_shift
 		var sent: Array = battle.replace_fallen()
 		events.append_array(sent)
 		if sent.is_empty():
@@ -540,7 +555,7 @@ func view() -> Dictionary:
 		"owner": owner_deciding(), "learning": battle.pending_learn(Gen2Battle.PLAYER).duplicate(),
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"left": _left.keys(), "attached": _attached.keys(), "stand_in_due": stand_in_due(),
-		"active": party.active, "allies": allies,
+		"active": party.active, "allies": allies, "offer": battle.awaiting_switch_offer(),
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
 		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
 		"enemy_states": party_states(battle.party(Gen2Battle.ENEMY)),

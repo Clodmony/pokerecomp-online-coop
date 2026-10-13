@@ -294,6 +294,7 @@ func _dial(player_id: String, probed: PokeCoopClient = null) -> bool:
 		return false
 	client = probed if probed != null else PokeCoopClient.over(link_in)
 	client.journal = journal
+	client.options = Gen2OptionsStore.current()
 	client.streams_log = host == null
 	client.greet(
 		String(_greeting["name"]), data.id, data.sha1, player_id, int(_greeting["starter"]),
