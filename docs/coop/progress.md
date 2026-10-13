@@ -11,6 +11,22 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## BROCK's leg autoplayed from a seed next to a plain window (#133, 2026-10-13)
+
+From a seed, `route=brock from=pewter_gym` did walk to BROCK, but only after
+`meet_in_pewter_gym`, which waits for the partner in the gym. A plain
+`coop_play` partner never comes, so the window stood still until the watchdog
+failed it with "nothing moved". The autopilot's `partner=none` ends its meet legs
+at once, and a failure names its leg. New scenario `brock_from_seed`. Branch
+`coop/133-autoplay-brock-seed`.
+
+| Verification | Result |
+|---|---|
+| Before: a `viridian_forest` seed (`level=25 party=3`), RED autoplayed `route=brock from=pewter_gym`, BLUE a plain window | `p1 leg pewter_gym 5 s ... cell (4, 13)`, then `p1 FAILED at leg 1: nothing moved for 150 s` |
+| Before: the same seed with both windows autoplayed | both reached BROCK and the BOULDERBADGE (p2 in 53 s, p1 in 57 s): the walk to BROCK was never the problem |
+| After: `brock_from_seed` on that seed | `meet_in_pewter_gym 0 s`, beat the JR. TRAINER♂ and BROCK, `p1 finished, brock reached in 49 s`; captures looked at |
+| `tools/verify.sh brock_from_seed=<seed> playthrough_brock`, on 48739ad8 plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `brock_from_seed` finished from the seed; `playthrough_brock` from Oak's speech, where BLUE's `meet_in_pewter_gym` still waited 22 s for RED; both took the BOULDERBADGE; captures looked at |
+
 ## A seed per scenario, and a runner that fails without Godot (#132, D114, 2026-10-13)
 
 `tools/verify.sh` takes `<scenario>=<seed dir>` and refuses an exported `SEED`;
