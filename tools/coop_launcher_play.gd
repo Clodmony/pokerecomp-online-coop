@@ -23,6 +23,7 @@ var _rival_name: String = ""
 var _by_address: bool = false
 var _both_versions: bool = false
 var _split: bool = false
+var _halves_pressed: int = 0
 var _tour: String = ""
 var _keys_field: String = ""
 var _rounds: Array = []
@@ -174,7 +175,7 @@ func _plan(campaign: String) -> Array:
 	if _role == "host":
 		plan.append_array([_shot.bind("start"), _press.bind("HOST"), _shot.bind("host"), _host_or_create.bind(campaign)])
 		if _split:
-			plan.append_array([_until_hosting, _press.bind("Split screen"), _shot.bind("split_hosting"), _until_partner])
+			plan.append_array([_until_hosting, _press.bind("Split screen"), _choose_halves, _shot.bind("split_hosting"), _until_partner])
 		plan.append_array(_tour_host() if not _tour.is_empty() else [_until_hosting, _press.bind("Enter the world")])
 	else:
 		plan.append_array(_tour_join() if not _tour.is_empty() else [_press.bind("JOIN"), _join_host, _join_as])
@@ -342,6 +343,29 @@ func _fill_new_player() -> bool:
 
 func _until_hosting() -> bool:
 	return _until_screen(PokeCoopPage.HOSTING)
+
+
+func _finalize() -> void:
+	print("coop launcher: %s quits at frame %d" % [_player_id, _frames])
+
+
+func _choose_halves() -> bool:
+	if not get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).any(func(sheet: Node) -> bool:
+			return sheet is PokeCoopTabParts.Sheet and (sheet as PokeCoopTabParts.Sheet).listens and not sheet.is_queued_for_deletion()):
+		return true
+	if _halves_pressed == 0 and not _captures.is_empty():
+		root.get_viewport().get_texture().get_image().save_png(String(_captures[0]["path"]).get_base_dir() + "/who_plays_where.png")
+	var press: InputEvent = InputEventKey.new()
+	(press as InputEventKey).physical_keycode = KEY_ENTER
+	if _halves_pressed > 0:
+		press = InputEventJoypadButton.new()
+		(press as InputEventJoypadButton).button_index = JOY_BUTTON_A
+		press.device = int(PokePadChoice.connected()[0]["device"])
+	press.set("pressed", true)
+	print("coop launcher: %s chooses a half with %s" % [_player_id, press.as_text()])
+	_halves_pressed += 1
+	root.push_input(press)
+	return false
 
 
 func _until_partner() -> bool:

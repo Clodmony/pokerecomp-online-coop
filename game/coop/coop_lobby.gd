@@ -410,8 +410,10 @@ class SplitScreen extends RefCounted:
 	const ARG: String = "coop-split="
 	const NO_PAD: Dictionary = {"guid": "keyboard", "name": "Keyboard", "serial": "", "nth": 0}
 	const MEMORY: String = "user://coop_tab_split.json"
+	const QUIT_BOTH: int = 3
 
 	static var partner_pid: int = 0
+	static var quit_both: bool = false
 	static var asked: Dictionary = {}
 	static var tool_args: PackedStringArray = []
 	static var _read: bool = false
@@ -420,11 +422,29 @@ class SplitScreen extends RefCounted:
 	static func available() -> bool:
 		return OS.has_feature("pc") and DisplayServer.get_name() != "headless" and partner_pid == 0 and asked.is_empty()
 
-	static func pads(connected: Array) -> Array:
+	static func halves(pick: Dictionary, connected: Array) -> Array:
 		if connected.is_empty():
 			return [{}, {}]
-		var first: Dictionary = PokePadChoice.sanitize(connected[0])
-		return [NO_PAD, first] if connected.size() == 1 else [first, PokePadChoice.sanitize(connected[1])]
+		return [pick if not pick.is_empty() and PokePadChoice.device_for(pick, connected) != PokePadChoice.AWAY else null, null]
+
+	static func choosing(event: InputEvent) -> bool:
+		var key := event as InputEventKey
+		var button := event as InputEventJoypadButton
+		return event.is_pressed() and not event.is_echo() and (button != null and button.button_index == JOY_BUTTON_A
+			or key != null and (key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode) in [KEY_ENTER, KEY_KP_ENTER])
+
+	static func pressed(chosen: Array, event: InputEvent, connected: Array) -> Array:
+		var button := event as InputEventJoypadButton
+		var pad: Dictionary = NO_PAD if choosing(event) and event is InputEventKey else {}
+		for row: Dictionary in connected if button != null and choosing(event) else []:
+			pad = PokePadChoice.sanitize(row) if int(row["device"]) == button.device else pad
+		var taken: bool = chosen.any(func(half: Variant) -> bool: return half != null and (half == pad
+			or button != null and PokePadChoice.device_for(half, connected) == button.device))
+		if pad.is_empty() or taken or not chosen.has(null):
+			return chosen
+		var out: Array = chosen.duplicate()
+		out[out.find(null)] = pad
+		return out
 
 	static func half(area: Rect2i, side: int) -> Rect2i:
 		var left: int = area.size.x / 2
@@ -447,8 +467,7 @@ class SplitScreen extends RefCounted:
 			asked = read(OS.get_cmdline_user_args())
 		return asked
 
-	static func start(port: int, game: StringName) -> bool:
-		var halves: Array = pads(PokePadChoice.connected())
+	static func start(port: int, game: StringName, halves: Array) -> bool:
 		var screen: int = DisplayServer.window_get_current_screen()
 		var args: PackedStringArray = [] if OS.has_feature("template") else ["--path", ProjectSettings.globalize_path("res://")]
 		args.append_array(tool_args)
@@ -478,8 +497,15 @@ class SplitScreen extends RefCounted:
 		PokePadChoice.apply()
 		print("coop split: %s half at %s of screen %s, controller %s" % ["left" if side == 0 else "right", rect, whole, pad.get("name", "every")])
 
+	static func active() -> bool:
+		return partner_pid > 0 or not asked.is_empty()
+
+	static func exit_code() -> int:
+		return QUIT_BOTH if quit_both and not asked.is_empty() else 0
+
 	static func watch() -> void:
 		if partner_pid > 0 and not OS.is_process_running(partner_pid):
+			quit_both = quit_both or OS.get_process_exit_code(partner_pid) == QUIT_BOTH
 			end()
 
 	static func end() -> void:
