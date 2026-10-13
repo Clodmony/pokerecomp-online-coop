@@ -121,8 +121,10 @@ Their outcomes do not commit campaign story rewards.
   traded Pokémon; one with a foreign original trainer still is. One EXP.ALL in
   any participant's bag counts for every team: each team gets the cartridge's
   split over its own party, as it would fighting alone (D61).
-- SET battle style is used in shared sessions for now, so the "will you switch"
-  offer never interrupts a turn (#28).
+- SHIFT's "Will RED change POKéMON?", when a trainer is about to send its next
+  Pokémon, goes to the owner of the Pokémon that is out, and only if their own
+  BATTLE STYLE is SHIFT; with SET nobody is asked. The partner may suggest an
+  answer (D113).
 - A battle the cartridge plays by its own rules stays in the window and cannot
   be joined: the Safari Zone, and a GHOST in Pokémon Tower without the SILPH
   SCOPE, which can only be run from (D68).

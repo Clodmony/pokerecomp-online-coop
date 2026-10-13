@@ -1147,6 +1147,35 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
 
 
+func test_shifts_question_stands_over_the_trainers_balls_and_they_go_before_the_next_comes_out() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b9", "revision": 3, "trainer": true, "trainer_class": 1, "active": 0, "phase": "offer", "offer": 1,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 14, "hp": 0, "max_hp": 40},
+		"enemy_party": [Fixture.GEODUDE, Fixture.PIKACHU], "enemy_states": [{"hp": 0, "status": 0}, {"hp": 40, "status": 0}],
+		"events": [
+			{"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY},
+			{"type": Gen2Battle.SWITCH_OFFERED, "side": Gen2Battle.PLAYER, "index": 1, "species": Fixture.PIKACHU},
+		],
+	}
+	field._take_events(view)
+	var asked: int = field._messages.find_custom(func(step: Dictionary) -> bool: return step.has("balls"))
+	assert_eq(field._messages[asked]["balls"].keys(), [Gen2Battle.ENEMY])
+	assert_string_contains(String(field._messages[asked + 1].get("text", "")), "about to use", "the row stands under the question")
+
+	field._messages.clear()
+	var answered: Dictionary = view.merged({"revision": 4, "phase": "action", "offer": -1, "events": [
+		{"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.ENEMY, "index": 1, "species": Fixture.PIKACHU,
+			"level": 14, "hp": 40, "max_hp": 40},
+	]}, true)
+	field._take_events(answered)
+	var kinds: Array = field._messages.map(func(step: Dictionary) -> String: return step.keys()[0])
+	assert_eq(kinds.slice(0, 3), ["balls", "enter", "text"])
+	assert_eq(field._messages[0]["balls"], {}, "and is gone before \"sent out\"")
+
+
 func test_a_trainer_battle_opens_on_both_parties_balls_and_this_player_sees_their_own() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
@@ -1295,6 +1324,8 @@ func test_shift_asks_the_window_whose_pokemon_is_out_through_the_cartridges_yes_
 
 	assert_eq(panel.menu.page, PokeCoopBattleMenu.ASK)
 	assert_true(String(panel.menu._ask["text"]).begins_with("Will RED\nchange"), "the question is the window's own player's")
+	assert_eq([panel.menu._yes_no_box().left, panel.menu._yes_no_box().top], [Gen2BattleScreen.YES_NO_LEFT, Gen2BattleScreen.YES_NO_TOP],
+		"its YES/NO where the battle screen puts `OfferSwitch`'s")
 	panel._press(PokeButton.A)
 	assert_eq(panel.menu.page, PokeCoopBattleMenu.PARTY, "YES opens the party")
 	panel._press(PokeButton.B)

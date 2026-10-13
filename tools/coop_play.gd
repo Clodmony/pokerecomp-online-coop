@@ -7,6 +7,7 @@ extends SceneTree
 
 const KEYS_START_FRAMES: int = 90
 const KEY_HOLD_FRAMES: int = 18
+const OFFER_WAIT_FRAMES: int = 180
 const HELD_ON: int = -1
 const KEYS: Dictionary = {
 	"U": PokeButton.UP, "D": PokeButton.DOWN, "L": PokeButton.LEFT, "R": PokeButton.RIGHT,
@@ -23,6 +24,7 @@ var _captures: Array = []
 var _frames: int = 0
 var _held: int = PokeButton.NONE
 var _auto_battle: bool = false
+var _offer_frames: int = 0
 
 
 func _initialize() -> void:
@@ -145,6 +147,9 @@ func _drive_battle() -> void:
 		return
 	var view: Dictionary = panel.battle_view()
 	if not _session.client.is_controller(String(view.get("battle", ""))):
+		return
+	_offer_frames = _offer_frames + KEY_HOLD_FRAMES if view.get("phase") == "offer" else 0
+	if _offer_frames > 0 and _offer_frames < OFFER_WAIT_FRAMES:
 		return
 	var kind: String = {"action": "move", "send_out": "send_out", "offer": "stay"}.get(view.get("phase"), "decline")
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:

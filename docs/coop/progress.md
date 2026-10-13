@@ -11,6 +11,21 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## SHIFT's switch offer in co-op battles (#28, D113, 2026-10-13)
+
+Co-op battles used SET style, so a trainer's next Pokémon came out unasked. Now
+the player whose Pokémon is out is asked "Will RED change POKéMON?" if their own
+BATTLE STYLE is SHIFT; the partner may suggest an answer. Mimic already asked
+the Pokémon's owner; Baton Pass is not in Red and Blue. Branch
+`coop/28-battle-offers`.
+
+| Verification | Result |
+|---|---|
+| GUT, before the fix | the four new tests failed: after a trainer's Pokémon fainted the phase was `action`, not `offer`, for the owner on SHIFT; the view had no `offer`; the field had no line for the question; the host never learned the window's style and the menu stayed shut |
+| GUT, after | RESULT_GUT |
+| Screens (scripted), Red | RESULT_SCREENS |
+| Not run | RESULT_NOT_RUN |
+
 ## Private builds by script (#44, D112, 2026-10-13)
 
 `tools/verify.sh --builds[=<dir>]` makes the private Windows and Linux builds
