@@ -317,6 +317,8 @@ func ended_reason() -> String:
 
 func process() -> void:
 	PokeCoopLobby.SplitScreen.watch()
+	if PokeCoopLobby.SplitScreen.quit_both and not _closed:
+		quit_after_goodbye()
 	if _closed:
 		_finish_closing()
 		return
@@ -454,6 +456,10 @@ func _keep_connected() -> void:
 		client.ended_reason = ""
 	if not client.ended_reason.is_empty():
 		return
+	if not PokeCoopLobby.SplitScreen.asked.is_empty():
+		client.ended_reason = "host_unreachable"
+		journal.add(PokeCoopLog.CLIENT, "unreachable", {"split": true})
+		return
 	if Time.get_ticks_msec() < _reconnect_at:
 		return
 	_reconnect_at = Time.get_ticks_msec() + RECONNECT_MSEC
@@ -522,7 +528,7 @@ func _finish_closing() -> void:
 		if quit_app.is_valid():
 			quit_app.call()
 		else:
-			(Engine.get_main_loop() as SceneTree).quit()
+			(Engine.get_main_loop() as SceneTree).quit(PokeCoopLobby.SplitScreen.exit_code())
 
 
 ## The window is closing: the others hear why and get the last log lines first (L19).
@@ -814,6 +820,7 @@ func _add_menu(layer: CanvasLayer) -> void:
 	menu.notice.connect(say)
 	_actor.meet = menu.open_partner
 	menu.leave_requested.connect(leave)
+	menu.quit_requested.connect(func() -> void: PokeCoopLobby.SplitScreen.quit_both = true)
 	menu.acted.connect(_close_start_menu)
 	layer.add_child(menu)
 	gestures = PokeCoopTouchGestures.over(hardware, overlay_open)

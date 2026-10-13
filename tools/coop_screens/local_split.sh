@@ -1,4 +1,5 @@
-# RED hosts a new campaign SPLIT from the Co-op tab with BULBASAUR and presses Split screen: RED's
+# RED hosts a new campaign SPLIT from the Co-op tab with BULBASAUR and presses Split screen; with a
+# controller plugged in, Who plays where? gets Enter (the keyboard, left) and A on the first one (right). RED's
 # window takes the left half of the whole screen (over the taskbar where the desktop lets a window
 # cover it: KDE keeps an always-visible panel free), and a second window it starts
 # takes the right half and joins at 127.0.0.1 as BLUE with SQUIRTLE. RED leaves from the CO-OP
@@ -10,7 +11,7 @@ P2_TOOL=split
 P1_ARGS="host name=RED starter=0 split round=60:SPLIT"
 P2_ARGS="name=BLUE starter=2"
 DURATION=40
-shot p1 4.8 red_split_hosting         # Hosting SPLIT on the left half, "A second player joins on the right."
+shot p1 6.5 red_split_hosting         # Hosting SPLIT on the left half, "A second player joins on the right."
 shot p1 16 red_world_left             # Pallet Town, BLUE by the house beside RED's
 shot p2 1.6 blue_joining              # the right half on the Co-op tab, joining SPLIT
 shot p2 12 blue_world_right

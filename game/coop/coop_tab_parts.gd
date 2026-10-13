@@ -270,6 +270,9 @@ class Tile extends Button:
 
 class Sheet extends Control:
 	signal dismissed
+	signal heard(event: InputEvent)
+
+	var listens: bool = false
 
 	var _theme: Gen2LauncherTheme = null
 	var _bottom: bool = false
@@ -343,6 +346,10 @@ class Sheet extends Control:
 		var tall: float = _card.get_combined_minimum_size().y + (inset if _bottom else 0.0)
 		_card.size = Vector2(width, tall)
 		_card.position = Vector2((size.x - width) * 0.5, size.y - tall if _bottom else (size.y - tall) * 0.5)
+
+	func _input(event: InputEvent) -> void:
+		if listens and event.is_pressed() and not event.is_echo():
+			heard.emit(event)
 
 	func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("ui_cancel"):

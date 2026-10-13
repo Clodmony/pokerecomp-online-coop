@@ -42,6 +42,9 @@ func after_each() -> void:
 	PokeCoopPage.host_port = PokeCoopEnetTransport.DEFAULT_PORT
 	Gen2GameRuntime.instance().coop = null
 	PokeCoopSession.ended_note = ""
+	PokeCoopLobby.SplitScreen.asked = {}
+	PokeCoopLobby.SplitScreen.quit_both = false
+	PokeCoopLobby.SplitScreen.partner_pid = 0
 	## A sheet opens on the root, so a test that ends with one up would leave its buttons to the next test's presses.
 	for sheet: Node in get_tree().get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP):
 		if sheet is PokeCoopTabParts.Sheet:
@@ -940,3 +943,51 @@ func test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_sh
 	assert_true(says.call(red.call()).has("Ready"), "the tab reads the cartridges again when it comes back")
 	var host: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is PokeCoopTabParts.Tile and node.get_meta("label", "") == "HOST")
 	assert_false((host[0] as PokeCoopTabParts.Tile).disabled, "and hosts with it")
+
+
+func test_quit_both_closes_a_split_screens_right_half_with_the_code_its_host_reads() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	var quit: Array = []
+	hosting.quit_app = func() -> void: quit.append("RED")
+	joining.quit_app = func() -> void: quit.append("BLUE %d" % PokeCoopLobby.SplitScreen.exit_code())
+	PokeCoopLobby.SplitScreen.asked = {"port": PORT}
+
+	PokeCoopLobby.SplitScreen.quit_both = true
+
+	assert_true(_until(func() -> bool: return quit.has("BLUE %d" % PokeCoopLobby.SplitScreen.QUIT_BOTH), 5000),
+		"the right half quits after its goodbye, with the code that asks the host to follow")
+
+
+func test_a_split_screens_host_quits_when_its_right_half_quit_both() -> void:
+	if not FileAccess.file_exists("/bin/sh"):
+		pass_test("needs /bin/sh to stand in for the right half's process")
+		return
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	var quit: Array = []
+	hosting.quit_app = func() -> void: quit.append("RED")
+	joining.quit_app = func() -> void: quit.append("BLUE")
+
+	PokeCoopLobby.SplitScreen.partner_pid = OS.create_process("/bin/sh", ["-c", "exit %d" % PokeCoopLobby.SplitScreen.QUIT_BOTH])
+
+	assert_true(_until(func() -> bool: return quit.has("RED"), 5000), "the host follows its right half out")
+	assert_eq(joining.ended_reason(), "host_shutdown", "after saying goodbye")
+
+
+func test_a_split_screens_right_half_whose_host_is_gone_gives_up_at_once() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append_array([hosting, joining])
+	assert_true(_until_ready([hosting, joining]))
+	PokeCoopLobby.SplitScreen.asked = {"port": PORT}
+
+	joining.client.transport.close()
+
+	assert_true(_until(func() -> bool: return joining.ended_reason() == "host_unreachable", 1000),
+		"the host's window is on this device: a dropped link means it is gone")
+	assert_eq(int(joining.get("_reconnect_attempts")), 0, "no two minutes of redialling")
