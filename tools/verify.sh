@@ -2,13 +2,15 @@
 # One unattended check of the checked-out branch: what CI runs, then any
 # two-window scenarios, with a summary of a few lines at the end.
 #
-#   GODOT=<4.8-dev7 binary> tools/verify.sh [--coop] [--builds[=<dir>]] [scenario ...]
+#   GODOT=<4.8-dev7 binary> tools/verify.sh [--coop] [--builds[=<dir>]] [scenario[=<seed dir>] ...]
 #
 #   --coop      only the co-op GUT suites (test_coop*) instead of the whole suite
 #   --builds    also the private Windows and Linux builds of HEAD (a clean tree
 #               only): exported, booted (Windows under Wine) and zipped with
 #               docs/coop/playing.md into <dir> (default <stamp>/builds)
-#   scenario    names under tools/coop_screens/, run after the headless stages
+#   scenario    names under tools/coop_screens/, run after the headless stages;
+#               =<seed dir> is that scenario's SEED, the others start a fresh
+#               campaign (an exported SEED is refused rather than given to all)
 #
 # Stages: import, GUT, release gates, boot smoke test, ENet demo, three
 # processes, then each scenario, then the builds. Full logs and captures go to
@@ -31,10 +33,11 @@ for a in "$@"; do
 		--coop) coop_only=1 ;;
 		--builds) builds=default ;;
 		--builds=*) builds="${a#--builds=}" ;;
-		-h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+		-h|--help) sed -n '2,23p' "$0"; exit 0 ;;
 		*) scenarios+=("$a") ;;
 	esac
 done
+[[ -z "${SEED:-}" ]] || { echo "verify: SEED reaches every scenario; name it per scenario as <scenario>=<seed dir>" >&2; exit 2; }
 
 out="${VERIFY_OUT:-$HOME/dev-scratch/pokerecomp-online-coop/verify}/$(date +%Y%m%d-%H%M%S)"
 [[ "$builds" == default ]] && builds="$out/builds"
@@ -104,11 +107,13 @@ else
 	failed=$((failed + 1))
 fi
 
-for s in "${scenarios[@]}"; do
-	if (cd "$root" && GODOT="$godot" tools/coop_screens.sh "$s" "$out/screens/$s") > "$out/screens-$s.log" 2>&1; then
-		note "scenario $s: ok (captures in screens/$s)"
+for a in "${scenarios[@]}"; do
+	s="${a%%=*}" seed=""
+	[[ "$a" != *=* ]] || { seed="${a#*=}"; seed="$(realpath -m "${seed/#\~/$HOME}")"; }
+	if (cd "$root" && GODOT="$godot" SEED="$seed" tools/coop_screens.sh "$s" "$out/screens/$s") > "$out/screens-$s.log" 2>&1; then
+		note "scenario $s: ok (captures in screens/$s${seed:+, seed $seed})"
 	else
-		note "scenario $s: FAILED"
+		note "scenario $s: FAILED${seed:+ (seed $seed)}"
 		failed=$((failed + 1))
 	fi
 done
