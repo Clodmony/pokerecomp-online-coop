@@ -11,6 +11,23 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Keyboard, controller and touch pad in co-op menus (#43, D111, 2026-10-13)
+
+An audit of every co-op menu on the three inputs. The CO-OP menu and the
+battle menus read raw events before the input runtime's filter: one stick push
+walked seven rows; a held key or touch-pad button moved one row, or three where the OS repeated the key, where the
+cartridge's menus walk on. Both now read after the filter. Branch
+`coop/43-touch-pad-input`.
+
+| Verification | Result |
+|---|---|
+| GUT, before the fix | the new menu and battle tests failed: the co-op menu moved 7 / 3 / 1 rows (stick / held key / held touch pad) while the cartridge's path heard none of it |
+| GUT, after | menu and battle move exactly as often as a reader on the cartridge's path, for all three; whole suite 5167/5167 (three new tests) |
+| Co-op tab | `test_a_pad_reaches_every_button_and_field_on_the_co_op_tabs_screens`: on Start, Host, New campaign, Join and New player the focus lands on the screen and the d-pad reaches every button and field. Typing needs a keyboard (#128). Hosting and the sheets not walked |
+| Screens (scripted), Red | `held_directions` (new; scripted windows can hold a button, `D*8`): START > CO-OP walks its rows while DOWN is held; in a battle's move list a press log showed the first repeat 29 frames after the press, then one every 5 frames, round SCRATCH, GROWL, EMBER |
+| Two windows, existing scenarios | `start_coop_menu`, `switch_and_suggest`, `catch_for_partner`, `versus_from_menus`, `leave_rejoin_takeover`, `lose_and_white_out` passed; captures looked at. `friend_menu` failed once in `tools/verify.sh`: BLUE's window answered the trade invitation NO at the moment of its scripted A, with YES under the cursor a second before. Not reproduced: three runs alone on the branch and one on the base branch passed. Cause unknown; the owner's controllers reach scripted windows on this machine |
+| Not run | a real stick or touch pad by hand, a phone, Windows; Cable Club, the TOWN MAP and taken-over battles are the cartridge's own screens and were not changed |
+
 ## Upstream 0.1.78 (#126, D110, 2026-10-13)
 
 Upstream `v0.1.78` merged into the co-op line; three releases of Generation 3

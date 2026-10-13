@@ -815,6 +815,42 @@ func test_a_phone_held_upright_stacks_the_tab_and_raises_its_sheets_from_the_bot
 	assert_false((page.get("_bar") as BoxContainer).vertical)
 
 
+func _pad_reach(from: Control) -> Array:
+	var reached: Array = [from]
+	var at: int = 0
+	while at < reached.size():
+		for side: int in [SIDE_TOP, SIDE_BOTTOM, SIDE_LEFT, SIDE_RIGHT]:
+			var next: Control = (reached[at] as Control).find_valid_focus_neighbor(side)
+			if next != null and not reached.has(next):
+				reached.append(next)
+		at += 1
+	return reached
+
+
+func test_a_pad_reaches_every_button_and_field_on_the_co_op_tabs_screens() -> void:
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
+	PokeCoopPage.forget()
+	var launcher: Control = await _launcher_on_coop_tab()
+	var page: PokeCoopPage = launcher.find_children("*", "Control", true, false).filter(
+		func(node: Node) -> bool: return node is PokeCoopPage)[0]
+
+	for screen: StringName in [PokeCoopPage.START, PokeCoopPage.HOST, PokeCoopPage.NEW_CAMPAIGN, PokeCoopPage.JOIN,
+			PokeCoopPage.NEW_PLAYER]:
+		page._show(screen)
+		await wait_frames(4)
+		var landed: Control = launcher.get_viewport().gui_get_focus_owner()
+		assert_true(landed != null and page.is_ancestor_of(landed), "%s: a pad lands on the screen" % screen)
+		if landed == null:
+			continue
+		var reached: Array = _pad_reach(landed)
+		var missed: Array = page.find_children("*", "Control", true, false).filter(func(control: Control) -> bool:
+			return control.focus_mode == Control.FOCUS_ALL and control.is_visible_in_tree() \
+				and not (control is BaseButton and (control as BaseButton).disabled) and not reached.has(control)
+		).map(func(control: Control) -> String: return "%s %s" % [control.get_class(), control.get_meta("label", control.name)])
+		assert_eq(missed, [], "%s: the d-pad reaches every button and field" % screen)
+	Gen2OptionsStore.use_test_path()
+
+
 func test_a_pad_entering_the_co_op_tab_lands_on_host() -> void:
 	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return _data if id == RomRegistry.RED else null
 	PokeCoopPage.forget()
