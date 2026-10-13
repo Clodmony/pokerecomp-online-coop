@@ -163,15 +163,58 @@ func test_the_tab_remembers_the_last_hosts_joined_newest_first_and_once_each() -
 	assert_eq(PokeCoopLobby.split_address("10.8.0.6", 24680), ["10.8.0.6", 24680])
 
 
+func _pad_press(device: int, button: JoyButton = JOY_BUTTON_A) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.device = device
+	event.button_index = button
+	event.pressed = true
+	return event
+
+
+func test_split_screen_halves_play_only_the_controllers_their_players_press_a_on() -> void:
+	var dualsense: Dictionary = {"guid": "0300e0274c050000f20d000000016800", "name": "DualSense Edge Wireless Controller", "serial": "14-3a-9a-61-b0-8d", "nth": 0}
+	var virtual: Dictionary = {"guid": "0300c5d95e040000ea02000010010000", "name": "Xbox One S Controller", "serial": "", "nth": 0}
+	var twin: Dictionary = virtual.merged({"nth": 1}, true)
+	var pads: Array = [virtual.merged({"device": 0}), twin.merged({"device": 1}), dualsense.merged({"device": 2})]
+	var split: GDScript = PokeCoopLobby.SplitScreen
+	var enter := InputEventKey.new()
+	enter.physical_keycode = KEY_ENTER
+	enter.pressed = true
+
+	var chosen: Array = split.halves(dualsense, pads)
+	assert_eq(chosen, [dualsense, null], "Settings' pick plays on the left, not the first pad plugged in")
+	assert_eq(split.pressed(chosen, _pad_press(2), pads), chosen, "the left's pad cannot take the right half too")
+	assert_eq(split.pressed(chosen, _pad_press(1, JOY_BUTTON_B), pads), chosen, "only A chooses")
+	chosen = split.pressed(chosen, _pad_press(1), pads)
+	assert_eq(chosen, [dualsense, twin])
+	assert_eq(split.pressed(chosen, _pad_press(0), pads), chosen, "both halves are taken")
+
+	var a: StringName = PokeButton.action(PokeButton.A)
+	PokePadChoice.held = chosen[1]
+	PokePadChoice.apply(dualsense, pads)
+	assert_eq([_pad_press(0).is_action_pressed(a), _pad_press(1).is_action_pressed(a), _pad_press(2).is_action_pressed(a)], [false, true, false],
+		"the right half hears its own pad, not its twin nor the DualSense")
+	PokePadChoice.held = chosen[0]
+	PokePadChoice.apply(dualsense, pads)
+	assert_eq([_pad_press(0).is_action_pressed(a), _pad_press(1).is_action_pressed(a), _pad_press(2).is_action_pressed(a)], [false, false, true])
+	PokePadChoice.held = {}
+	PokePadChoice.apply({}, [])
+
+	chosen = split.halves({}, pads)
+	assert_eq(chosen, [null, null], "Every controller in Settings: each half's player presses")
+	chosen = split.pressed(chosen, enter, pads)
+	assert_eq(chosen, [PokeCoopLobby.SplitScreen.NO_PAD, null], "Enter gives the left half the keyboard")
+	assert_eq(split.pressed(chosen, enter, pads), chosen, "the keyboard plays one half")
+	assert_eq(split.pressed(chosen, _pad_press(2), pads), [PokeCoopLobby.SplitScreen.NO_PAD, dualsense])
+	assert_eq(split.halves(dualsense, pads.slice(0, 2)), [null, null], "a pick that is unplugged is asked for like the rest")
+
+
 func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked() -> void:
 	var first: Dictionary = {"guid": "030000005e0400008e02000010010000", "name": "Xbox 360 Controller", "serial": "", "nth": 0}
 	var second: Dictionary = first.merged({"nth": 1}, true)
 	var pads: Array = [first.merged({"device": 0}), second.merged({"device": 1})]
 
-	assert_eq(PokeCoopLobby.SplitScreen.pads([]), [{}, {}], "no controller: both halves play by keyboard")
-	assert_eq(PokeCoopLobby.SplitScreen.pads(pads.slice(0, 1)), [PokeCoopLobby.SplitScreen.NO_PAD, first],
-		"one controller: the keyboard plays on the left, the controller on the right")
-	assert_eq(PokeCoopLobby.SplitScreen.pads(pads), [first, second])
+	assert_eq(PokeCoopLobby.SplitScreen.halves({}, []), [{}, {}], "no controller: both halves play by keyboard")
 	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 0), Rect2i(0, 30, 960, 1050))
 	assert_eq(PokeCoopLobby.SplitScreen.half(Rect2i(0, 30, 1921, 1050), 1), Rect2i(960, 30, 961, 1050))
 	var asked: Dictionary = PokeCoopLobby.SplitScreen.read(["127.0.0.1", PokeCoopLobby.SplitScreen.argument(24850, &"blue", second, 1)])

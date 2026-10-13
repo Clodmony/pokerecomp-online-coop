@@ -11,6 +11,28 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Split screen's controllers and quitting; the Co-op tab after a re-import (#140, #139, #138, D117, D118, 2026-10-13)
+
+Found by the owner in the #137 build. **#140:** the halves took the first two
+connected controllers, not the one Settings picked, so a virtual pad another
+program pressed could move a player. Now Who plays where? asks each half to
+press A (or Enter for the keyboard), and Settings' pick plays on the left
+without asking. **#139:** SELECT > QUIT BOTH on either half saves and closes
+both windows; the right half no longer redials a host that is gone. **#138:**
+the Co-op tab reads the cartridges again whenever it is shown, so a cartridge
+imported again on the Play tab is Ready without a restart. Branch
+`coop/140-138-139-pads-tab-quit`.
+
+| Verification | Result |
+|---|---|
+| Probe, normal window, Red | the owner's DualSense Edge picked (same GUID and serial as their `options.json`), two virtual "Microsoft X-Box pad" devices made through uinput pressing A, the d-pad and the stick, one unplugged and plugged back in: Godot's raw joypad state saw each press, `PokePadChoice.heard` was false for each, no `gen2_` or `ui_` action went down; the pick stayed on device 0 throughout. The normal-window report was not reproduced |
+| Split screen, before | `SplitScreen.pads` gave the halves `connected[0]` and `connected[1]`; the probe's device order (DualSense 0, the virtual pads 1 and 2) puts a virtual pad on the right half |
+| GUT, before | `test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_shown_again` failed: "the tab reads the cartridges again when it comes back". The split-screen and quit tests call the new `halves`, `pressed`, `quit_both` and `QUIT_BOTH` |
+| GUT, after | `test_coop_lobby` 10/10, `test_coop_device` 38/38, `test_coop_session` 166/166: halves by press with twin virtual pads and a picked DualSense, each half hearing only its pad; QUIT BOTH asked like LEAVE SESSION; the right half quits with code 3 and a host whose child exited with 3 quits after its goodbye; a dropped link ends the right half at once |
+| Screens (scripted), Red | `local_split`: Who plays where? gets Enter (left: keyboard) and A on the first pad (right: the DualSense); halves 1280x1440 side by side; the toast names both and how to quit. `split_quit`: BLUE picks QUIT BOTH, "Close both windows?", YES: BLUE's window quits (frame 1262), RED's follows about 5 s later (frame 1992) and the campaign file holds BLUE |
+| `tools/verify.sh local_split split_quit`, commit 2ad81874 | all passed: whole suite 5181/5181, gates, boot, ENet demo, three processes, both scenarios |
+| Not run | killing the host's process by hand (K20 is covered by GUT only); the halves on Windows; the owner's other program pressing its own virtual pads during a split |
+
 ## Split screen on one PC (#53, D116, 2026-10-13)
 
 Two players on one computer: Split screen on the Hosting screen (Linux and

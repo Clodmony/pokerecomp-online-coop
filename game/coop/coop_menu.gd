@@ -2,6 +2,7 @@ class_name PokeCoopMenu
 extends Node
 
 signal leave_requested
+signal quit_requested
 signal acted
 signal notice(text: String)
 
@@ -31,6 +32,7 @@ var _cursor: int = 0
 var _scroll: int = 0
 var _open: bool = false
 var _asking: bool = false
+var _quitting: bool = false
 var _no: bool = false
 var _page: Gen2MenuPage = null
 var _picture: TextureRect = null
@@ -77,6 +79,7 @@ func open() -> void:
 	_open = true
 	_partner = ""
 	_asking = false
+	_quitting = false
 	_cursor = 0
 	_scroll = 0
 	_shown = ""
@@ -176,8 +179,9 @@ func _choose() -> void:
 			acted.emit()
 			open_map.call()
 			return
-		"leave":
+		"leave", "quit":
 			_asking = true
+			_quitting = row["action"] == "quit"
 			_no = false
 			_refresh()
 			return
@@ -197,9 +201,10 @@ func _answer(yes: bool) -> void:
 	_asking = false
 	if not yes:
 		return
+	var quitting: bool = _quitting
 	close()
 	acted.emit()
-	leave_requested.emit()
+	(quit_requested if quitting else leave_requested).emit()
 
 
 func open_partner(player_id: String) -> void:
@@ -274,6 +279,8 @@ func rows() -> Array:
 	if open_map.is_valid():
 		out.append({"text": "TOWN MAP", "label": _ui("TOWN MAP"), "action": "map"})
 	out.append({"text": "LEAVE SESSION", "label": _ui("LEAVE SESSION"), "action": "leave"})
+	if PokeCoopLobby.SplitScreen.active():
+		out.append({"text": "QUIT BOTH", "label": _ui("QUIT BOTH"), "action": "quit"})
 	out.append({"text": "CANCEL", "label": _ui("CANCEL"), "action": "cancel"})
 	return out
 
@@ -348,7 +355,7 @@ func _refresh() -> void:
 
 func _question_lines() -> Array:
 	if _incoming.is_empty():
-		return [_ui("Leave the co-op"), _ui("session?")]
+		return [_ui("Close both"), _ui("windows?")] if _quitting else [_ui("Leave the co-op"), _ui("session?")]
 	return [_name(String(_incoming["from"])), _ui("wants to battle!" if _incoming["kind"] == "battle" else "wants to trade!")]
 
 

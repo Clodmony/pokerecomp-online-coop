@@ -2049,6 +2049,17 @@ func test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving() -> void:
 	assert_signal_emitted(blue, "leave_requested")
 	assert_false(blue.is_open())
 
+	assert_eq(_menu_row(blue, "QUIT BOTH"), -1, "QUIT BOTH is for split screen")
+	PokeCoopLobby.SplitScreen.asked = {"port": 1}
+	blue.open()
+	blue._set_cursor(_menu_row(blue, "QUIT BOTH"))
+	blue.press(PokeButton.A)
+	assert_true(blue._asking and blue._question_lines() == ["Close both", "windows?"])
+	blue.press(PokeButton.A)
+	assert_signal_emit_count(blue, "leave_requested", 1)
+	assert_signal_emitted(blue, "quit_requested")
+	PokeCoopLobby.SplitScreen.asked = {}
+
 
 class CartridgeMenu:
 	extends Node
