@@ -33,6 +33,7 @@ scenario="${1:?usage: GODOT=<binary> tools/coop_screens.sh <scenario> [out dir]}
 name="$(basename "$scenario" .sh)"
 out="$(realpath -m "${2:-${COOP_SCREENS_OUT:-$HOME/dev-scratch/pokerecomp-online-coop/coop_screens}/$name}")"
 godot="${GODOT:?set GODOT to the Godot 4.8-dev7 binary}"
+command -v "$godot" > /dev/null || { echo "coop_screens: GODOT=$godot is no program (a ~ in it isn't expanded)" >&2; exit 2; }
 real_user="${REAL_USER_DIR:-$HOME/.local/share/godot/app_userdata/pokerecomp}"
 case "$out/" in "$root"/*) echo "coop_screens: $out is inside the repository" >&2; exit 2 ;; esac
 
@@ -70,7 +71,7 @@ P1_FROM="${P1_FROM:-${FROM:-}}" P2_FROM="${P2_FROM:-${FROM:-}}"
 
 rm -rf "$out" && mkdir -p "$out"
 [[ "$scenario" != "$root/tools/coop_screens/$name.sh" ]] || scenario="$name"
-printf '%s\n' "SCENARIO=$scenario" "P1_FROM=$P1_FROM" "P2_FROM=$P2_FROM" "WHITEOUT=${WHITEOUT:-}" "KILL=${KILL:-}" > "$out/run.env"
+printf '%s\n' "SCENARIO=$scenario" "P1_FROM=$P1_FROM" "P2_FROM=$P2_FROM" "WHITEOUT=${WHITEOUT:-}" "KILL=${KILL:-}" "SEED=${SEED:-}" > "$out/run.env"
 xdg="$out/xdg"
 user="$xdg/godot/app_userdata/pokerecomp"
 mkdir -p "$user/rom_cache"
@@ -93,6 +94,7 @@ else
 	XDG_DATA_HOME="$xdg" "$godot" --headless --path . -s "res://tools/$HOST_TOOL.gd" -- host "$port" "$GAME" $HOST_ARGS > "$out/host.log" 2>&1 &
 	pids+=($!)
 	for _ in $(seq 60); do grep -q "host on port" "$out/host.log" && break; sleep 0.5; done
+	grep -q "host on port" "$out/host.log" || { echo "coop_screens: $name: the host never listened (host.log)" >&2; exit 1; }
 fi
 
 launch() {
