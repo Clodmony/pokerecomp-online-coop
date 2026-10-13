@@ -12,7 +12,8 @@
 #   close <p1|p2> <second>          closes that window, in seconds after it was launched
 # and may set GAME (red), P2_GAME (GAME: Blue joins a Red host), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
-# early once both windows print "autoplay: ... finished" or "FAILED").
+# early once both windows print "autoplay: ... finished" or "FAILED"; P2_TOOL=split
+# has p1's Split screen start p2, whose lines land in p1.log).
 # HOST_TOOL=none starts no tool host, for windows that host from the launcher
 # (coop_launcher_play, whose seconds count from launch); SEED=<dir> starts from the
 # coop_campaigns and coop_identity.json a past run left there; a scenario may define
@@ -84,7 +85,7 @@ for game in $(printf '%s\n' "$GAME" "$P2_GAME" | sort -u); do
 done
 port="${PORT:-$(( 24800 + RANDOM % 900 ))}"
 pids=()
-finish() { kill "${pids[@]}" 2>/dev/null || true; }
+finish() { kill "${pids[@]}" 2>/dev/null || true; pkill -f "coop_launcher_play.gd -- 127.0.0.1 $port p2 " 2>/dev/null || true; }
 trap finish EXIT
 
 cd "$root"
@@ -109,9 +110,14 @@ launch() {
 		(sleep "${closes[$who]}"; kill "$pid" 2>/dev/null || true) &
 	fi
 }
+[[ "$P2_TOOL" != split ]] || export COOP_SPLIT_ARGS="127.0.0.1 $port p2 $P2_GAME partner $P2_ARGS ${keys[p2]:+keys=${keys[p2]}} ${shots[p2]}"
 launch p1 "$P1_ARGS" "$P1_TOOL"
 sleep "$P2_DELAY"
-launch p2 "$P2_ARGS" "$P2_TOOL"
+if [[ "$P2_TOOL" == split ]]; then
+	echo "coop_screens: p2 is p1's split screen; its lines are in p1.log" > "$out/p2.log"
+else
+	launch p2 "$P2_ARGS" "$P2_TOOL"
+fi
 ended() { grep -qE "autoplay: [a-z0-9]+ (finished|FAILED)" "$out/$1.log" || [[ "$2" != coop_autoplay ]]; }
 for (( waited = 0; waited < DURATION; waited += 2 )); do
 	sleep 2

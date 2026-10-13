@@ -7,6 +7,7 @@ const AWAY: int = 1 << 20
 
 static var _choice: Dictionary = {}
 static var _device: int = PokeInputActions.ALL_DEVICES
+static var held: Dictionary = {}
 
 
 static func sanitize(raw: Variant) -> Dictionary:
@@ -44,7 +45,7 @@ static func device_for(choice: Dictionary, pads: Array = connected()) -> int:
 
 static func apply(choice: Dictionary = _choice, pads: Array = connected()) -> void:
 	_choice = choice
-	_device = device_for(choice, pads)
+	_device = device_for(held if not held.is_empty() else choice, pads)
 	for action: StringName in InputMap.get_actions():
 		for event: InputEvent in InputMap.action_get_events(action):
 			if event is InputEventJoypadButton or event is InputEventJoypadMotion:
