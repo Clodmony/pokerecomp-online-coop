@@ -11,6 +11,26 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A pick stays on the pad it found; the normal-window report traced (#140, D123, 2026-10-14)
+
+The last part of #140: the owner's character moved by itself in a normal
+window too, while another program pressed its virtual pads. Not reproduced
+again (second probe below); the build they played predates D117 and D118, so
+its right half held the second connected pad and outlived its host. What was
+real by reading: a pick on a pad without a serial is found by its place among
+pads of its model, and that place moves when look-alikes come and go. Now the
+device a pick found stays the pick while it stays plugged in; a serial still
+wins. Branch `coop/140-picked-pad-only`.
+
+| Verification | Result |
+|---|---|
+| Probe, normal window, Red, HEAD | the owner's DualSense Edge picked (GUID and serial), a third virtual "Microsoft X-Box pad" made through uinput pressing d-pad left and right while the window had focus, the other program's two virtual pads pressing A, X and a trigger on their own: every press came in as a joypad event of devices 2 to 4, `PokePadChoice.heard` false for each, no `gen2_` or `ui_` action down, no key event at all; Steam's controller log shows its desktop layout (app 413080) activating for those pads meanwhile |
+| GUT, before | `test_the_pick_stays_on_the_pad_it_found_while_look_alikes_come_and_go` failed: picked device 1 moved to 0 once twins took numbers 0 and 2 ("[0] expected to equal [1]"), device 0 pressed A, Settings marked the twin |
+| GUT, after | `test_pad_choice` 4/4, `test_coop_lobby` 61 asserts, `test_coop_device` 38/38, `test_source_budget` 4/4 (comment lines unchanged) |
+| Screens (scripted), Red | `local_split` on 490f0aad: Hosting, How to split the screen?, Who plays where? (Enter: left half the keyboard; A: right half the DualSense Edge), BLUE joins, both halves 1280x1440 with the partner arrow, the window whole again |
+| `tools/verify.sh --builds local_split`, run `20261014-185139` on 490f0aad | all passed: suite 5190/5190, gates, boot, ENet demo, three processes, the scenario, Linux and Windows builds boot (`builds/140-picked-pad-only-490f0aad`) |
+| Not run | the owner's own pads by hand (P11); a fresh private build played with the other program's pads pressing |
+
 ## Four small follow-ups in one session (#151, D122, 2026-10-14)
 
 "Use next POKéMON?" after a faint in the wild now reaches the partner's window
