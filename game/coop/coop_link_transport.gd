@@ -26,7 +26,6 @@ func refresh() -> void:
 	if partner.is_empty():
 		peer = {}
 		return
-	## Not a save slot's catch rate in the item byte, which the arriving save refuses.
 	var party: Array = (partner.get("party", []) as Array).map(
 		func(row: Dictionary) -> Dictionary: return (row["mon"] as Dictionary).duplicate(true))
 	peer = {
