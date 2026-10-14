@@ -1438,6 +1438,41 @@ func test_a_lost_battle_blacks_out_on_the_field_and_the_first_rival_says_their_l
 	assert_true(session._whiteout_said, "the field said it: the world goes straight to the Pokémon Center")
 
 
+func test_a_potion_fills_its_bar_on_the_party_screen_with_the_recovered_line() -> void:
+	var red: PokeCoopPlayer = _host.player(_red.player_id)
+	(red.team[0]["mon"] as Gen2SaveMon).hp = 10
+	red.give_item(Fixture.POTION, 1)
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	field.visible = true
+	field._take_events(_red.battle(battle_id))
+	field._messages.clear()
+	_send(func() -> void: _red.act(battle_id, {"type": "item", "item": Fixture.POTION, "target": 0}))
+	var view: Dictionary = _red.battle(battle_id)
+	var used: Dictionary = (view["events"] as Array).filter(func(event: Dictionary) -> bool:
+		return StringName(event["type"]) == PokeCoopBattleSession.ITEM_USED)[0]
+	assert_eq([int(used["target"]), int(used["hp"]), int(used["effect"]["healed"])], [0, 30, 20],
+		"the host says whom it healed and by how much, before the enemy's move")
+
+	field._take_events(view)
+	var heal: int = field._messages.find_custom(func(step: Dictionary) -> bool: return step.has("item_result"))
+	assert_gt(heal, 0, "behind the line that names who used it")
+	var charmander: String = String(_data.species(Fixture.CHARMANDER)["name"])
+	assert_eq(field._messages[heal]["item_result"]["text"], "%s\nrecovered by 20!" % charmander)
+	var step: Dictionary = field._messages[heal]
+	field._messages = field._messages.slice(heal + 1)
+	field._take_step(step)
+	assert_true(field._sheet_layer.visible and field.is_playing(), "`HealHP_SFX_GFX` over the party menu")
+	for frame: int in 400:
+		field._advance_text()
+		if not field._sheet_layer.visible:
+			break
+	assert_false(field._sheet_layer.visible, "back to the battle after the line's hold")
+	assert_eq(int(field._drawn_hp[Gen2Battle.PLAYER]), 30, "the panel's bar shows the healed HP")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)
