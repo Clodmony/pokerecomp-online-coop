@@ -1477,6 +1477,41 @@ func test_a_partner_points_at_the_move_to_mimic_or_to_forget_and_the_owner_sees_
 	assert_true(blue_rows.all(func(row: Dictionary) -> bool: return row.has("suggest")), "every answer can be suggested")
 
 
+func test_a_partner_may_suggest_running_when_the_owner_is_asked_for_the_next_pokemon() -> void:
+	_host.register_encounter("wild:hitter", {"species": Fixture.GEODUDE, "level": 50, "moves": [Fixture.TACKLE]})
+	_send(func() -> void: _red.start_battle("wild:hitter"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	var session: PokeCoopBattleSession = _host.battles[battle_id]
+	session.battle.player.hp = 1
+	_send(func() -> void: _red.act(battle_id, {"type": "move", "slot": 1}))
+	assert_eq([String(_red.battle(battle_id)["phase"]), String(_red.battle(battle_id)["controller"])], ["send_out", _red.player_id],
+		"Red's CHARMANDER fainted: Red is asked for the next one")
+
+	var blue_panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_blue, _data))
+	blue_panel._process(0.0)
+	assert_eq(blue_panel.menu.page, PokeCoopBattleMenu.ASK, "the partner sees the use-next question too")
+	blue_panel._press(PokeButton.DOWN)
+	_pump()
+	var said: Dictionary = _red.battle(battle_id)["suggestions"][_blue.player_id]
+	assert_eq([said["type"], int(said["value"])], ["run", 0], "Blue's cursor on NO suggests running")
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	panel._process(0.0)
+	assert_eq([panel.menu.page, panel.menu.marks()], [PokeCoopBattleMenu.ASK, {1: [_blue.player_id]}], "NO wears Blue's mark")
+	assert_eq(panel.menu.spelled(), [["%s suggests" % String(_red.state["players"][_blue.player_id]["name"]), "RUN"]])
+
+	blue_panel._press(PokeButton.UP)
+	blue_panel._press(PokeButton.A)
+	blue_panel._press(PokeButton.DOWN)
+	_pump()
+	said = _red.battle(battle_id)["suggestions"][_blue.player_id]
+	assert_eq([blue_panel.menu.page, said["type"]], [PokeCoopBattleMenu.PARTY, "send_out"], "YES takes Blue to the party list")
+	panel._process(0.0)
+	assert_eq(panel.menu.marks(), {0: [_blue.player_id]}, "and YES wears the mark while Blue points at a Pokémon")
+	assert_true(blue_panel._battle_rows(_blue.battle(battle_id)).all(func(row: Dictionary) -> bool:
+		return row.has("suggest") or row.has("session")), "every answer can be suggested")
+
+
 func test_a_finished_battle_closes_itself_once_its_last_line_has_played() -> void:
 	_send(func() -> void: _red.start_battle("wild:weak"))
 	var battle_id: String = _battle_of(_red)
