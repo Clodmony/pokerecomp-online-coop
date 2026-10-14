@@ -25,7 +25,9 @@ Last updated 2026-10-15 (after #26's pull request).
   level=9`, then RED's lead at L14, 2030 EXP, 6 HP, SCRATCH/GROWL/EMBER/TACKLE
   and three POTIONs, as the scenario's header says). Verify run
   `20261014-235125`: all passed, suite 5200/5200; captures looked at; the
-  catch scenario's BLUE presses were restored after it and rerun. No builds.
+  catch scenario's BLUE presses were restored after it and rerun. Also fixes
+  upstream's nickname prompt to scroll with B as well as A (f80662cb, verify
+  run `20261015-001328` all passed). No builds.
 - The Gen 2 half of #28 is issue #149 (later milestone, D61).
 
 ## Next candidates
@@ -34,10 +36,6 @@ Last updated 2026-10-15 (after #26's pull request).
   `builds/140-picked-pad-only-490f0aad` (hand, P11 and K17).
 - A hand-played session (test cases K17-K21, B34-B42, P10, P11, K16, T08,
   S20; `docs/coop/readiness.md`).
-- Noticed, not filed: upstream's `Gen2NicknamePromptScreen.handle_button`
-  scrolls the nickname question's `cont` on A only; the cartridge's
-  `WaitForTextScrollButtonPress` also takes B (single-player too). Ask the
-  owner whether to file or report upstream.
 - Possible issue: the session menu's FIGHT list is fixed (BROCK, wild ONIX
   L60, PIDGEY L5, RATTATA L4 from `register_encounter`), not the map's wild
   table. Ask the owner before filing.
