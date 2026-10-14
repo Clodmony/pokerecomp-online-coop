@@ -10,9 +10,8 @@ Last updated 2026-10-15 (after #157 merged, closing #27).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #156 (2026-10-15;
-  #26 closed: the co-op field plays what the battle screen would, D125, and
-  upstream's nickname prompt scrolls with B). `main` = upstream main
+- Default branch `pokerecomp-online-coop` at the merge of #157 (2026-10-15;
+  #27 closed, D126). #156 before it closed #26 (D125). `main` = upstream main
   (ed886823, 0.1.78).
 - Next decision number: D127.
 
