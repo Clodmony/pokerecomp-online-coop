@@ -122,16 +122,20 @@ else
 	failed=$((failed + 1))
 fi
 
+load() { awk -v n="$(nproc)" '{printf "%s, %s (1 and 5 min) on %d cores", $1, $2, n}' /proc/loadavg; }
+overloaded() { awk -v n="$(nproc)" '{exit !($2 > n)}' /proc/loadavg; }
+(( ${#scenarios[@]} )) && note "load before the scenarios: $(load)"
 for a in "${scenarios[@]}"; do
 	s="${a%%=*}" seed=""
 	[[ "$a" != *=* ]] || { seed="${a#*=}"; seed="$(realpath -m "${seed/#\~/$HOME}")"; }
 	if (cd "$root" && GODOT="$godot" SEED="$seed" tools/coop_screens.sh "$s" "$out/screens/$s") > "$out/screens-$s.log" 2>&1; then
 		note "scenario $s: ok (captures in screens/$s${seed:+, seed $seed})"
 	else
-		note "scenario $s: FAILED${seed:+ (seed $seed)}"
+		note "scenario $s: FAILED${seed:+ (seed $seed)}$(overloaded && echo " under load: $(load); rerun it alone")"
 		failed=$((failed + 1))
 	fi
 done
+(( ${#scenarios[@]} )) && note "load after the scenarios: $(load)"
 
 # boot <name> <log> <command...>: the launcher came up (it prints the cartridges
 # it accepts) with no error, in the private user folder.

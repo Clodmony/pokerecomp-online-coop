@@ -96,10 +96,11 @@ func _open_phase() -> void:
 		"action":
 			_go(NONE if bool(_view.get("paused", false)) else MAIN, _main)
 		"send_out":
-			if _controls() and not bool(_view.get("trainer", false)):
-				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY}, _run_or_leave(), true)
-			else:
+			if bool(_view.get("trainer", false)):
 				_go(PARTY, 0)
+			else:
+				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY},
+					_run_or_leave() if _controls() else {"choose": _command("run")}, true)
 		"learn":
 			_go(LEARN, 0)
 		"mimic":

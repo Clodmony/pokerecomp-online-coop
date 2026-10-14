@@ -901,6 +901,7 @@ func _build_hosting() -> void:
 
 func _split_screen() -> void:
 	var sheet: PokeCoopTabParts.Sheet = _open_sheet(&"layout", _split_screen)
+	PokeCoopLobby.SplitScreen.stacked = PokeCoopLobby.SplitScreen.remembered_stacked()
 	sheet.body().add_child(Gen2LauncherUI.title(_theme, "How to split the screen?", Gen2LauncherTheme.FONT_TITLE + 3))
 	var picked: PokeCoopTabParts.Tile = null
 	for option: Array in [[false, "Side by side", "Left and right halves, each as tall as the screen"],
@@ -915,7 +916,7 @@ func _split_screen() -> void:
 
 
 func _split_as(top_and_bottom: bool) -> void:
-	PokeCoopLobby.SplitScreen.stacked = top_and_bottom
+	PokeCoopLobby.SplitScreen.choose(top_and_bottom)
 	_split_halves = PokeCoopLobby.SplitScreen.halves(Gen2OptionsStore.current().pad, PokePadChoice.connected())
 	_ask_split.call_deferred()
 
