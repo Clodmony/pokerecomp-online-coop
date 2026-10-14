@@ -1366,6 +1366,37 @@ func test_the_field_plays_the_screens_sounds_shakes_and_pauses_and_a_red_bar_sou
 	assert_false(audio.low_health_alarm(), "and the battle's end stops it")
 
 
+func test_a_level_up_shows_its_last_levels_stats_beside_the_line_until_the_next_event() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var stats: Callable = func(hp: int) -> Dictionary:
+		return {"hp": hp, "attack": 20, "defense": 18, "speed": 22, "special": 19}
+	var grew: Callable = func(level: int) -> Dictionary:
+		return {"type": Gen2Battle.GREW_LEVEL, "side": Gen2Battle.PLAYER, "index": 0, "name": "CHARMANDER",
+			"old_level": level - 1, "new_level": level, "new_stats": stats.call(30 + level)}
+	var view: Dictionary = {
+		"battle": "b15", "revision": 2, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 15, "hp": 41, "max_hp": 45}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 5, "hp": 0, "max_hp": 20},
+		"events": [grew.call(14), grew.call(15), {"type": Gen2Battle.MOVE_FAILED, "side": Gen2Battle.ENEMY}],
+	}
+	field._take_events(view.merged({"revision": 1, "events": []}, true))
+	field._messages.clear()
+	field._take_events(view)
+
+	var boxed: Array = field._messages.filter(func(step: Dictionary) -> bool: return step.has("stats"))
+	assert_eq(boxed.size(), 1, "`.level_loop` raises every level, then one box")
+	assert_eq(boxed[0]["stats"], stats.call(45))
+	assert_string_contains(String(boxed[0].get("text", "")), "to level 15", "beside the last level's line")
+	while not field._messages.is_empty() and not field._messages[0].has("stats"):
+		field._take_step(field._messages.pop_front())
+	assert_false(field._stats_layer.visible)
+	field._take_step(field._messages.pop_front())
+	assert_true(field._stats_layer.visible, "`PrintTempMonStats` with the line")
+	field._take_step(field._messages.pop_front())
+	assert_false(field._stats_layer.visible, "and gone with the next event")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)
