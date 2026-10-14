@@ -13,7 +13,7 @@
 #               campaign (an exported SEED is refused rather than given to all)
 #
 # Stages: import, GUT, release gates, boot smoke test, ENet demo, three
-# processes, then each scenario, then the builds. Full logs and captures go to
+# processes (both on free UDP ports), then each scenario, then the builds. Full logs and captures go to
 # $VERIFY_OUT/<stamp>/ (default ~/dev-scratch/pokerecomp-online-coop/verify), the
 # summary to <stamp>/summary.txt and stdout. Exits 0 only if every stage passed.
 #
@@ -97,9 +97,24 @@ else
 fi
 
 stage boot 180 "" "$godot" --headless --path . --quit-after 30
-stage enet-demo 180 "coop demo: all" "$godot" --headless --path . -s res://tools/coop_session.gd -- demo
 
-if (cd "$root" && XDG_DATA_HOME="$out/xdg" GODOT="$godot" "${sandbox[@]}" tools/coop_two_process.sh 24690 180) \
+# free_port: a UDP port nothing listens on, above the game's own (24680 host,
+# 24681 beacon) and the scenarios' (24800-25699), so the ENet stages pass next
+# to a game the owner is hosting and never take its port.
+free_port() {
+	local p
+	for _ in $(seq 50); do
+		p=$(( 25700 + RANDOM % 4000 ))
+		[[ -n "$(ss -Hlun "sport = :$p" 2>/dev/null)" ]] || break
+	done
+	echo "$p"
+}
+
+demo_port="$(free_port)" three_port="$(free_port)"
+note "enet ports: demo $demo_port, three processes $three_port"
+stage enet-demo 180 "coop demo: all" "$godot" --headless --path . -s res://tools/coop_session.gd -- demo "$demo_port"
+
+if (cd "$root" && XDG_DATA_HOME="$out/xdg" GODOT="$godot" "${sandbox[@]}" tools/coop_two_process.sh "$three_port" 180) \
 	> "$out/three-processes.log" 2>&1; then
 	note "three-processes: ok"
 else
