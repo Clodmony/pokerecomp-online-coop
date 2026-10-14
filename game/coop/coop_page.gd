@@ -163,6 +163,7 @@ func _tell_ended(text: String) -> void:
 func _join_split() -> void:
 	var asked: Dictionary = PokeCoopLobby.SplitScreen.asked
 	PokeCoopLobby.memory_path = PokeCoopLobby.SplitScreen.MEMORY
+	PokeCoopLobby.SplitScreen.stacked = bool(asked.get("stacked", false))
 	PokeCoopLobby.SplitScreen.take(1, asked["pad"], int(asked["screen"]))
 	var shell: Node = get_parent()
 	while shell != null and not shell is Gen2LauncherShell:
@@ -748,24 +749,29 @@ func _start_options(host: VBoxContainer) -> void:
 		options.append([BRING, "Bring a trainer from a save", "Slot %d: %s · %s" % [int(slots[0]["slot"]) + 1, slots[0]["player_name"],
 			_row(_game)["title"]]])
 	for option: Array in options:
-		var tile: PokeCoopTabParts.Tile = PokeCoopTabParts.Tile.make(_theme, PokeCoopTabParts.Tile.Look.PANEL, true,
-			Gen2LauncherTheme.RADIUS_MD, Vector2i(14, 10))
-		tile.set_meta("label", option[1])
-		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tile.set_selected(option[0] == choice)
-		tile.content().add_child(PokeCoopTabParts.radio(_theme, option[0] == choice))
-		var words: VBoxContainer = Gen2LauncherUI.column(1)
-		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		words.add_child(PokeCoopTabParts.text(_theme, option[1]))
-		words.add_child(PokeCoopTabParts.text(_theme, option[2], Gen2LauncherTheme.FONT_SMALL, _theme.muted, _compact))
-		tile.content().add_child(words)
+		var tile: PokeCoopTabParts.Tile = _option_tile(option[1], option[2], option[0] == choice)
 		tile.chosen.connect(_choose_start.bind(option[0], option[1]))
 		host.add_child(tile)
 		if option[0] == PALLET and choice == PALLET:
 			host.add_child(_starter_chips(data))
 		if option[0] == BRING and choice == BRING and slots.size() > 1:
 			host.add_child(_slot_chips(slots))
+
+
+func _option_tile(label: String, detail: String, on: bool) -> PokeCoopTabParts.Tile:
+	var tile: PokeCoopTabParts.Tile = PokeCoopTabParts.Tile.make(_theme, PokeCoopTabParts.Tile.Look.PANEL, true,
+		Gen2LauncherTheme.RADIUS_MD, Vector2i(14, 10))
+	tile.set_meta("label", label)
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.set_selected(on)
+	tile.content().add_child(PokeCoopTabParts.radio(_theme, on))
+	var words: VBoxContainer = Gen2LauncherUI.column(1)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_child(PokeCoopTabParts.text(_theme, label))
+	words.add_child(PokeCoopTabParts.text(_theme, detail, Gen2LauncherTheme.FONT_SMALL, _theme.muted, _compact))
+	tile.content().add_child(words)
+	return tile
 
 
 func _choose_start(start: StringName, label: String) -> void:
@@ -894,8 +900,24 @@ func _build_hosting() -> void:
 
 
 func _split_screen() -> void:
+	var sheet: PokeCoopTabParts.Sheet = _open_sheet(&"layout", _split_screen)
+	sheet.body().add_child(Gen2LauncherUI.title(_theme, "How to split the screen?", Gen2LauncherTheme.FONT_TITLE + 3))
+	var picked: PokeCoopTabParts.Tile = null
+	for option: Array in [[false, "Side by side", "Left and right halves, each as tall as the screen"],
+			[true, "Top and bottom", "Top and bottom halves, each as wide as the screen"]]:
+		var tile: PokeCoopTabParts.Tile = _option_tile(option[1], option[2], option[0] == PokeCoopLobby.SplitScreen.stacked)
+		tile.chosen.connect(_split_as.bind(option[0]))
+		sheet.body().add_child(tile)
+		picked = tile if tile.selected else picked
+	_sheet_buttons(sheet, [["Cancel", _close_sheet]])
+	if not PokeInputDevice.is_pointer(Gen2InputRuntime.instance().device()):
+		_grab.call_deferred(picked)
+
+
+func _split_as(top_and_bottom: bool) -> void:
+	PokeCoopLobby.SplitScreen.stacked = top_and_bottom
 	_split_halves = PokeCoopLobby.SplitScreen.halves(Gen2OptionsStore.current().pad, PokePadChoice.connected())
-	_ask_split()
+	_ask_split.call_deferred()
 
 
 func _ask_split() -> void:
@@ -911,8 +933,8 @@ func _ask_split() -> void:
 	for side: int in 2:
 		var pad: Variant = _split_halves[side]
 		sheet.body().add_child(PokeCoopTabParts.step(_theme, str(side + 1), &"done" if pad != null else &"now" if side == asking else &"todo",
-			"%s half: %s" % ["Left" if side == 0 else "Right", String(pad["name"]) if pad != null else "press A on your controller" + keyboard
-			if side == asking else "next"]))
+			"%s half: %s" % [PokeCoopLobby.SplitScreen.named(side).capitalize(), String(pad["name"]) if pad != null
+			else "press A on your controller" + keyboard if side == asking else "next"]))
 	_note(sheet.body(), "Only the controller each half chose plays in it.", _theme.muted)
 	_sheet_buttons(sheet, [["Cancel", _close_sheet]])
 
@@ -933,8 +955,9 @@ func _start_split() -> void:
 		_toast("The second window did not start.")
 		return
 	var names: Array = _split_halves.map(func(pad: Dictionary) -> String: return String(pad.get("name", "the keyboard")))
-	_toast("A second player joins on the right.", "Plug in a controller for each player." if _split_halves[0].is_empty() else
-		"%s plays on the left, %s on the right. SELECT, then QUIT BOTH, closes both windows." % names)
+	var sides: Array = [PokeCoopLobby.SplitScreen.named(0), PokeCoopLobby.SplitScreen.named(1)]
+	_toast("A second player joins in the %s half." % sides[1], "Plug in a controller for each player." if _split_halves[0].is_empty() else
+		"%s plays in the %s half, %s in the %s. SELECT, then QUIT BOTH, closes both windows." % [names[0], sides[0], names[1], sides[1]])
 	_show(HOSTING)
 
 

@@ -1,8 +1,8 @@
 extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
-##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split]
-##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen, whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
+##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split[=stacked]]
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
 
 const LAUNCHER: String = "res://game/main/main.tscn"
 const STEP_FRAMES: int = 20
@@ -23,6 +23,7 @@ var _rival_name: String = ""
 var _by_address: bool = false
 var _both_versions: bool = false
 var _split: bool = false
+var _layout: String = "Side by side"
 var _halves_pressed: int = 0
 var _tour: String = ""
 var _keys_field: String = ""
@@ -72,6 +73,7 @@ func _read_option(arg: String) -> bool:
 			_role = arg
 		"split":
 			_split = true
+			_layout = "Top and bottom" if value == "stacked" else _layout
 		"name":
 			_trainer = value.to_upper()
 		"starter":
@@ -175,7 +177,7 @@ func _plan(campaign: String) -> Array:
 	if _role == "host":
 		plan.append_array([_shot.bind("start"), _press.bind("HOST"), _shot.bind("host"), _host_or_create.bind(campaign)])
 		if _split:
-			plan.append_array([_until_hosting, _press.bind("Split screen"), _choose_halves, _shot.bind("split_hosting"), _until_partner])
+			plan.append_array([_until_hosting, _press.bind("Split screen"), _choose_layout, _choose_halves, _shot.bind("split_hosting"), _until_partner])
 		plan.append_array(_tour_host() if not _tour.is_empty() else [_until_hosting, _press.bind("Enter the world")])
 	else:
 		plan.append_array(_tour_join() if not _tour.is_empty() else [_press.bind("JOIN"), _join_host, _join_as])
@@ -347,6 +349,12 @@ func _until_hosting() -> bool:
 
 func _finalize() -> void:
 	print("coop launcher: %s quits at frame %d" % [_player_id, _frames])
+
+
+func _choose_layout() -> bool:
+	if not _captures.is_empty():
+		root.get_viewport().get_texture().get_image().save_png(String(_captures[0]["path"]).get_base_dir() + "/split_layout.png")
+	return _press(_layout)
 
 
 func _choose_halves() -> bool:
