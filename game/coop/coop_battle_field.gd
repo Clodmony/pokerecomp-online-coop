@@ -6,10 +6,7 @@ extends Control
 const HOLD_FRAMES: int = 50
 const BOX_COLUMNS: int = 18
 const WORDED: Array[StringName] = [
-	Gen2Battle.USED_MOVE, Gen2Battle.MISSED, Gen2Battle.CRITICAL_HIT, Gen2Battle.EFFECTIVENESS,
-	Gen2Battle.FAINTED, Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW, Gen2Battle.CAUGHT, Gen2Battle.FLED,
-	Gen2Battle.EXP_GAINED, Gen2Battle.MOVE_LEARNED, Gen2Battle.MOVE_OFFERED,
-	Gen2Battle.MOVE_FORGOTTEN, Gen2Battle.OVER, PokeCoopBattleSession.JOINED,
+	Gen2Battle.CAUGHT, Gen2Battle.MOVE_OFFERED, PokeCoopBattleSession.JOINED,
 	PokeCoopBattleSession.ITEM_USED, PokeCoopBattleSession.BALL_THROWN, Gen2Battle.SWITCH_OFFERED,
 ]
 
@@ -185,7 +182,8 @@ static func scene_view(view: Dictionary, game: GameData) -> Dictionary:
 		var mon: Dictionary = side[1]
 		var prefix: String = side[0]
 		out[prefix + "_species"] = int(mon.get("species", 0))
-		out[prefix + "_name"] = _species_name(game, int(mon.get("species", 0)))
+		out[prefix + "_name"] = String(mon.get("name", "")) if not String(mon.get("name", "")).is_empty() \
+			else _species_name(game, int(mon.get("species", 0)))
 		out[prefix + "_level"] = int(mon.get("level", 0))
 		out[prefix + "_hp"] = int(mon.get("hp", 0))
 		out[prefix + "_max_hp"] = int(mon.get("max_hp", 0))
@@ -248,8 +246,7 @@ func _take_events(view: Dictionary) -> void:
 
 ## The field's own line for the events it words, the screen's for the rest and a trainer's switch.
 func _line_for(event: Dictionary, out: Dictionary, names: Dictionary, trainer: String) -> String:
-	var type: StringName = StringName(event.get("type", &""))
-	if type in WORDED and not (type == Gen2Battle.WITHDREW and int(event.get("side", 0)) == Gen2Battle.ENEMY):
+	if StringName(event.get("type", &"")) in WORDED:
 		return message(event, out, data, names, trainer)
 	return _screen_line(event, out, trainer)
 
@@ -258,8 +255,11 @@ func _screen_line(event: Dictionary, out: Dictionary, trainer: String) -> String
 	if _words == null:
 		_words = Gen2BattleScreen.new()
 		_words.set("_data", data)
+		_words.set("_injected_rules", Gen2Rules.new())
 	_words.set("_player", int(out.get(Gen2Battle.PLAYER, 0)))
 	_words.set("_enemy", int(out.get(Gen2Battle.ENEMY, 0)))
+	_words.set("_player_nick", String(out.get(name_key(Gen2Battle.PLAYER), "")))
+	_words.set("_enemy_nick", String(out.get(name_key(Gen2Battle.ENEMY), "")))
 	_words.set("_world_battle_request", {"trainer_name": trainer})
 	var named: Dictionary = event.duplicate()
 	named["type"] = StringName(event.get("type", &""))
@@ -331,6 +331,7 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			})
 		Gen2Battle.SENT_OUT:
 			out[side] = int(event.get("species", species_at(view, side, int(event.get("index", 0)))))
+			out[name_key(side)] = String(event.get("name", ""))
 			if side == Gen2Battle.ENEMY and _enemy_down and bool(view.get("trainer", false)):
 				_messages.append({"balls": {} if _offered else {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
 			_enemy_down = false if side == Gen2Battle.ENEMY else _enemy_down
@@ -447,10 +448,18 @@ static func pages(line: String) -> PackedStringArray:
 
 
 static func out_now(view: Dictionary) -> Dictionary:
+	var allies: Array = view.get("allies", [])
+	var active: int = int(view.get("active", 0))
 	return {
-		Gen2Battle.PLAYER: species_at(view, Gen2Battle.PLAYER, int(view.get("active", 0))),
+		Gen2Battle.PLAYER: species_at(view, Gen2Battle.PLAYER, active),
 		Gen2Battle.ENEMY: int((view.get("enemy", {}) as Dictionary).get("species", 0)),
+		name_key(Gen2Battle.PLAYER): String((allies[active] as Dictionary).get("name", "")) if active >= 0 and active < allies.size() else "",
+		name_key(Gen2Battle.ENEMY): String((view.get("enemy", {}) as Dictionary).get("name", "")),
 	}
+
+
+static func name_key(side: int) -> String:
+	return "enemy_name" if side == Gen2Battle.ENEMY else "player_name"
 
 
 ## `DrawAllPokeballs`' `StageBallTilesData`: the enemy's party, or [param player_id]'s own Pokémon among the allies.
@@ -732,36 +741,10 @@ func _player_name(player_id: String) -> String:
 static func message(
 	event: Dictionary, out: Dictionary, game: GameData, names: Dictionary = {}, trainer: String = ""
 ) -> String:
-	var side: int = int(event.get("side", Gen2Battle.PLAYER))
 	var who_acted: String = String(names.get(String(event.get("player", "")), ""))
-	var who: String = _species_name(game, int(out.get(side, 0)))
-	who = _de(game, "Enemy %s") % who if side == Gen2Battle.ENEMY else who
 	match StringName(event.get("type", &"")):
-		Gen2Battle.USED_MOVE:
-			return _de(game, "%s\nused %s!") % [who, String(game.move(int(event.get("move", 0))).get("name", ""))]
-		Gen2Battle.MISSED:
-			return _de(game, "%s's\nattack missed!") % who
-		Gen2Battle.CRITICAL_HIT:
-			return _de(game, "Critical hit!")
-		Gen2Battle.EFFECTIVENESS:
-			return _de(game, "It's super\neffective!") if int(event.get("effectiveness", 0)) > Gen2Layout.MATCHUP_EFFECTIVE \
-				else _de(game, "It's not very\neffective...")
-		Gen2Battle.FAINTED:
-			return _de(game, "%s\nfainted!") % who
-		Gen2Battle.SENT_OUT, Gen2Battle.WITHDREW:
-			return _entrance_line(event, _species_name(game, int(out.get(side, 0))), trainer, game)
-		Gen2Battle.MOVE_FORGOTTEN:
-			return _forgot_line(event, game)
 		Gen2Battle.CAUGHT:
 			return _de(game, "All right!\n%s was caught!") % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
-		Gen2Battle.FLED:
-			return _de(game, "Got away safely!")
-		Gen2Battle.EXP_GAINED:
-			return _de(game, "%s gained\n%d EXP. Points!") % [event.get("name", ""), int(event.get("amount", 0))]
-		Gen2Battle.GREW_LEVEL:
-			return _de(game, "%s grew\nto level %d!") % [event.get("name", ""), int(event.get("new_level", 0))]
-		Gen2Battle.MOVE_LEARNED:
-			return _de(game, "%s learned\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		Gen2Battle.MOVE_OFFERED:
 			return _de(game, "%s is\ntrying to learn\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
 		PokeCoopBattleSession.JOINED:
@@ -774,26 +757,6 @@ static func message(
 			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "", true) \
 				.get_slice(Gen2TextStream.PAGE_BREAK, 0)
 	return ""
-
-
-## "Go!", the trainer's send-out and Generation 1's `PlayerMon2Text` endings.
-static func _entrance_line(event: Dictionary, species_name: String, trainer: String, game: GameData) -> String:
-	var enemy: bool = int(event.get("side", Gen2Battle.PLAYER)) == Gen2Battle.ENEMY
-	if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
-		var go: Array[String] = Gen2BattleScreen.GEN1_SEND_OUT_LINES
-		return _de(game, go[clampi(int(event.get("line", 0)), 0, go.size() - 1)]) % species_name if not enemy else \
-			(_de(game, "%s sent\nout %s!") % [trainer, species_name] if not trainer.is_empty() else "")
-	if enemy or bool(event.get("quiet", false)):
-		return ""
-	var lines: Array[String] = Gen2BattleScreen.GEN1_WITHDRAW_LINES
-	return _de(game, lines[clampi(int(event.get("line", 0)), 0, lines.size() - 1)]) % String(event.get("name", ""))
-
-
-static func _forgot_line(event: Dictionary, game: GameData) -> String:
-	var learner: String = String(event.get("name", ""))
-	return Gen2MoveForget.forgot_text(learner, String(game.move(int(event.get("forgot", 0))).get("name", "")),
-		game.generation, game.id == RomRegistry.YELLOW) + Gen2TextStream.PAGE_BREAK \
-		+ Gen2MoveForget.learned_text(learner, String(game.move(int(event.get("learned", 0))).get("name", "")), game.generation)
 
 
 ## `ItemUseBall`'s lines: the throw, then the catch or how close it came.
