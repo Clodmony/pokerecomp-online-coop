@@ -378,6 +378,10 @@ func _throw_ball(player: PokeCoopPlayer, ball: int, recipient: String) -> Dictio
 	}]
 	if bool(roll.get("caught", false)):
 		catch = {"recipient": recipient, "mon": wild}
+		var receiving: PokeCoopPlayer = _members[recipient]
+		var dex: Dictionary = receiving.world_part().get("caught_species", {})
+		events[0].merge({"species": wild.persistent_species(), "boxed": receiving.team.size() >= PokeCoopPlayer.MAX_TEAM,
+			"new_dex": not (dex.has(wild.persistent_species()) or dex.has(str(wild.persistent_species())))})
 		return _done(events)
 	events.append_array(battle.take_actions(Gen2Battle.use_item(ball), _enemy_action()))
 	return _done(events)
