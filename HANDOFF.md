@@ -17,10 +17,8 @@ Last updated 2026-10-15 (after #26's pull request).
 
 ## Open pull requests (the owner says when to merge)
 
-- **#156** (draft) `coop/26-battle-session-events`, "Part of #26", not
-  "Closes": D125 has the owner choosing to close the field's gaps rather than
-  drive `Gen2BattleScreen` itself, and the field is still its own node.
-  Ask the owner whether #26 closes with it. Test cases B37-B42, scenario
+- **#156** (draft) `coop/26-battle-session-events`, Closes #26: the owner
+  accepted the field as its own node (D125). Test cases B37-B42, scenario
   `battle_flows` (needs a seed: `tools/coop_seed.gd red viridian_forest
   level=9`, then RED's lead at L14, 2030 EXP, 6 HP, SCRATCH/GROWL/EMBER/TACKLE
   and three POTIONs, as the scenario's header says). Verify run
