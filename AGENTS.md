@@ -10,8 +10,9 @@ here.
 
 Read before working:
 
-- **Start here:** the open issues on GitHub (the only task list) and the session
-  handoff note; work follows the issue loop under *Workflow*.
+- **Start here:** [HANDOFF.md](HANDOFF.md), the session handoff note (state,
+  open pull requests, next candidates), and the open issues on GitHub (the only
+  task list); work follows the issue loop under *Workflow*.
 - [docs/coop/playbook.md](docs/coop/playbook.md): the plan to a fully playable run, the world-sharing rule and the owner's open decisions.
 - [docs/coop/brief.md](docs/coop/brief.md): the owner's brief, the source of
   truth for goals and constraints.
@@ -59,9 +60,21 @@ Read before working:
 - **One issue per session.** Pick the issue with the owner, branch
   `coop/<issue>-<topic>` from `pokerecomp-online-coop`, reproduce the problem (a failing GUT test
   or scenario first), fix it, run `tools/verify.sh`, update the docs below, push
-  and open a draft pull request that says `Closes #N`. Then write the handoff
-  note (open pull requests, branch state, next candidates) and stop: the owner
-  starts a fresh session for the next issue.
+  and open a draft pull request that says `Closes #N`. Then rewrite
+  `HANDOFF.md` (open pull requests, branch state, next candidates, cleanup)
+  and stop: the owner starts a fresh session for the next issue.
+- **The handoff lives in the repository.** `HANDOFF.md` is rewritten at the end
+  of every session and committed on the issue branch. When a session ends
+  without a pull request, or the note must be visible before the owner merges,
+  commit it alone (`handoff: <date>`) and push it to `pokerecomp-online-coop`
+  directly: it is the one file that may land there without a pull request.
+  Per-checkout agent memory is not read from another worktree, so state goes
+  into this file, not into memory.
+- **Worktrees.** One worktree per issue: a Superset workspace, or
+  `git worktree add` under scratch. Superset runs `.superset/setup.sh` when it
+  creates a workspace; run it by hand in any other worktree (identity, hooks,
+  upstream remote, tool check). Remove a worktree when its pull request is
+  merged.
 - **GitHub issues are the task list.** New work, bugs found on the way and
   follow-ups become issues; there is no task file in the repository.
 - **The owner merges.** A pull request is merged only when the owner says so.
