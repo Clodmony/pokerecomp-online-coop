@@ -1606,12 +1606,24 @@ func test_a_move_to_forget_and_a_move_to_mimic_are_picked_on_the_cartridges_list
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var view: Dictionary = _red.battle(_battle_of(_red)).duplicate(true)
 	view["phase"] = "learn"
-	view["learning"] = {"index": 0, "move": Fixture.TACKLE}
+	view["learning"] = {"index": 0, "move": Fixture.TACKLE, "name": "SPARKY"}
 	var panel: PokeCoopBattlePanel = autofree(PokeCoopBattlePanel.over(_red, _data))
 	var menu: PokeCoopBattleMenu = panel.menu
 	var rows: Array = panel._battle_rows(view)
 	menu.update(view, rows)
-	assert_eq(menu.page, PokeCoopBattleMenu.LEARN)
+	var tackle: String = String(_data.move(Fixture.TACKLE)["name"])
+	assert_eq([menu.page, menu._ask.get("text")], [PokeCoopBattleMenu.ASK, "move to make room\nfor %s?" % tackle],
+		"`AskForgetMoveText` ends over the YES/NO box")
+	assert_eq(PokeCoopBattleField.pages(PokeCoopBattleField.message({"type": Gen2Battle.MOVE_OFFERED, "name": "SPARKY",
+		"move": Fixture.TACKLE}, {}, _data)), PackedStringArray(["SPARKY is\ntrying to learn", "%s!\nBut, SPARKY" % tackle,
+		"can't learn more\nthan 4 moves!", "Delete an older"]), "the field says the rest first")
+	menu.press(PokeButton.DOWN)
+	menu.press(PokeButton.A)
+	assert_eq(menu._ask.get("text"), "Abandon learning\n%s?" % tackle, "NO is `LearnMove.cancel`")
+	menu.press(PokeButton.B)
+	assert_eq(menu._ask.get("text"), "move to make room\nfor %s?" % tackle, "whose NO asks again")
+	menu.press(PokeButton.A)
+	assert_eq(menu.page, PokeCoopBattleMenu.LEARN, "YES opens the list")
 	assert_eq(menu._learner_moves(), [_data.move(Fixture.SLASH)["name"], _data.move(Fixture.GROWL)["name"]])
 	var keep: int = rows.find_custom(func(row: Dictionary) -> bool: return row["command"]["type"] == "decline")
 	assert_true(menu.point_at(keep), "B asks whether to stop learning, and YES keeps the old moves")
@@ -1657,6 +1669,7 @@ func test_a_partner_points_at_the_move_to_mimic_or_to_forget_and_the_owner_sees_
 	view["learning"] = {"index": 0, "move": Fixture.SLASH}
 	view["suggestions"] = {_blue.player_id: {"type": "learn", "value": 1, "revision": view["revision"]}}
 	panel.menu.update(view, panel._battle_rows(view))
+	panel.menu.press(PokeButton.A)
 	assert_eq([panel.menu.page, panel.menu.marks()], [PokeCoopBattleMenu.LEARN, {1: [_blue.player_id]}], "so does the move Blue would forget")
 	assert_eq(panel.menu._mark_tile(1), Gen2BattleMenu.forget_box(true).cursor_position(1))
 	view["suggestions"][_blue.player_id] = {"type": "decline", "value": 0, "revision": view["revision"]}
@@ -1665,6 +1678,7 @@ func test_a_partner_points_at_the_move_to_mimic_or_to_forget_and_the_owner_sees_
 	assert_eq([panel.menu.page, panel.menu.marks()], [PokeCoopBattleMenu.ASK, {0: [_blue.player_id]}], "and YES to keeping the old moves")
 	var blue_rows: Array = blue_panel._battle_rows(view)
 	blue_panel.menu.update(view, blue_rows)
+	blue_panel.menu.press(PokeButton.A)
 	assert_eq(blue_panel.menu.page, PokeCoopBattleMenu.LEARN)
 	assert_true(blue_rows.all(func(row: Dictionary) -> bool: return row.has("suggest")), "every answer can be suggested")
 
