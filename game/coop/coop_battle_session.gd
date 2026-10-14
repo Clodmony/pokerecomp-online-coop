@@ -577,7 +577,7 @@ static func party_states(party: Gen2Party) -> Array:
 
 static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 	return {
-		"species": member.species, "level": member.level, "hp": member.hp,
+		"species": member.species, "name": member.display_name(), "level": member.level, "hp": member.hp,
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
 		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
 	}

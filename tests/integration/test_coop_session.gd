@@ -1075,9 +1075,11 @@ func test_the_battle_field_draws_the_hosts_view_and_names_who_was_out() -> void:
 	out[Gen2Battle.PLAYER] = PokeCoopBattleField.species_at(view, Gen2Battle.PLAYER, 1)
 	var geodude: String = String(_data.species(Fixture.GEODUDE)["name"])
 	var pikachu: String = String(_data.species(Fixture.PIKACHU)["name"])
-	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY}, out, _data),
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	assert_eq(field._line_for({"type": Gen2Battle.FAINTED, "side": Gen2Battle.ENEMY}, out, {}, ""),
 		"Enemy %s\nfainted!" % geodude)
-	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER}, out, _data),
+	assert_eq(field._line_for({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER, "species": Fixture.PIKACHU}, out, {}, ""),
 		"Go! %s!" % pikachu, "the name is whoever was sent out, not who is out at the end")
 
 
@@ -1143,8 +1145,8 @@ func test_a_trainers_next_pokemon_comes_out_after_the_last_one_has_fainted() -> 
 	assert_eq(PokeCoopBattleField.faint_sounds(Gen2Battle.PLAYER, Fixture.CHARMANDER, false), [{"cry": Fixture.CHARMANDER}])
 	var trainer: String = _data.trainer_name(1)
 	assert_eq(field._messages[6]["text"], "%s sent\nout %s!" % [trainer, _data.species(Fixture.PIKACHU)["name"]])
-	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
-		"line": 2}, {}, _data), "SPARKY OK!\nCome back!")
+	assert_eq(field._line_for({"type": Gen2Battle.WITHDREW, "side": Gen2Battle.PLAYER, "name": "SPARKY",
+		"line": 2}, {}, {}, ""), "SPARKY OK!\nCome back!")
 
 
 func test_shifts_question_stands_over_the_trainers_balls_and_they_go_before_the_next_comes_out() -> void:
@@ -1244,6 +1246,38 @@ func test_a_line_the_field_has_no_words_for_is_the_battle_screens_own() -> void:
 		.map(func(step: Dictionary) -> String: return step["text"])
 	var charmander: String = String(_data.species(Fixture.CHARMANDER)["name"])
 	assert_true(texts.has("%s's\nATTACK fell!" % charmander), "worded as the single-player screen words it: %s" % [texts])
+
+
+func test_the_fields_lines_are_the_battle_screens_with_each_pokemons_own_name() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b12", "revision": 2, "active": 1,
+		"allies": [{"species": Fixture.CHARMANDER, "name": "SPARKY", "level": 12, "hp": 30, "max_hp": 34},
+			{"species": Fixture.PIKACHU, "name": "ZAP", "level": 12, "hp": 0, "max_hp": 30}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 14, "hp": 40, "max_hp": 40},
+		"events": [
+			{"type": Gen2Battle.USED_MOVE, "side": Gen2Battle.PLAYER, "move": Fixture.SLASH, "instead": true},
+			{"type": Gen2Battle.CRITICAL_HIT, "side": Gen2Battle.PLAYER, "ohko": true},
+			{"type": Gen2Battle.EXP_GAINED, "side": Gen2Battle.PLAYER, "index": 0, "name": "SPARKY", "amount": 30, "boosted": true},
+			{"type": Gen2Battle.EXP_GAINED, "side": Gen2Battle.PLAYER, "index": 1, "name": "ZAP", "amount": 15, "exp_share": true},
+			{"type": Gen2Battle.MOVE_LEARNED, "side": Gen2Battle.PLAYER, "index": 0, "name": "SPARKY", "move": Fixture.GROWL},
+			{"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER, "index": 1, "name": "ZAP", "species": Fixture.PIKACHU,
+				"level": 12, "hp": 30, "max_hp": 30},
+			{"type": Gen2Battle.FAINTED, "side": Gen2Battle.PLAYER},
+		],
+	}
+	var before: Dictionary = view.merged({"revision": 1, "active": 0, "events": []}, true)
+	field._take_events(before)
+	field._messages.clear()
+	field._take_events(view)
+
+	var said: String = "\n".join(field._messages.filter(func(step: Dictionary) -> bool: return step.has("text")) \
+		.map(func(step: Dictionary) -> String: return step["text"]))
+	for line: String in ["SPARKY\nused instead,", "One-hit KO!", "SPARKY gained\na boosted", "ZAP gained\nwith EXP.ALL,",
+			"SPARKY learned", Gen2TextStream.sound_token(Gen1Sfx.SFX_GET_ITEM_1), "ZAP\nfainted!"]:
+		assert_string_contains(said, line, "the single-player screen's line, by nickname")
+	assert_eq(PokeCoopBattleField.scene_view(before, _data)["player_name"], "SPARKY", "the panel names it too")
 
 
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
@@ -1533,8 +1567,8 @@ func test_review_fixes_for_the_field_and_the_client() -> void:
 	var field: PokeCoopBattleField = add_child_autofree(
 		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
 	var pikachu: String = String(_data.species(Fixture.PIKACHU)["name"])
-	assert_eq(PokeCoopBattleField.message({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER, "line": 3},
-		{Gen2Battle.PLAYER: Fixture.PIKACHU}, _data), "The enemy's weak!\nGet'm! %s!" % pikachu, "the cartridge's own send-out line")
+	assert_eq(field._line_for({"type": Gen2Battle.SENT_OUT, "side": Gen2Battle.PLAYER, "line": 3, "species": Fixture.PIKACHU},
+		{Gen2Battle.PLAYER: Fixture.PIKACHU}, {}, ""), "The enemy's weak!\nGet'm! %s!" % pikachu, "the cartridge's own send-out line")
 
 	var view: Dictionary = {"battle": "b5", "revision": 3, "active": 0, "trainer": true, "trainer_class": Gen1Layout.RIVAL3_CLASS,
 		"allies": [{"species": Fixture.PIKACHU, "level": 9, "hp": 20, "max_hp": 20}],
