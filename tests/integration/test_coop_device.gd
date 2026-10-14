@@ -135,6 +135,46 @@ func test_a_device_whose_link_drops_comes_back_on_its_own() -> void:
 	assert_eq(int(joining.get("_reconnect_attempts")), 0, "the next drop gets its own tries")
 
 
+func test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	var first: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(first)
+	assert_true(_until_ready([hosting, first]))
+	var blue_id: String = first.client.player_id
+	first.close()
+	_sessions.erase(first)
+	assert_true(_until(func() -> bool: return not hosting.host.player(blue_id).connected, 5000))
+	var joining: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(joining)
+	assert_true(_until(func() -> bool: return joining.client.welcomes == 1, WAIT_MSEC), "back as the remembered player")
+
+	## The link dies without the host hearing it, as a phone's does when its network is still waking.
+	var dead: PokeCoopTransport = joining.client.transport
+	joining.client.transport = PokeCoopTransport.new()
+	joining.client.connected = false
+
+	assert_true(_until(func() -> bool: return joining.client.welcomes == 2, 12000), "welcomed again once the host let the dead link go")
+	dead.close()
+	assert_eq(joining.client.player_id, blue_id, "the same trainer, not a new one")
+	assert_eq(hosting.host.players.size(), 2)
+
+
+func test_a_second_window_on_a_device_whose_player_is_in_joins_as_somebody_new() -> void:
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	var first: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "BLUE", Fixture.BULBASAUR)
+	_sessions.append(first)
+	assert_true(_until_ready([hosting, first]))
+
+	var second: PokeCoopSession = PokeCoopSession.joining(_data, "127.0.0.1", PORT, "GREEN", Fixture.PIKACHU)
+	_sessions.append(second)
+
+	assert_true(_until_ready([hosting, first, second]))
+	assert_ne(second.client.player_id, first.client.player_id)
+	assert_eq(hosting.host.players.size(), 3)
+
+
 func test_a_player_who_lost_their_remembered_id_gets_their_trainer_back_by_name() -> void:
 	var hosting: PokeCoopSession = PokeCoopSession.hosting(_data, PORT, "RED", Fixture.CHARMANDER)
 	_sessions.append(hosting)
