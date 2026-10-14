@@ -53,6 +53,8 @@ var _page: Gen2MenuPage = null
 var _stats_layer: TextureRect = null
 var _sheet_layer: TextureRect = null
 var _sheet: Dictionary = {}
+var _flute_wait: bool = false
+var _flute_watch: Dictionary = {}
 var _party_page: Gen2PartyMenuPage = null
 
 
@@ -184,7 +186,7 @@ func say(line: String) -> void:
 func is_playing() -> bool:
 	var view: Dictionary = panel.battle_view() if panel != null else {}
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
-		or not _anim_after.is_empty() or not _sheet.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait \
+		or not _anim_after.is_empty() or not _sheet.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait or _flute_wait \
 		or (not view.is_empty() and _key_of(view) != _revision_key))
 
 
@@ -603,6 +605,9 @@ func _advance_text() -> void:
 		return
 	if _sound_wait and audio != null and audio.still_waiting(_sound_watch):
 		return
+	_flute_wait = _flute_wait and audio.still_waiting_on_channel(_flute_watch, Gen1SoundEngine.CHAN7)
+	if _flute_wait:
+		return
 	_sound_wait = false
 	if not _messages.is_empty():
 		_take_step(_messages.pop_front())
@@ -636,6 +641,11 @@ func _take_step(step: Dictionary) -> void:
 			_sheet["anim"] = Gen2HpBarAnimation.create(int(_sheet["from"]), int(_sheet["to"]), int(_sheet["max_hp"]))
 		_play_sfx(int(_sheet["sfx"]))
 		_draw_sheet()
+	elif step.has("flute"):
+		_flute_watch = {}
+		_flute_wait = audio != null and not audio.low_health_alarm() and not data.gen1_poke_flute().is_empty()
+		if _flute_wait:
+			audio.play_record(data.gen1_poke_flute(), &"poke_flute", data.audio_assets())
 	elif step.has("black"):
 		_black = true
 	elif step.has("shake"):
@@ -759,6 +769,9 @@ func _seeded(player: Gen2BattleAnimPlayer) -> Gen2BattleAnimPlayer:
 
 ## `UseMedicine`'s party screen: the bar `HealHP_SFX_GFX` fills, then the item's line.
 static func item_steps(event: Dictionary, view: Dictionary, game: GameData) -> Array:
+	if String(event.get("kind", "")) == "poke_flute":
+		return [] if int(event.get("woken", 0)) <= 0 else [{"flute": true}] + Array(pages(
+			_flute_line(game, "woke_up", Gen2BattleScreen.FLUTE_WOKE_UP_TEXT))).map(func(page: String) -> Dictionary: return {"text": page})
 	var effect: Dictionary = event.get("effect", {})
 	var row: StringName = Gen2ItemActionText.kind(game, int(event.get("item", 0)), effect) \
 		if String(event.get("kind", "")) == "party_item" else &""
@@ -968,6 +981,9 @@ static func message(
 		PokeCoopBattleSession.JOINED:
 			return _de(game, "%s joined\nthe battle!") % who_acted
 		PokeCoopBattleSession.ITEM_USED:
+			if String(event.get("kind", "")) == "poke_flute":
+				return _flute_line(game, "had_effect", Gen2BattleScreen.FLUTE_HAD_EFFECT_TEXT).replace(Gen2WorldPC.PLAYER_MARKER, who_acted) \
+					if int(event.get("woken", 0)) > 0 else _flute_line(game, "no_effect", Gen2BattleScreen.FLUTE_NO_EFFECT_TEXT)
 			return _de(game, "%s used\n%s!") % [who_acted, game.item_name(int(event.get("item", 0)))]
 		PokeCoopBattleSession.BALL_THROWN:
 			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
@@ -975,6 +991,12 @@ static func message(
 			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "", true) \
 				.get_slice(Gen2TextStream.PAGE_BREAK, 0)
 	return ""
+
+
+## `ItemUsePokeFlute`'s boxes, which are all a battle says of it.
+static func _flute_line(game: GameData, key: String, fallback: String) -> String:
+	var text: String = game.special_text("poke_flute", key)
+	return fallback if text.is_empty() else text
 
 
 ## `ItemUseBall`'s lines: the throw, then the catch or how close it came.
