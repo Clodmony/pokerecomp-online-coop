@@ -25,7 +25,8 @@ own field. Co-op trades send the host's rows and never took this path. Branch
 |---|---|
 | GUT, before | `test_a_generation_1_trade_keeps_the_catch_rate_out_of_the_item` failed: `candidate_save_invalid`, catch rate 0 where 255 was sent |
 | GUT, after | `test_link` 36/36 |
-| `tools/verify.sh cable_club_trade`, twice on 3d9a5f16 | whole suite 5184/5184, gates, boot, ENet demo and three processes ok; `cable_club_trade` failed both times before any trade: the windows ran at 15 frames a second (60 the night before) while other programs loaded the machine, and stalled in the opening (Oak's parcel; a menu opened in the bedroom). Not rerun on a free machine |
+| `tools/verify.sh cable_club_trade`, twice on 3d9a5f16 | whole suite 5184/5184, gates, boot, ENet demo and three processes ok; `cable_club_trade` failed both times before any trade, stalled in the opening (Oak's parcel; a menu opened in the bedroom) while another program held a CPU core (load average about 2) |
+| `tools/verify.sh cable_club_trade` on 706a0263, load average 0.4 | all passed: whole suite 5184/5184, ENet ok, `cable_club_trade` in 278 s: P1's MACHOKE arrives in P2's party and evolves into MACHAMP, P2's MANKEY joins P1, each uid once; captures looked at. The windows showed 15 frames a second in this run too, so the frame rate alone does not explain the two failures |
 | Real cartridge, single-player save-slot trade | not run |
 
 ## Verify's ENet stages on free ports (#146, 2026-10-14)
