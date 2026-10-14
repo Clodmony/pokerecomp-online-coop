@@ -270,5 +270,7 @@ In order of the backlog:
 1. Per-player actors in a host-side world per active map (#22), with
    encounters and trainer sight generated on the host (#25).
 2. Drive `Gen2BattleScreen` from session events (#26) in place of the field's replay,
-   and share the enemy AI choice between the screen and sessions (#27).
+   and share the enemy AI choice between the screen and sessions (#27). Done
+   for Generation 1, where both call `Gen1TrainerAI` (D125, D126); the
+   Generation 2 choice waits in #149.
 3. Route map-script flags and badges through campaign commits (#32).
