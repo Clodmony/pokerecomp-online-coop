@@ -1859,3 +1859,23 @@ suggests `run` and YES opens their party list, and the owner's box wears their
 mark on NO, or on YES while they point at a Pokémon. A trainer battle asks no
 such question, so neither window shows it there. The owner's A alone answers,
 as before.
+
+## D123. A pick stays on the pad it found while look-alikes come and go (#140, 2026-10-14)
+
+Settings' pick is found again by GUID, then by serial, else by name and its
+place among the pads of its model. A virtual pad another program makes copies
+a real model's GUID and name and carries no serial, so a pick made on a pad
+without a serial is only a place in the order, and that place moves when twins
+come and go: a twin plugged in later takes a freed lower device number, the
+real pad becomes the second of its model, and the pick followed it onto the
+twin, which the other program then moved. Now the device a pick found stays
+the pick while it stays plugged in. A serial still wins, so a pick with one
+that is plugged back in beside the twin that played meanwhile takes over
+again, and a split half's own pad is a new want that resolves afresh. The
+owner's own pick (a DualSense Edge, with a serial) was never at risk; the
+normal window they reported was probed a second time, with Steam Input's
+desktop layout active for the virtual pads this time, and again nothing
+reached an action. The build they played predates D117 and D118: its right
+half held the second connected pad, a virtual one in that device order, and
+stayed up for two minutes after its host left, which is a window that looks
+like a normal one. A fresh private build is the way to retest.
