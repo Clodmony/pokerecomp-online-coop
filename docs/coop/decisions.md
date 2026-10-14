@@ -1847,3 +1847,15 @@ either; now it shows the owner's list, its pointer is a suggestion (`mimic`,
 list does. A scripted window's `auto_battle` leaves Mimic's list up three
 seconds, as it does SHIFT's question, then copies the first move. Baton Pass
 and Generation 2's questions stay with the later milestone (D61).
+
+## D122. "Use next POKéMON?" is a question the partner may suggest on too (#151, 2026-10-14)
+
+D121 gave every Red and Blue battle question an owner and let the partner
+suggest its answer, but the replacement after a faint in the wild stopped
+short: the partner's window went straight to the party list, so they could
+point at a Pokémon but never at running, and the owner's YES/NO box carried no
+mark. Now the partner's window shows the same "Use next POKéMON?" box, where NO
+suggests `run` and YES opens their party list, and the owner's box wears their
+mark on NO, or on YES while they point at a Pokémon. A trainer battle asks no
+such question, so neither window shows it there. The owner's A alone answers,
+as before.

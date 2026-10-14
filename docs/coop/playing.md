@@ -126,7 +126,7 @@ pressed, a virtual one included, moves neither player. With no controller
 plugged in, both halves play by keyboard, each while it has the focus. The
 halves stay above other windows while you play. The second half remembers its
 player, so the same trainer comes back next time. The layout picked is offered
-first the next time you split, until the game closes.
+first the next time you split, also after the game was closed.
 
 **Quitting.** SELECT > **QUIT BOTH** (on either half) saves the campaign and
 closes both windows; so does closing the host's (left or top) window. To play

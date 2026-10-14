@@ -456,6 +456,13 @@ class SplitScreen extends RefCounted:
 		out.size[axis] = first if side == 0 else area.size[axis] - first
 		return out
 
+	static func choose(top_and_bottom: bool) -> void:
+		stacked = top_and_bottom
+		PokeCoopLobby.remember({"split_stacked": top_and_bottom})
+
+	static func remembered_stacked() -> bool:
+		return bool(PokeCoopLobby.remembered().get("split_stacked", false))
+
 	static func named(side: int, top_and_bottom: bool = stacked) -> String:
 		return SIDES[int(top_and_bottom)][side]
 
