@@ -6,7 +6,7 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #27's pull request, #157).
+Last updated 2026-10-15 (after #157 merged, closing #27).
 
 ## Repository state
 
@@ -18,11 +18,8 @@ Last updated 2026-10-15 (after #27's pull request, #157).
 
 ## Open pull requests (the owner says when to merge)
 
-- **#157** (draft) `coop/27-session-trainer-ai`, Closes #27. D126: Gen 1
-  sessions already shared `Gen1TrainerAI` with the battle screen; two co-op
-  tests pin it (each shown failing on a deliberate break), test case B43, no
-  scenario (nothing on screen). Verify run `20261015-012534`: all passed,
-  suite 5202/5202. No builds made.
+- None. #157 merged on 2026-10-15 and closed #27 (D126: Gen 1 sessions share
+  `Gen1TrainerAI` with the battle screen, pinned by two co-op tests).
 - #149 now holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -44,9 +41,9 @@ Last updated 2026-10-15 (after #27's pull request, #157).
 ## Worktrees and background processes
 
 - Main checkout on `pokerecomp-online-coop`, clean. The Superset worktree
-  that held #26 now holds `coop/27-session-trainer-ai`, pushed. The local
-  branch `coop/26-battle-session-events` (merged, gone on the remote) can be
-  deleted. No background processes.
+  that held #26 and #27 is detached at the merge of #157; the owner may
+  remove it in Superset or reuse it for the next issue. `coop/27-session-trainer-ai`
+  is deleted (local and remote). No background processes.
 
 ## Working notes (stable, keep short)
 
