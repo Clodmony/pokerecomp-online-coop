@@ -7,6 +7,7 @@ const AWAY: int = 1 << 20
 
 static var _choice: Dictionary = {}
 static var _device: int = PokeInputActions.ALL_DEVICES
+static var _want: Dictionary = {}
 static var held: Dictionary = {}
 
 
@@ -32,7 +33,7 @@ static func _same_model(first: Dictionary, second: Dictionary) -> bool:
 	return first["guid"] == second["guid"] and first["name"] == second.get("name", "")
 
 
-static func device_for(choice: Dictionary, pads: Array = connected()) -> int:
+static func device_for(choice: Dictionary, pads: Array = connected(), kept: int = AWAY) -> int:
 	if choice.is_empty():
 		return PokeInputActions.ALL_DEVICES
 	var same: Array = pads.filter(func(pad: Dictionary) -> bool: return pad["guid"] == choice["guid"])
@@ -40,12 +41,21 @@ static func device_for(choice: Dictionary, pads: Array = connected()) -> int:
 		return pad["serial"] == choice.get("serial", "") if not String(pad["serial"]).is_empty() \
 			else _same_model(pad, choice) and pad["nth"] == choice.get("nth", 0))
 	same.sort_custom(func(first: Dictionary, _second: Dictionary) -> bool: return _same_model(first, choice))
+	if same.any(func(pad: Dictionary) -> bool: return int(pad["device"]) == kept) \
+			and not exact.any(func(pad: Dictionary) -> bool: return not String(pad["serial"]).is_empty()):
+		return kept
 	return int((exact + same)[0]["device"]) if not same.is_empty() else AWAY
+
+
+static func _kept(want: Dictionary) -> int:
+	return _device if want == _want else AWAY
 
 
 static func apply(choice: Dictionary = _choice, pads: Array = connected()) -> void:
 	_choice = choice
-	_device = device_for(held if not held.is_empty() else choice, pads)
+	var want: Dictionary = held if not held.is_empty() else choice
+	_device = device_for(want, pads, _kept(want))
+	_want = want
 	for action: StringName in InputMap.get_actions():
 		for event: InputEvent in InputMap.action_get_events(action):
 			if event is InputEventJoypadButton or event is InputEventJoypadMotion:
@@ -63,7 +73,7 @@ static func heard(event: InputEvent) -> bool:
 
 
 static func choices(choice: Dictionary, pads: Array = connected()) -> Array:
-	var playing: int = device_for(choice, pads)
+	var playing: int = device_for(choice, pads, _kept(choice))
 	var out: Array = [{"label": "Every controller", "choice": {}, "picked": choice.is_empty()}]
 	for pad: Dictionary in pads:
 		var twins: int = pads.filter(func(other: Dictionary) -> bool: return _same_model(other, pad)).size()
