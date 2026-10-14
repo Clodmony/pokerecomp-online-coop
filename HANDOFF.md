@@ -6,26 +6,19 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #26's pull request).
+Last updated 2026-10-15 (after #156 merged, closing #26).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at d043d0d7 (merge of the workspace
-  branch on 2026-10-14, after #154 / #20). `main` = upstream main (ed886823,
-  0.1.78).
+- Default branch `pokerecomp-online-coop` at the merge of #156 (2026-10-15;
+  #26 closed: the co-op field plays what the battle screen would, D125, and
+  upstream's nickname prompt scrolls with B). `main` = upstream main
+  (ed886823, 0.1.78).
 - Next decision number: D126.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#156** (draft) `coop/26-battle-session-events`, Closes #26: the owner
-  accepted the field as its own node (D125). Test cases B37-B42, scenario
-  `battle_flows` (needs a seed: `tools/coop_seed.gd red viridian_forest
-  level=9`, then RED's lead at L14, 2030 EXP, 6 HP, SCRATCH/GROWL/EMBER/TACKLE
-  and three POTIONs, as the scenario's header says). Verify run
-  `20261014-235125`: all passed, suite 5200/5200; captures looked at; the
-  catch scenario's BLUE presses were restored after it and rerun. Also fixes
-  upstream's nickname prompt to scroll with B as well as A (f80662cb, verify
-  run `20261015-001328` all passed). No builds.
+- None.
 - The Gen 2 half of #28 is issue #149 (later milestone, D61).
 
 ## Next candidates
@@ -43,8 +36,10 @@ Last updated 2026-10-15 (after #26's pull request).
 
 ## Worktrees and background processes
 
-- Main checkout on `pokerecomp-online-coop`, clean. One Superset worktree on
-  `coop/26-battle-session-events`, clean and pushed. No background processes.
+- Main checkout on `pokerecomp-online-coop`, clean. The Superset worktree of
+  #26 (`coop/26-battle-session-events`, merged) is left for the owner to
+  remove in Superset; the branch is deleted on the remote. No background
+  processes.
 
 ## Working notes (stable, keep short)
 
@@ -78,7 +73,6 @@ Last updated 2026-10-15 (after #26's pull request).
   `140-picked-pad-only-490f0aad`.
 - Scratch under `~/dev-scratch/pokerecomp-online-coop/`: `port`,
   `pr-123-body.md`, `pr-workspace-body.md`, `build-0c6da178.txt`, old
-  `verify/` runs, `verify-merge-all.txt`. The #26 seed is kept in `26/seed`
-  until #156 merges (the rest of `26/` is deleted).
+  `verify/` runs, `verify-merge-all.txt`.
 - The retired private repository and its checkout; close #57 when the owner
   agrees.
