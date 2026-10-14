@@ -11,6 +11,23 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A session's trainer fights with the cartridge's trainer AI (#27, D126, 2026-10-15)
+
+#27 asked for the enemy's choice to move out of the battle screen into a
+helper that sessions share. For Red and Blue that was already the case:
+`PokeCoopBattleSession._enemy_action` and the screen's `_enemy_slot` both call
+`Gen1TrainerAI.select_slot`, the session gives its battle the trainer's class,
+and `Gen2Battle` itself takes the class's items and switches. Nothing pinned
+it, so two co-op tests now do. The Generation 2 choice moves to #149 (D61).
+Branch `coop/27-session-trainer-ai`.
+
+| Verification | Result |
+|---|---|
+| GUT, the session without `init_enemy_trainer` (a deliberate break, reverted) | `test_a_trainer_in_a_session_chooses_its_moves_with_the_cartridges_trainer_ai`: `[33, 79, 86] != [33]` (THUNDER WAVE and SLEEP POWDER used on a paralysed PIKACHU); `test_a_trainer_in_a_session_spends_its_items_as_its_class_does`: `[] != [52]` (no FULL HEAL) |
+| GUT, the session picking a random usable move for Generation 1 (reverted) | the move test fails, `[79, 33, 86] != [33]`; the item test passes, as items are the battle's own |
+| GUT, the code as it is | `test_coop_battle` 28/28 |
+| Not run | a hand-played trainer fight (B43); Blue, German, Windows |
+
 ## The co-op battle field plays what the battle screen would (#26, D125, 2026-10-14)
 
 The owner chose to close the field's gaps rather than replay events through the
@@ -809,7 +826,8 @@ has **played** it by hand yet.
   intro (D39, D41, D42). Since D125 it also plays the screen's lines, flows,
   sounds, blackout and a catch's POKéDEX page and nickname; only the drawing
   is still the field's own.
-- Gen 2 enemy AI in sessions is a random usable move (#27).
+- Gen 2 enemy AI in sessions is a random usable move (#149; Gen 1 uses the
+  cartridge's trainer AI, D126).
 - Reconnection is automatic on a dropped link (sixty tries, two seconds apart,
   with a notice), and a joining device back from a pause of more than three
   seconds redials at once (D46), but an Android or iOS suspend has not been

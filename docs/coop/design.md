@@ -204,4 +204,4 @@ them live in `PokeCoopPolicy`.
 | Colosseum | Not a co-op battle: the takeover leaves link battles alone, so the window runs the cartridge's own link battle against a copy of the partner's team (not yet tried in a co-op run) | #38 |
 | Controller lost | Pause; after 30 seconds the other participants are asked whether to wait or take over for the absent player's Pokémon, which stay theirs, until they reconnect and take it back (owner, D61) | #30 |
 | Exp. All in a shared battle | Any participant's counts for every team; each team gets the solo split over its own party (owner, D61) | #37 |
-| Gen 2 enemy AI in host sessions | Random usable move; Gen 1 uses the cartridge's trainer AI. Co-op targets Red and Blue only (D61) | #27 |
+| Enemy AI in host sessions | Gen 1 uses the cartridge's trainer AI, as the battle screen does (D126); Gen 2 picks a random usable move. Co-op targets Red and Blue only (D61) | #27, #149 |

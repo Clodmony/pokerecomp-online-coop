@@ -434,6 +434,42 @@ func test_the_panel_names_a_move_that_is_disabled_or_out_of_pp() -> void:
 	assert_true(PokeCoopBattlePanel.REFUSALS.has(&"invalid_move"), "a refused move is told in words")
 
 
+## The enemy's moves over one opening turn per seed, against a paralysed PIKACHU.
+func _enemy_moves_used(encounter: Dictionary) -> Dictionary:
+	var used: Dictionary = {}
+	for seed_value: int in 64:
+		var red: PokeCoopPlayer = _red()
+		var enemy: Gen2Party = _enemy(Fixture.GEODUDE, 50, [Fixture.TACKLE, Fixture.THUNDER_WAVE, Fixture.SLEEP_POWDER])
+		var session: PokeCoopBattleSession = PokeCoopBattleSession.start(_data, "b1", seed_value, red, enemy, encounter)
+		session.battle.mon(Gen2Battle.PLAYER).status = Gen2Status.PARALYSIS
+		for event: Dictionary in _act(session, red, {"type": "move", "slot": 0}).get("events", []):
+			if StringName(event.get("type", &"")) == Gen2Battle.USED_MOVE and int(event.get("side", -1)) == Gen2Battle.ENEMY:
+				used[int(event.get("move", 0))] = true
+	return used
+
+
+## #27: a session's trainer scores its moves with the class's layers, as the battle screen does.
+func test_a_trainer_in_a_session_chooses_its_moves_with_the_cartridges_trainer_ai() -> void:
+	var wild: Dictionary = _enemy_moves_used({"id": "wild:test"})
+	assert_true(wild.has(Fixture.THUNDER_WAVE) or wild.has(Fixture.SLEEP_POWDER), "a wild rolls any slot")
+	var trainer: Dictionary = _enemy_moves_used({"id": "trainer:leader", "trainer_class": Fixture.GEN1_LEADER})
+	assert_eq(trainer.keys(), [Fixture.TACKLE], "layer 1 leaves a status move to a healthy player only")
+
+
+func test_a_trainer_in_a_session_spends_its_items_as_its_class_does() -> void:
+	var red: PokeCoopPlayer = _red()
+	var session: PokeCoopBattleSession = PokeCoopBattleSession.start(_data, "b1", 1, red, _enemy(Fixture.GEODUDE, 50, [Fixture.TACKLE]),
+		{"id": "trainer:leader", "trainer_class": Fixture.GEN1_LEADER})
+	session.battle.mon(Gen2Battle.ENEMY).status = Gen2Status.BURN
+	var items: Array = []
+	for event: Dictionary in _act(session, red, {"type": "move", "slot": 0}).get("events", []):
+		if StringName(event.get("type", &"")) == Gen2Battle.TRAINER_USED_ITEM:
+			items.append(int(event.get("item", 0)))
+	assert_eq(items, [Gen1TrainerAI.FULL_HEAL], "BROCK's routine cures the burn")
+	assert_eq(session.battle.mon(Gen2Battle.ENEMY).status, Gen2Status.NONE)
+	assert_eq(session.battle.gen1_ai_count, Fixture.GEN1_LEADER_COUNT - 1, "one use spent")
+
+
 func _leader(lead: PokeCoopPlayer) -> PokeCoopBattleSession:
 	return PokeCoopBattleSession.start(_data, "b1", 1, lead, Gen2TrainerParty.build(_data, Fixture.GEN1_LEADER, 0),
 		{"id": "trainer:leader", "trainer_class": Fixture.GEN1_LEADER})
