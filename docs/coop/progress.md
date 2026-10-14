@@ -11,6 +11,25 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The co-op battle field plays what the battle screen would (#26, D125, 2026-10-14)
+
+The owner chose to close the field's gaps rather than replay events through the
+upstream battle screen (D125). The field now words events with the screen's own
+lines by nickname, applies statuses, Transform, the doll and the dot at their
+event, plays the screen's sounds, shakes, pauses and low-HP alarm, shows the
+level-up stats box, "Delete an older move?", a medicine's party screen and the
+POKé FLUTE's boxes, blacks out on a loss, and shows a catch's recipient the new
+POKéDEX entry and the nickname prompt. The field is still its own node, not
+`Gen2BattleScreen`. Branch `coop/26-battle-session-events`.
+
+| Verification | Result |
+|---|---|
+| GUT, before | `test_the_fields_lines_are_the_battle_screens_with_each_pokemons_own_name`: `["CHARMANDER"] expected to equal ["SPARKY"]`; `test_a_move_to_forget_and_a_move_to_mimic_are_picked_on_the_cartridges_lists`: the field stopped at "trying to learn TACKLE!", no "Delete an older move" or "Abandon learning", no YES/NO box |
+| GUT, after | `test_coop_session` 177/177, co-op suites 317/317 |
+| `tools/verify.sh battle_flows=<seed> catch_for_partner lose_and_white_out`, run `20261014-235125` on 97466993 | all passed: whole suite 5200/5200, gates, boot, ENet demo, three processes, the three scenarios. Captures looked at: `battle_flows` (the `viridian_forest` seed, RED's CHARMANDER at L14 on 6 HP with three POTIONs) shows "P1 used POTION!", the party screen and "recovered by 20!", EMBER's lines, the stats box beside "grew to level 15!", "Delete an older move to make room for LEER?" and "Abandon learning LEER?" with YES/NO; `lose_and_white_out` ends at the spawn with no second line. `catch_for_partner` passed but BLUE's captures stayed on the POKéDEX page: the scenario had lost BLUE's presses |
+| `catch_for_partner` rerun after restoring BLUE's presses | BLUE alone: "New POKéDEX data will be added for", PIDGEY's page, "give a nickname to PIDGEY?" with YES/NO; NO, then BLUE in the world with PIDGEY L5 third in the party; RED in the world. The question's scrolling line takes A only (upstream's `Gen2NicknamePromptScreen`; the cartridge also takes B), so the scenario presses A there |
+| Not run | a hand-played session; Blue, German, Windows; a catch into a full team ("transferred to BILL's PC!" is static only) |
+
 ## A redial stays the same trainer; no reconnection secrets (#20, D124, 2026-10-14)
 
 The owner turned down per-player secrets (D124). Probing what was left of #20
@@ -786,7 +805,9 @@ has **played** it by hand yet.
   over the battle's music with cries, and a trainer win closes with the
   fanfare, the defeat line, the trainer sliding back in, their own line and the
   player's prize, and a battle seen from its start opens with the sliding
-  intro (D39, D41, D42).
+  intro (D39, D41, D42). Since D125 it also plays the screen's lines, flows,
+  sounds, blackout and a catch's POKéDEX page and nickname; only the drawing
+  is still the field's own.
 - Gen 2 enemy AI in sessions is a random usable move (#27).
 - Reconnection is automatic on a dropped link (sixty tries, two seconds apart,
   with a notice), and a joining device back from a pause of more than three
