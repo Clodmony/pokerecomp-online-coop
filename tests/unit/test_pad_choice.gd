@@ -62,3 +62,35 @@ func test_two_pads_of_one_model_are_told_apart_by_their_order() -> void:
 	assert_eq(rows.map(func(row: Dictionary) -> bool: return row["picked"]), [false, false, false, true])
 	assert_eq(PokePadChoice.device_for(second, pads), 2)
 	assert_eq(PokePadChoice.device_for(second, [PAD.merged({"device": 4})]), 4, "the one left, if the other stays away")
+
+
+func test_the_pick_stays_on_the_pad_it_found_while_look_alikes_come_and_go() -> void:
+	var action: StringName = PokeButton.action(PokeButton.A)
+	var twins: Array = [PAD.merged({"device": 0}), PAD.merged({"device": 1, "nth": 1}, true), PAD.merged({"device": 2, "nth": 2}, true)]
+	PokePadChoice.apply(PAD, [PAD.merged({"device": 1})])
+	assert_eq(PokePadChoice.device(), 1)
+
+	PokePadChoice.apply(PAD, twins)
+
+	assert_eq(PokePadChoice.device(), 1, "two virtual twins, one under the free number 0: the pick stays on the pad it found")
+	assert_true(_press(1).is_action_pressed(action))
+	assert_false(_press(0).is_action_pressed(action), "the twin that took its place in the order does not play")
+	assert_eq(PokePadChoice.choices(PAD, twins).map(func(row: Dictionary) -> bool: return row["picked"]), [false, false, true, false],
+		"Settings marks the pad that plays")
+	PokePadChoice.apply(PAD, [twins[0], twins[2]])
+	assert_eq(PokePadChoice.device(), 0, "unplugged: the twin left first plays, as before")
+	PokePadChoice.apply(PAD, twins)
+	assert_eq(PokePadChoice.device(), 0, "and keeps playing when the pick comes back under a number nothing tells apart")
+
+	var mine: Dictionary = PAD.merged({"serial": "A1"}, true)
+	var other: Dictionary = PAD.merged({"serial": "B2"}, true)
+	PokePadChoice.apply(mine, [other.merged({"device": 0}), mine.merged({"device": 1, "nth": 1}, true)])
+	assert_eq(PokePadChoice.device(), 1)
+	PokePadChoice.apply(mine, [other.merged({"device": 0})])
+	assert_eq(PokePadChoice.device(), 0, "the one left")
+	PokePadChoice.apply(mine, [other.merged({"device": 0}), mine.merged({"device": 2, "nth": 1}, true)])
+	assert_eq(PokePadChoice.device(), 2, "a serial finds the pick again, over the twin kept meanwhile")
+	PokePadChoice.held = other
+	PokePadChoice.apply(mine, [other.merged({"device": 0}), mine.merged({"device": 2, "nth": 1}, true)])
+	assert_eq(PokePadChoice.device(), 0, "a split half's own pad is a new want, not the one kept")
+	PokePadChoice.held = {}
