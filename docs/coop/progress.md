@@ -11,6 +11,21 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A redial stays the same trainer; no reconnection secrets (#20, D124, 2026-10-14)
+
+The owner turned down per-player secrets (D124). Probing what was left of #20
+found a device whose link dies without the host hearing it coming back as a
+new trainer, when it had dialled with its remembered players. Fixed; a phone's
+real suspend still needs the Android build (#45). Branch
+`coop/20-resume-stale-link`.
+
+| Verification | Result |
+|---|---|
+| Probe, socket, test cartridge | a joiner's link swapped for a dead one without telling the host: on a fresh campaign the redial was refused `already_connected` twice and welcomed as the same player 4.0 s later, when the host let the old link go (3.0 s); joined from the device's remembered players instead, the first refusal made it join as somebody new, `p3` BLUE beside the absent `p2` |
+| GUT, before | `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer`: not welcomed again within 12 s, `["p3"] expected to equal ["p2"]`, `[3] expected to equal [2]` players |
+| GUT, after | `test_coop_device` 40/40, with `test_a_second_window_on_a_device_whose_player_is_in_joins_as_somebody_new` for the fallback kept (it fails with the fallback removed) |
+| Not run | a phone's suspend (#45); no scenario, nothing new on screen |
+
 ## A pick stays on the pad it found; the normal-window report traced (#140, D123, 2026-10-14)
 
 The last part of #140: the owner's character moved by itself in a normal
@@ -775,7 +790,7 @@ has **played** it by hand yet.
 - Reconnection is automatic on a dropped link (sixty tries, two seconds apart,
   with a notice), and a joining device back from a pause of more than three
   seconds redials at once (D46), but an Android or iOS suspend has not been
-  tried on a device (#20, #45).
+  tried on a device (#45). Players carry no secret (D124).
 - The campaign is saved after battles, every thirty seconds of changes, when
   the host leaves and when a hosting app is paused, the checkpoint before is
   kept as `.bak`, and a failed write leaves the old file alone (D40); between
