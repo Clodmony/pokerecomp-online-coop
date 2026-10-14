@@ -322,10 +322,10 @@ func _learn_rows(view: Dictionary) -> Array:
 		rows.append({
 			"text": "%s: FORGET %s FOR %s" % [_mon_line(learner), _move_name(int(moves[slot])), taught],
 			"label": _move_name(int(moves[slot])), "section": "%s: FORGET WHICH FOR %s?" % [_mon_line(learner), taught],
-			"command": {"type": "learn", "forget_slot": slot},
+			"command": {"type": "learn", "forget_slot": slot}, "suggest": "learn", "value": slot,
 		})
 	rows.append({"text": "KEEP OLD MOVES (NOT %s)" % taught, "label": "Keep the old moves", "section": " ",
-		"command": {"type": "decline"}})
+		"command": {"type": "decline"}, "suggest": "decline", "value": 0})
 	return rows
 
 
@@ -336,7 +336,7 @@ func _mimic_rows(view: Dictionary) -> Array:
 		if int(moves[slot]) != 0:
 			rows.append({
 				"text": "MIMIC %s" % _move_name(int(moves[slot])), "label": _move_name(int(moves[slot])), "section": "MIMIC WHICH MOVE?",
-				"command": {"type": "mimic", "choice": slot},
+				"command": {"type": "mimic", "choice": slot}, "suggest": "mimic", "value": slot,
 			})
 	return rows
 
