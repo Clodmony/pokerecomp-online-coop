@@ -19,7 +19,7 @@ shot p2 39 blue_new_dex               # "New POKéDEX data will be added for PID
 shot p2 44 blue_dex_page              # the entry, its height and weight known
 press p2 46 B                         # the entry's second page
 press p2 48 B                         # and back to the battle
-press p2 54 A                         # "Do you want to give a nickname" waits for A, then "to PIDGEY?"
+press p2 54 B                         # "Do you want to give a nickname" waits, then "to PIDGEY?"
 shot p2 56 blue_nickname              # with YES/NO
 press p2 57 B                         # NO
 shot p2 84 blue_after                 # the battle closed itself once its last line had played
