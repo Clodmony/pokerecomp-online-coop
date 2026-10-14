@@ -1935,5 +1935,5 @@ reads, so the field now:
   WILD_FLED's run sound is left out: pret notes the prompt's click outranks it.
 
 What stays the field's own is the drawing: the field is still a separate node
-from `Gen2BattleScreen`. Whether #26 stays open for that is the owner's call.
+from `Gen2BattleScreen`; the owner accepted that as closing #26.
 
