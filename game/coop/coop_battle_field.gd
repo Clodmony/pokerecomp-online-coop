@@ -503,8 +503,22 @@ func _queue_victory(view: Dictionary) -> void:
 				"trainer": int(view.get("trainer_class", 0))})
 
 
-## [param line] two rows a page, the cartridge's paragraph and scroll breaks as new rows.
+## `AskForgetMoveText`: the field says it up to the two rows the menu's YES/NO stands under.
+static func forget_ask(learner: String, move: String, game: GameData, last: bool) -> String:
+	var rows: PackedStringArray = rows_of(Gen2MoveForget.ask_text(learner, move, game.generation))
+	return "\n".join(rows.slice(rows.size() - 2) if last else rows.slice(0, rows.size() - 2))
+
+
 static func pages(line: String) -> PackedStringArray:
+	var rows: PackedStringArray = rows_of(line)
+	var out := PackedStringArray()
+	for page: int in range(0, rows.size(), 2):
+		out.append("\n".join(rows.slice(page, page + 2)))
+	return out
+
+
+## [param line] as the box's rows, the cartridge's paragraph and scroll breaks as new rows.
+static func rows_of(line: String) -> PackedStringArray:
 	for mark: String in [Gen2TextStream.PAGE_BREAK, Gen2TextStream.SCROLL_BREAK,
 			Gen2TextStream.SCROLL_NOWAIT_BREAK, Gen2TextStream.PROMPT_BREAK]:
 		line = line.replace(mark, "\n")
@@ -516,10 +530,7 @@ static func pages(line: String) -> PackedStringArray:
 			rows.append(row.left(cut))
 			row = row.substr(cut).strip_edges(true, false)
 		rows.append(row)
-	var out := PackedStringArray()
-	for page: int in range(0, rows.size(), 2):
-		out.append("\n".join(rows.slice(page, page + 2)))
-	return out
+	return rows
 
 
 static func out_now(view: Dictionary) -> Dictionary:
@@ -875,7 +886,7 @@ static func message(
 		Gen2Battle.CAUGHT:
 			return _de(game, "All right!\n%s was caught!") % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.MOVE_OFFERED:
-			return _de(game, "%s is\ntrying to learn\n%s!") % [event.get("name", ""), String(game.move(int(event.get("move", 0))).get("name", ""))]
+			return forget_ask(String(event.get("name", "")), String(game.move(int(event.get("move", 0))).get("name", "")), game, false)
 		PokeCoopBattleSession.JOINED:
 			return _de(game, "%s joined\nthe battle!") % who_acted
 		PokeCoopBattleSession.ITEM_USED:
