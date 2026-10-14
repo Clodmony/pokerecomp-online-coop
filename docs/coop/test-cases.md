@@ -213,6 +213,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | T06 | Host a campaign saved in a Cable Club room before this fix | Each player in the room opens in front of the Pokémon Center they last used, where a whiteout would put them | `test_a_campaign_saved_in_a_cable_club_room_before_its_entry_was_kept...` | | |
 
 | T07 | Invite a remote friend to TRADE, accept, swap, then choose CANCEL | Native trade movie, each UID swaps once; cancelling leaves both worlds in place and available for another invitation | `test_direct_trade_uses_the_existing_cable...` | friend_menu | screens 2026-10-11, Red and Rote Edition |
+| T08 | Outside co-op, trade at a Red or Blue Cable Club with the other save slot, offering a RATTATA (catch rate 255) or any Pokémon whose catch rate is not an item | The trade goes through and the RATTATA arrives; before the fix the save refused it (#65, D120) | `test_a_generation_1_trade_keeps_the_catch_rate_out_of_the_item` | | |
 
 ## Platforms and input
 
