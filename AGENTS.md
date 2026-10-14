@@ -91,8 +91,9 @@ Run from the repository root with `godot` being the 4.8-dev7 binary. The usual
 check of a branch is one command, unattended, with a summary at the end:
 
 ```bash
-# Import, GUT, release gates, boot, ENet demo, three processes, then the named
-# two-window scenarios; logs in ~/dev-scratch/pokerecomp-online-coop/verify/<stamp>/.
+# Import, GUT, release gates, boot, ENet demo, three processes (both on free UDP
+# ports, so a game hosted on 24680 can keep running), then the named two-window
+# scenarios; logs in ~/dev-scratch/pokerecomp-online-coop/verify/<stamp>/.
 # --builds[=<dir>] also exports, boots and zips private Windows and Linux builds of HEAD.
 # <scenario>=<seed dir> runs that scenario on a seed; the others start fresh.
 GODOT=godot tools/verify.sh [--coop] [--builds[=<dir>]] [scenario[=<seed dir>] ...]
