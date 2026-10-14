@@ -788,6 +788,8 @@ func _on_world_ready(save: Gen2SaveData) -> void:
 	field.audio = screen.get("_audio_player")
 	field.restore_music = Callable(screen, &"_play_current_map_music")
 	panel.busy = field.is_playing
+	panel.hand_over = field.take_button
+	field.world = screen.get("_world")
 	_takeover.busy = field.is_playing
 	panel.say = field.say
 	var hardware: Gen2Screen = screen.get("_screen")

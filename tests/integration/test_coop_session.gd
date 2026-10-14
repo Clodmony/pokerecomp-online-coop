@@ -1496,6 +1496,51 @@ func test_the_poke_flute_says_its_own_boxes_with_the_tune_between_them() -> void
 	assert_eq(field._messages.slice(1), [{"text": "Played the #\nFLUTE."}], "nobody asleep: the one box")
 
 
+func test_a_catch_shows_its_recipient_the_new_dex_entry_and_asks_them_for_a_nickname() -> void:
+	_host.player(_red.player_id).give_item(Gen2WorldPartyHost.ITEM_MASTER_BALL, 1)
+	_send(func() -> void: _red.start_battle("wild:weak"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	_send(func() -> void: _red.act(battle_id, {"type": "item", "item": Gen2WorldPartyHost.ITEM_MASTER_BALL, "recipient": _blue.player_id}))
+	var view: Dictionary = _blue.battle(battle_id)
+	var thrown: Dictionary = (view["events"] as Array).filter(func(event: Dictionary) -> bool:
+		return StringName(event["type"]) == PokeCoopBattleSession.BALL_THROWN)[0]
+	assert_eq([thrown.get("new_dex"), thrown.get("boxed")], [true, false], "new to Blue's POKéDEX, and Blue's team has room")
+
+	var steps: Callable = func(client: PokeCoopClient) -> Array:
+		var field: PokeCoopBattleField = add_child_autofree(
+			PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(client, _data)), _data))
+		field._take_events(view.merged({"revision": 0, "events": []}, true))
+		field._messages.clear()
+		field._take_events(view)
+		return field._messages
+	var bulbasaur: String = String(_data.species(Fixture.BULBASAUR)["name"])
+	var blues: Array = steps.call(_blue)
+	var dex: int = blues.find({"dex": Fixture.BULBASAUR})
+	assert_gt(dex, 0, "`NewPokedexEntry` behind the catch")
+	assert_eq(blues[dex - 2]["text"], "New #DEX data\nwill be added for")
+	assert_string_contains(blues[dex - 1]["text"], bulbasaur + "!")
+	assert_eq(blues[dex + 1], {"nickname": Fixture.BULBASAUR, "boxed": false}, "then `AskGiveNicknameText`")
+	assert_false(steps.call(_red).any(func(step: Dictionary) -> bool: return step.has("dex") or step.has("nickname")),
+		"the thrower's window only sees it caught")
+
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_blue, _data)), _data))
+	field.visible = true
+	field._take_events(view.merged({"revision": 0, "events": []}, true))
+	field._take_step({"nickname": Fixture.BULBASAUR, "boxed": false})
+	assert_true(field._overlay is Gen2NicknamePromptScreen and field.is_playing())
+	assert_true(field.take_button(PokeButton.A), "the prompt takes the presses")
+	(field._overlay as Gen2NicknamePromptScreen).named.emit("BUDDY")
+	(field._overlay as Gen2NicknamePromptScreen).closed.emit()
+	_pump()
+	assert_null(field._overlay)
+	var caught: Gen2SaveMon = _host.player(_blue.player_id).team[2]["mon"]
+	assert_eq(caught.nickname, "BUDDY", "the row the host filed takes the name")
+	assert_eq(_host._dispatch(_host.player(_blue.player_id), "name_catch", {"battle": battle_id, "nickname": "AGAIN"}),
+		&"not_your_catch", "once")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)

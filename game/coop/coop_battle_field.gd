@@ -11,6 +11,7 @@ const WORDED: Array[StringName] = [
 ]
 
 var panel: PokeCoopBattlePanel = null
+var world: Gen2WorldAPI = null
 var data: GameData = null
 var audio: Gen2AudioPlayer = null
 var restore_music: Callable = Callable()
@@ -54,6 +55,7 @@ var _stats_layer: TextureRect = null
 var _sheet_layer: TextureRect = null
 var _sheet: Dictionary = {}
 var _flute_wait: bool = false
+var _overlay: Control = null
 var _flute_watch: Dictionary = {}
 var _party_page: Gen2PartyMenuPage = null
 
@@ -186,7 +188,7 @@ func say(line: String) -> void:
 func is_playing() -> bool:
 	var view: Dictionary = panel.battle_view() if panel != null else {}
 	return visible and (not _messages.is_empty() or _anim != null or not _bar_goal.is_empty() \
-		or not _anim_after.is_empty() or not _sheet.is_empty() or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait or _flute_wait \
+		or not _anim_after.is_empty() or not _sheet.is_empty() or _overlay != null or _board.busy() or _box.is_revealing() or _hold > 0 or _sound_wait or _flute_wait \
 		or (not view.is_empty() and _key_of(view) != _revision_key))
 
 
@@ -270,6 +272,8 @@ func _take_events(view: Dictionary) -> void:
 			_messages.append({"text": paged[page], "stats": stats} if page == 0 and not stats.is_empty() else {"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
 				_messages.append_array(toss_steps(event))
+		if StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
+			_messages.append_array(catch_steps(event, panel.client.player_id, data))
 		if StringName(event.get("type", &"")) == PokeCoopBattleSession.ITEM_USED:
 			_messages.append_array(item_steps(event, view, data))
 	_queue_outcome(view)
@@ -333,6 +337,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_show_stats({})
 	_sheet = {}
 	_draw_sheet()
+	_close_overlay()
 
 
 ## The sliding intro, `BattleStartMessage` and `DoBattle`'s opening, for a battle seen from its start.
@@ -580,6 +585,10 @@ static func species_at(view: Dictionary, side: int, index: int) -> int:
 
 func _advance_text() -> void:
 	_box.advance_frame()
+	if _overlay != null:
+		if _overlay.has_method(&"advance_frame"):
+			_overlay.call(&"advance_frame")
+		return
 	if not _sheet.is_empty():
 		_advance_sheet()
 		return
@@ -641,6 +650,10 @@ func _take_step(step: Dictionary) -> void:
 			_sheet["anim"] = Gen2HpBarAnimation.create(int(_sheet["from"]), int(_sheet["to"]), int(_sheet["max_hp"]))
 		_play_sfx(int(_sheet["sfx"]))
 		_draw_sheet()
+	elif step.has("dex"):
+		_open_dex(int(step["dex"]))
+	elif step.has("nickname"):
+		_ask_nickname(int(step["nickname"]), bool(step["boxed"]))
 	elif step.has("flute"):
 		_flute_watch = {}
 		_flute_wait = audio != null and not audio.low_health_alarm() and not data.gen1_poke_flute().is_empty()
@@ -765,6 +778,67 @@ func _seeded(player: Gen2BattleAnimPlayer) -> Gen2BattleAnimPlayer:
 	if player != null:
 		player.background().set_bg_map(_board.map)
 	return player
+
+
+## `PokeBallEffect` behind the catch, in its recipient's window: `NewDexDataText` and the page, then the nickname.
+static func catch_steps(event: Dictionary, me: String, game: GameData) -> Array:
+	if not bool(event.get("caught", false)) or String(event.get("recipient", "")) != me:
+		return []
+	var species: int = int(event.get("species", 0))
+	var out: Array = []
+	if bool(event.get("new_dex", false)):
+		for page: String in pages(_de(game, Gen2BattleScreen.GEN1_NEW_DEX_DATA_TEXT) % _species_name(game, species)
+				+ Gen2TextStream.sound_token(Gen1Sfx.SFX_DEX_PAGE_ADDED)):
+			out.append({"text": page})
+		out.append({"dex": species})
+	out.append({"nickname": species, "boxed": bool(event.get("boxed", false))})
+	return out
+
+
+## The Pokédex page or the nickname prompt standing over the field takes the presses.
+func take_button(button: int) -> bool:
+	if _overlay == null:
+		return false
+	_overlay.call(&"handle_button", button)
+	return true
+
+
+func _open_dex(species: int) -> void:
+	var host := Gen2PokedexScreen.new()
+	host.set_screen(_screen)
+	if world == null or not host.open_entry(data, world, species):
+		host.free()
+		return
+	host.cry_requested.connect(func(cried: int) -> void: _play_cue({"cry": cried}))
+	host.sfx_requested.connect(_play_sfx)
+	host.closed.connect(_close_overlay)
+	_show_overlay(host)
+
+
+## `AskGiveNicknameText`, `NamingScreen` and `_ItemUseBallText07` for a catch sent to the PC.
+func _ask_nickname(species: int, boxed: bool) -> void:
+	var host := Gen2NicknamePromptScreen.new()
+	var met_bill: bool = world != null and world.state.is_event_flag_active(Gen1Layout.MET_BILL_EVENT)
+	host.set_context(data, _species_name(data, species), Gen2WorldPartyHost.gen1_transferred_format(met_bill) if boxed else "",
+		Gen2WorldPartyHost.capture_nickname_question(_species_name(data, species), data.generation))
+	host.set_species(species)
+	var battle_id: String = String(panel.battle_view().get("battle", _revision_key.get_slice("/", 0)))
+	host.named.connect(func(nickname: String) -> void: panel.client.name_catch(battle_id, nickname))
+	host.sfx_requested.connect(func(sfx: int, _waited: bool) -> void: _play_sfx(sfx))
+	host.closed.connect(_close_overlay)
+	_show_overlay(host)
+
+
+func _show_overlay(host: Control) -> void:
+	_overlay = host
+	host.z_index = 30
+	add_child(host)
+
+
+func _close_overlay() -> void:
+	if _overlay != null:
+		_overlay.queue_free()
+	_overlay = null
 
 
 ## `UseMedicine`'s party screen: the bar `HealHP_SFX_GFX` fills, then the item's line.
