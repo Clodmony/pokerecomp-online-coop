@@ -11,6 +11,21 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Verify's ENet stages on free ports (#146, 2026-10-14)
+
+`tools/verify.sh` ran the ENet demo on the default port 24680, the port a game
+hosted from the Co-op tab listens on, and the three-process check on 24690.
+With either held by another program the stage failed although the branch was
+fine (the last three runs before this one). Each stage now picks a UDP port
+nothing listens on (`ss`), from 25700-29699, above the game's ports and the
+scenarios' (24800-25699), and the summary names both. CI keeps its fixed
+ports. Branch `coop/146-verify-port`.
+
+| Verification | Result |
+|---|---|
+| Probe, before | with 24680 and 24690 held by a UDP socket: the ENet demo ("coop: cannot listen on port 24680") and the three-process check ("cannot listen on port 24690") both exit 1 |
+| `tools/verify.sh` with 24680 and 24690 held, on f238d34f plus this change | all passed: whole suite 5183/5183, gates, boot, ENet demo 16/16 on 26419, three processes (host 4, p1 7, p2 8 steps) on 26442 |
+
 ## Split screen top and bottom (#144, D119, 2026-10-14)
 
 Asked by the owner: split screen was side by side only. Split screen on the
