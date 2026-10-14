@@ -11,6 +11,27 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Four small follow-ups in one session (#151, D122, 2026-10-14)
+
+"Use next POKéMON?" after a faint in the wild now reaches the partner's window
+too: NO suggests running, YES opens their party list, and the owner's YES/NO box
+wears their mark (D122). "How to split the screen?" opens on the layout picked
+last time, kept in the tab's memory file. `tools/verify.sh` notes the load
+average before and after the scenarios, and on a scenario that failed while the
+five-minute load was above the core count. The black 8x8 square beside the enemy
+during Mimic's choice (seen in `mimic_suggest`) is Mimic's own Generation 1
+animation: `tools/preview_battle_anim.gd` draws the same square travelling from
+the enemy's box to the player's in a single-player battle, so the co-op field is
+right and nothing changed. Branch `coop/151-small-follow-ups`, on top of #28.
+
+| Verification | Result |
+|---|---|
+| GUT, before | the new session test found the partner's menu on the party page instead of the question, their cursor a `send_out` suggestion, the owner's box marked on YES only, and the send-out RUN row without `suggest` |
+| GUT, after | `test_coop_session` 169/169, `test_coop_lobby` 11/11 (the layout memory test is new) |
+| `send_out_suggest` (new; the `switch_offer` seed with RED's lead at 1 HP knowing only SELFDESTRUCT, against the session menu's ONIX) | RED's CHARMANDER faints on the first turn; both windows ask "Use next POKéMON?"; BLUE's cursor on NO reaches the host as a `run` suggestion and RED's box shows BLUE's ▷ on NO while RED's cursor stands on YES; RED's YES opens "Bring out which POKéMON?" and the next CHARMANDER comes out. Captures looked at |
+| `tools/verify.sh send_out_suggest=<seed> mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest local_split_stacked` on 18b5352a | all passed: whole suite 5189/5189, gates, boot, ENet demo and three processes, the five scenarios; load 1.38 before and 0.49 after the scenarios on 16 cores; captures looked at |
+| Not run | a hand-played session; the split layout memory on screen (GUT only, `local_split_stacked` starts from a fresh user folder); German, Blue, Windows |
+
 ## Every Red and Blue battle question has an owner; the partner may suggest its answer (#28, D121, 2026-10-14)
 
 The replacement after a faint, a move to learn, Mimic and SHIFT's offer each go
