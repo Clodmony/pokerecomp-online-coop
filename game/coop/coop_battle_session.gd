@@ -17,7 +17,7 @@ const JOINED: StringName = &"coop_joined"
 const ITEM_USED: StringName = &"coop_item_used"
 const BALL_THROWN: StringName = &"coop_ball_thrown"
 const CAUGHT: StringName = &"caught"
-const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out", "stay"]
+const SUGGESTION_TYPES: Array[String] = ["move", "switch", "item", "run", "send_out", "stay", "learn", "decline", "mimic"]
 
 var id: String = ""
 var encounter: Dictionary = {}
