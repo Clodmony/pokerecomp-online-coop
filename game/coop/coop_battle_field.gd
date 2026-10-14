@@ -48,6 +48,8 @@ var _enemy_down: bool = false
 var _dot_staged: bool = false
 var _alarm: bool = false
 var _colors: Gen2BattleColors = null
+var _page: Gen2MenuPage = null
+var _stats_layer: TextureRect = null
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -71,6 +73,11 @@ func _ready() -> void:
 	_box = Gen2TextBox.for_screen(data)
 	_colors = Gen2BattleColors.new(data)
 	add_child(_box)
+	_page = Gen2MenuPage.from_data(data)
+	_stats_layer = TextureRect.new()
+	_stats_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_stats_layer.visible = false
+	add_child(_stats_layer)
 	_menu_layer = TextureRect.new()
 	_menu_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_menu_layer.visible = false
@@ -247,11 +254,13 @@ func _take_events(view: Dictionary) -> void:
 		_board.shown = _scene_seen.duplicate()
 	var out: Dictionary = _out if not _out.is_empty() else out_now(view)
 	var names: Dictionary = _player_names()
-	for event: Dictionary in events:
+	for at: int in events.size():
+		var event: Dictionary = events[at]
 		_queue(event, out, view)
 		var paged: PackedStringArray = pages(_line_for(event, out, names, _trainer_name(view)))
+		var stats: Dictionary = level_box(event, events.slice(at + 1))
 		for page: int in paged.size():
-			_messages.append({"text": paged[page]})
+			_messages.append({"text": paged[page], "stats": stats} if page == 0 and not stats.is_empty() else {"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
 				_messages.append_array(toss_steps(event))
 	if String(view.get("outcome", "")) == "won":
@@ -312,6 +321,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_enemy_down = false
 	_offered = false
 	_box.visible = false
+	_show_stats({})
 
 
 ## The sliding intro, `BattleStartMessage` and `DoBattle`'s opening, for a battle seen from its start.
@@ -560,6 +570,7 @@ func _show_idle() -> void:
 
 
 func _take_step(step: Dictionary) -> void:
+	_show_stats(step.get("stats", {}))
 	if step.has("text"):
 		_show(String(step["text"]))
 		var next: Dictionary = {} if _messages.is_empty() else _messages[0]
@@ -598,6 +609,31 @@ func _take_step(step: Dictionary) -> void:
 		_hold = HOLD_FRAMES if step.has("fanfare") else 0
 		_sound_watch = {}
 		_sound_wait = not step.has("fanfare") and not step.has("under")
+
+
+## `.skip_exp_bar_animation`'s box, drawn once after the last level an award crossed.
+static func level_box(event: Dictionary, rest: Array) -> Dictionary:
+	if StringName(event.get("type", &"")) != Gen2Battle.GREW_LEVEL:
+		return {}
+	for queued: Dictionary in rest:
+		var kind: StringName = StringName(queued.get("type", &""))
+		if kind == Gen2Battle.EXP_GAINED:
+			break
+		if kind == Gen2Battle.GREW_LEVEL and int(queued.get("index", -1)) == int(event.get("index", -1)):
+			return {}
+	return (event.get("new_stats", {}) as Dictionary).duplicate()
+
+
+func _show_stats(stats: Dictionary) -> void:
+	_stats_layer.visible = not stats.is_empty()
+	if stats.is_empty() or _page == null:
+		return
+	var gen1: bool = data.generation == RomRegistry.GEN1
+	var box: Gen2MenuBox = Gen2BattleMenu.level_up_box(gen1)
+	var image: Image = _page.render(box, [], -1, "", 0, Gen2BattleMenu.level_up_placements(stats, gen1))
+	Gen2PicImage.show(_stats_layer, image)
+	_stats_layer.position = Vector2(box.border_position() * Gen2Font.TILE)
+	_stats_layer.size = Vector2(image.get_size())
 
 
 ## A pixel of the bar's forty-eight a frame, the way `UpdateHPBar` drains it.
