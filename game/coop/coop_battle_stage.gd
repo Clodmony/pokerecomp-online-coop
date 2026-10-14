@@ -145,6 +145,8 @@ func enter(event: Dictionary, game: GameData) -> void:
 	shown[prefix + "level"] = int(event.get("level", 0))
 	shown[prefix + "max_hp"] = int(event.get("max_hp", 0))
 	shown[prefix + "status"] = int(statuses[0 if side == Gen2Battle.PLAYER else 1]) if statuses.size() == 2 else 0
+	shown[prefix + "substitute"] = false
+	shown[prefix + "minimized"] = false
 
 
 ## A turn played out: the host's view shows, and a blank side with a Pokémon up is stamped.
