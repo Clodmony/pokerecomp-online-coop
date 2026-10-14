@@ -28,6 +28,7 @@ func after_each() -> void:
 	PokeCoopLobby.memory_path = "user://coop_tab.json"
 	PokeCoopLobby.beacon_port = PokeCoopLobby.BEACON_PORT
 	PokeCoopLobby.open_game = Callable()
+	PokeCoopLobby.SplitScreen.stacked = false
 	if FileAccess.file_exists(MEMORY):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(MEMORY))
 	RomCache.clear(_directory)
@@ -220,6 +221,12 @@ func test_a_split_screen_stacks_its_halves_top_and_bottom_when_asked() -> void:
 	var asked: Dictionary = split.read([split.argument(24850, &"red", {}, 0, true)])
 	assert_true(asked["stacked"], "the second window learns the layout from its argument")
 	assert_false(split.read([split.ARG + Marshalls.utf8_to_base64("{\"port\": 24850}")])["stacked"], "an argument without it is side by side")
+	split.choose(true)
+	split.stacked = false
+	assert_true(split.remembered_stacked(), "the layout picked last time is the one the sheet opens on")
+	assert_eq(PokeCoopLobby.remembered(), {"split_stacked": true}, "kept in the tab's memory")
+	split.choose(false)
+	assert_false(split.remembered_stacked())
 
 
 func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked() -> void:
