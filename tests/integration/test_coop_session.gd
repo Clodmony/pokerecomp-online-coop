@@ -1720,9 +1720,11 @@ func test_a_move_to_forget_and_a_move_to_mimic_are_picked_on_the_cartridges_list
 	assert_eq(PokeCoopBattleField.pages(PokeCoopBattleField.message({"type": Gen2Battle.MOVE_OFFERED, "name": "SPARKY",
 		"move": Fixture.TACKLE}, {}, _data)), PackedStringArray(["SPARKY is\ntrying to learn", "%s!\nBut, SPARKY" % tackle,
 		"can't learn more\nthan 4 moves!", "Delete an older"]), "the field says the rest first")
-	menu.press(PokeButton.DOWN)
-	menu.press(PokeButton.A)
-	assert_eq(menu._ask.get("text"), "Abandon learning\n%s?" % tackle, "NO is `LearnMove.cancel`")
+	panel._rows = rows
+	var asked: String = menu.signature()
+	panel._press(PokeButton.B)
+	assert_ne(menu.signature(), asked, "the next question is drawn, though page and cursor are the same")
+	assert_eq(menu._ask.get("text"), "Abandon learning\n%s?" % tackle, "NO (B) is `LearnMove.cancel`")
 	menu.press(PokeButton.B)
 	assert_eq(menu._ask.get("text"), "move to make room\nfor %s?" % tackle, "whose NO asks again")
 	menu.press(PokeButton.A)

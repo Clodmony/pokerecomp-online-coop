@@ -587,7 +587,7 @@ func _row_at(at: int) -> int:
 
 
 func signature() -> String:
-	return "%s|%d|%d|%s|%s|%s|%d|%s|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(),
+	return "%s|%d|%d|%s|%s|%s|%d|%s|%s|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(), _ask.get("text", ""),
 		_party_page.animation_signature() if _party_page != null and page == PARTY else ""]
 
 

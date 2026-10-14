@@ -2,11 +2,11 @@ extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs] | check host|p1|p2 [port] [logs]
-##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare] [snapshots=<dir>]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare] [snapshots=<dir>] [seed=<n>]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
 ## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh); each exits 0 only if
 ## every step passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`, `bare` with
-## nobody in it yet, `snapshots=` a tools/coop_resume.sh seed in `<dir>/<n>/` every 10 s it changed. Logs: `user://coop_logs`.
+## nobody in it yet, `snapshots=` a tools/coop_resume.sh seed in `<dir>/<n>/` every 10 s it changed, `seed=` the host's rolls. Logs: `user://coop_logs`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -51,6 +51,7 @@ var _mode: String = ""
 var _logging: bool = false
 var _journals: Array = []
 var _snapshots: String = ""
+var _rolls: String = ""
 var _snapshot_at: int = 0
 var _snapshot_state: String = ""
 var _snapshot_count: int = 0
@@ -83,6 +84,7 @@ func _initialize() -> void:
 			if not _snapshots.is_empty() and PokeToolPath.refuses(_snapshots):
 				_finish(2)
 				return
+			_rolls = _option(args, "seed=")
 			_start_host(_port(args, 1), game, args.has("bare"))
 		"client":
 			_start_client(args)
@@ -186,6 +188,8 @@ func _start_host(port: int, game: String, bare: bool = false) -> void:
 	_host.save_path = path
 	_host.journal = _journal("host", "HOST", port)
 	_host.allow_new_players = bare
+	if _rolls.is_valid_int():
+		_host.seeds.seed = int(_rolls)
 	if loaded.is_empty():
 		if not bare:
 			_cartridge_players()
