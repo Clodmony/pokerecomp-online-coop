@@ -580,6 +580,7 @@ static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 		"species": member.species, "name": member.display_name(), "level": member.level, "hp": member.hp,
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
 		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
+		"substitute": Gen2Substatus.has(member.substatus, Gen2Substatus.SUBSTITUTE), "minimized": member.minimized,
 	}
 
 

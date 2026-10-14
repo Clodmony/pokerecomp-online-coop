@@ -45,6 +45,7 @@ var _screen: Gen2Screen = null
 var _masked: bool = false
 var _fanfared: bool = false
 var _enemy_down: bool = false
+var _dot_staged: bool = false
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -188,6 +189,8 @@ static func scene_view(view: Dictionary, game: GameData) -> Dictionary:
 		out[prefix + "_hp"] = int(mon.get("hp", 0))
 		out[prefix + "_max_hp"] = int(mon.get("max_hp", 0))
 		out[prefix + "_status"] = int(mon.get("status", 0))
+		out[prefix + "_substitute"] = bool(mon.get("substitute", false))
+		out[prefix + "_minimized"] = bool(mon.get("minimized", false))
 	return out
 
 
@@ -323,7 +326,17 @@ func _open(view: Dictionary) -> void:
 ## An event's steps besides its line; a faint plays ahead of it, as `MonFaintedAnimation` does, a wild win's fanfare after it.
 func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 	var side: int = int(event.get("side", 0))
+	var prefix: String = "enemy_" if side == Gen2Battle.ENEMY else "player_"
+	if (event.get("statuses", []) as Array).size() == 2:
+		_messages.append({"panel": {"player_status": int(event["statuses"][0]), "enemy_status": int(event["statuses"][1])}})
 	match StringName(event.get("type", &"")):
+		Gen2Battle.TRANSFORMED:
+			out[side] = int(event.get("species", out.get(side, 0)))
+			_messages.append({"panel": {prefix + "species": out[side]}})
+		Gen2Battle.SUBSTITUTE_PIC:
+			_messages.append({"panel": {prefix + "substitute": bool(event.get("raised", false))}})
+		Gen2Battle.MINIMIZED:
+			_messages.append({"panel": {prefix + "minimized": true}})
 		Gen2Battle.HP_BAR:
 			_messages.append({
 				"bar": side, "hp": int(event.get("hp", 0)),
@@ -394,8 +407,7 @@ static func send_out_steps(side: int) -> Array:
 static func _panels(scene: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
 	for key: String in scene:
-		if key.ends_with("_species") or key.ends_with("_name") or key.ends_with("_level") \
-				or key.ends_with("_max_hp") or key.ends_with("_status"):
+		if key.get_slice("_", 1) in ["species", "name", "level", "max", "status", "substitute", "minimized"]:
 			out[key] = scene[key]
 	return out
 
@@ -530,6 +542,8 @@ func _take_step(step: Dictionary) -> void:
 		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
 	elif step.has("hold"):
 		_hold = int(step["hold"])
+	elif step.has("panel"):
+		_board.shown.merge(step["panel"], true)
 	elif step.has("grew"):
 		_board.shown.merge({"player_level": int(step["grew"]), "player_max_hp": int(step["max_hp"])}, true)
 	elif step.has("enter"):
@@ -630,11 +644,15 @@ static func toss_steps(event: Dictionary) -> Array:
 	})
 
 
-## What the animation's last frame asked to hear: `GetMoveSound`'s row, an `IsCryMove` being the attacker's cry at the row's offsets.
 func _play_sounds() -> void:
-	if audio == null or _anim == null:
-		return
-	for command: Dictionary in _anim.frame_commands():
+	if _anim != null:
+		_take_commands(_anim.frame_commands())
+
+
+## The animation's last frame: `GetMoveSound`'s row, an `IsCryMove` being the attacker's cry, and the actor's doll or dot.
+func _take_commands(commands: Array) -> void:
+	var actor: String = "enemy_" if bool(_sounding.get("enemy", false)) else "player_"
+	for command: Dictionary in commands:
 		var operands: Array = command.get("operands", [])
 		var record: Dictionary = {}
 		match StringName(command["name"]):
@@ -642,7 +660,16 @@ func _play_sounds() -> void:
 				record = data.gen1_sound(-1, int(operands[0]))
 			Gen2BattleAnimPlayer.GEN1_MOVE_SOUND:
 				record = _move_sound(int(operands[0]))
-		if not record.is_empty():
+			Gen2BattleAnimScript.RAISE_SUB, Gen2BattleAnimScript.DROP_SUB:
+				_board.shown[actor + "substitute"] = StringName(command["name"]) == Gen2BattleAnimScript.RAISE_SUB
+			Gen2BattleAnimScript.MINIMIZE:
+				_dot_staged = true
+			Gen2BattleAnimScript.UPDATE_ACTOR_PIC:
+				_board.shown[actor + "minimized"] = _dot_staged or bool(_board.shown.get(actor + "minimized", false))
+				_dot_staged = false
+			Gen2BattleAnimScript.MINIMIZE_OPP:
+				_board.shown[actor + "minimized"] = true
+		if not record.is_empty() and audio != null:
 			audio.play_record(record, &"sound", data.audio_assets())
 
 
