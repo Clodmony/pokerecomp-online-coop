@@ -1280,6 +1280,49 @@ func test_the_fields_lines_are_the_battle_screens_with_each_pokemons_own_name() 
 	assert_eq(PokeCoopBattleField.scene_view(before, _data)["player_name"], "SPARKY", "the panel names it too")
 
 
+func test_a_status_a_transform_the_doll_and_the_dot_reach_the_panel_when_their_event_plays() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b13", "revision": 2, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34, "substitute": true},
+			{"species": Fixture.PIKACHU, "level": 12, "hp": 30, "max_hp": 30}],
+		"enemy": {"species": Fixture.CHARMANDER, "level": 14, "hp": 40, "max_hp": 40, "status": 8, "minimized": true},
+		"events": [
+			{"type": Gen2Battle.STATUS_INFLICTED, "side": Gen2Battle.PLAYER, "target": Gen2Battle.ENEMY, "name": &"poison",
+				"statuses": [0, 8]},
+			{"type": Gen2Battle.TRANSFORMED, "side": Gen2Battle.ENEMY, "target": Gen2Battle.PLAYER, "species": Fixture.CHARMANDER},
+			{"type": Gen2Battle.SUBSTITUTE_PIC, "side": Gen2Battle.PLAYER, "raised": true},
+			{"type": Gen2Battle.MINIMIZED, "side": Gen2Battle.ENEMY},
+		],
+	}
+	var before: Dictionary = view.merged({"revision": 1, "events": [],
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34},
+			{"species": Fixture.PIKACHU, "level": 12, "hp": 30, "max_hp": 30}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 14, "hp": 40, "max_hp": 40}}, true)
+	field._take_events(before)
+	field._messages.clear()
+	field._take_events(view)
+	var drawn: Callable = func() -> Array:
+		var scene: Dictionary = field._board.over({})
+		return [scene.get("enemy_status", 0), scene.get("enemy_species", 0), scene.get("player_substitute", false),
+			scene.get("enemy_minimized", false)]
+	assert_eq(drawn.call(), [0, Fixture.GEODUDE, false, false], "the panels the turn found")
+	while not field._messages.is_empty():
+		field._take_step(field._messages.pop_front())
+	assert_eq(drawn.call(), [8, Fixture.CHARMANDER, true, true], "each changed at its own event, before the turn settles")
+
+	field._take_step({"enter": {"side": Gen2Battle.PLAYER, "species": Fixture.PIKACHU, "level": 12, "hp": 30, "max_hp": 30}})
+	assert_false(field._board.over({}).get("player_substitute", false), "a send-out draws the Pokémon, not the doll")
+	var settled: Dictionary = PokeCoopBattleField.scene_view(view, _data)
+	assert_eq([settled.get("player_substitute"), settled.get("enemy_minimized")], [true, true],
+		"a window that joins mid-battle sees the doll and the dot from the host's view")
+	field._sounding = {"enemy": true}
+	field._board.shown.erase("enemy_substitute")
+	field._take_commands([{"name": Gen2BattleAnimScript.RAISE_SUB, "operands": []}])
+	assert_true(field._board.over({}).get("enemy_substitute", false), "an animation's `raisesub` is the actor's doll")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)
