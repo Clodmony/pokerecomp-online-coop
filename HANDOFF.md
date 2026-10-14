@@ -66,16 +66,17 @@ Last updated 2026-10-15 (after #157 merged, closing #27).
 
 ## Cleanup the owner may approve
 
-- Merged co-op branches still on the remote and local: `coop/128-controller-typing`,
-  `coop/132-scenario-runner`, `coop/133-autoplay-brock-seed`,
-  `coop/140-138-139-pads-tab-quit`, `coop/28-battle-offers`,
-  `coop/44-private-builds`, `coop/53-local-split-screen`, and the local
-  `coop/26-battle-session-events` (check each is merged first).
-- Old builds under `builds/`: `44-private-builds-0f58e0f8`,
-  `53-local-split-screen-2f0d3c2f` and, once #140 is retested,
-  `140-picked-pad-only-490f0aad`.
-- Scratch under `~/dev-scratch/pokerecomp-online-coop/`: `port`,
-  `pr-123-body.md`, `pr-workspace-body.md`, `build-0c6da178.txt`, old
-  `verify/` runs, `verify-merge-all.txt`.
-- The retired private repository and its checkout; close #57 when the owner
-  agrees.
+Done on 2026-10-15: every merged `coop/*` branch (local and remote), the #44
+and #53 builds, old scratch and verify runs; the retired private repository is
+archived (not deleted) and its checkout and worktrees are removed. An
+uncommitted PvP draft found in one of them is kept as a patch beside
+`rewrite.git` under `~/dev-scratch/pokerecomp-coop/`. Left:
+
+- `builds/140-picked-pad-only-490f0aad` once #140 is retested;
+  `builds/pokerecomp-online-coop-0c6da178` (and its zips), never listed.
+- Superset still lists a workspace of the retired repository
+  (`honeysuckle-seahorse`) whose folder is gone, and this repository's
+  workspace that held #26 and #27 (detached); remove both in Superset.
+- `~/dev-scratch/pokerecomp-coop/`: keep `rewrite.git` and the PvP patch;
+  the rest (`bag-size`, `migrate`, `verify`, the filter scripts, logs and
+  body files) is migration leftovers.
