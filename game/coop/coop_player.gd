@@ -116,7 +116,6 @@ static func _box_counts(rows: Array) -> Array:
 	return out
 
 
-## `InitNickname` on a row of the team or the PC, which the windows then take as a new [member holdings_rev].
 func rename(uid: String, nickname: String) -> bool:
 	for entry: Dictionary in team + box:
 		if String(entry["uid"]) == uid and not nickname.is_empty():

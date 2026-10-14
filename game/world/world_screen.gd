@@ -2189,7 +2189,6 @@ func _nuzlocke_ends_here(save: Gen2SaveData) -> bool:
 
 ## `Script_BattleWhiteout` for a battle the world did not run itself: a co-op
 ## battle lost on its host. Nothing happens while somebody can still fight.
-## Generation 1 prints `PlayerBlackedOutText2` over the fight, so one [param said] there goes straight on.
 func white_out(said: bool = false) -> void:
 	var save: Gen2SaveData = active_save()
 	if _world == null or save == null or Gen2WorldPartyHost.party_has_fit_mon(save):

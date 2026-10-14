@@ -1897,3 +1897,43 @@ a second window on the device playing as the remembered player and joined as
 somebody new, so the device came back as a new trainer with a new starter. That
 fallback now applies only before the first welcome; a redial waits the refusal
 out as the same trainer, as it already did when the player id was given.
+
+## D125. The co-op battle field plays what the battle screen would (#26, owner's choice, 2026-10-14)
+
+#26 asked for the battle screen itself to replay the host's events. The owner
+chose to close the field's gaps instead, flows included, and leave the
+7,800-line upstream screen alone. The host already sent every event the screen
+reads, so the field now:
+
+- words every event outside co-op's own (joins, item and ball lines, the
+  switch offer and the learn offer) with the screen's `_describe`. Each
+  Pokémon is named by its nickname, which the host's view now carries. This
+  brings in "used instead,", "One-hit KO!", "a boosted", "with EXP.ALL," and
+  the "learned" jingle;
+- applies the statuses, a Transform, the Substitute doll and Minimize's dot at
+  their own event. The doll and the dot come from both the events and the
+  animation's commands, and the host's view carries both for a window joining
+  mid-battle;
+- plays an event's own sound, RUN's sound, Jump Kick's shake and the engine's
+  pauses. It sounds the low-HP alarm while the drawn bar is red and colours
+  its text box with the player's Pokémon's palette. Generation 1 cries have no
+  stereo, so there is nothing to pan;
+- shows the level-up stats box beside the last level's line, asks "Delete an
+  older move?" before the forget list (NO asks "Abandon learning?", whose NO
+  asks again), and shows a medicine's party screen with its bar filling. The
+  POKé FLUTE says its own boxes with the tune between them. The host's item
+  line now names the target, its HP before the enemy's move and the effect;
+- blacks out on a loss: the first rival slides back in with their line (the
+  takeover now carries the loss text), then the black palette and "blacked
+  out". The lab fight is spared, as `HandlePlayerBlackOut` spares it. A world
+  whose window showed that line goes straight to the Pokémon Center; one that
+  left the battle still prints the world's own line;
+- shows a catch's recipient, in their window only, "New POKéDEX data", the
+  entry page and the nickname prompt (with BILL's PC line for a full team).
+  The name goes to the host as `name_catch`, accepted once from that player
+  for that battle, and reaches the windows as a new holdings revision.
+  WILD_FLED's run sound is left out: pret notes the prompt's click outranks it.
+
+What stays the field's own is the drawing: the field is still a separate node
+from `Gen2BattleScreen`. Whether #26 stays open for that is the owner's call.
+

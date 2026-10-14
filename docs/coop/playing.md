@@ -216,7 +216,8 @@ session for both and goes back to the Co-op tab.
   after a faint, which move it forgets for a new one (even while your
   Pokémon is out), which move its MIMIC copies. Your partner sees the same
   list and may point at an answer.
-- After choosing a ball you pick whom the catch is for.
+- After choosing a ball you pick whom the catch is for. That player sees the
+  new Pokédex entry and names the Pokémon; the thrower just sees it caught.
 - With BATTLE STYLE SHIFT in your OPTION menu, a trainer about to send out its
   next Pokémon asks "Will RED change POKéMON?" whenever your Pokémon is out;
   your partner's own setting decides for theirs. With SET you are not asked.
