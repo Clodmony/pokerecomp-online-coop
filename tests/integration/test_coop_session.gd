@@ -1473,6 +1473,29 @@ func test_a_potion_fills_its_bar_on_the_party_screen_with_the_recovered_line() -
 	assert_eq(int(field._drawn_hp[Gen2Battle.PLAYER]), 30, "the panel's bar shows the healed HP")
 
 
+func test_the_poke_flute_says_its_own_boxes_with_the_tune_between_them() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var me: String = String(_red.state["players"][_red.player_id]["name"])
+	var view: Dictionary = {
+		"battle": "b19", "revision": 2, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34, "owner": _red.player_id, "index": 0}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 14, "hp": 40, "max_hp": 40},
+		"events": [{"type": PokeCoopBattleSession.ITEM_USED, "player": _red.player_id, "item": 1, "kind": "poke_flute", "woken": 1,
+			"statuses": [0, 0]}],
+	}
+	field._take_events(view.merged({"revision": 1, "events": []}, true))
+	field._messages.clear()
+	field._take_events(view)
+	assert_eq(field._messages, [{"panel": {"player_status": 0, "enemy_status": 0}},
+		{"text": "%s played the\n# FLUTE." % me}, {"flute": true}, {"text": "All sleeping\n#MON woke up."}],
+		"`ItemUsePokeFlute`: no \"used\" line, the tune, then who woke")
+	view["events"][0]["woken"] = 0
+	field._messages.clear()
+	field._take_events(view.merged({"revision": 3}, true))
+	assert_eq(field._messages.slice(1), [{"text": "Played the #\nFLUTE."}], "nobody asleep: the one box")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)

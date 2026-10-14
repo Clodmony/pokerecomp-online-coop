@@ -351,7 +351,7 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 ## Whom a used item reached, their HP before the enemy's move, and its effect, for the windows' party screens.
 func _item_shown(used: Dictionary) -> Dictionary:
 	var out: Dictionary = {"kind": String(used.get("kind", "")), "effect": (used.get("effect", {}) as Dictionary).duplicate(),
-		"woken": int(used.get("woken", 0))}
+		"woken": int(used.get("woken", 0)), "statuses": [battle.mon(Gen2Battle.PLAYER).status, battle.mon(Gen2Battle.ENEMY).status]}
 	var target: Gen2BattleMon = battle.party(Gen2Battle.PLAYER).at(int(used.get("target", -1)))
 	if target != null:
 		out.merge({"target": int(used["target"]), "hp": target.hp, "max_hp": target.max_hp(), "name": target.display_name()})
