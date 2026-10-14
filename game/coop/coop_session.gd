@@ -59,6 +59,7 @@ var _campaign_saved: String = ""
 var _settled_battles: Dictionary = {}
 var _evolving: Array = []
 var _whiteout_due: bool = false
+var _whiteout_said: bool = false
 var _was_ready: bool = false
 var _closed: bool = false
 var _reconnect_attempts: int = 0
@@ -414,7 +415,7 @@ func _tend_world() -> void:
 	if not frozen and _whiteout_due:
 		_whiteout_due = false
 		journal.add(PokeCoopLog.WORLD, "whiteout", {}, client.player_id)
-		screen.white_out()
+		screen.white_out(_whiteout_said)
 	elif not frozen and not _evolving.is_empty():
 		journal.add(PokeCoopLog.WORLD, "evolve", {"party_indices": _evolving}, client.player_id)
 		screen.evolve_after_battle(_evolving)
@@ -675,6 +676,7 @@ func _collect_evolutions() -> void:
 			continue
 		if String(view["outcome"]) == "lost" and not bool(view.get("versus", false)):
 			_whiteout_due = true
+			_whiteout_said = not (view.get("left", []) as Array).has(client.player_id)
 		var uids: Array = link.uids()
 		for uid: Variant in view.get("evolvable", []) as Array:
 			var index: int = uids.find(String(uid))

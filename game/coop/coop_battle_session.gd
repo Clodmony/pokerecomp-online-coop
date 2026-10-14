@@ -563,7 +563,8 @@ func view() -> Dictionary:
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
 		"trainer_name": String(encounter.get("trainer_name", "")), "win_text": String(encounter.get("win_text", "")),
-		"gym": bool(encounter.get("gym", false)),
+		"gym": bool(encounter.get("gym", false)), "loss_text": String(encounter.get("loss_text", "")),
+		"spared": bool(encounter.get("spared", false)),
 	}
 
 
