@@ -1937,3 +1937,16 @@ reads, so the field now:
 What stays the field's own is the drawing: the field is still a separate node
 from `Gen2BattleScreen`; the owner accepted that as closing #26.
 
+## D126. #27 closes for Red and Blue; the Generation 2 AI joins #149 (owner's choice, 2026-10-15)
+
+#27 asked for the battle screen's enemy choice to move into a scene-free
+helper that host sessions share. For Generation 1 that helper is
+`Gen1TrainerAI`, and both the screen and `PokeCoopBattleSession` already call
+it: the session builds its battle with the trainer's class, so the class's
+layers score the moves, and `Gen2Battle` takes the class's items and switches
+inside the turn for both. The owner closed #27 with two co-op tests that pin
+it (layer 1 against a paralysed Pokémon, BROCK's FULL HEAL), each shown to fail
+when the session loses the class. The Generation 2 half (`Gen2BattleAI`'s
+choice from the trainer's flags, a random usable move in sessions until then)
+joins #149 with Generation 2's other battle questions, in the later milestone
+(D61). `battle_screen.gd` is left alone.
