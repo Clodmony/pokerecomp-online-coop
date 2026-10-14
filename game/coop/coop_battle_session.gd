@@ -341,11 +341,21 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 		return _refused(StringName(used.get("reason", &"item_has_no_effect")))
 	if Gen2WorldPack.can_toss(battle.data, item):
 		player.take_item(item)
-	var events: Array = [{"type": ITEM_USED, "player": player.player_id, "item": item}]
+	var events: Array = [_item_shown(used).merged({"type": ITEM_USED, "player": player.player_id, "item": item}, true)]
 	events.append_array(used.get("events", []) as Array)
 	if not battle.is_over():
 		events.append_array(battle.take_actions(Gen2Battle.use_item(item), _enemy_action()))
 	return _done(events)
+
+
+## Whom a used item reached, their HP before the enemy's move, and its effect, for the windows' party screens.
+func _item_shown(used: Dictionary) -> Dictionary:
+	var out: Dictionary = {"kind": String(used.get("kind", "")), "effect": (used.get("effect", {}) as Dictionary).duplicate(),
+		"woken": int(used.get("woken", 0))}
+	var target: Gen2BattleMon = battle.party(Gen2Battle.PLAYER).at(int(used.get("target", -1)))
+	if target != null:
+		out.merge({"target": int(used["target"]), "hp": target.hp, "max_hp": target.max_hp(), "name": target.display_name()})
+	return out
 
 
 ## `ItemUseBall` with the catch rolled on the host. The thrower names who the
