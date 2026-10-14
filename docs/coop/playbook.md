@@ -94,7 +94,8 @@ the Hall of Fame from a new campaign in one run with 0 script errors.
 - **#44** a hand-played session on the owner's Windows PC and second Linux
   machine with builds from one commit (`tools/verify.sh --builds`);
   `test-cases.md` is the checklist.
-- **#45** Android, once the owner settles the SDK licence (#20, #43 follow).
+- **#45** Android, once the owner settles the SDK licence (a phone's suspend
+  tried on the device, #43 follows).
 - **#50** German Red/Blue, once the owner supplies a dump.
 - **#14** the upstream merge to 0.1.74 after #58, #79, #80, #81 and #83 merge.
 

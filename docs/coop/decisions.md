@@ -1879,3 +1879,21 @@ reached an action. The build they played predates D117 and D118: its right
 half held the second connected pad, a virtual one in that device order, and
 stayed up for two minutes after its host left, which is a window that looks
 like a normal one. A fresh private build is the way to retest.
+
+## D124. No reconnection secrets; a redial stays the same trainer (#20, 2026-10-14)
+
+#20 asked for a per-player secret issued on first join and required on
+reconnect. The owner turned it down: sessions are hosted among friends on a
+LAN or a direct address, with no relay and no dedicated server, so a player is
+still taken back by id, or by name when their device lost it (D48).
+
+What #20 found instead: a device whose link died without the host hearing it
+(a phone back from the background before its network is up, a Wi-Fi hiccup)
+redials while the host still holds the old link, which it lets go after at
+most six seconds, and is refused `already_connected` meanwhile. A session that
+dialled with this device's remembered players (player id empty: the new-player
+path, or any earlier campaign on that host) treated that refusal as the sign of
+a second window on the device playing as the remembered player and joined as
+somebody new, so the device came back as a new trainer with a new starter. That
+fallback now applies only before the first welcome; a redial waits the refusal
+out as the same trainer, as it already did when the player id was given.
