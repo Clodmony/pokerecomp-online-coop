@@ -24,6 +24,7 @@ real suspend still needs the Android build (#45). Branch
 | Probe, socket, test cartridge | a joiner's link swapped for a dead one without telling the host: on a fresh campaign the redial was refused `already_connected` twice and welcomed as the same player 4.0 s later, when the host let the old link go (3.0 s); joined from the device's remembered players instead, the first refusal made it join as somebody new, `p3` BLUE beside the absent `p2` |
 | GUT, before | `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer`: not welcomed again within 12 s, `["p3"] expected to equal ["p2"]`, `[3] expected to equal [2]` players |
 | GUT, after | `test_coop_device` 40/40, with `test_a_second_window_on_a_device_whose_player_is_in_joins_as_somebody_new` for the fallback kept (it fails with the fallback removed) |
+| `tools/verify.sh leave_rejoin_takeover launcher_host_join`, run `20261014-192005` on b001ae49 | all passed: suite 5192/5192, gates, boot, ENet demo, three processes; captures looked at: RED away and the take-over question, REJOIN back into the PIDGEY fight, the Co-op tab's host and join, BLUE's opening and "BLUE joined the session" |
 | Not run | a phone's suspend (#45); no scenario, nothing new on screen |
 
 ## A pick stays on the pad it found; the normal-window report traced (#140, D123, 2026-10-14)
