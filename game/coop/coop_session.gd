@@ -327,7 +327,7 @@ func process() -> void:
 		_announce()
 	client.poll()
 	## Another window here plays as the remembered player, so this one joins as somebody new.
-	if _retry_as_new and client.ended_reason == "refused: already_connected":
+	if _retry_as_new and not _was_ready and client.ended_reason == "refused: already_connected":
 		journal.add(PokeCoopLog.CLIENT, "retry_as_new", {"known": _known})
 		_retry_as_new = false
 		_known = {}

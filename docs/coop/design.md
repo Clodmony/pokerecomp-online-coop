@@ -159,7 +159,8 @@ Their outcomes do not commit campaign story rewards.
 
 - Host-authoritative: clients send intentions; the host validates them and
   answers with what each player may see.
-- Players reconnect by their player id. While the **required controller** of a
+- Players reconnect by their player id, or by name when their device lost it;
+  there is no per-player secret (D124). While the **required controller** of a
   battle is disconnected, that battle is paused; everything else, including the
   other player's exploration and battles, continues. A disconnected participant
   who is not the current controller does not pause the battle. After thirty
