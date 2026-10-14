@@ -169,7 +169,7 @@ func handle_button(button: int) -> bool:
 		Phase.NAMING:
 			return _naming.handle_button(button) if _naming != null else false
 		Phase.BEFORE_TEXT:
-			if button != PokeButton.A or not _before_alone:
+			if button not in [PokeButton.A, PokeButton.B] or not _before_alone:
 				return false
 			if _text_owes_frames():
 				_text_box.advance()
@@ -181,11 +181,11 @@ func handle_button(button: int) -> bool:
 			## `YesNoBox` answers B as NO, which is `.skip_nickname`.
 			if _yes_no.is_open():
 				return _yes_no.handle_button(button)
-			if button == PokeButton.A and _text_owes_frames():
+			if button in [PokeButton.A, PokeButton.B] and _text_owes_frames():
 				_text_box.advance()
 				return true
 		Phase.AFTER_TEXT:
-			if button != PokeButton.A:
+			if button not in [PokeButton.A, PokeButton.B]:
 				return false
 			if _text_box != null and (_text_box.is_revealing() or _text_box.has_pages_left()):
 				_text_box.advance()

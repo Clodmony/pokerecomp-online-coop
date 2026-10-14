@@ -1530,7 +1530,14 @@ func test_a_catch_shows_its_recipient_the_new_dex_entry_and_asks_them_for_a_nick
 	field._take_events(view.merged({"revision": 0, "events": []}, true))
 	field._take_step({"nickname": Fixture.BULBASAUR, "boxed": false})
 	assert_true(field._overlay is Gen2NicknamePromptScreen and field.is_playing())
-	assert_true(field.take_button(PokeButton.A), "the prompt takes the presses")
+	var prompt: Gen2NicknamePromptScreen = field._overlay
+	for frame: int in 600:
+		if prompt.question_ready():
+			break
+		prompt.advance_frame()
+		if not prompt._text_box.is_revealing() and prompt._text_box.has_pages_left():
+			assert_true(field.take_button(PokeButton.B), "`WaitForTextScrollButtonPress` takes B as well as A")
+	assert_true(prompt.question_ready(), "B scrolled the question to its YES/NO box")
 	(field._overlay as Gen2NicknamePromptScreen).named.emit("BUDDY")
 	(field._overlay as Gen2NicknamePromptScreen).closed.emit()
 	_pump()
