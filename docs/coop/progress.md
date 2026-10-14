@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A Generation 1 trade keeps the catch rate out of the item (#65, D120, 2026-10-14)
+
+Outside co-op, a Red or Blue Cable Club trade with the other save slot refused
+a RATTATA: upstream's `peer_from_save` sends a Generation 1 Pokémon's catch rate
+in the item byte (for the Time Capsule), and the receiving Generation 1 save held
+item 255 and failed its own check. Upstream's `commit_link_trade` now clears the
+item of a Pokémon arriving in a Generation 1 game; the catch rate travels in its
+own field. Co-op trades send the host's rows and never took this path. Branch
+`coop/65-link-trade-catch-rate`.
+
+| Verification | Result |
+|---|---|
+| GUT, before | `test_a_generation_1_trade_keeps_the_catch_rate_out_of_the_item` failed: `candidate_save_invalid`, catch rate 0 where 255 was sent |
+| GUT, after | `test_link` 36/36 |
+| `tools/verify.sh cable_club_trade`, twice on 3d9a5f16 | whole suite 5184/5184, gates, boot, ENet demo and three processes ok; `cable_club_trade` failed both times before any trade, stalled in the opening (Oak's parcel; a menu opened in the bedroom) while another program held a CPU core (load average about 2) |
+| `tools/verify.sh cable_club_trade` on 706a0263, load average 0.4 | all passed: whole suite 5184/5184, ENet ok, `cable_club_trade` in 278 s: P1's MACHOKE arrives in P2's party and evolves into MACHAMP, P2's MANKEY joins P1, each uid once; captures looked at. The windows showed 15 frames a second in this run too, so the frame rate alone does not explain the two failures |
+| Real cartridge, single-player save-slot trade | not run |
+
 ## Verify's ENet stages on free ports (#146, 2026-10-14)
 
 `tools/verify.sh` ran the ENet demo on the default port 24680, the port a game

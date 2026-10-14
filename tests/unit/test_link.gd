@@ -381,6 +381,29 @@ func test_a_generation_1_partner_sends_its_catch_rate_where_an_item_goes() -> vo
 	assert_eq(Gen1Layout.stored_catch_rate(RomRegistry.RED, kadabra, 100), 100)
 
 
+## The Trade Center between two Generation 1 saves reads that byte back as
+## `MON_CATCH_RATE`: a RATTATA's 255 arrives as its catch rate, not as an item.
+func test_a_generation_1_trade_keeps_the_catch_rate_out_of_the_item() -> void:
+	_data.generation = RomRegistry.GEN1
+	_data.id = RomRegistry.RED
+	(_data.species(SPECIES_TWO) as Dictionary)["catch_rate"] = 0xFF
+	var partner_save: Gen2SaveData = _save()
+	partner_save.game_id = RomRegistry.RED
+	partner_save.party = [Gen2SaveBattleAdapter.from_battle_mon(
+		Gen2BattleMon.create(_data, SPECIES_TWO, 5, [TACKLE])
+	)]
+	var sent: Dictionary = (Gen2LinkTransport.peer_from_save(partner_save)["party"] as Array)[0]
+	var save: Gen2SaveData = _save()
+	save.party = [_mon(SPECIES_ONE), _mon(SPECIES_ONE)]
+	var result: Dictionary = Gen2WorldPartyHost.commit_link_trade(
+		_world(), save, 0, sent, {"name": "BLUE"}, false
+	)
+	assert_true(bool(result.get("ok", false)), String(result.get("reason", "")))
+	var arrived: Gen2SaveMon = save.party[1]
+	assert_eq(arrived.catch_rate, 0xFF)
+	assert_eq(arrived.item, 0)
+
+
 func test_a_link_battle_writes_the_record_it_produced() -> void:
 	var world: Gen2WorldAPI = _world()
 	var save: Gen2SaveData = _save()
