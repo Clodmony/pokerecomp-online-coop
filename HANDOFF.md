@@ -6,7 +6,7 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #156 merged, closing #26).
+Last updated 2026-10-15 (after #27's pull request, #157).
 
 ## Repository state
 
@@ -14,19 +14,26 @@ Last updated 2026-10-15 (after #156 merged, closing #26).
   #26 closed: the co-op field plays what the battle screen would, D125, and
   upstream's nickname prompt scrolls with B). `main` = upstream main
   (ed886823, 0.1.78).
-- Next decision number: D126.
+- Next decision number: D127.
 
 ## Open pull requests (the owner says when to merge)
 
-- None.
-- The Gen 2 half of #28 is issue #149 (later milestone, D61).
+- **#157** (draft) `coop/27-session-trainer-ai`, Closes #27. D126: Gen 1
+  sessions already shared `Gen1TrainerAI` with the battle screen; two co-op
+  tests pin it (each shown failing on a deliberate break), test case B43, no
+  scenario (nothing on screen). Verify run `20261015-012534`: all passed,
+  suite 5202/5202. No builds made.
+- #149 now holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
 
 - The owner's retest of #140 (merged) with the private build
   `builds/140-picked-pad-only-490f0aad` (hand, P11 and K17).
-- A hand-played session (test cases K17-K21, B34-B42, P10, P11, K16, T08,
+- A hand-played session (test cases K17-K21, B34-B43, P10, P11, K16, T08,
   S20; `docs/coop/readiness.md`).
+- No battle issue is left in M4. Open milestones next: M10 (#44 private
+  builds: check what is left; #45 Android; #46 iOS), M0 #15 private CI, M13
+  provenance (#55, #56), M12 German (#50).
 - Possible issue: the session menu's FIGHT list is fixed (BROCK, wild ONIX
   L60, PIDGEY L5, RATTATA L4 from `register_encounter`), not the map's wild
   table. Ask the owner before filing.
@@ -36,10 +43,10 @@ Last updated 2026-10-15 (after #156 merged, closing #26).
 
 ## Worktrees and background processes
 
-- Main checkout on `pokerecomp-online-coop`, clean. The Superset worktree of
-  #26 (`coop/26-battle-session-events`, merged) is left for the owner to
-  remove in Superset; the branch is deleted on the remote. No background
-  processes.
+- Main checkout on `pokerecomp-online-coop`, clean. The Superset worktree
+  that held #26 now holds `coop/27-session-trainer-ai`, pushed. The local
+  branch `coop/26-battle-session-events` (merged, gone on the remote) can be
+  deleted. No background processes.
 
 ## Working notes (stable, keep short)
 
@@ -66,8 +73,8 @@ Last updated 2026-10-15 (after #156 merged, closing #26).
 - Merged co-op branches still on the remote and local: `coop/128-controller-typing`,
   `coop/132-scenario-runner`, `coop/133-autoplay-brock-seed`,
   `coop/140-138-139-pads-tab-quit`, `coop/28-battle-offers`,
-  `coop/44-private-builds`, `coop/53-local-split-screen` (check each is merged
-  first).
+  `coop/44-private-builds`, `coop/53-local-split-screen`, and the local
+  `coop/26-battle-session-events` (check each is merged first).
 - Old builds under `builds/`: `44-private-builds-0f58e0f8`,
   `53-local-split-screen-2f0d3c2f` and, once #140 is retested,
   `140-picked-pad-only-490f0aad`.
