@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Every Red and Blue battle question has an owner; the partner may suggest its answer (#28, D121, 2026-10-14)
+
+The replacement after a faint, a move to learn, Mimic and SHIFT's offer each go
+to the owner of the Pokémon they are about; for a move to learn that is the
+learner's owner, even while the partner's Pokémon is out. The partner's window
+showed nothing during Mimic or a move to learn and the host refused a suggestion
+for either; now the partner sees the owner's list, points at an answer, and the
+owner's list wears the mark. Baton Pass and Generation 2 stay with the later
+milestone (D61). Branch `coop/28-switch-offer-routing`.
+
+| Verification | Result |
+|---|---|
+| GUT, before | the Mimic and learn tests failed with `invalid_suggestion`; the replacement test and every ownership check passed already; the window test found the partner's menu on no page during Mimic, then the marks on the MIMIC and forget lists at no tile (-1, -1) |
+| GUT, after | co-op suites 306/306 |
+| `mimic_suggest` (new; the `switch_offer` seed with RED's lead knowing MIMIC and EMBER) | RED's CHARMANDER uses MIMIC on the LASS's RATTATA; both windows show TACKLE, TAIL WHIP, QUICK ATTACK; BLUE's cursor on TAIL WHIP reaches the host as a suggestion and RED's list shows BLUE's ▷ there; after three seconds RED copies TACKLE ("CHARMANDER learned TACKLE!"). Captures looked at |
+| `tools/verify.sh mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest` on a72c041b | all passed: whole suite 5188/5188, gates, boot, ENet demo and three processes, the three scenarios; every capture looked at |
+| Not run | a hand-played session; a move to learn in two real windows (GUT only); German, Blue, Windows |
+
 ## A Generation 1 trade keeps the catch rate out of the item (#65, D120, 2026-10-14)
 
 Outside co-op, a Red or Blue Cable Club trade with the other save slot refused

@@ -91,6 +91,7 @@ Their outcomes do not commit campaign story rewards.
   player's Pokémon hands control to that player. A question about one Pokémon
   (replacing it after a faint, a move it wants to learn, Mimic) goes to the
   owner of that Pokémon; the replacement may be any standing allied Pokémon.
+  The partner sees the same question and may suggest every answer to it (D121).
 - While the co-op panel is open the player's own world stands still.
 - **Leaving a battle** (D61, D62): a participant whose own world did not start
   the fight may LEAVE BATTLE. They are back where they were and explore; their
