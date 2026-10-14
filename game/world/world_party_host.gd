@@ -408,6 +408,9 @@ static func commit_link_trade(
 	var received: Gen2SaveMon = Gen2SaveMon.from_dict(incoming)
 	if received == null or received.species <= 0:
 		return _failure(&"invalid_trade_partner_mon", {})
+	## Generation 1 holds no item: a Gen 1 peer's item byte is its `MON_CATCH_RATE`.
+	if world.data.generation == RomRegistry.GEN1:
+		received.item = 0
 	var link_mode: int = int(peer.get("link_mode", Gen2LinkSession.LINK_TRADECENTER))
 	## `ValidateOTTrademon` and `CheckAnyOtherAliveMonsForTrade`, both of which
 	## the trade screen has already run: they are run again here because this is

@@ -1820,3 +1820,16 @@ the second window in its argument (`stacked`, side by side when absent), and
 `SplitScreen.half` cuts the screen along its height instead of its width.
 The choice lasts until the game closes and is not written to the tab's
 memory; the issue asked for a default, not for remembering it.
+
+## D120. A Generation 1 trade keeps the catch rate out of the item (#65, 2026-10-14)
+
+A Red or Blue link trade with the other save slot refused a RATTATA: upstream's
+`Gen2LinkTransport.peer_from_save` sends a Generation 1 Pokémon's catch rate in
+the item byte, which the Time Capsule turns into a Generation 2 held item, and a
+Generation 1 save receiving that row held item 255, which its validator refused
+(`candidate_save_invalid`). Co-op trades never took this path since the cable
+sends the host's rows. Upstream's `commit_link_trade` now clears the item of a
+Pokémon arriving in a Generation 1 game, which has no held items; the catch rate
+travels in its own field. The save-slot row stays as it was, because the Time
+Capsule reads it. Like D64, a candidate to offer upstream; that is the owner's
+call.
