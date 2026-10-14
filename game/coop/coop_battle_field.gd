@@ -46,6 +46,8 @@ var _masked: bool = false
 var _fanfared: bool = false
 var _enemy_down: bool = false
 var _dot_staged: bool = false
+var _alarm: bool = false
+var _colors: Gen2BattleColors = null
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -67,6 +69,7 @@ func _ready() -> void:
 	if not _renderer.set_battle_data(data):
 		_renderer.visible = false
 	_box = Gen2TextBox.for_screen(data)
+	_colors = Gen2BattleColors.new(data)
 	add_child(_box)
 	_menu_layer = TextureRect.new()
 	_menu_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -93,12 +96,18 @@ func _process(delta: float) -> void:
 		_messages.clear()
 		_anim_after = {}
 		_anim = null
+		_sound_alarm({}, true)
 		return
 	if _screen != null:
 		_screen.set_white(false)
 	_take_events(view)
 	var scene: Dictionary = scene_view(view, data)
-	_renderer.set_view(_with_animation(scene.duplicate()))
+	var drawn: Dictionary = _with_animation(scene.duplicate())
+	_renderer.set_view(drawn)
+	if _colors.gen1():
+		_colors.set_view(drawn)
+		_box.palette = _colors.gen1_screen_palette(Gen2BattleColors.GEN1_PAL_PLAYER_MON)
+	_sound_alarm(drawn, not String(view.get("outcome", "")).is_empty())
 	_frames += delta * 60.0
 	while _frames >= 1.0:
 		_frames -= 1.0
@@ -108,6 +117,17 @@ func _process(delta: float) -> void:
 	if not is_playing():
 		_board.settle(scene)
 	_draw_menu()
+
+
+## `HandleHPPals`: the alarm while the player's drawn bar is red, until the battle has an outcome.
+func _sound_alarm(drawn: Dictionary, over: bool) -> void:
+	var hp: int = int(drawn.get("player_hp", 0))
+	var top: int = int(drawn.get("player_max_hp", 0))
+	var red: bool = not over and hp > 0 and top > 0 and GameData.hp_bar_palette_name(
+		Gen2BattleHud.bar_pixels(hp, top, Gen2BattleHud.HP_BAR_TILES * Gen2Font.TILE), true) == "hp_red"
+	if red != _alarm and audio != null:
+		_alarm = red
+		audio.set_low_health_alarm(red)
 
 
 func _stand(up: bool) -> void:
@@ -327,6 +347,8 @@ func _open(view: Dictionary) -> void:
 func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 	var side: int = int(event.get("side", 0))
 	var prefix: String = "enemy_" if side == Gen2Battle.ENEMY else "player_"
+	if event.has("sfx"):
+		_messages.append({"sound": int(event["sfx"]), "under": true})
 	if (event.get("statuses", []) as Array).size() == 2:
 		_messages.append({"panel": {"player_status": int(event["statuses"][0]), "enemy_status": int(event["statuses"][1])}})
 	match StringName(event.get("type", &"")):
@@ -337,6 +359,12 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 			_messages.append({"panel": {prefix + "substitute": bool(event.get("raised", false))}})
 		Gen2Battle.MINIMIZED:
 			_messages.append({"panel": {prefix + "minimized": true}})
+		Gen2Battle.SCREEN_SHAKE:
+			_messages.append({"shake": int(event.get("amplitude", 0))})
+		Gen2Battle.DELAY:
+			_messages.append({"hold": int(event.get("frames", 0))})
+		Gen2Battle.FLED:
+			_messages.append({"sound": Gen1Sfx.SFX_RUN, "under": true})
 		Gen2Battle.HP_BAR:
 			_messages.append({
 				"bar": side, "hp": int(event.get("hp", 0)),
@@ -542,6 +570,9 @@ func _take_step(step: Dictionary) -> void:
 		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
 	elif step.has("hold"):
 		_hold = int(step["hold"])
+	elif step.has("shake"):
+		_sounding = {}
+		_anim = _shake(int(step["shake"]))
 	elif step.has("panel"):
 		_board.shown.merge(step["panel"], true)
 	elif step.has("grew"):
@@ -566,7 +597,7 @@ func _take_step(step: Dictionary) -> void:
 		_play_cue(step)
 		_hold = HOLD_FRAMES if step.has("fanfare") else 0
 		_sound_watch = {}
-		_sound_wait = not step.has("fanfare")
+		_sound_wait = not step.has("fanfare") and not step.has("under")
 
 
 ## A pixel of the bar's forty-eight a frame, the way `UpdateHPBar` drains it.
@@ -618,6 +649,13 @@ func _applying() -> Gen2BattleAnimPlayer:
 	var effect: int = int(data.move(int(step["anim"])).get("effect", 0))
 	var kind: int = int((pair as Array)[1 if effect != 0 else 0])
 	return _seeded(Gen2BattleAnimPlayer.create_gen1_applying(_anim_data, kind, bool(step["enemy"])))
+
+
+func _shake(amplitude: int) -> Gen2BattleAnimPlayer:
+	if _anim_data == null:
+		_anim_data = Gen2BattleAnimData.from_game_data(data)
+	return _seeded(Gen2BattleAnimPlayer.create_gen1_screen_shake(_anim_data, amplitude)) \
+		if _anim_data != null and _anim_data.gen1() else null
 
 
 func _seeded(player: Gen2BattleAnimPlayer) -> Gen2BattleAnimPlayer:

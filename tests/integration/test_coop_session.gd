@@ -1323,6 +1323,49 @@ func test_a_status_a_transform_the_doll_and_the_dot_reach_the_panel_when_their_e
 	assert_true(field._board.over({}).get("enemy_substitute", false), "an animation's `raisesub` is the actor's doll")
 
 
+func test_the_field_plays_the_screens_sounds_shakes_and_pauses_and_a_red_bar_sounds_the_alarm() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var view: Dictionary = {
+		"battle": "b14", "revision": 2, "active": 0,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 12, "hp": 30, "max_hp": 34}],
+		"enemy": {"species": Fixture.GEODUDE, "level": 14, "hp": 40, "max_hp": 40},
+		"events": [
+			{"type": Gen2Battle.TRAINER_USED_ITEM, "side": Gen2Battle.ENEMY, "item": 1, "sfx": Gen1Sfx.SFX_HEAL_AILMENT},
+			{"type": Gen2Battle.SCREEN_SHAKE, "amplitude": 4},
+			{"type": Gen2Battle.DELAY, "frames": 20},
+			{"type": Gen2Battle.CRY, "side": Gen2Battle.ENEMY, "species": Fixture.GEODUDE},
+			{"type": Gen2Battle.FLED, "side": Gen2Battle.PLAYER},
+		],
+	}
+	field._take_events(view.merged({"revision": 1, "events": []}, true))
+	field._messages.clear()
+	field._take_events(view)
+	var steps: Array = field._messages.filter(func(step: Dictionary) -> bool: return not step.has("text"))
+	assert_eq(steps, [{"sound": Gen1Sfx.SFX_HEAL_AILMENT, "under": true}, {"shake": 4}, {"hold": 20},
+		{"cry": Fixture.GEODUDE}, {"sound": Gen1Sfx.SFX_RUN, "under": true}],
+		"the event's own sound, Jump Kick's shake, the pause, the cry and the run's sound")
+	assert_eq(field._messages[-1], {"text": "Got away safely!"}, "printed over the run's sound")
+
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var audio: Gen2AudioPlayer = add_child_autofree(Gen2AudioPlayer.new())
+	field.audio = audio
+	field._process(0.0)
+	assert_false(audio.low_health_alarm(), "a green bar is silent")
+	var colors := Gen2BattleColors.new(_data)
+	colors.set_view(PokeCoopBattleField.scene_view(_red.battles[_battle_of(_red)], _data))
+	var worn: PackedColorArray = colors.gen1_screen_palette(Gen2BattleColors.GEN1_PAL_PLAYER_MON)
+	assert_false(worn.is_empty())
+	assert_eq(field._box.palette, worn, "`BlkPacket_Battle`: the box wears the player's Pokémon's colours")
+	var held: Dictionary = _red.battles[_battle_of(_red)]
+	held["allies"][0]["hp"] = 1
+	field._process(0.0)
+	assert_true(audio.low_health_alarm(), "`HandleHPPals`: a red bar sounds the alarm")
+	held["outcome"] = "won"
+	field._process(0.0)
+	assert_false(audio.low_health_alarm(), "and the battle's end stops it")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)
