@@ -101,9 +101,9 @@ func _open_phase() -> void:
 			else:
 				_go(PARTY, 0)
 		"learn":
-			_go(LEARN if _controls() else NONE, 0)
+			_go(LEARN, 0)
 		"mimic":
-			_go(MIMIC if _controls() else NONE, 0)
+			_go(MIMIC, 0)
 		"offer":
 			_question(_offer_text(), {"page": PARTY}, {"choose": _command("stay")}, true)
 
@@ -497,9 +497,15 @@ func _partners() -> Array:
 func _mark_at(said: Dictionary) -> int:
 	if page == MAIN:
 		return int(MAIN_OF.get(String(said.get("type", "")), -1))
-	if page == ASK and String(_view.get("phase", "")) == "offer":
-		return int({"switch": 0, "stay": 1}.get(String(said.get("type", "")), -1))
-	if not page in [MOVES, PARTY, BAG, RECIPIENT]:
+	if page == ASK:
+		if (_ask["yes"] as Dictionary).get("page") == PARTY and String(said.get("type", "")) in ["switch", "send_out"]:
+			return 0
+		for at: int in 2:
+			var row: int = int((_ask["no"] if at == 1 else _ask["yes"]).get("choose", -1))
+			if row >= 0 and _says(_rows[row], said):
+				return at
+		return -1
+	if not page in [MOVES, PARTY, BAG, RECIPIENT, LEARN, MIMIC]:
 		return -1
 	for at: int in _count():
 		var row: int = _row_at(at)
@@ -630,8 +636,10 @@ func _mark_tile(at: int) -> Vector2i:
 			return Gen2BattleMenu.main_box().cursor_position(at)
 		ASK:
 			return _yes_no_box().cursor_position(at)
-		MOVES:
+		MOVES, MIMIC:
 			return Gen2BattleMenu.move_box().cursor_position(at)
+		LEARN:
+			return Gen2BattleMenu.forget_box(true).cursor_position(at)
 		RECIPIENT:
 			return _recipient_box().cursor_position(at)
 		PARTY:
