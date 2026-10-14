@@ -211,6 +211,10 @@ session for both and goes back to the Co-op tab.
   cursor rests is a suggestion, shown on their screen as a hollow ▷ on the
   menu and on the row, and spelled out in their text box while they wait
   ("BLUE suggests / EMBER"). It never acts by itself.
+- A question about one Pokémon goes to its owner: which Pokémon replaces it
+  after a faint, which move it forgets for a new one (even while your
+  Pokémon is out), which move its MIMIC copies. Your partner sees the same
+  list and may point at an answer.
 - After choosing a ball you pick whom the catch is for.
 - With BATTLE STYLE SHIFT in your OPTION menu, a trainer about to send out its
   next Pokémon asks "Will RED change POKéMON?" whenever your Pokémon is out;

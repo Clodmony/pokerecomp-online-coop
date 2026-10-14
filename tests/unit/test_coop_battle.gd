@@ -509,3 +509,64 @@ func test_the_trainers_question_is_worded_as_the_cartridge_words_it() -> void:
 	assert_eq(PokeCoopBattleField.pages(line), PackedStringArray([
 		"LEADER is\nabout to use", PokeCoopBattleField._species_name(_data, Fixture.CHARMANDER) + "!",
 	]))
+
+
+## Red's PIKACHU leads; Blue joins and Red sends out Blue's [param lead].
+func _blue_sent_out(lead: Gen2SaveMon, enemy: Gen2Party) -> PokeCoopBattleSession:
+	var session: PokeCoopBattleSession = _start(_red(), enemy)
+	session.request_join(_data, _player("blue", BLUE_ID, [lead]))
+	_act(session, session._members["red"], {"type": "switch", "index": 1})
+	return session
+
+
+func test_mimic_asks_the_owner_of_the_pokemon_that_used_it_and_the_partner_may_suggest() -> void:
+	var session: PokeCoopBattleSession = _blue_sent_out(
+		_saved(Fixture.CHARMANDER, 20, [Fixture.MIMIC, Fixture.TACKLE], BLUE_ID), _enemy(Fixture.GEODUDE, 5, [Fixture.GROWL, Fixture.SLASH]))
+	var red: PokeCoopPlayer = session._members["red"]
+	var blue: PokeCoopPlayer = session._members["blue"]
+	_act(session, blue, {"type": "move", "slot": 0})
+
+	assert_eq([session.phase(), session.controller()], [PokeCoopBattleSession.AWAITING_MIMIC, "blue"])
+	assert_eq(StringName(_act(session, red, {"type": "mimic", "choice": 1})["reason"]), &"not_controller")
+	assert_eq(session.suggest("red", {"type": "mimic", "value": 1}), &"", "the partner may suggest the move to copy")
+	assert_true(bool(_act(session, blue, {"type": "mimic", "choice": 1})["ok"]))
+	assert_eq([session.phase(), session.battle.mon(Gen2Battle.PLAYER).moves[0]], [PokeCoopBattleSession.AWAITING_ACTION, Fixture.SLASH])
+
+
+func test_a_move_to_learn_is_asked_of_the_learners_owner_while_the_partners_pokemon_is_out() -> void:
+	var blue: PokeCoopPlayer = _player("blue", BLUE_ID,
+		[_saved(Fixture.GEODUDE, 10, [Fixture.TACKLE, Fixture.EMBER, Fixture.THUNDERBOLT, Fixture.GROWL], BLUE_ID)])
+	var red: PokeCoopPlayer = _red()
+	var session: PokeCoopBattleSession = _start(blue, _enemy(Fixture.MAGCARGO, 33))
+	session.request_join(_data, red)
+	_act(session, blue, {"type": "switch", "index": 1})
+	session.battle.mon(Gen2Battle.ENEMY).hp = 1
+	_act(session, red, {"type": "move", "slot": 1})
+
+	assert_eq([session.phase(), session.owner_deciding(), session.controller()], [PokeCoopBattleSession.AWAITING_LEARN, "blue", "blue"],
+		"Blue's GEODUDE, out earlier in the fight, learns while Red's PIKACHU is out")
+	assert_eq(StringName(_act(session, red, {"type": "learn", "forget_slot": 1})["reason"]), &"not_controller")
+	assert_eq(session.suggest("red", {"type": "learn", "value": 1}), &"", "the partner may suggest the move to forget")
+	assert_eq(session.suggest("red", {"type": "decline", "value": 0}), &"", "or keeping the old moves")
+	assert_true(bool(_act(session, blue, {"type": "learn", "forget_slot": 1})["ok"]))
+	assert_eq(session.battle.party(Gen2Battle.PLAYER).mons[0].moves[1], Fixture.SLASH)
+
+
+func test_a_fainted_pokemons_owner_sends_out_any_ally_or_runs_and_the_partner_may_suggest() -> void:
+	var session: PokeCoopBattleSession = _blue_sent_out(
+		_saved(Fixture.CHARMANDER, 5, [Fixture.GROWL], BLUE_ID), _enemy(Fixture.GEODUDE, 50, [Fixture.SLASH]))
+	var red: PokeCoopPlayer = session._members["red"]
+	var blue: PokeCoopPlayer = session._members["blue"]
+	for _turn: int in 10:
+		if session.phase() == PokeCoopBattleSession.AWAITING_SEND_OUT:
+			break
+		_act(session, blue, {"type": "move", "slot": 0})
+
+	assert_eq([session.phase(), session.controller(), session.battle.asking_use_next()],
+		[PokeCoopBattleSession.AWAITING_SEND_OUT, "blue", true], "Blue's fainted CHARMANDER is Blue's to replace")
+	assert_eq(StringName(_act(session, red, {"type": "send_out", "index": 0})["reason"]), &"not_controller")
+	assert_eq(StringName(_act(session, red, {"type": "run"})["reason"]), &"not_controller")
+	assert_eq(session.suggest("red", {"type": "send_out", "value": 0}), &"")
+	assert_eq(session.suggest("red", {"type": "run", "value": 0}), &"", "or running from the wild one")
+	assert_true(bool(_act(session, blue, {"type": "send_out", "index": 0})["ok"]))
+	assert_eq([session.controller(), session.battle.party(Gen2Battle.PLAYER).active], ["red", 0], "Red's PIKACHU is back out for Red")

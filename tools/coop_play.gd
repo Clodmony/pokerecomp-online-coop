@@ -148,10 +148,10 @@ func _drive_battle() -> void:
 	var view: Dictionary = panel.battle_view()
 	if not _session.client.is_controller(String(view.get("battle", ""))):
 		return
-	_offer_frames = _offer_frames + KEY_HOLD_FRAMES if view.get("phase") == "offer" else 0
+	_offer_frames = _offer_frames + KEY_HOLD_FRAMES if view.get("phase") in ["offer", "mimic"] else 0
 	if _offer_frames > 0 and _offer_frames < OFFER_WAIT_FRAMES:
 		return
-	var kind: String = {"action": "move", "send_out": "send_out", "offer": "stay"}.get(view.get("phase"), "decline")
+	var kind: String = {"action": "move", "send_out": "send_out", "offer": "stay", "mimic": "mimic"}.get(view.get("phase"), "decline")
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
 		return String((entry.get("command", {}) as Dictionary).get("type", "")) == kind)
 	if row >= 0:

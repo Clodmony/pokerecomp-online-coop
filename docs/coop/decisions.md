@@ -1833,3 +1833,17 @@ Pokémon arriving in a Generation 1 game, which has no held items; the catch rat
 travels in its own field. The save-slot row stays as it was, because the Time
 Capsule reads it. Like D64, a candidate to offer upstream; that is the owner's
 call.
+
+## D121. Every Red and Blue battle question has an owner, and the partner may suggest its answer (#28, 2026-10-14)
+
+The questions a Red or Blue battle asks are the replacement after a faint
+("Use next POKéMON?" in the wild), a move to learn, Mimic and SHIFT's offer
+(D113). Each goes to the owner of the Pokémon it is about: the one out, or for a
+move to learn the learner, which may be the partner's Pokémon that fought
+earlier. Session tests now cover each. The partner's window showed nothing while
+Mimic or a move to learn was asked, and the host refused a suggestion for
+either; now it shows the owner's list, its pointer is a suggestion (`mimic`,
+`learn`, `decline`), and the owner's list wears the partner's mark as the move
+list does. A scripted window's `auto_battle` leaves Mimic's list up three
+seconds, as it does SHIFT's question, then copies the first move. Baton Pass
+and Generation 2's questions stay with the later milestone (D61).
