@@ -116,6 +116,16 @@ static func _box_counts(rows: Array) -> Array:
 	return out
 
 
+func rename(uid: String, nickname: String) -> bool:
+	for entry: Dictionary in team + box:
+		if String(entry["uid"]) == uid and not nickname.is_empty():
+			(entry["mon"] as Gen2SaveMon).nickname = nickname
+			holdings_rev += 1
+			box_rev += 1 if entry.has("box") else 0
+			return true
+	return false
+
+
 func team_index(uid: String) -> int:
 	for index: int in team.size():
 		if String((team[index] as Dictionary)["uid"]) == uid:

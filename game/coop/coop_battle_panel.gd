@@ -21,6 +21,7 @@ var client: PokeCoopClient = null
 var data: GameData = null
 ## Whatever is still playing the last turn out; a choice waits for it.
 var busy: Callable = Callable()
+var hand_over: Callable = Callable()
 var say: Callable = Callable()
 var menu: PokeCoopBattleMenu = null
 var _rows: Array = []
@@ -121,6 +122,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _press(button: int) -> void:
+	if hand_over.is_valid() and bool(hand_over.call(button)):
+		return
 	if not battle_view().is_empty() and (not busy.is_valid() or not bool(busy.call())):
 		_take(menu.press(button))
 

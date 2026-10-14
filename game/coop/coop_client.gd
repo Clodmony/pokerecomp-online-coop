@@ -184,6 +184,10 @@ func suggest(battle_id: String, kind: String, value: int, recipient: String = ""
 	return send({"type": "suggest", "battle": battle_id, "suggestion": said})
 
 
+func name_catch(battle_id: String, nickname: String) -> int:
+	return send({"type": "name_catch", "battle": battle_id, "nickname": nickname})
+
+
 func join_battle(battle_id: String) -> int:
 	return send({"type": "join", "battle": battle_id, "shift": shifts()})
 

@@ -341,11 +341,20 @@ func _use_item(player: PokeCoopPlayer, command: Dictionary) -> Dictionary:
 		return _refused(StringName(used.get("reason", &"item_has_no_effect")))
 	if Gen2WorldPack.can_toss(battle.data, item):
 		player.take_item(item)
-	var events: Array = [{"type": ITEM_USED, "player": player.player_id, "item": item}]
+	var events: Array = [_item_shown(used).merged({"type": ITEM_USED, "player": player.player_id, "item": item}, true)]
 	events.append_array(used.get("events", []) as Array)
 	if not battle.is_over():
 		events.append_array(battle.take_actions(Gen2Battle.use_item(item), _enemy_action()))
 	return _done(events)
+
+
+func _item_shown(used: Dictionary) -> Dictionary:
+	var out: Dictionary = {"kind": String(used.get("kind", "")), "effect": (used.get("effect", {}) as Dictionary).duplicate(),
+		"woken": int(used.get("woken", 0)), "statuses": [battle.mon(Gen2Battle.PLAYER).status, battle.mon(Gen2Battle.ENEMY).status]}
+	var target: Gen2BattleMon = battle.party(Gen2Battle.PLAYER).at(int(used.get("target", -1)))
+	if target != null:
+		out.merge({"target": int(used["target"]), "hp": target.hp, "max_hp": target.max_hp(), "name": target.display_name()})
+	return out
 
 
 ## `ItemUseBall` with the catch rolled on the host. The thrower names who the
@@ -368,6 +377,10 @@ func _throw_ball(player: PokeCoopPlayer, ball: int, recipient: String) -> Dictio
 	}]
 	if bool(roll.get("caught", false)):
 		catch = {"recipient": recipient, "mon": wild}
+		var receiving: PokeCoopPlayer = _members[recipient]
+		var dex: Dictionary = receiving.world_part().get("caught_species", {})
+		events[0].merge({"species": wild.persistent_species(), "boxed": receiving.team.size() >= PokeCoopPlayer.MAX_TEAM,
+			"new_dex": not (dex.has(wild.persistent_species()) or dex.has(str(wild.persistent_species())))})
 		return _done(events)
 	events.append_array(battle.take_actions(Gen2Battle.use_item(ball), _enemy_action()))
 	return _done(events)
@@ -563,7 +576,8 @@ func view() -> Dictionary:
 		"trainer": battle.is_trainer_battle, "caught_for": String(catch.get("recipient", "")),
 		"trainer_class": int(encounter.get("trainer_class", 0)), "trainer_index": int(encounter.get("trainer_index", 0)),
 		"trainer_name": String(encounter.get("trainer_name", "")), "win_text": String(encounter.get("win_text", "")),
-		"gym": bool(encounter.get("gym", false)),
+		"gym": bool(encounter.get("gym", false)), "loss_text": String(encounter.get("loss_text", "")),
+		"spared": bool(encounter.get("spared", false)),
 	}
 
 
@@ -577,9 +591,10 @@ static func party_states(party: Gen2Party) -> Array:
 
 static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 	return {
-		"species": member.species, "level": member.level, "hp": member.hp,
+		"species": member.species, "name": member.display_name(), "level": member.level, "hp": member.hp,
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
 		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
+		"substitute": Gen2Substatus.has(member.substatus, Gen2Substatus.SUBSTITUTE), "minimized": member.minimized,
 	}
 
 

@@ -102,7 +102,7 @@ func _open_phase() -> void:
 				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY},
 					_run_or_leave() if _controls() else {"choose": _command("run")}, true)
 		"learn":
-			_go(LEARN, 0)
+			_ask_forget()
 		"mimic":
 			_go(MIMIC, 0)
 		"offer":
@@ -182,6 +182,10 @@ func _act(action: Dictionary) -> Dictionary:
 		return _go(StringName(action["page"]), _main if StringName(action["page"]) == MAIN else 0)
 	if action.has("ask"):
 		return _run()
+	if action.has("learn_stop"):
+		return _stop_learning()
+	if action.has("forget_ask"):
+		return _ask_forget()
 	if action.has("reopen"):
 		reopen()
 		return {}
@@ -218,8 +222,7 @@ func _back() -> Dictionary:
 		RECIPIENT:
 			return _go(BAG, _entry_of(_ball))
 		LEARN:
-			var move: String = _move_name(int((_view.get("learning", {}) as Dictionary).get("move", 0)))
-			return _question(Gen2MoveForget.stop_text(move, RomRegistry.GEN1), {"choose": _command("decline")}, {"page": LEARN})
+			return _stop_learning()
 		MIMIC:
 			return {}
 		PARTY:
@@ -289,6 +292,17 @@ func _go(to: StringName, at: int) -> Dictionary:
 	cursor = at
 	_scroll = 0
 	return {"point": _pointed()} if to != NONE else {}
+
+
+func _ask_forget() -> Dictionary:
+	var learning: Dictionary = _view.get("learning", {})
+	return _question(PokeCoopBattleField.forget_ask(String(learning.get("name", _learner().get("name", ""))),
+		_move_name(int(learning.get("move", 0))), data, true), {"page": LEARN}, {"learn_stop": true})
+
+
+func _stop_learning() -> Dictionary:
+	var move: String = _move_name(int((_view.get("learning", {}) as Dictionary).get("move", 0)))
+	return _question(Gen2MoveForget.stop_text(move, RomRegistry.GEN1), {"choose": _command("decline")}, {"forget_ask": true})
 
 
 func _question(text: String, yes: Dictionary, no: Dictionary, battle_box: bool = false) -> Dictionary:
@@ -433,7 +447,8 @@ func _ask_toward(place: Dictionary, target: int) -> int:
 	for option: int in 2:
 		var action: Dictionary = _ask["yes"] if option == 0 else _ask["no"]
 		var leads: bool = int(action.get("choose", -1)) == target or (action.has("page") and action["page"] == place.get("page")) \
-			or (action.has("ask") and place.get("main") == RUN)
+			or (action.has("ask") and place.get("main") == RUN) or (action.has("learn_stop") and place.get("page") == ASK) \
+			or (action.has("forget_ask") and place.get("page") == LEARN)
 		if leads:
 			return PokeButton.A if option == cursor else (PokeButton.DOWN if option > cursor else PokeButton.UP)
 	return PokeButton.B
@@ -572,7 +587,7 @@ func _row_at(at: int) -> int:
 
 
 func signature() -> String:
-	return "%s|%d|%d|%s|%s|%s|%d|%s|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(),
+	return "%s|%d|%d|%s|%s|%s|%d|%s|%s|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(), _ask.get("text", ""),
 		_party_page.animation_signature() if _party_page != null and page == PARTY else ""]
 
 

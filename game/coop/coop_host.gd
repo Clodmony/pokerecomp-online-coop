@@ -9,6 +9,7 @@ const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
 const MAX_TRAINER_NAME: int = 16
 const MAX_WIN_TEXT: int = 512
+const MAX_NICKNAME: int = 10
 const MAX_NOTE: int = 64
 ## How often a changed campaign is written between battles: a crashed host loses at most this much.
 var autosave_msec: int = 30000
@@ -33,6 +34,7 @@ var _own_entries: Dictionary = {}
 var _last_seq: Dictionary = {}
 ## Final battle views a participant who was away when a battle ended is told on coming back.
 var _finished: Dictionary = {}
+var _named_catches: Dictionary = {}
 var _box_sent: Dictionary = {}
 var trades: PokeCoopTrades = null
 var _controllers: Dictionary = {}
@@ -318,7 +320,21 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return claim_scene(sender, _vector(message.get("map")), message.get("on") is bool and bool(message.get("on")))
 		"trade":
 			return _trade(sender, message)
+		"name_catch":
+			return name_catch(sender, battle_id, PokeCoopTransport.text(message.get("nickname")).left(MAX_NICKNAME))
 	return &"unknown_message"
+
+
+static func _spared(trainer_class: int, map: Vector2i) -> bool:
+	return trainer_class == Gen1Layout.RIVAL1_CLASS and map.y == Gen1Layout.OAKS_LAB
+
+
+func name_catch(sender: PokeCoopPlayer, battle_id: String, nickname: String) -> StringName:
+	var filed: Dictionary = _named_catches.get(battle_id, {})
+	if String(filed.get("player", "")) != sender.player_id:
+		return &"not_your_catch"
+	_named_catches.erase(battle_id)
+	return &"" if sender.rename(String(filed["uid"]), nickname) else &"invalid_nickname"
 
 
 func _trade(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
@@ -797,6 +813,8 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 		"trainer_class": trainer_class if trainer else 0, "trainer_index": trainer_index,
 		"trainer_name": PokeCoopTransport.text(message.get("trainer_name")).left(MAX_TRAINER_NAME),
 		"win_text": PokeCoopTransport.text(message.get("win_text")).left(MAX_WIN_TEXT),
+		"loss_text": PokeCoopTransport.text(message.get("loss_text")).left(MAX_WIN_TEXT),
+		"spared": _spared(trainer_class, _vector(message.get("map"))),
 		"gym": message.get("gym") is bool and bool(message.get("gym")),
 		"private": not initiator.opening.is_empty(),
 	}
@@ -922,7 +940,7 @@ func _finish(session: PokeCoopBattleSession) -> void:
 	for player_id: String in session.participants:
 		player(player_id).apply_world_patch({"seen_species": {"set": session.seen.duplicate(), "erase": []}})
 	if outcome == PokeCoopBattleSession.CAUGHT:
-		_file_catch(session.catch)
+		_file_catch(session.catch, session.id)
 	var prizes: Dictionary = _pay(session) if outcome == &"won" else {}
 	if unique and (outcome == &"won" or outcome == PokeCoopBattleSession.CAUGHT):
 		var changes: Dictionary = _victory_changes(session.encounter, encounter_id)
@@ -958,7 +976,7 @@ static func _result_rows(by_owner: Dictionary) -> Dictionary:
 
 
 ## The wild a ball held, filed once with its recipient as trainer: the team if there is room, else the box.
-func _file_catch(caught: Dictionary) -> void:
+func _file_catch(caught: Dictionary, battle_id: String) -> void:
 	var recipient: PokeCoopPlayer = player(String(caught.get("recipient", "")))
 	var wild: Gen2BattleMon = caught.get("mon", null)
 	if recipient == null or wild == null:
@@ -967,8 +985,9 @@ func _file_catch(caught: Dictionary) -> void:
 	saved.ot_id = recipient.trainer_id
 	saved.original_trainer = recipient.name
 	saved.caught_level = wild.level
-	if recipient.add_mon(saved).is_empty():
-		recipient.store_mon(saved)
+	var uid: String = recipient.add_mon(saved)
+	uid = uid if not uid.is_empty() else recipient.store_mon(saved)
+	_named_catches[battle_id] = {"player": recipient.player_id, "uid": uid}
 	var species: int = wild.persistent_species()
 	recipient.apply_world_patch({
 		"caught_species": {"set": {species: true}, "erase": []},
