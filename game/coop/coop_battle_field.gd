@@ -47,6 +47,7 @@ var _fanfared: bool = false
 var _enemy_down: bool = false
 var _dot_staged: bool = false
 var _alarm: bool = false
+var _black: bool = false
 var _colors: Gen2BattleColors = null
 var _page: Gen2MenuPage = null
 var _stats_layer: TextureRect = null
@@ -240,8 +241,7 @@ func _take_events(view: Dictionary) -> void:
 		_begin_battle(view)
 	_revision_key = key
 	if same_turn:
-		if String(view.get("outcome", "")) == "won":
-			_queue_victory(view)
+		_queue_outcome(view)
 		return
 	if int(view.get("revision", 0)) == 0:
 		_open(view)
@@ -263,8 +263,7 @@ func _take_events(view: Dictionary) -> void:
 			_messages.append({"text": paged[page], "stats": stats} if page == 0 and not stats.is_empty() else {"text": paged[page]})
 			if page == 0 and StringName(event.get("type", &"")) == PokeCoopBattleSession.BALL_THROWN:
 				_messages.append_array(toss_steps(event))
-	if String(view.get("outcome", "")) == "won":
-		_queue_victory(view)
+	_queue_outcome(view)
 	_out = out_now(view)
 	_scene_seen = _panels(scene_view(view, data))
 	_idle_text = idle
@@ -318,6 +317,7 @@ func _begin_battle(view: Dictionary) -> void:
 	_hold = 0
 	_sound_wait = false
 	_fanfared = false
+	_black = false
 	_enemy_down = false
 	_offered = false
 	_box.visible = false
@@ -456,6 +456,31 @@ func _trainer_name(view: Dictionary) -> String:
 	return named if not named.is_empty() else (data.trainer_name(trainer_class) if trainer_class > 0 else "")
 
 
+func _queue_outcome(view: Dictionary) -> void:
+	match String(view.get("outcome", "")):
+		"won":
+			_queue_victory(view)
+		"lost":
+			if not bool(view.get("versus", false)):
+				_queue_loss(view)
+
+
+## `HandlePlayerBlackOut`: the first rival slides in with their line, then `SET_PAL_BATTLE_BLACK` and `PlayerBlackedOutText2`.
+func _queue_loss(view: Dictionary) -> void:
+	var names: Dictionary = {"player": _player_name(panel.client.player_id),
+		"rival": String((panel.client.state.get("campaign", {}) as Dictionary).get("rival_name", ""))}
+	if bool(view.get("trainer", false)) and int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL1_CLASS:
+		_messages.append({"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY,
+			"trainer": int(view.get("trainer_class", 0))})
+		for page: String in pages(Gen2TextStream.fill_context(String(view.get("loss_text", "")), names)):
+			_messages.append({"text": page})
+	if bool(view.get("spared", false)):
+		return
+	_messages.append({"black": true})
+	for page: String in pages(Gen2TextStream.fill_context(data.special_text("link_battle", "blacked_out"), names)):
+		_messages.append({"text": page})
+
+
 ## `TrainerBattleVictory`: the fanfare, the defeat, the trainer's line and this player's prize.
 func _queue_victory(view: Dictionary) -> void:
 	var trainer: bool = bool(view.get("trainer", false))
@@ -581,6 +606,8 @@ func _take_step(step: Dictionary) -> void:
 		_board.begin(StringName(step["stage"]), int(step["side"]), int(step.get("trainer", 0)))
 	elif step.has("hold"):
 		_hold = int(step["hold"])
+	elif step.has("black"):
+		_black = true
 	elif step.has("shake"):
 		_sounding = {}
 		_anim = _shake(int(step["shake"]))
@@ -779,6 +806,7 @@ func _move_sound(move: int) -> Dictionary:
 
 func _with_animation(view: Dictionary) -> Dictionary:
 	_board.over(view)
+	view["gen1_black"] = _black
 	for side: int in _drawn_hp:
 		view["enemy_hp" if side == Gen2Battle.ENEMY else "player_hp"] = roundi(float(_drawn_hp[side]))
 	if _anim == null:

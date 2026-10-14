@@ -2189,9 +2189,14 @@ func _nuzlocke_ends_here(save: Gen2SaveData) -> bool:
 
 ## `Script_BattleWhiteout` for a battle the world did not run itself: a co-op
 ## battle lost on its host. Nothing happens while somebody can still fight.
-func white_out() -> void:
+## Generation 1 prints `PlayerBlackedOutText2` over the fight, so one [param said] there goes straight on.
+func white_out(said: bool = false) -> void:
 	var save: Gen2SaveData = active_save()
-	if _world != null and save != null and not Gen2WorldPartyHost.party_has_fit_mon(save):
+	if _world == null or save == null or Gen2WorldPartyHost.party_has_fit_mon(save):
+		return
+	if said and _world.is_gen1():
+		_finish_whiteout()
+	else:
 		_start_whiteout()
 
 
@@ -6447,7 +6452,7 @@ func _takeover_summary(prepared: Dictionary) -> Dictionary:
 		"trainer_class": int(prepared.get("trainer_class", 0)),
 		"trainer_index": int(prepared.get("trainer_index", 0)),
 		"trainer_name": String(request.get("trainer_name", "")), "win_text": request.get("win_text", {}),
-		"lone_attack": int(request.get("lone_attack", 0)),
+		"loss_text": request.get("loss_text", {}), "lone_attack": int(request.get("lone_attack", 0)),
 		"gen1_ghost": StringName(request.get("gen1_ghost", &"")),
 		"player_party": sides[Gen2Battle.PLAYER], "enemy_party": sides[Gen2Battle.ENEMY],
 		"generation": _data.generation,

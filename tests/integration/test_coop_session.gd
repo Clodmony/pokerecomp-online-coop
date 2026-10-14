@@ -1397,6 +1397,47 @@ func test_a_level_up_shows_its_last_levels_stats_beside_the_line_until_the_next_
 	assert_false(field._stats_layer.visible, "and gone with the next event")
 
 
+func test_a_lost_battle_blacks_out_on_the_field_and_the_first_rival_says_their_line_first() -> void:
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+	var me: String = String(_red.state["players"][_red.player_id]["name"])
+	var view: Dictionary = {
+		"battle": "b16", "revision": 3, "active": 0, "outcome": "lost", "trainer": true,
+		"trainer_class": Gen1Layout.RIVAL1_CLASS, "loss_text": "Yeah! Am I\ngreat or what?%s<PLAYER>!" % Gen2TextStream.PAGE_BREAK,
+		"allies": [{"species": Fixture.CHARMANDER, "level": 5, "hp": 0, "max_hp": 20}],
+		"enemy": {"species": Fixture.BULBASAUR, "level": 5, "hp": 12, "max_hp": 20}, "events": [],
+	}
+	field._take_events(view.merged({"revision": 2, "outcome": ""}, true))
+	field._messages.clear()
+	field._take_events(view)
+	assert_eq(field._messages, [{"stage": PokeCoopBattleStage.RESULT, "side": Gen2Battle.ENEMY, "trainer": Gen1Layout.RIVAL1_CLASS},
+		{"text": "Yeah! Am I\ngreat or what?"}, {"text": "%s!" % me}, {"black": true}],
+		"`Rival1WinText` over the rival slid back in, then the black palette behind the blackout line")
+	while not field._messages.is_empty():
+		field._take_step(field._messages.pop_front())
+	assert_true(field._with_animation({})["gen1_black"])
+
+	field._take_events(view.merged({"battle": "b17", "revision": 2, "outcome": ""}, true))
+	field._messages.clear()
+	field._take_events(view.merged({"battle": "b17", "spared": true}, true))
+	assert_false(field._messages.has({"black": true}), "OAKS_LAB's starter fight returns before the blackout")
+	assert_false(field._with_animation({})["gen1_black"], "and a new battle starts in colour")
+
+	var session := PokeCoopSession.new()
+	session.client = _red
+	session.link = _window(_red)
+	_red.battles["b16"] = view
+	_red.battles["b18"] = view.merged({"battle": "b18", "left": [_red.player_id]}, true)
+	session._collect_evolutions()
+	assert_true(session._whiteout_due)
+	assert_false(session._whiteout_said, "a player who left the battle never saw its blackout line, so the world says it")
+	session._settled_battles.erase("b18")
+	_red.battles.erase("b18")
+	session._settled_battles.erase("b16")
+	session._collect_evolutions()
+	assert_true(session._whiteout_said, "the field said it: the world goes straight to the Pokémon Center")
+
+
 func test_every_participant_has_seen_the_pokemon_they_fought() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)

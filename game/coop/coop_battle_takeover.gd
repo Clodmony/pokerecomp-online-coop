@@ -75,6 +75,7 @@ class Bridge extends Node:
 			"trainer_class": int(summary.get("trainer_class", 0)),
 			"trainer_index": int(summary.get("trainer_index", 0)), "enemy": enemies,
 			"trainer_name": String(summary.get("trainer_name", "")), "win_text": PokeCoopBattleTakeover.win_line(data, summary.get("win_text")),
+			"loss_text": PokeCoopBattleTakeover.win_line(data, summary.get("loss_text")),
 			"gym": int(summary.get("lone_attack", 0)) != 0,
 			"map": [int(summary.get("map_group", -1)), int(summary.get("map_number", -1))], "shift": client.shifts(),
 		}

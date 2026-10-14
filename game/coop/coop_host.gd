@@ -797,6 +797,8 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 		"trainer_class": trainer_class if trainer else 0, "trainer_index": trainer_index,
 		"trainer_name": PokeCoopTransport.text(message.get("trainer_name")).left(MAX_TRAINER_NAME),
 		"win_text": PokeCoopTransport.text(message.get("win_text")).left(MAX_WIN_TEXT),
+		"loss_text": PokeCoopTransport.text(message.get("loss_text")).left(MAX_WIN_TEXT),
+		"spared": trainer_class == Gen1Layout.RIVAL1_CLASS and _vector(message.get("map")).y == Gen1Layout.OAKS_LAB,
 		"gym": message.get("gym") is bool and bool(message.get("gym")),
 		"private": not initiator.opening.is_empty(),
 	}
