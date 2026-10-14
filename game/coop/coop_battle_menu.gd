@@ -294,7 +294,6 @@ func _go(to: StringName, at: int) -> Dictionary:
 	return {"point": _pointed()} if to != NONE else {}
 
 
-## `LearnMove`'s two questions: delete an older move, whose NO asks whether to stop, whose NO asks again.
 func _ask_forget() -> Dictionary:
 	var learning: Dictionary = _view.get("learning", {})
 	return _question(PokeCoopBattleField.forget_ask(String(learning.get("name", _learner().get("name", ""))),

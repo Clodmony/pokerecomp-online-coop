@@ -325,7 +325,10 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 	return &"unknown_message"
 
 
-## The nickname a catch's recipient chose behind it, taken once, on the row the host filed.
+static func _spared(trainer_class: int, map: Vector2i) -> bool:
+	return trainer_class == Gen1Layout.RIVAL1_CLASS and map.y == Gen1Layout.OAKS_LAB
+
+
 func name_catch(sender: PokeCoopPlayer, battle_id: String, nickname: String) -> StringName:
 	var filed: Dictionary = _named_catches.get(battle_id, {})
 	if String(filed.get("player", "")) != sender.player_id:
@@ -811,7 +814,7 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 		"trainer_name": PokeCoopTransport.text(message.get("trainer_name")).left(MAX_TRAINER_NAME),
 		"win_text": PokeCoopTransport.text(message.get("win_text")).left(MAX_WIN_TEXT),
 		"loss_text": PokeCoopTransport.text(message.get("loss_text")).left(MAX_WIN_TEXT),
-		"spared": trainer_class == Gen1Layout.RIVAL1_CLASS and _vector(message.get("map")).y == Gen1Layout.OAKS_LAB,
+		"spared": _spared(trainer_class, _vector(message.get("map"))),
 		"gym": message.get("gym") is bool and bool(message.get("gym")),
 		"private": not initiator.opening.is_empty(),
 	}

@@ -112,8 +112,10 @@ Their outcomes do not commit campaign story rewards.
 - A ball thrown at a wild Pokémon is rolled on the host with the cartridge's
   catch formula. The thrower names who the catch is for (any participant); a
   held ball ends the battle and the Pokémon goes once to that player, who is
-  its trainer: team if there is room, else box, and their Pokédex. A trainer's
-  Pokémon cannot be caught.
+  its trainer: team if there is room, else box, and their Pokédex. Only that
+  player's window shows a new Pokédex entry and asks for the nickname, which
+  the host writes on the row it filed (D125). A trainer's Pokémon cannot be
+  caught.
 - After a shared battle each player's own window runs evolution for their
   Pokémon that grew, and after a loss each window whites out its own player:
   party healed, half their own money, back to the last spawn.
