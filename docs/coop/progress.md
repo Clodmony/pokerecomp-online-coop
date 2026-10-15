@@ -43,7 +43,7 @@ Generation 2's title. Branch `coop/173-johto-opening`.
 | Screens, `gold_and_silver` | the Gold form offers Play Oak's opening (Elm's lab, Mr. Pokémon's egg), Start in New Bark Town and From both versions, no rival; the New Bark start now carries five Poké Balls |
 | `tools/verify.sh gold_opening gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `gold_opening` and `gold_and_silver` ok (run `20261016-010050`) |
 | Not run | Wild Pokémon from both versions in a window (tests only: the Silver window's substitute at a real time of day); a Gold save brought in; the partner's Elm call after FALKNER, which the TOGEPI egg waits on (#174); Windows; played |
-| Left over | The opening's battles are drawn on the Generation 1 field until #176; the rival's name in the scenario is whatever `played.gd`'s presses type |
+| Left over | The opening's battles go through the co-op battle field, whose Generation 2 screen is #176; the rival's name in the scenario is whatever `played.gd`'s presses type |
 
 ## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
 
