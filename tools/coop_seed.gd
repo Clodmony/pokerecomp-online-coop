@@ -2,7 +2,7 @@ extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
-## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the whole party and each next one joining; p1 imports it, p2 a copy;
+## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy;
 ## `both` turns on wild Pokémon from both versions (D104).
 
 const TRADER: String = "TRADER"
@@ -102,33 +102,42 @@ static func shape(data: GameData, save: Gen2SaveData, extras: Array) -> String:
 		if extra.begins_with("item="):
 			var stocked: Dictionary = editor.set_item_quantity(number, int(parts[1]) if parts.size() > 1 else 1)
 			if not bool(stocked.get("ok", false)):
-				return "%s: %s" % [extra, stocked.get("reason", "")]
+				return "%s: %s" % [extra, stocked.get("message", "")]
 			continue
-		if first:
-			save.party.clear()
-			first = false
+		var lead: bool = first and not save.party.is_empty()
+		first = false
+		if lead:
+			editor.remove_party_member(0)
 		var added: Dictionary = editor.add_party_member(number, int(parts[1]) if parts.size() > 1 else 5)
 		if not bool(added.get("ok", false)):
-			return "%s: %s" % [extra, added.get("reason", "")]
-		var mon: Gen2SaveMon = save.party.back()
-		for part: String in parts.slice(2):
-			var value: String = part.get_slice("=", 1)
-			match part.get_slice("=", 0):
-				"moves":
-					teach(editor, mon, Array(value.split("/")).map(func(move: String) -> int: return named(data, "move", move)))
-				"nick":
-					editor.set_nickname(mon, value.replace("_", " "))
-				"traded":
-					mon.ot_id = save.player_id % 0xFFFF + 7
-					mon.original_trainer = TRADER
-				"status":
-					editor.set_status(mon, {"SLP": 3, "PSN": 8, "BRN": 16, "FRZ": 32, "PAR": 64}.get(value, 0))
-				"hp":
-					editor.set_hp(mon, int(value))
-				"exp":
-					mon.exp = int(value)
-				_:
-					return "%s: no option %s" % [extra, part]
+			return "%s: %s" % [extra, added.get("message", "")]
+		if lead:
+			editor.move_party_member(save.party.size() - 1, 0)
+		var refused: String = _dress(editor, save.party.front() if lead else save.party.back(), parts.slice(2))
+		if not refused.is_empty():
+			return "%s: %s" % [extra, refused]
+	return ""
+
+
+static func _dress(editor: Gen2SaveEditor, mon: Gen2SaveMon, options: PackedStringArray) -> String:
+	for part: String in options:
+		var value: String = part.get_slice("=", 1)
+		match part.get_slice("=", 0):
+			"moves":
+				teach(editor, mon, Array(value.split("/")).map(func(move: String) -> int: return named(editor.data, "move", move)))
+			"nick":
+				editor.set_nickname(mon, value.replace("_", " "))
+			"traded":
+				mon.ot_id = editor.save.player_id % 0xFFFF + 7
+				mon.original_trainer = TRADER
+			"status":
+				editor.set_status(mon, {"SLP": 3, "PSN": 8, "BRN": 16, "FRZ": 32, "PAR": 64}.get(value, 0))
+			"hp":
+				editor.set_hp(mon, int(value))
+			"exp":
+				mon.exp = int(value)
+			_:
+				return "no option %s" % part
 	return ""
 
 

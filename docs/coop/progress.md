@@ -11,6 +11,27 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A seed's `mon=` replaces only the lead (#168, 2026-10-15)
+
+`tools/coop_seed.gd`'s first `mon=` cleared the whole party, so `party=<n>`
+copies were dropped as soon as a `mon=` was given (`level=25 party=3 mon=...`
+gave a party of 1). It now replaces only the lead and keeps it first; each next
+`mon=` still joins at the end, and on a full party it is refused. The legs the
+scenarios' seeds walk to (`viridian_forest`, `pewter_gym`) leave one Pokémon,
+so every existing `SEED_ARGS` builds the same party as before. A refused `mon=`
+or `item=` now says why: the seed read `reason` where the save editor answers
+`message`, so the refusal came out blank. No game code changed. Branch
+`coop/168-seed-party-mon`.
+
+| Verification | Result |
+|---|---|
+| Seeds before the change | `viridian_forest` and `pewter_gym` alone: "party 1" each; `pewter_gym level=25 party=3 mon=CHARMANDER:25:moves=EMBER`: "party 1" |
+| GUT before the change | `test_a_seed_mon_replaces_only_the_lead_so_party_copies_stay_behind_it` fails: party `[[25, 20]]` (PIKACHU alone) instead of PIKACHU and five CHARMANDER copies |
+| Seeds after the change | `pewter_gym level=25 party=3 mon=CHARMANDER:25:moves=EMBER`: "party 3"; `switch_offer`'s three `mon=`: "party 3", as before |
+| `tools/verify.sh switch_offer battle_text` on the first fix (run `20261015-123851`) | GUT 5207/5208: `test_no_function_is_over_the_complexity_ceiling` (`shape` over 20); its per-Pokémon options moved to `_dress` |
+| `tools/verify.sh switch_offer battle_text` on cbda9346 (run `20261015-124808`) | import, GUT 5208/5208, gates, boot, ENet demo, three processes, both scenarios ok; both seeds byte for byte the first run's; `switch_offer`: RED's three balls, "Will P1 change POKéMON?" in both windows, P1 and P2 each defeat the LASS; `battle_text`: SPARKY (PIKACHU L20) leads, KADABRA L60 second, HORN DRILL's "One-hit KO!", EXP.ALL's lines (every capture of the first run looked at; the second ran the same seeds) |
+| Not run | Blue, German, Windows |
+
 ## ROUTE 3 scenarios build their own seed (#165, 2026-10-15)
 
 `switch_offer`, `mimic_suggest`, `party_balls` and `trainer_busy` needed a
