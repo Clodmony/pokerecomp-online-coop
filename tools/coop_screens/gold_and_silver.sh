@@ -10,7 +10,7 @@ P1_ARGS="host name=GOLD starter=1 round=60:JOHTO"
 P2_ARGS="join name=SILVER starter=2 round=60"
 DURATION=30
 shot p1 1.2 gold_coop_tab             # the Co-op tab lists Gold among the cartridges
-shot p1 2.8 gold_filled               # New campaign: no rival, no opening; Start in New Bark Town with CYNDAQUIL
+shot p1 2.8 gold_filled               # New campaign: no rival; Start in New Bark Town with CYNDAQUIL
 shot p2 1.2 silver_coop_tab           # "1 game found nearby"
 shot p2 2.6 silver_filled             # New in JOHTO: SILVER, starting in New Bark Town with TOTODILE
 shot p1 12 gold_world                 # New Bark Town, SILVER beside GOLD at the house's door
