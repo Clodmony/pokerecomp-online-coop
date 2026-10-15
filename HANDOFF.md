@@ -6,30 +6,33 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after the group #158-#161, PR #163).
+Last updated 2026-10-15 (after #162, PR #164).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #157 (#27 closed,
-  D126). `main` = upstream main (ed886823, 0.1.78).
+- Default branch `pokerecomp-online-coop` at the merge of #163 (5284eccd;
+  #158, #159, #160 closed, #161 open for K21). `main` = upstream main
+  (ed886823, 0.1.78).
 - Next decision number: D128.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#163** (draft) `coop/158-scripted-hand-cases`: Closes #158, #159, #160,
-  part of #161 (K16 done; K21 needs the cartridge file on the Play tab, a
-  hand case). Scenarios for K16, K18, K20, S09, S24, B37-B40, B43; two co-op
-  battle bugs fixed (nicknames named by species; traded Pokémon never
-  disobeyed, D127, an upstream-file change in `effect_commands.gd`). Verify
-  runs `20261015-030910` (GUT 5207/5207, 20 of 21 scenarios; the 21st
-  lacked a seed) and `20261015-034317` (all passed). No builds made.
+- **#164** (draft) `coop/162-scripted-follow-ups`: Closes #162. **The owner
+  approved merging it (2026-10-15): merge it first in the next session.** Scenarios
+  `battle_crash` (B38's crash, `ROLLS=3`), `trainer_status_moves` (B43's
+  second half, ROUTE 3's LASS), `link_cut_rejoin` now with the relay's
+  `hold` (S24: four `already_connected` refusals). Tools only: `coop_seed.gd`
+  `at=`, `auto_battle` skips DISABLED/NO PP rows, `coop_relay.gd` `hold`.
+  Verify run `20261015-081707` all passed (GUT 5207/5207, 7 scenarios). No
+  builds made.
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
 
 - **The owner's hand-played session** before Gen 2: two devices, Pallet Town
   to BROCK, `docs/coop/readiness.md`; also #140's retest with
-  `builds/140-picked-pad-only-490f0aad` (P11, K17) and K21.
+  `builds/140-picked-pad-only-490f0aad` (P11, K17) and K21 (#161, needs the
+  cartridge file picked on the Play tab).
 - **Gen 2 (the owner asked, 2026-10-15)**: Gen 1 is feature-complete (M1-M9,
   M11 have no open feature issue) but only 8 of 205 hand cases are played.
   Gen 2 overturns D61's scope, so the owner decides it. If yes: one scoping
@@ -43,23 +46,26 @@ Last updated 2026-10-15 (after the group #158-#161, PR #163).
   cursor and bag layout, the field's animations (none outside Gen 1), Cable
   Club trades and the link battle, `coop_seed.gd` and `coop_autoplay.gd` legs;
   `coop_save.gd` and the battle stage are generation-agnostic.
-- #162: JUMP KICK's crash (B38), B43's second half, S24's dead link.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
+- #165: `switch_offer`, `mimic_suggest`, `party_balls`, `trainer_busy` build
+  their own ROUTE 3 seed with `at=` (small, tests only; needs #164 merged).
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
   (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the map's wild table; a mouse
   with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
 
-- The Superset worktree holds `coop/158-scripted-hand-cases`, pushed. No
+- The Superset worktree holds `coop/162-scripted-follow-ups`, pushed. No
   background processes.
 
 ## Working notes (stable, keep short)
 
-- A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `mon=`
-  and `item=`); in battles an `@` press walks one menu level and is dropped
-  while a turn's lines play (see `tools/coop_screens.sh`'s usage).
+- A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `mon=`,
+  `item=` and `at=` beside a trainer); in battles an `@` press walks one menu
+  level and is dropped while a turn's lines play (see `tools/coop_screens.sh`'s
+  usage). A battle's outcome repeats for a fixed `seed=` in `HOST_ARGS` when
+  the presses give the same turns.
 
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
@@ -89,7 +95,3 @@ Last updated 2026-10-15 (after the group #158-#161, PR #163).
   (2026-10-11, five co-op files; friend battles have landed since, so it is
   likely superseded); the rest (`bag-size`, `migrate`, `verify`, the filter
   scripts, logs and body files) is migration leftovers.
-- The owner's own user folder holds 15 test caches under `rom_cache`
-  (`coophost*`, `coopclient*` from 2026-10-06/07, `daycaretest`,
-  `evolutiontest`, `testgen1name`, `testred` from 2026-10-13): suites run
-  outside `tools/verify.sh` left them. About 16 MB; the owner may delete them.
