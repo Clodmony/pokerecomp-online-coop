@@ -17,7 +17,8 @@ Last updated 2026-10-15 (after #162, PR #164).
 
 ## Open pull requests (the owner says when to merge)
 
-- **#164** (draft) `coop/162-scripted-follow-ups`: Closes #162. Scenarios
+- **#164** (draft) `coop/162-scripted-follow-ups`: Closes #162. **The owner
+  approved merging it (2026-10-15): merge it first in the next session.** Scenarios
   `battle_crash` (B38's crash, `ROLLS=3`), `trainer_status_moves` (B43's
   second half, ROUTE 3's LASS), `link_cut_rejoin` now with the relay's
   `hold` (S24: four `already_connected` refusals). Tools only: `coop_seed.gd`
@@ -47,12 +48,11 @@ Last updated 2026-10-15 (after #162, PR #164).
   `coop_save.gd` and the battle stage are generation-agnostic.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
+- #165: `switch_offer`, `mimic_suggest`, `party_balls`, `trainer_busy` build
+  their own ROUTE 3 seed with `at=` (small, tests only; needs #164 merged).
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
   (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the map's wild table; a mouse
-  with a joystick interface is listed twice as a pad; `switch_offer`,
-  `mimic_suggest`, `party_balls` and `trainer_busy` still need a hand-moved
-  ROUTE 3 seed and could build their own with `at=` (as
-  `trainer_status_moves` does).
+  with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
 
@@ -95,7 +95,3 @@ Last updated 2026-10-15 (after #162, PR #164).
   (2026-10-11, five co-op files; friend battles have landed since, so it is
   likely superseded); the rest (`bag-size`, `migrate`, `verify`, the filter
   scripts, logs and body files) is migration leftovers.
-- The owner's own user folder holds 15 test caches under `rom_cache`
-  (`coophost*`, `coopclient*` from 2026-10-06/07, `daycaretest`,
-  `evolutiontest`, `testgen1name`, `testred` from 2026-10-13): suites run
-  outside `tools/verify.sh` left them. About 16 MB; the owner may delete them.
