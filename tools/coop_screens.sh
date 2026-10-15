@@ -12,8 +12,10 @@
 #                                   the party list and bag take about 1.5 s to open
 #   shot  <p1|p2> <second> <name>   writes <out>/<name>.png
 #   close <p1|p2> <second> [signal] closes that window (TERM, or KILL for no goodbye), in seconds after it was launched
-#   cut   p2 <second> <seconds>     with RELAY=p2, p2 dials the host through tools/coop_relay.gd, which drops every
-#                                   packet both ways for <seconds> from <second> after p2's first packet (relay.log)
+#   cut   p2 <second> <seconds> [hold]  with RELAY=p2, p2 dials the host through tools/coop_relay.gd, which drops every
+#                                   packet both ways for <seconds> from <second> after p2's first packet (relay.log);
+#                                   hold drops only the host's packets to p2's sockets of the cut's start and answers
+#                                   the host's reliable ones in p2's place: the host keeps a link p2 has given up
 # and may set GAME (red), P2_GAME (GAME: Blue joins a Red host), DURATION, P2_DELAY, HOST_ARGS (bare), P1_ARGS, P2_ARGS (opening),
 # P1_TOOL and P2_TOOL (coop_play, or coop_autoplay, whose run ends the scenario
 # early once both windows print "autoplay: ... finished" or "FAILED"; P2_TOOL=split
@@ -68,7 +70,7 @@ press() {
 shot() { shots[$1]+=" capture=$out/$3.png@$(awk -v t="$2" -v r="$fps" 'BEGIN { printf "%d", t * r }')"; }
 close() { closes[$1]="$2"; signals[$1]="${3:-TERM}"; }
 cuts=""
-cut() { [[ "$1" == p2 && "${RELAY:-}" == p2 ]] || { echo "coop_screens: cut needs RELAY=p2 and p2" >&2; exit 2; }; cuts+="${cuts:+,}$2:$3"; }
+cut() { [[ "$1" == p2 && "${RELAY:-}" == p2 ]] || { echo "coop_screens: cut needs RELAY=p2 and p2" >&2; exit 2; }; cuts+="${cuts:+,}$2:$3${4:+:$4}"; }
 
 # shellcheck source=/dev/null
 source "$scenario"
