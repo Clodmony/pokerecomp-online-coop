@@ -20,7 +20,8 @@ Last updated 2026-10-15 (after #167, PR #170).
   (`viridian_forest` plus twenty `item=`) and `partner_tracker_cabins`
   (`ss_anne at=0:95:20,7:24,7`) build their own seed with `SEED_ARGS`.
   Scenarios and docs only. Verify run `20261015-201845` all passed (GUT
-  5208/5208, both scenarios, every capture looked at).
+  5208/5208, both scenarios, every capture looked at). **The owner approved
+  merging it (2026-10-15): merge it first in the next session.**
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -42,6 +43,9 @@ Last updated 2026-10-15 (after #167, PR #170).
   cursor and bag layout, the field's animations (none outside Gen 1), Cable
   Club trades and the link battle, `coop_seed.gd` and `coop_autoplay.gd` legs;
   `coop_save.gd` and the battle stage are generation-agnostic.
+  **Next issue (the owner chose, 2026-10-15): the Gen 2 scoping issue.** File
+  it with the choices above as questions for the owner, ask them, record the
+  answers (decisions from D128), then propose the milestone's issues.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
 - With #170 merged, every scenario but `brock_from_seed`, `german_screens`,
