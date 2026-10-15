@@ -6,22 +6,23 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #165, PR #166).
+Last updated 2026-10-15 (after #168, PR #169).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #164 (fef64c24;
-  #162 closed). `main` = upstream main (ed886823, 0.1.78).
+- Default branch `pokerecomp-online-coop` at the merge of #166 (db121931;
+  #165 closed). `main` = upstream main (ed886823, 0.1.78).
 - Next decision number: D128.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#166** (draft) `coop/165-route3-seeds`: Closes #165. **The owner
-  approved merging it (2026-10-15): merge it first in the next session.** `switch_offer`,
-  `mimic_suggest`, `party_balls`, `trainer_busy` build their own ROUTE 3 seed
-  (`SEED_ARGS`, three level 25 Pokémon spelt out with `mon=`, `at=`); tools and
-  docs only. Verify run `20261015-092118` all passed (GUT 5207/5207, the four
-  plus `trainer_status_moves`). No builds made.
+- **#169** (draft) `coop/168-seed-party-mon`: Closes #168. `coop_seed.gd`'s
+  first `mon=` replaces only the lead, so `party=` copies stay behind it; a
+  refused `mon=`/`item=` now says why (`message`, not `reason`); the options
+  moved to `_dress` (complexity ceiling). Tools and a test only; every
+  existing `SEED_ARGS` builds the same seed (the legs leave one Pokémon).
+  Verify run `20261015-124808` all passed (GUT 5208/5208, `switch_offer`,
+  `battle_text`). Needs the owner's merge.
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -46,23 +47,21 @@ Last updated 2026-10-15 (after #165, PR #166).
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
 - #167: `bag_forty` and `partner_tracker_cabins` build their own seed with
-  `SEED_ARGS` (tests only). #168: `coop_seed.gd`'s first `mon=` drops the
-  `party=` copies; make it replace only the lead (check the legs' party size
-  first). Both filed at the owner's request (2026-10-15).
+  `SEED_ARGS` (tests only); with #169 merged, `party=` and `mon=` combine.
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
   (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
   map's wild table; a mouse with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
 
-- The Superset worktree holds `coop/165-route3-seeds`, pushed. No background
-  processes. The main checkout is on `pokerecomp-online-coop`, behind
+- The Superset worktree holds `coop/168-seed-party-mon`, pushed. No
+  background processes. The main checkout is on `pokerecomp-online-coop`, behind
   `origin` (pull before merging there).
 
 ## Working notes (stable, keep short)
 
-- A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `mon=`,
-  `item=` and `at=` beside a trainer); in battles an `@` press walks one menu
+- A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `party=`,
+  `mon=` (the first replaces the lead), `item=` and `at=` beside a trainer); in battles an `@` press walks one menu
   level and is dropped while a turn's lines play (see `tools/coop_screens.sh`'s
   usage). A battle's outcome repeats for a fixed `seed=` in `HOST_ARGS` when
   the presses give the same turns.
