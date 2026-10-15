@@ -6,24 +6,22 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #168, PR #169).
+Last updated 2026-10-15 (after #167, PR #170).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #166 (db121931;
-  #165 closed). `main` = upstream main (ed886823, 0.1.78).
+- Default branch `pokerecomp-online-coop` at the merge of #169 (bc8202f8;
+  #168 closed). `main` = upstream main (ed886823, 0.1.78).
 - Next decision number: D128.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#169** (draft) `coop/168-seed-party-mon`: Closes #168. `coop_seed.gd`'s
-  first `mon=` replaces only the lead, so `party=` copies stay behind it; a
-  refused `mon=`/`item=` now says why (`message`, not `reason`); the options
-  moved to `_dress` (complexity ceiling). Tools and a test only; every
-  existing `SEED_ARGS` builds the same seed (the legs leave one Pokémon).
-  Verify run `20261015-124808` all passed (GUT 5208/5208, `switch_offer`,
-  `battle_text`). **The owner approved merging it (2026-10-15): merge it
-  first in the next session.**
+- **#170** (draft) `coop/167-scenario-seeds`: Closes #167. `bag_forty`
+  (`viridian_forest` plus twenty `item=`) and `partner_tracker_cabins`
+  (`ss_anne at=0:95:20,7:24,7`) build their own seed with `SEED_ARGS`.
+  Scenarios and docs only. Verify run `20261015-201845` all passed (GUT
+  5208/5208, both scenarios, every capture looked at). **The owner approved
+  merging it (2026-10-15): merge it first in the next session.**
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -45,25 +43,31 @@ Last updated 2026-10-15 (after #168, PR #169).
   cursor and bag layout, the field's animations (none outside Gen 1), Cable
   Club trades and the link battle, `coop_seed.gd` and `coop_autoplay.gd` legs;
   `coop_save.gd` and the battle stage are generation-agnostic.
+  **Next issue (the owner chose, 2026-10-15): the Gen 2 scoping issue.** File
+  it with the choices above as questions for the owner, ask them, record the
+  answers (decisions from D128), then propose the milestone's issues.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
-- **Next issue (the owner chose, 2026-10-15): #167**, `bag_forty` and
-  `partner_tracker_cabins` build their own seed with `SEED_ARGS` (tests
-  only); with #169 merged, `party=` and `mon=` combine.
+- With #170 merged, every scenario but `brock_from_seed`, `german_screens`,
+  `both_versions`, `vermilion_locks` and `story_seed` (seed on purpose) runs
+  unattended in `tools/verify.sh`.
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
   (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
-  map's wild table; a mouse with a joystick interface is listed twice as a pad.
+  map's wild table; a mouse with a joystick interface is listed twice as a pad;
+  `partner_tracker_cabins`' `p2_hall` (p2's clock lags) already shows RED gone
+  into the cabin, so it never photographs both in the hall from BLUE's side.
 
 ## Worktrees and background processes
 
-- The Superset worktree holds `coop/168-seed-party-mon`, pushed. No
-  background processes. The main checkout is on `pokerecomp-online-coop`, behind
-  `origin` (pull before merging there).
+- The Superset worktree holds `coop/167-scenario-seeds`, pushed. No
+  background processes. The main checkout is on `pokerecomp-online-coop` at
+  bc8202f8, up to date.
 
 ## Working notes (stable, keep short)
 
 - A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `party=`,
-  `mon=` (the first replaces the lead), `item=` and `at=` beside a trainer); in battles an `@` press walks one menu
+  `mon=` (the first replaces the lead), `item=` and `at=` beside a trainer;
+  the runner reads one line of it, so build a long one with `printf`); in battles an `@` press walks one menu
   level and is dropped while a turn's lines play (see `tools/coop_screens.sh`'s
   usage). A battle's outcome repeats for a fixed `seed=` in `HOST_ARGS` when
   the presses give the same turns.
