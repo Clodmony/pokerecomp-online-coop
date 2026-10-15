@@ -27,6 +27,7 @@ No game code changed. Branch `coop/167-scenario-seeds`.
 |---|---|
 | Screens before the change, without `SEED=` | both stop at once: "SEED: bag_forty needs SEED=<an out dir of tools/coop_seed.gd>", the same for `partner_tracker_cabins` |
 | Screens after the change, no `SEED=` | seeds "viridian_forest on (0, 2) (18, 35), badges 0, party 1" and "ss_anne on (0, 95) (20, 7), badges 2, party 1"; both checks pass, no script errors. `bag_forty`: BLUE withdraws the PC's POTION ("Withdrew POTION."), the bag opens on ULTRA BALL, twenty downs reach PROTEIN, IRON, POTION, CANCEL, SAVE writes the campaign; `partner_tracker_cabins`: both in the hall, BLUE's arrow over the cabin door RED took, RED inside the cabin with its arrow over the cabin's own door (it blinks: one of the two shots catches it). `p2_hall`, on p2's later clock, already shows RED gone into the cabin. Every capture looked at |
+| `tools/verify.sh bag_forty partner_tracker_cabins` (run `20261015-201845`, the scenarios as committed) | import, GUT 5208/5208, gates, boot, ENet demo, three processes, both scenarios ok, neither given a `SEED=`; the same seeds and the same screens ("Withdrew POTION.", POTION the bag's last row, the cabin arrows) |
 | Not run | Blue, German, Windows |
 
 ## A seed's `mon=` replaces only the lead (#168, 2026-10-15)
