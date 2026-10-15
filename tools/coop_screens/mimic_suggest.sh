@@ -1,8 +1,8 @@
-# Mimic's question in a co-op battle (#28, test case B35; SEED as switch_offer's, RED's lead knowing MIMIC and EMBER).
+# Mimic's question in a co-op battle (#28, test case B35; seed as switch_offer's, RED's lead knowing MIMIC and EMBER).
 # RED talks to the LASS, BLUE joins; RED's MIMIC asks RED's window which move to copy and shows BLUE's window the
 # same list, where BLUE points at TAIL WHIP: RED's list wears BLUE's mark. auto_battle leaves it up three seconds,
 # then copies the first move.
-: "${SEED:?mimic_suggest needs SEED=<an out dir of tools/coop_seed.gd>}"
+SEED_ARGS="red pewter_gym mon=CHARMANDER:25:moves=MIMIC/EMBER mon=CHARMANDER:25 mon=CHARMANDER:25 at=0:14:20,6:22,6"
 HOST_ARGS=bare
 DURATION=60
 P1_ARGS=auto_battle
