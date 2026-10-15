@@ -1,6 +1,6 @@
 # The co-op field's effects (test case B38): RED's MEW makes a SUBSTITUTE (the doll; its bar turns red and
 # beeps), MINIMIZEs (the dot), badly poisons the wild PIDGEY with TOXIC and TRANSFORMs into it, then RED sends out HITMONLEE
-# (the doll is gone) whose JUMP KICK may miss and crash (the screen shakes). Seed built from SEED_ARGS.
+# (the doll is gone), whose first JUMP KICK fells the PIDGEY (its crash is battle_crash's). Seed built from SEED_ARGS.
 SEED_ARGS="red viridian_forest mon=MEW:30:moves=SUBSTITUTE/MINIMIZE/TOXIC/TRANSFORM:hp=40 mon=HITMONLEE:30:moves=JUMP_KICK"
 HOST_ARGS="bare seed=${ROLLS:-7}"
 DURATION=120
