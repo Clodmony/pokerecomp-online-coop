@@ -22,7 +22,8 @@ Last updated 2026-10-15 (after #168, PR #169).
   moved to `_dress` (complexity ceiling). Tools and a test only; every
   existing `SEED_ARGS` builds the same seed (the legs leave one Pokémon).
   Verify run `20261015-124808` all passed (GUT 5208/5208, `switch_offer`,
-  `battle_text`). Needs the owner's merge.
+  `battle_text`). **The owner approved merging it (2026-10-15): merge it
+  first in the next session.**
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -46,8 +47,9 @@ Last updated 2026-10-15 (after #168, PR #169).
   `coop_save.gd` and the battle stage are generation-agnostic.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
-- #167: `bag_forty` and `partner_tracker_cabins` build their own seed with
-  `SEED_ARGS` (tests only); with #169 merged, `party=` and `mon=` combine.
+- **Next issue (the owner chose, 2026-10-15): #167**, `bag_forty` and
+  `partner_tracker_cabins` build their own seed with `SEED_ARGS` (tests
+  only); with #169 merged, `party=` and `mon=` combine.
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
   (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
   map's wild table; a mouse with a joystick interface is listed twice as a pad.
