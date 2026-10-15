@@ -11,6 +11,13 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver scoped (#171, D128, 2026-10-15)
+
+Planning only, nothing built. The owner chose the Generation 2 rules (D128,
+`design.md`'s Gold and Silver section) and milestone M14 holds the work: #172
+to #185 and #149, ordered in `playbook.md`'s phase 5. Co-op still plays Red
+and Blue only.
+
 ## `bag_forty` and `partner_tracker_cabins` build their own seed (#167, 2026-10-15)
 
 The last two scenarios that needed a seed moved there by hand (`SEED=`) now

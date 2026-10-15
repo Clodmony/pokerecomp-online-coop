@@ -1962,3 +1962,36 @@ its own owner, and one traded to them obeys up to the campaign's badge level,
 the battle's badge mask as before. The exemptions (link, tower, locked, called,
 the enemy) are unchanged and still draw no roll. This follows the brief's rule
 that a shared battle feels like a solo run, so it needs no new owner decision.
+
+## D128. Generation 2's scope and sharing rules (owner, 2026-10-15)
+
+Generation 1 co-op is feature-complete, and the owner asked to scope Generation
+2, which D61 had moved to a later milestone. Asked in #171, the owner chose:
+
+- **Games**: Gold and Silver first, a version pair as Red and Blue are; Crystal
+  follows once they play, with Crystal only.
+- **Clock**: the host's clock is the campaign's one clock; every window shows
+  its time of day and weekday.
+- **Phone**: each player's own Pokégear, contacts, calls and rematches.
+- **Day care and eggs**: one day care per player, breeding only that player's
+  Pokémon.
+- **Bug-Catching Contest**: both players can be in the same contest; each is
+  judged on their own catch and gets their own prize.
+- **Ruins of Alph**: a puzzle one player solves is solved for both (D91); the
+  Unown each player catches are theirs.
+- **Roaming beasts**: one RAIKOU, ENTEI and SUICUNE per player, each roaming
+  that player's world.
+- **Story legendaries and one-off Pokémon** (LUGIA, HO-OH, the red GYARADOS,
+  SUDOWOODO, SNORLAX and the like): one per player. This replaces D10's
+  once-per-campaign rule for Generation 2; Red and Blue keep D10.
+- **Kanto after Johto**: in the same milestone, after Johto's Elite Four, up to
+  RED on Mt. Silver.
+- **Mystery Gift and the Time Capsule**: both in. Mystery Gift works between
+  the two players as between two Game Boy Colors; the Time Capsule trades
+  between a Gold or Silver player and a Red or Blue player.
+- **#149** (Baton Pass, SHIFT, Mimic and the Generation 2 trainer AI) joins
+  the milestone.
+
+D61 (gifts one per player, full prize money, leaving and absence), D91 (a
+story gate one clears is cleared for both) and D72 (sharing at rest points)
+carry over unchanged.
