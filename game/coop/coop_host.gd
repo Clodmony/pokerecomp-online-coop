@@ -75,7 +75,7 @@ static func create(
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
-	for flag: int in PokeCoopPolicy.OWN_WALKS if not out._own_entries.is_empty() else []:
+	for flag: int in PokeCoopPolicy.OWN_WALKS if game_data.generation == RomRegistry.GEN1 else []:
 		run.flags.erase(flag)
 	out.trades = PokeCoopTrades.create(game_data)
 	out._kept_revision = run.revision
@@ -211,7 +211,7 @@ func _take_note(sender: String, text: Variant) -> void:
 
 func _take_wild_tables(sender_id: String, raw: Variant) -> void:
 	var sender: PokeCoopPlayer = player(sender_id)
-	var tables: Dictionary = PokeCoopPolicy.sane_wild_tables(raw)
+	var tables: Dictionary = PokeCoopPolicy.sane_wild_tables(raw, not PokeCoopJohto.plays(data))
 	if sender == null or tables.is_empty() or wild_tables.has(sender.game_id):
 		return
 	wild_tables[sender.game_id] = tables
@@ -325,7 +325,9 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 	return &"unknown_message"
 
 
-static func _spared(trainer_class: int, map: Vector2i) -> bool:
+func _spared(trainer_class: int, map: Vector2i) -> bool:
+	if PokeCoopJohto.plays(data):
+		return PokeCoopJohto.spared(trainer_class, map)
 	return trainer_class == Gen1Layout.RIVAL1_CLASS and map.y == Gen1Layout.OAKS_LAB
 
 
@@ -635,9 +637,11 @@ func _release_scenes(player_id: String, kept: Vector2i = Vector2i(-1, -1)) -> vo
 
 
 func finish_speech(sender: PokeCoopPlayer, rival: String) -> StringName:
-	if String(sender.opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH:
-		return &"not_in_speech"
 	var named: String = rival.strip_edges().left(Gen2SaveData.MAX_PLAYER_NAME)
+	var officer: bool = PokeCoopJohto.plays(data) and not named.is_empty() \
+		and String(sender.opening.get("stage", "")) == PokeCoopPolicy.OPENING_PLAYING  ## Johto's officer asks after the theft (D131)
+	if String(sender.opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH and not officer:
+		return &"not_in_speech"
 	sender.opening["stage"] = PokeCoopPolicy.OPENING_PLAYING
 	sender.opening["rival"] = named
 	if campaign.rival_name.is_empty():
@@ -651,8 +655,7 @@ func _settle_opening(member: PokeCoopPlayer) -> void:
 	if member.opening.is_empty():
 		return
 	var story: Dictionary = member.opening["world"]
-	if member.map == PokeCoopPolicy.OPENING_LAB \
-			or not (story.get("event_flags", {}) as Dictionary).has(PokeCoopPolicy.OPENING_DONE_FLAG):
+	if not PokeCoopPolicy.opening_over(data, story, member.map):
 		return
 	var blank: Dictionary = PokeCoopOwnership.route(
 		PokeCoopOwnership.patch({}, Gen2WorldState.new({}, {}, {}, {}).to_dict()), _badge_flags

@@ -201,7 +201,7 @@ static func _beside(world: Gen2WorldAPI) -> Vector2i:
 
 static func write_seed(data: GameData, save: Gen2SaveData, out_dir: String, partner_cell: Vector2i, both: bool = false) -> Error:
 	var campaign := PokeCoopCampaign.create(String(data.id), data.id, data.sha1)
-	PokeCoopPolicy.start_campaign(campaign)
+	PokeCoopPolicy.start_campaign(campaign, data)
 	campaign.both_versions = both
 	campaign.rival_name = save.world.rival_name
 	var players: Array = []

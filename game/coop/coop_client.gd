@@ -126,7 +126,8 @@ func _receive(message: Dictionary) -> void:
 		"log":
 			journal.take_relayed(message.get("lines"), "host", "", journal.share)
 		"wild_tables":
-			other_wild = {"game_id": PokeCoopTransport.text(message.get("game_id")), "tables": PokeCoopPolicy.sane_wild_tables(message.get("tables"))}
+			var game: String = PokeCoopTransport.text(message.get("game_id"))
+			other_wild = {"game_id": game, "tables": PokeCoopPolicy.sane_wild_tables(message.get("tables"), not PokeCoopJohto.is_game(StringName(game)))}
 			journal.add(PokeCoopLog.CLIENT, "wild_tables", {"game": other_wild["game_id"]}, player_id)
 		"battle":
 			var view: Dictionary = message.get("view", {})

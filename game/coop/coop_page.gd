@@ -722,7 +722,7 @@ func _game_of(data: GameData) -> StringName:
 
 func _both_versions_switch(host: VBoxContainer, key: String, game: StringName) -> void:
 	var other: StringName = PokeCoopPolicy.other_version(game)
-	if other.is_empty() or PokeCoopJohto.is_game(game):
+	if other.is_empty():
 		return
 	_caption(host, "Wild Pokémon")
 	var row: Control = Gen2LauncherUI.switch(_theme, &"sparkle", "From both versions", bool(_form.get(key, false)),
@@ -744,7 +744,8 @@ func _start_options(host: VBoxContainer) -> void:
 	var slots: Array = [] if data == null else Gen2SaveStore.slots_for(data.id, data.sha1, data).filter(
 		func(row: Dictionary) -> bool: return bool(row["valid"]))
 	var choice: StringName = _start_choice()
-	var options: Array = [] if PokeCoopJohto.plays(data) else [[OPENING, "Play Oak's opening", "Your room, Oak's lab, your own rival fight"]]
+	var options: Array = [[OPENING, "Play Oak's opening", "Your room, Elm's lab, Mr. Pokémon's egg, your own rival fight" if PokeCoopJohto.plays(data)
+		else "Your room, Oak's lab, your own rival fight"]]
 	options.append([PALLET, start_label(data), "With a level %d starter and %d money" % [PokeCoopPolicy.STARTER_LEVEL, PokeCoopPolicy.NEW_PLAYER_MONEY]])
 	if not slots.is_empty():
 		options.append([BRING, "Bring a trainer from a save", "Slot %d: %s · %s" % [int(slots[0]["slot"]) + 1, slots[0]["player_name"],
@@ -825,8 +826,7 @@ func _slot_chips(slots: Array) -> HFlowContainer:
 
 
 func _start_choice() -> StringName:
-	var choice: StringName = StringName(_form.get("start", OPENING))
-	return PALLET if choice == OPENING and PokeCoopJohto.plays(_data()) else choice
+	return StringName(_form.get("start", OPENING))
 
 
 func _starter() -> int:
