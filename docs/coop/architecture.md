@@ -70,7 +70,9 @@ Further findings that shape the design:
    on its own save; the host keeps positions, checks step length and trusts
    reported warps (D20). `PokeCoopOwnership` classifies every world, snapshot,
    save and runtime field; the campaign keeps the shared world-state keys and
-   each player their own (D23). `PokeCoopWorldLink` keeps a window's world state
+   each player their own (D23); Gold and Silver's map scenes travel by
+   `group:number` and split as their event flags do, with `PokeCoopJohto`'s
+   own entries (D132). `PokeCoopWorldLink` keeps a window's world state
    in step with the host by patches and its party and PC by whole copies based
    on `holdings_rev`, and `PokeCoopBattleTakeover`
    sends the window's own battles to the host (D24). #22 moves `Gen2WorldApi` to
@@ -148,7 +150,7 @@ Peer 1 is the host.
 | `probe` | `protocol`, `build`, `name`, `game_id`, `rom_sha1`, `known` (no `seq`): asked before `hello` on the same link, answered whatever the protocol and creating nobody (protocol 7, D103) |
 | `hello` (protocol 7) | adds `via`, the address the device dialled; the host keeps it and the `game_id` with the player |
 | `wild_tables` | `tables` (no `seq`): this cartridge's Generation 1 wild slots, `{grass, water}` by map number as `[species, level]` rows; sent after each `welcome` by a window of a paired game, kept on the host for the session only, never written (protocol 8, D104) |
-| `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.RIVAL_SCENES` started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
+| `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.rival_scenes` (Red and Blue's by script byte, Johto's by the scene or talk its script came from, D132) started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
 
 | Host to client | Fields |
 |---|---|

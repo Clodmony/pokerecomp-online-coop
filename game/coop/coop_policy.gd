@@ -185,13 +185,36 @@ static func prize_shares(total: int, participants: Array) -> Dictionary:
 
 
 static func own_entries(data: GameData) -> Dictionary:
-	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
+	return PokeCoopJohto.OWN_ENTRIES if PokeCoopJohto.plays(data) else OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
+
+
+static func own_walks(data: GameData) -> Array[int]:
+	return PokeCoopJohto.OWN_WALKS if PokeCoopJohto.plays(data) else OWN_WALKS
+
+
+static func unique_wild(data: GameData) -> Array[int]:
+	var none: Array[int] = []
+	return none if PokeCoopJohto.plays(data) else UNIQUE_WILD
+
+
+static func rival_scenes(data: GameData) -> Dictionary:
+	return PokeCoopJohto.STORY_SCENES.merged(PokeCoopJohto.STORY_OBJECTS) if PokeCoopJohto.plays(data) else RIVAL_SCENES
+
+
+static func league_run(game_id: StringName) -> Array[int]:
+	if PokeCoopJohto.is_game(game_id):
+		return PokeCoopJohto.ELITE_FOUR_RUN
+	var out: Array[int] = []
+	for flag: int in range(ELITE_FOUR_RUN.x, ELITE_FOUR_RUN.y + 1):
+		out.append(flag)
+	return out
 
 
 ## Takes a window's clear of the run out of [param changes], for the host to hold: answers whether there was one.
-static func take_league_clear(changes: Dictionary) -> bool:
+static func take_league_clear(changes: Dictionary, game_id: StringName = RomRegistry.RED) -> bool:
 	var erased: Array = (changes.get("event_flags", {}) as Dictionary).get("erase", [])
-	var run: Array = erased.filter(func(flag: Variant) -> bool: return int(flag) >= ELITE_FOUR_RUN.x and int(flag) <= ELITE_FOUR_RUN.y)
+	var team_run: Array[int] = league_run(game_id)
+	var run: Array = erased.filter(func(flag: Variant) -> bool: return team_run.has(int(flag)))
 	for flag: Variant in run:
 		erased.erase(flag)
 	return not run.is_empty()
@@ -199,20 +222,23 @@ static func take_league_clear(changes: Dictionary) -> bool:
 
 ## The team's run stands while a connected player is in the League, or has yet to be inducted once the Champion fell.
 static func league_held(campaign: PokeCoopCampaign, members: Array) -> bool:
-	var champion_beaten: bool = campaign.has_flag(EVENT_BEAT_CHAMPION_RIVAL)
+	var johto: bool = PokeCoopJohto.is_game(campaign.game_id)
+	var champion_beaten: bool = campaign.has_flag(PokeCoopJohto.EVENT_BEAT_CHAMPION if johto else EVENT_BEAT_CHAMPION_RIVAL)
+	var maps: Array[Vector2i] = PokeCoopJohto.LEAGUE_MAPS if johto else LEAGUE_MAPS
 	for member: PokeCoopPlayer in members:
 		var inducted: bool = bool((member.world.get("engine_flags", {}) as Dictionary).get(Gen2WorldState.ENGINE_HALL_OF_FAME, false))
-		if member.connected and member.opening.is_empty() and (LEAGUE_MAPS.has(member.map) or (champion_beaten and not inducted)):
+		if member.connected and member.opening.is_empty() and (maps.has(member.map) or (champion_beaten and not inducted)):
 			return true
 	return false
 
 
 ## The run cleared for the campaign: the next one fights the League's trainers for real again.
 static func clear_league(campaign: PokeCoopCampaign) -> void:
-	for flag: int in range(ELITE_FOUR_RUN.x, ELITE_FOUR_RUN.y + 1):
+	for flag: int in league_run(campaign.game_id):
 		campaign.flags.erase(flag)
+	var classes: Array[int] = PokeCoopJohto.LEAGUE_TRAINER_CLASSES if PokeCoopJohto.is_game(campaign.game_id) else LEAGUE_TRAINER_CLASSES
 	for encounter: String in campaign.summary()["defeated"]:
-		if encounter.begins_with("trainer:") and LEAGUE_TRAINER_CLASSES.has(int(encounter.get_slice(":", 1))):
+		if encounter.begins_with("trainer:") and classes.has(int(encounter.get_slice(":", 1))):
 			campaign.forget_encounter(encounter)
 	campaign.revision += 1
 
@@ -314,10 +340,11 @@ static func share_gifts(
 	flags_before: Dictionary, held_before: Dictionary,
 ) -> Array[int]:
 	var gifts: Array[int] = []
-	for item: int in SHARED_ITEMS:
+	var johto: bool = PokeCoopJohto.is_game(campaign.game_id)
+	for item: int in PokeCoopJohto.SHARED_ITEMS if johto else SHARED_ITEMS:
 		if int(held_before.get(item, 0)) == 0 and receiver.item_count(item) > 0:
 			gifts.append(item)
-	for flag: int in GIFT_TMS:
+	for flag: int in {} if johto else GIFT_TMS:
 		if not flags_before.has(flag) and campaign.has_flag(flag):
 			gifts.append(int(GIFT_TMS[flag]))
 	for item: int in gifts:
@@ -334,9 +361,10 @@ static func share_found_items(
 ) -> void:
 	var touched: Dictionary = held_before.duplicate()
 	touched.merge(receiver.items)
+	var unique: Array[int] = PokeCoopJohto.SHARED_ITEMS if PokeCoopJohto.plays(data) else SHARED_ITEMS
 	for item: int in touched:
 		var change: int = receiver.item_count(item) - int(held_before.get(item, 0))
-		if change == 0 or handled.has(item) or SHARED_ITEMS.has(item):
+		if change == 0 or handled.has(item) or unique.has(item):
 			continue
 		var key: bool = (int(data.item(item).get("permissions", 0)) & Gen2WorldPack.CANT_TOSS) != 0
 		for other: PokeCoopPlayer in others:

@@ -2025,3 +2025,55 @@ are. This adds a file against `CONTRIBUTING.md`'s "extend, do not add" on the
 owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
 scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
 joins (`demo gold`).
+
+## D132. Sharing Johto's world (#174, 2026-10-16)
+
+Gold and Silver ran on Red and Blue's tables: their map scenes (`map_scenes`,
+keyed `group:number`) were dropped by the host's well-formed check, so no scene
+reached the campaign or a partner and a window reopened with every scene at
+zero; every event flag was the campaign's, temporary ones too; engine flags
+were each player's but the badges, so a Ruins puzzle one player solved unlocked
+the Unown only in their world; Red's gift TM flags and unique items fired on
+other Johto events (flag 41 handed every player Red's TM item 242, a POKé BALL
+was a "unique item"); SNORLAX and the birds were one encounter per campaign;
+and the rival locks, the League run and its redraws named Kanto's maps.
+Following D91 (a gate one clears is cleared for both) and D72 (a walk's own
+state stays with it), `PokeCoopJohto` now holds Johto's answers, asked by
+generation, and Red and Blue's stay as they were:
+
+- **Map scenes** are owned scene by scene like event flags. The campaign keeps
+  the story's (New Bark Town's teacher, the Ruins' inner chamber, the gates of
+  Ecruteak, Mahogany and Route 43, the rival's); each player keeps a walk's:
+  the link rooms, the Fast Ship and its ports, the Magnet Train's stations, the
+  contest's gates, the League's rooms and the Hall of Fame, the bicycle gates,
+  the Trainer House and the Unown dex.
+- **Event flags**: each player keeps the eight `EVENT_TEMPORARY_UNTIL_MAP_RELOAD`
+  flags (dropped from a campaign when it is hosted), the League rooms' shut
+  entrances and LANCE's room after him; everything else stays the campaign's.
+- **Engine flags** the team shares beside the badges: the four unlocked Unown
+  sets (a puzzle solved for both, D128) and the Rockets' hold (the radio
+  signal, the Radio Tower and Mahogany).
+- **Key items** kept for good reach every player once (D52): the BICYCLE,
+  COIN CASE, ITEMFINDER, the three rods, S.S. TICKET, CARD KEY, BASEMENT KEY,
+  PASS, SQUIRTBOTTLE and the seven HMs; other items found with the story reach
+  everyone as before. Red's gift TMs and its one-off wild Pokémon do not apply
+  to Johto: gifts one per player are #173's, story legendaries #180's.
+- **Contested scenes** (D72, D84): a Johto scene has no script byte that moves
+  while it plays, so a window claims a map while a script runs there that one
+  of the map's contested scenes (by its coordinate event or map entry) or a
+  story talk (by the person's hide flag) started: the rival in Cherrygrove,
+  Azalea, Sprout Tower, the Burned Tower, Olivine, Goldenrod's underground,
+  Victory Road and Mt. Moon; the Radio Tower's 5F; LANCE in Mahogany's mart and
+  the Rocket base's B2F and B3F; Team Rocket and KURT in Slowpoke Well; LANCE at
+  the Lake of Rage; the DRAGON FANG in the Dragon's Den.
+- **The Elite Four** is one run for the team as in Kanto (D93): the four, LANCE
+  and each room's open exit are the campaign's, the lobby's clear is held while
+  a player is in the League, and a window standing in a room or a Ruins chamber
+  when the team's win lands reloads that map so its exit or floor opens.
+
+Costs: a scene pulled for the map a window stands on applies at once (Johto's
+coordinate events read it on the next step, and map entry scripts run only on
+entry); the gift scenes of the opening (ELM's lab, Mom's POKéGEAR, MR.
+POKéMON's house) stay the campaign's until #173 decides them; the Burned
+Tower's beasts wait for #180; the League's and the Ruins' redraws are written
+but not seen on a cartridge yet.
