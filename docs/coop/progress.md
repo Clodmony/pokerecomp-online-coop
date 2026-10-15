@@ -11,6 +11,34 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Sharing Johto's world (#174, D132, 2026-10-16)
+
+Gold and Silver no longer run on Red and Blue's sharing tables. Johto's map
+scenes, which the host's well-formed check dropped (their keys are
+`group:number`), now reach the campaign and every window, owned scene by scene:
+story gates such as New Bark Town's teacher are the team's (D91), a walk's
+scenes (link rooms, Fast Ship, Magnet Train, contest gates, League rooms, Unown
+dex) each player's (D72). The flags a map load clears and the League rooms' shut
+doors are each player's; the Ruins' unlocked Unown sets and the Rockets' hold
+are engine flags the team shares, so a puzzle one player solves is solved for
+both while the Unown caught stay each player's (D128). Johto's own key items
+reach every player once; Red's gift TMs, its "unique items" and its one-off wild
+Pokémon no longer fire in a Gold campaign. Johto's contested scenes lock by the
+scene or story talk a running script came from (the rival's, Slowpoke Well,
+the Radio Tower, the Rocket base, the Lake of Rage, the Dragon's Den), and the
+Elite Four is one run for the team with Johto's flags, rooms and classes. All of
+it lives in `PokeCoopJohto`, asked by generation. Branch `coop/174-johto-world`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_world`, the API-only lines left out) | 0/7 passing, 8/23 asserts: SILVER's New Bark Town scene `[<null>] expected to equal [1]`; unlocked Unown `[0] expected to equal [1]`; GOLD's own Pokémon Center scene `[<null>]` (dropped), a temporary flag shared; the door shut behind GOLD shared and the lobby's clear not held; Red's flag 41 handed SILVER TM item 242, commits `["gift:242", "gift:5"]`; the BICYCLE reached nobody; Cherrygrove City `not_a_scene` and Route 22 a scene |
+| Screens before the fix (`johto_gate` on the base branch) | GOLD takes CHIKORITA from ELM's table, and SILVER walking west is stopped again: "Wait, BLUE!" at 1,8; the check finds no pulled `24:4` scene and no Route 29 |
+| Tests after | `test_coop_johto_world` 8/8; `test_coop_ownership` 11/11 with three Johto routing tests; every co-op suite (`-gselect=test_coop`) 342/342 |
+| Screens after, `johto_gate` (imported Gold and Silver) | SILVER stopped by the teacher ("Wait, BLUE!"); GOLD walks the lab's front wall to its door, ELM's intro, "So, you like CHIKORITA, the grass POKéMON?", YES; the table keeps two balls; SILVER walks west and stands on Route 29 (map 24/3, cell 54,8), its window having pulled `24:4` = 1. Every capture looked at |
+| `tools/verify.sh johto_gate gold_and_silver` | import, GUT 5226/5226, gates, boot, ENet demo, ENet demo gold, three processes, `johto_gate` and `gold_and_silver` ok (run `20261016-010623`); the `gold_and_silver` captures as in #172 |
+| Not run | A Ruins puzzle, a Johto rival scene, the League and the Fast Ship on a cartridge (no Gold seed yet, #183): the redraw of a League exit or a chamber floor in a window standing there is written, not seen; Silver hosting; Windows; played |
+| Left over | ELM's lab, Mom's POKéGEAR and MR. POKéMON's house stay the campaign's scenes until #173 decides the opening's gifts (a second player never meets MR. POKéMON's scene, so gets no POKéDEX there); the Burned Tower's beasts wait for #180; a fresh Gold campaign shows the cartridge's unset story objects (the officer in ELM's lab, the rival by the lab), #173's opening |
+
 ## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
 
 The gate of M14. Gold and Silver are a version pair (`VERSION_PAIRS`, the tab's
