@@ -153,7 +153,8 @@ func _drive_battle() -> void:
 		return
 	var kind: String = {"action": "move", "send_out": "send_out", "offer": "stay", "mimic": "mimic"}.get(view.get("phase"), "decline")
 	var row: int = panel._rows.find_custom(func(entry: Dictionary) -> bool:
-		return String((entry.get("command", {}) as Dictionary).get("type", "")) == kind)
+		return String((entry.get("command", {}) as Dictionary).get("type", "")) == kind \
+			and not String(entry.get("text", "")).ends_with(" (DISABLED)") and not String(entry.get("text", "")).ends_with(" (NO PP)"))
 	if row >= 0:
 		panel.point_at(row)
 		panel._press(PokeButton.A)

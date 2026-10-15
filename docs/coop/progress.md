@@ -11,6 +11,34 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Scripted follow-ups: JUMP KICK's crash, a trainer's status moves, a dead link the host holds (#162, 2026-10-15)
+
+The three cases #158-#161 left to unit tests now have two-window scenarios on
+the imported Red cartridge, every capture looked at. No game code changed.
+`battle_crash` (B38) sends HITMONLEE in first: it MEDITATEs while the wild
+PIDGEY's SAND-ATTACK lowers its accuracy, then JUMP KICKs until one misses
+(`battle_effects`' PIDGEY falls to the first JUMP KICK, so its run could never
+show a crash). `trainer_status_moves` (B43, second half) fights ROUTE 3's LASS,
+whose JIGGLYPUFF knows SING, with a poisoned lead; `tools/coop_seed.gd` takes
+`at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]` to put both players
+beside her, and `auto_battle` passes over a move row marked DISABLED or NO PP
+(it pressed the disabled TACKLE forever). `link_cut_rejoin` (S24) cuts with the
+relay's new `hold`: the host's packets to BLUE's old socket are dropped and the
+relay acknowledges the host's reliable ENet commands in BLUE's place, so the
+host keeps the link BLUE's window has given up and refuses its redials as
+`already_connected` until the hold ends. Branch `coop/162-scripted-follow-ups`.
+
+| Verification | Result |
+|---|---|
+| Screens: `battle_crash` before the change of plan (`ROLLS=7`, 8 then 12 MEDITATE turns) | no crash: 3 SAND-ATTACKs of 6 lowered accuracy (an enemy's stat-lowering move misses a quarter of the time in Generation 1), and the first JUMP KICK hit both times |
+| Screens: `battle_crash` (`ROLLS=3`, run twice) | accuracy down 3 stages; "HITMONLEE's attack missed!", "HITMONLEE kept going and crashed!" three times, the 1 HP gone at the next line, then a hit fells the PIDGEY; 3 `crashed` and 3 `screen_shake` events in the host's views, both runs alike |
+| Screens: `trainer_status_moves` | the poisoned ONIX against JIGGLYPUFF: POUND and DISABLE, never SING (seven enemy moves), "P1 defeated LASS"; the same seed without the poison (a scratch copy): SING three times in eleven moves and the check fails |
+| Screens: `link_cut_rejoin` with the old two-way cut and the new check | fails: "the host never refused a redial as already connected" (both ENet ends time out about 2 s after the cut) |
+| Screens: `link_cut_rejoin` with a one-way cut (host to BLUE dropped, nothing acknowledged) | passes by a race: one refusal, the host lets the old link go 70 ms later |
+| Screens: `link_cut_rejoin` with `hold` | "Lost the host: reconnecting...", four `already_connected` refusals 2 s apart, 17 host packets acknowledged by the relay, the host lets the old link go about 3 s after the hold ends, the fifth redial is welcomed as p2: "Back in the session.", RED sees BLUE walk, no new player |
+| `tools/verify.sh` with `battle_crash`, `trainer_status_moves`, `link_cut_rejoin`, `link_cut_minute`, `battle_effects`, `brock_full_heal`, `battle_flows` (run `20261015-081707`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes, all seven scenarios ok; `link_cut_rejoin` 4 refusals again with 16 packets acknowledged, `battle_crash` 3 crashes again |
+| Not run | a hold over a real network (the relay speaks ENet's uncompressed packets only); K21; Blue, German, Windows |
+
 ## Hand-test cases as scripted two-window runs (#158, #159, #160, part of #161; D127, 2026-10-15)
 
 Cases that had tests but no two-window scenario now have one each, run on the
@@ -36,7 +64,7 @@ field `untouched`. Branch `coop/158-scripted-hand-cases`.
 | Screens: `split_partner_closed`, `split_partner_leaves` (K18) | the second half closed or left: RED's window back to 1152x648, every controller (`device -1`), RED walks on alone; BLUE's half quits by itself |
 | Screens: `split_host_killed` (K20) | "The session ended: host unreachable." on BLUE's half, which quits about 3 s after the host's SIGKILL |
 | Screens: `link_cut_minute` (S09) | 60 s cut: "Lost the host: reconnecting...", redials, "Back in the session." as p2; RED sees BLUE walk again |
-| Screens: `link_cut_rejoin` (S24) | 8 s cut, back as the same trainer; on localhost both ends time out within about 2 s (ENet's minimum), so the host had already dropped BLUE: the "still holds the dead link" path stays covered by its unit test only |
+| Screens: `link_cut_rejoin` (S24) | 8 s cut, back as the same trainer; on localhost both ends time out within about 2 s (ENet's minimum), so the host had already dropped BLUE: the "still holds the dead link" path stays covered by its unit test only (scripted since, #162) |
 | Screens: `join_remembered` (K16) | second round with the field untouched: it shows `127.0.0.1:<port>`, Join dials it, BLUE back as the same trainer |
 | Screens: `battle_text` (B37) | "Go! SPARKY!", HORN DRILL misses then "One-hit KO!", "…with EXP.ALL,", the traded KADABRA's boosted EXP and two "used instead" turns, "SPARKY fainted!", "Bring out which POKéMON?" |
 | Screens: `battle_effects` (B38) | SUBSTITUTE's doll, the red bar, MINIMIZE's dot, TOXIC, "MEW transformed into", HITMONLEE sent out; JUMP KICK never missed, so no crash was seen |
