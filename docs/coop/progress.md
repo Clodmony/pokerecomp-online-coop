@@ -11,6 +11,26 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## ROUTE 3 scenarios build their own seed (#165, 2026-10-15)
+
+`switch_offer`, `mimic_suggest`, `party_balls` and `trainer_busy` needed a
+ROUTE 3 seed moved there by hand (`SEED=`), so `tools/verify.sh` could not run
+them unattended. Each now names its seed in `SEED_ARGS`: `pewter_gym`, RED's
+lead (CHARMANDER knowing EMBER, or MIMIC and EMBER; DIGLETT knowing DIG) and
+two more CHARMANDERs, all level 25, spelt out with `mon=`, and both players
+beside the LASS with `at=0:14:20,6:22,6`. `party=3 level=25` with `mon=` would
+not do: the first `mon=` replaces the whole party (a first run had RED with one
+Pokémon); `tools/coop_seed.gd`'s usage line said "replacing it" and now says
+so. No game code changed. Branch `coop/165-route3-seeds`.
+
+| Verification | Result |
+|---|---|
+| Screens: `switch_offer` before the change, without `SEED=` | stops at once: "SEED: switch_offer needs SEED=<an out dir of tools/coop_seed.gd>" |
+| Screens: the four with `party=3 level=25 mon=...` | pass, but the seed log says "party 1": RED's balls row shows one Pokémon, not three |
+| Screens: the four with three `mon=` | seed "party 3" each; `party_balls`: under "LASS wants to fight!" her two balls and RED's three, after RATTATA faints her row with it crossed out, "P1 defeated LASS!"; `switch_offer`: both windows "LASS is about to use NIDORAN♂!" and RED's "Will P1 change POKéMON?" with YES/NO, BLUE's window the same question, NO keeps CHARMANDER in; `mimic_suggest`: both windows TACKLE, TAIL WHIP, QUICK ATTACK, BLUE's cursor on TAIL WHIP and its ▷ in RED's list, RED copies TACKLE; `trainer_busy`: DIG one command for two turns, DIGLETT drawn once, BLUE steps into the LASS's sight while RED fights and again after, never spotted (RED wears the battle's "!" in BLUE's window), no takeover for P2. Every capture looked at |
+| `tools/verify.sh party_balls switch_offer mimic_suggest trainer_busy trainer_status_moves` on 03a5947b (run `20261015-092118`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes, all five scenarios ok, none given a `SEED=`; the same events in the logs (seeds "party 3", the switch offer, BLUE's MIMIC suggestion, no takeover for P2); `mimic_suggest`'s battle (no fixed `seed=`) was still on at its last capture, CHARMANDER using the copied TACKLE |
+| Not run | Blue, German, Windows |
+
 ## Scripted follow-ups: JUMP KICK's crash, a trainer's status moves, a dead link the host holds (#162, 2026-10-15)
 
 The three cases #158-#161 left to unit tests now have two-window scenarios on

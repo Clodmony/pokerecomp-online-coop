@@ -1,6 +1,6 @@
-# Party balls (SEED: RED on ROUTE 3 (20,6), BLUE at (22,6), RED's three at level 25, the lead knowing only EMBER): under
+# Party balls (seed: RED on ROUTE 3 (20,6), BLUE at (22,6), RED's three at level 25, the lead knowing only EMBER): under
 # "LASS wants to fight!" both parties' balls; under "LASS sent out" her two again, the first fainted.
-: "${SEED:?party_balls needs SEED=<an out dir of tools/coop_seed.gd>}"
+SEED_ARGS="red pewter_gym mon=CHARMANDER:25:moves=EMBER mon=CHARMANDER:25 mon=CHARMANDER:25 at=0:14:20,6:22,6"
 HOST_ARGS=bare
 DURATION=60
 P1_ARGS=auto_battle
