@@ -172,7 +172,8 @@ opening hands everyone (#172, #173). The rules above carry over, with these choi
 - Each player's own: the starter, so the rival's teams answer it in that
   player's window; the gift Pokémon (the TOGEPI egg, SHUCKLE, EEVEE, SPEAROW,
   TYROGUE); Pokégear, phone contacts, calls and rematches; a day care
-  that breeds only their Pokémon; the roaming RAIKOU, ENTEI and SUICUNE; and
+  that breeds only their Pokémon (its two places, steps, egg and Route 34's pen,
+  D135); the roaming RAIKOU, ENTEI and SUICUNE; and
   the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
   SUDOWOODO, SNORLAX), which are not unique encounters here.
 - Shared: the Ruins of Alph's puzzles (the Unown caught stay each player's).

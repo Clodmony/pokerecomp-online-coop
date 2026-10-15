@@ -11,6 +11,32 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver: a day care and eggs per player (#178, D135, 2026-10-16)
+
+Each player has their own day care (D128). The Day-Care's two places, its step
+counter, the egg it builds and the man's and lady's flags were already player
+keys in `PokeCoopOwnership`, so each window breeds, steps and hatches on its own
+world. Route 34's callback still wrote four event flags (the man indoors or by
+the pen, the two Pokémon in the pen) into the campaign, so each load of Route 34
+or the Day-Care sent one player's pen to the partner's world and left it in the
+team's story. They are now each player's own (`PokeCoopJohto.OWN_ENTRIES`, which
+`PokeCoopPolicy.own_entries` answers for Gold and Silver). The host no longer
+clears Red and Blue's Safari and Seafoam flags by number from a Gold campaign
+once Gold and Silver have own entries. `tools/coop_seed.gd -- gold new <dir>`
+seats two new Johto players, `at=` on any map and `care=<p1|p2>:...[:egg]`
+filling one player's day care, with its egg a step from hatching. The new
+`johto_day_care` scenario uses it. Branch `coop/178-johto-day-care`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_day_care`) | 5/6 passing: the day care's places, egg, hatching and checkpoint were already each player's. `test_the_route_34_pen_shows_each_player_their_own_day_care` failed: GOLD's window held SILVER's pen, `[false, true, false, true] != [true, false, false, false]`, and the campaign held flags 1766 and 1768 |
+| Screens before the fix, `johto_day_care` | Both windows drew their own pen, because the callback rewrites the four flags on every load before the objects are built. The check failed: the host's autosave kept `[1766]` in the campaign's flags |
+| Tests after | `test_coop_johto_day_care` 7/7 (with the seed's `care=`; without the host's new guard, `test_a_gold_host_leaves_johto_flags_alone...` fails on Johto events 590, 591 and 1280), `test_coop_gold_silver` 6/6, `test_coop_ownership` 8/8 |
+| Screens after, `johto_day_care` (imported Gold and Silver) | GOLD's window: GOLD's man by the pen with DITTO and CYNDAQUIL; "Ah, it's you! ... Your POKéMON had an EGG! ... You want it?" YES; "GOLD received the EGG!"; the man goes back indoors; one step south gives "Huh?", the egg cracks, CYNDAQUIL comes out, NO nickname; the party shows CHIKORITA and CYNDAQUIL L5. SILVER's window: no man outside, SENTRET alone in the pen; through the back door SILVER's man is indoors: "Huh? Back already? Your SENTRET needs a little more time with us. If you want your POKéMON back, it will cost ¥100." NO, "Come again." The host's autosave: GOLD's day care DITTO and CYNDAQUIL with the egg handed over, SILVER's SENTRET with SILVER's man, no pen flag in the campaign. Every capture looked at |
+| `tools/verify.sh johto_day_care gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `johto_day_care` and `gold_and_silver` ok (run `20261016-010119`) |
+| Not run | A deposit and a withdrawal through the Day-Care's own menus in a window (the scenario seeds the day care); an egg laid by step counting in a window (the seed lays it); German Gold and Silver; Windows; played |
+| Left over | A Pokémon in a day care is in its player's world only: the host's team and PC drop it while it is away, and it comes back under a new uid (D135) |
+
 ## Gold and Silver's opening, starters, gifts and wild tables (#173, D131, 2026-10-16)
 
 The owner chose that the rival steals per window (D131). A Gold or Silver

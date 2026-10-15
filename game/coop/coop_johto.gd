@@ -25,6 +25,7 @@ const OWN_GIFTS: Dictionary = {"event_flags": [  ## each player's own (D61, D131
 	27, 28, 29, 1600, 1601, 1602, 1790, 1791, 118, 64,  ## the starter, the stolen ball, the Guide Gent's tour, Mom's bank
 	44, 45, 84, 85, 86, 119, 1792, 1793,  ## the TOGEPI egg: its aide, hatching, Elm's call and Everstone
 	69, 70, 79, 80, 81, 97,  ## SHUCKLE (EVENT_GOT_SHUCKIE, _MANIA_TOOK_), EEVEE, SPEAROW's mail (_GOT_KENYA, _GAVE_KENYA), TYROGUE
+	1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
 ]}
 const SHARED_ITEMS: Array[int] = [  ## kept for good, so everyone gets one: BICYCLE, COIN_CASE, ITEMFINDER, rods, keys, tickets, SQUIRTBOTTLE, HMs
 	7, 54, 55, 58, 59, 61, 68, 127, 133, 134, 175, 243, 244, 245, 246, 247, 248, 249,
@@ -35,6 +36,7 @@ const GIFT_TMS: Dictionary = {  ## EVENT_GOT_TMxx (and _SUNNY_DAY_FROM_RADIO_TOW
 }
 const OWN_FOSSILS: Array[int] = []  ## Johto revives none
 const TIME_SLOTS: int = 7  ## a grass table's slots per time of day; the wild tables flatten morning, day and night
+const DAY_CARE_FLAGS: Array[int] = [1765, 1766, 1767, 1768]  ## EVENT_DAY_CARE_MAN_IN_DAY_CARE, _ON_ROUTE_34, EVENT_DAY_CARE_MON_1, _2 (D135)
 
 
 static func plays(data: GameData) -> bool:

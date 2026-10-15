@@ -2099,3 +2099,17 @@ Left out: daylight saving time stays each window's flag (Mom's question sets it
 for that window's Pokégear; the clock itself does not move), and battles fought
 on the host keep their default time of day for Moonlight, Morning Sun and
 Synthesis until co-op battles on the Generation 2 screen (#176) pass it.
+
+## D135. A Johto day care lives in its player's world (2026-10-16)
+
+D128 gives each Gold and Silver player their own day care. The cartridge keeps
+the day care in world state (`wDayCareMan`, `wDayCareLady`, the two box
+structs, `wStepsToEgg`, the egg), which `PokeCoopOwnership` already classes as
+the player's, so each window breeds and hatches on its own world, as upstream's
+code does. Route 34's callback also writes four event flags from the player's
+own day care on every load (the man indoors, the same man by the pen, the two
+Pokémon in the pen); those are each player's own entries, listed in
+`PokeCoopJohto.OWN_ENTRIES`, so they never reach the campaign. A Pokémon in a
+day care is in its player's world only: the host's team and PC drop it while it
+is away and take it back under a new uid, as they do for any Pokémon a window
+adds. Red and Blue's day care (one place, Route 5) is unchanged.
