@@ -19,7 +19,8 @@ Last updated 2026-10-15 (after #171, PR #186).
 - **#186** (draft) `coop/171-gen2-scope`: Closes #171. Docs only: D128 (the
   owner's Gold and Silver choices), `design.md`'s Gold and Silver section,
   `playbook.md` phase 5, a progress entry. Release gates pass; verify not run
-  (no code).
+  (no code). **The owner approved merging it (2026-10-15): merge it first in
+  the next session.**
 
 ## Next candidates
 
@@ -57,7 +58,9 @@ Last updated 2026-10-15 (after #171, PR #186).
   usage). A battle's outcome repeats for a fixed `seed=` in `HOST_ARGS` when
   the presses give the same turns.
 
-- Commits carry no `Claude-Session:` trailer (owner's rule). 375 older
+- No session links in commits or PR bodies (owner's rule, 2026-10-15): no
+  `Claude-Session:` trailer, PR bodies end with the "Generated with Claude
+  Code" line only. 375 older
   commits up to 8059a721 have one; history is not rewritten (no force-push).
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
