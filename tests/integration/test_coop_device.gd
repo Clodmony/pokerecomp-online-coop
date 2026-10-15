@@ -663,6 +663,7 @@ func test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters() -> void
 		return label.text)
 	assert_does_not_have(said, "Play Oak's opening", "Gold's opening waits for #173")
 	assert_does_not_have(said, "From both versions", "Johto has no wild tables to swap yet")
+	assert_does_not_have(said, "Your rival", "Gold's rival is named when he steals his starter (#173)")
 	assert_true(_press(page, "Start in New Bark Town"))
 	assert_true(_press(page, "Create and host"))
 	var hosting: PokeCoopSession = Gen2GameRuntime.instance().coop

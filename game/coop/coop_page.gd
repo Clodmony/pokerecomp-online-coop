@@ -680,9 +680,10 @@ func _build_new_campaign() -> void:
 	var title: LineEdit = _field("title", String(_form.get("title", "")), "A name for the campaign", MAX_TITLE)
 	left.add_child(title)
 	_landing = title
-	_caption(left, "Your rival")
-	_rival_picker(left, "rival")
-	_note(left, "The cartridge's own names, or type up to %d letters. Oak then skips the question for everyone." % MAX_NAME)
+	if not PokeCoopJohto.plays(_data()):
+		_caption(left, "Your rival")
+		_rival_picker(left, "rival")
+		_note(left, "The cartridge's own names, or type up to %d letters. Oak then skips the question for everyone." % MAX_NAME)
 	_both_versions_switch(left, "both", _game_of(_data()))
 	var right: VBoxContainer = columns[1]
 	_caption(right, "You")
@@ -1498,9 +1499,10 @@ func _open_edit(index: int) -> void:
 	sheet.body().add_child(Gen2LauncherUI.title(_theme, String(row["title"]), Gen2LauncherTheme.FONT_TITLE + 3))
 	_caption(sheet.body(), "Campaign name")
 	sheet.body().add_child(_field("edit_title", String(row["title"]), "A name for the campaign", MAX_TITLE))
-	_caption(sheet.body(), "Rival")
-	_rival_picker(sheet.body(), "edit_rival", false)
-	_note(sheet.body(), "Takes effect for everyone the next time the campaign is hosted. His team and fights stay the same.")
+	if not PokeCoopJohto.is_game(row["game"]):
+		_caption(sheet.body(), "Rival")
+		_rival_picker(sheet.body(), "edit_rival", false)
+		_note(sheet.body(), "Takes effect for everyone the next time the campaign is hosted. His team and fights stay the same.")
 	_both_versions_switch(sheet.body(), "edit_both", row["game"])
 	_sheet_buttons(sheet, [["Delete campaign…", _ask_delete.bind(index), "danger"], ["Cancel", _close_sheet]], ["Save", _save_edit.bind(index)])
 
