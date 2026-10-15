@@ -81,6 +81,11 @@ Needs Gold and Silver imported; the rules are `PokeCoopJohto`'s (D130).
 | G03 | A Silver device joins the Gold host from Nearby as a new player | New in <campaign>, you play Silver; it stands beside the host by the door; each window draws the other; START > CO-OP (or SELECT) names the partner in NEW BARK TOWN | `test_a_silver_player_joins_a_gold_campaign_in_new_bark_town` | gold_and_silver | |
 | G04 | Crystal, Red or another Gold dump joins a Gold host | Refused: the cartridges differ | `test_crystal_red_and_another_gold_are_told_why` | | |
 | G05 | Fight a battle, save, stop and host the Gold campaign again | The file keeps Gold and both players in New Bark Town; both come back as themselves and see each other | `test_a_gold_campaign_fights_saves_and_reopens_with_both_in_new_bark_town`, `coop_session.gd demo gold` | | |
+| G50 | GOLD and SILVER each leave Pokémon with their own Day-Care man and lady | Each day care holds only its player's Pokémon; on Route 34 each window shows its own Pokémon in the pen and its own man | `test_each_player_leaves_pokemon_in_their_own_day_care`, `test_the_route_34_pen_shows_each_player_their_own_day_care` | johto_day_care | |
+| G51 | GOLD's day care lays an egg while SILVER's has one Pokémon | GOLD's man waits by the pen and hands the egg to GOLD; SILVER's man stays indoors and talks about SILVER's Pokémon | `test_the_day_care_man_hands_the_egg_to_his_own_player_only` | johto_day_care | |
+| G52 | Walk with the egg in the party, the partner walking elsewhere | The egg hatches in its owner's party after its owner's steps ("Huh?", then the Pokémon), in its owner's Pokédex; the partner's steps never count | `test_an_egg_hatches_in_its_owners_party_by_its_owners_steps` | johto_day_care | |
+| G53 | Save with Pokémon and an egg in the day cares, stop, host again | Each day care, egg and counter comes back with its own player | `test_each_day_care_survives_a_checkpoint_and_a_new_host` | | |
+| G54 | Host a Gold campaign whose story set Johto flags that share a number with Red and Blue's Safari and Seafoam walks | The flags stay set | `test_a_gold_host_leaves_johto_flags_alone_that_red_and_blues_walks_share_a_number_with` | | |
 
 ## Wild Pokémon from both versions
 
