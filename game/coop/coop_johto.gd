@@ -23,9 +23,7 @@ static var first_reading: Dictionary = {}  ## where a new campaign's clock start
 static func wind(clock: Dictionary, now: float) -> Dictionary:  ## the campaign's one clock (D128, D133), held where it was if the host's clock went back
 	if clock.is_empty():
 		return set_to(first_reading if not first_reading.is_empty() else wall_reading(), now)
-	var out: Dictionary = moved(clock, 0.0)
-	out["stamp"] = minf(float(clock.get("stamp", now)), now)
-	return out
+	return set_to(clock, minf(float(clock.get("stamp", now)), now))
 
 
 static func wall_reading() -> Dictionary:
@@ -33,9 +31,10 @@ static func wall_reading() -> Dictionary:
 	return {"day": int(local["weekday"]), "hour": int(local["hour"]), "minute": int(local["minute"]), "second": int(local["second"])}
 
 
-static func set_to(reading_now: Dictionary, now: float) -> Dictionary:
+static func set_to(reading_now: Dictionary, now: float) -> Dictionary:  ## whole seconds, so a saved clock reads back the same
 	var out: Dictionary = moved(reading_now, 0.0)
-	out["stamp"] = now
+	out["second"] = int(out["second"])
+	out["stamp"] = floorf(now)
 	return out
 
 

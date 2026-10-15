@@ -231,6 +231,18 @@ func test_after_a_reopen_both_windows_are_on_the_clock_that_ran_while_it_was_clo
 		assert_eq((window[0] as Gen2WorldScreen).time_of_day, Gen2WorldPalette.TIME_NIGHT)
 
 
+func test_a_saved_clock_reads_back_as_the_host_holds_it() -> void:
+	Gen2WorldClock.host_seconds_override = T0 + 0.123456789
+	_host = _hosting(PokeCoopCampaign.create("gold2", _data.id, _data.sha1))
+	_pair()
+	_at(12.987654321)
+	assert_eq(_host.save_checkpoint(), &"")
+	_host.broadcast()
+	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	assert_eq(PokeCoopSave.to_dict(loaded["campaign"], loaded["players"]), PokeCoopSave.to_dict(_host.campaign, _host.players.values()),
+		"the file is the host's campaign, clock and all (demo gold's last step)")
+
+
 func test_a_host_clock_put_back_does_not_run_the_world_backwards() -> void:
 	var pair: Array = _pair()
 	assert_eq(_host.save_checkpoint(), &"")
