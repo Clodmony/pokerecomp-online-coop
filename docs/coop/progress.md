@@ -11,6 +11,33 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The host's clock for every window (#175, D133, 2026-10-16)
+
+A Gold or Silver campaign keeps one clock (D128): a reading at a host second,
+saved with the campaign (`PokeCoopCampaign.clock`, rules in `PokeCoopJohto`)
+and started at the hosting device's weekday and time. Every `state` carries
+the reading (protocol 9); each window opens its world on it, runs it on by its
+own time since and follows it once a frame, ticking up when behind and set
+back when ahead or on another weekday, so the time of day, the weekday and
+every event that reads them agree. A reopened campaign finds the clock run on;
+a host clock put back holds it. Only the hosting player sets it (`clock`,
+`not_host` otherwise): the opening's time question is asked in the hosting
+window alone (`Gen2IntroScreen.asks_clock`, ready for #173), and a weekday the
+hosting world's scripts set (Mom's) reaches every window while a joiner's is
+put back. Red and Blue keep no clock. The launcher tool's `clock=HH:MM[:D]`
+starts a new campaign's clock at a named time, and `gold_and_silver_night`
+photographs both windows at night. Branch `coop/175-host-clock`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (a probe on the old code) | both windows of a Gold campaign opened on SUNDAY 6:00 AM: `[0, 6, 0] != [5, 0, 35]` (the host's FRIDAY 0:35 AM), and no `state` carried a clock |
+| Screens before the fix (`gold_and_silver_night` on the old code) | both windows in the morning palette, hint bar "time 06:00", while the host was asked for 9:30 PM and the machine's own clock read 0:50 AM; the scenario's check failed |
+| Tests after | `test_coop_host_clock` 9/9: join, five hours on, two world screens drawn at night and following the host an hour on and back to the morning, a hosting player's weekday reaching the joiner and a joiner's put back, a reopen three days and four hours later, a host clock put back, `not_host`, the joiner's opening without the time question, a saved clock reading back exactly; Red and Blue carry no clock |
+| Screens after, `gold_and_silver_night` (imported Gold and Silver, `clock=21:30:5`) | both windows draw New Bark Town in the night palette with lit windows, hint bar "time 21:30"; every capture line reads "at FRIDAY 9:30 PM NITE" in both windows; SILVER's steps south seen from GOLD's window. Every capture looked at |
+| `tools/verify.sh gold_and_silver_night gold_and_silver launcher_host_join` | import, GUT 5224/5224, gates, boot, ENet demo, ENet demo gold, three processes, the three scenarios ok (run `20261016-010134`); `gold_and_silver` now opens at the hosting device's own time (00:49, the night palette), and Red's `launcher_host_join` is unchanged ("time 06:00", Oak's speech). An earlier run found `demo gold`'s "the save reloads both players" failing now and then: the clock's fractional host second did not survive the file's JSON, so the clock is kept in whole seconds and a test reads a saved clock back. Two runs under the load of four other agents also had `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer` (ENet timing) and `gold_and_silver` (p1's window never started) fail; both passed alone (`test_coop_device` 41/41) |
+| Not run | Gold's opening in two windows (#173 offers it); Mom's weekday and DST questions in a played window; Windows; played |
+| Left over | daylight saving time stays each window's flag; battles fought on the host keep their default time of day (Moonlight, Morning Sun, Synthesis) until #176 |
+
 ## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
 
 The gate of M14. Gold and Silver are a version pair (`VERSION_PAIRS`, the tab's

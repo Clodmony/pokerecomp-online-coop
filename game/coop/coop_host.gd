@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 8
+const PROTOCOL: int = 9
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -78,6 +78,8 @@ static func create(
 	for flag: int in PokeCoopPolicy.OWN_WALKS if not out._own_entries.is_empty() else []:
 		run.flags.erase(flag)
 	out.trades = PokeCoopTrades.create(game_data)
+	if PokeCoopJohto.is_game(run.game_id):
+		run.clock = PokeCoopJohto.wind(run.clock, Gen2WorldClock.host_seconds())
 	out._kept_revision = run.revision
 	return out
 
@@ -183,6 +185,8 @@ func _answer(peer: int, kind: String, message: Dictionary) -> StringName:
 		transport.send(peer, _rejected(seq, &"duplicate"))
 		return &"duplicate"
 	_last_seq[sender.player_id] = seq
+	if message.get("shift") is bool:
+		sender.battle_shift = message["shift"]
 	var refusal: StringName = _dispatch(sender, kind, message)
 	_settle_league()
 	_changed = _changed or refusal == &""
@@ -283,8 +287,6 @@ func _note_campaign() -> void:
 
 func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> StringName:
 	var battle_id: String = PokeCoopTransport.text(message.get("battle"))
-	if message.get("shift") is bool:
-		sender.battle_shift = message["shift"]
 	match kind:
 		"move":
 			return step(sender, _vector(message.get("map")), _vector(message.get("cell")),
@@ -322,7 +324,26 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return _trade(sender, message)
 		"name_catch":
 			return name_catch(sender, battle_id, PokeCoopTransport.text(message.get("nickname")).left(MAX_NICKNAME))
+		"clock":
+			return set_clock(sender, message)
 	return &"unknown_message"
+
+
+func set_clock(sender: PokeCoopPlayer, message: Dictionary) -> StringName:  ## the hosting player's opening or Mom's weekday (D133); -1 keeps a field
+	if campaign.clock.is_empty():
+		return &"no_clock"
+	if sender.player_id != host_player_id:
+		return &"not_host"
+	var now: float = Gen2WorldClock.host_seconds()
+	var was: Dictionary = PokeCoopJohto.reading(campaign.clock, now)
+	var asked: Dictionary = {}
+	for key: String in ["day", "hour", "minute", "cur_day"]:
+		var value: int = PokeCoopTransport.number(message.get(key), -1)
+		asked[key] = value if value >= 0 else int(was[key])
+	campaign.clock = PokeCoopJohto.set_to(asked, now)
+	campaign.revision += 1
+	journal.add(PokeCoopLog.HOST, "clock", {"was": was, "now": asked}, sender.player_id)
+	return &""
 
 
 static func _spared(trainer_class: int, map: Vector2i) -> bool:
@@ -1100,6 +1121,10 @@ func broadcast() -> void:
 		})
 	var shared: Dictionary = campaign.summary()
 	shared["world"] = campaign.world_part(_badge_flags)
+	var told: Dictionary = {}
+	if not campaign.clock.is_empty():
+		campaign.clock = PokeCoopJohto.wind(campaign.clock, Gen2WorldClock.host_seconds())
+		told = PokeCoopJohto.reading(campaign.clock, Gen2WorldClock.host_seconds())
 	for peer: int in _peers:
 		var viewer: PokeCoopPlayer = player(String(_peers[peer]))
 		if int(_box_sent.get(peer, -1)) != viewer.box_rev:
@@ -1109,13 +1134,16 @@ func broadcast() -> void:
 		if not viewer.opening.is_empty():
 			story = shared.duplicate()
 			story["world"] = viewer.opening["world"]
-		transport.send(peer, {
+		var view: Dictionary = {
 			"type": "state", "campaign": story, "players": everyone,
 			"you": _private_view(viewer), "nearby": nearby(viewer), "battles": running,
 			"encounters": offered, "last_seq": int(_last_seq.get(viewer.player_id, 0)),
 			"saved": {"ago": Time.get_unix_time_from_system() - _saved_unix if _saved_unix > 0.0 else -1.0,
 				"count": _saves, "by": _saved_by, "blocked": String(save_blocker())},
-		})
+		}
+		if not told.is_empty():
+			view["clock"] = told
+		transport.send(peer, view)
 		for session: PokeCoopBattleSession in battles.values():
 			if session.involves(viewer.player_id):
 				transport.send(peer, {"type": "battle", "view": session.view_for(viewer.player_id)})

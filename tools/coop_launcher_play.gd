@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
 ##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split[=stacked]]
-##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address [untouched]] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [clock=HH:MM[:D] (a new Gold campaign's)] [by_address [untouched]] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
 
 const LAUNCHER: String = "res://game/main/main.tscn"
 const STEP_FRAMES: int = 20
@@ -89,6 +89,8 @@ func _read_option(arg: String) -> bool:
 			_untouched = true
 		"both_versions":
 			_both_versions = true
+		"clock":
+			PokeCoopJohto.first_reading = Gen2WorldClock.parse_pin(PackedStringArray([Gen2WorldClock.PIN_ARGUMENT + value]))
 		"tour":
 			_tour = value if not PokeToolPath.refuses(value) else ""
 		"round":

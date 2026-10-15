@@ -148,6 +148,7 @@ Peer 1 is the host.
 | `probe` | `protocol`, `build`, `name`, `game_id`, `rom_sha1`, `known` (no `seq`): asked before `hello` on the same link, answered whatever the protocol and creating nobody (protocol 7, D103) |
 | `hello` (protocol 7) | adds `via`, the address the device dialled; the host keeps it and the `game_id` with the player |
 | `wild_tables` | `tables` (no `seq`): this cartridge's Generation 1 wild slots, `{grass, water}` by map number as `[species, level]` rows; sent after each `welcome` by a window of a paired game, kept on the host for the session only, never written (protocol 8, D104) |
+| `clock` | `seq`, `day`, `hour`, `minute`, `cur_day` (-1 keeps that field): the campaign's clock set by the hosting device's player, from the opening's time question or a jump the hosting window's scripts made (Mom's weekday); `not_host` from anybody else, `no_clock` on Red and Blue (protocol 9, D133) |
 | `scene` | `seq`, `map`, `on`: a rival scene in `PokeCoopPolicy.RIVAL_SCENES` started in the sender's world (`on` true) or reached its rest point after (`on` false); refused with `scene_taken` while another player drives that map's scene, `not_a_scene` for another map (protocol 5, D84) |
 
 | Host to client | Fields |
@@ -156,6 +157,7 @@ Peer 1 is the host.
 | `welcome` | `protocol`, `player_id`, `last_seq` |
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
+| `state` (protocol 9) | adds `clock` on Gold and Silver: `day`, `hour`, `minute`, `second`, `cur_day` of the campaign's clock as sent; a window runs it on by its own time since (D133) |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
@@ -168,7 +170,7 @@ carry `meeting` while paired. A `versus` battle view shows only the viewer's
 team as allies, their choices and learning offer, with events mirrored for
 the opponent. Friend battles stay private to their two participants.
 
-The protocol is version 8 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104); a peer of another version is
+The protocol is version 9 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104; 9 the clock, D133); a peer of another version is
 refused with `protocol_mismatch`. A hosting session also sends the lobby view with its
 ENet `port` as a JSON UDP beacon to port 24681 once a second (broadcast, each
 network's `.255` and 127.0.0.1); the Co-op tab's Join screen lists the hosts heard in
@@ -204,7 +206,7 @@ Kept small so upstream merges stay cheap (#14):
 | `tests/integration/test_world_frame_pump.gd` | `test_a_gen1_rows_end_takes_down_a_no_press_box_its_fade_held_up` (D76) |
 | `game/battle/battle_intro.gd` | Generation 1's back-picture head as `LoadPlayerBackPic` lays it out (L8) |
 | `game/world/oak_speech_screen.gd` | `preset_names`: a name settled before the speech is said rather than asked |
-| `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save |
+| `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save; `asks_clock` and `clock_set`, so only the hosting window asks the time and the host is told it (D133) |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
 | `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
 | `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed; `restart()` first asks `coop.continue_after_reset()`, so the Hall of Fame's reset continues the co-op world (D88) |

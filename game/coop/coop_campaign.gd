@@ -18,6 +18,7 @@ var flags: Dictionary = {}
 var badges: int = 0
 ## The shared keys of the world state other than the event flags and badges [member flags] and [member badges] hold.
 var world: Dictionary = {}
+var clock: Dictionary = {}  ## Gold and Silver's: the reading at the host second `stamp` (PokeCoopJohto.wind, D133)
 var revision: int = 0
 var next_battle_serial: int = 1
 var next_player_serial: int = 1
@@ -169,12 +170,15 @@ func to_dict() -> Dictionary:
 	var done: Array = summary()["defeated"]
 	var commits: Array = _commits.keys()
 	commits.sort()
-	return {
+	var out: Dictionary = {
 		"campaign_id": campaign_id, "title": title, "rival_name": rival_name, "game_id": String(game_id), "rom_sha1": rom_sha1,
 		"both_versions": both_versions, "flags": _sorted_flags(), "badges": badges, "revision": revision,
 		"defeated": done, "commits": commits, "world": world.duplicate(true),
 		"next_battle_serial": next_battle_serial, "next_player_serial": next_player_serial,
 	}
+	if not clock.is_empty():
+		out["clock"] = clock.duplicate()
+	return out
 
 
 static func from_dict(raw: Variant) -> PokeCoopCampaign:
@@ -200,6 +204,7 @@ static func from_dict(raw: Variant) -> PokeCoopCampaign:
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:
 		out.world = PokeCoopOwnership.canonical(raw_world, PokeCoopOwnership.CAMPAIGN)
+	out.clock = PokeCoopJohto.sane_clock(source.get("clock"))
 	out.revision = int(source.get("revision", 0))
 	out.next_battle_serial = maxi(int(source.get("next_battle_serial", 1)), 1)
 	out.next_player_serial = maxi(int(source.get("next_player_serial", 1)), 1)

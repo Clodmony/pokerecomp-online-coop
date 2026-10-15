@@ -461,6 +461,7 @@ static func continued_world(session: PokeCoopClient) -> Gen2WorldSnapshot:
 	out.world_state = Gen2WorldState.from_dict(_host_world(session))
 	out.gen1_last_map = int(view.get("last_map", places.get("gen1_last_map", out.gen1_last_map)))
 	out.gen1_last_blackout_map = int(places.get("gen1_last_blackout_map", out.gen1_last_blackout_map))
+	on_host_clock(out, session)
 	return out
 
 
@@ -569,3 +570,50 @@ func _pull_party() -> void:
 		"box": (client.box.get("rows", []) as Array).size()}, client.player_id)
 	_fill(save, me, client.box.get("rows", []))
 	_holdings_sent = _holdings()
+
+
+const CLOCK_DRIFT_SECONDS: float = 1.0
+const CLOCK_TICK_SECONDS: float = 120.0  ## more than a frame's clock ever moves on its own; a bigger jump is a script's
+var _clock_shown: Dictionary = {}
+var _clock_seq: int = -1
+
+
+static func on_host_clock(world: Gen2WorldSnapshot, session: PokeCoopClient) -> void:  ## a world opens at the host's time (D133)
+	var told: Dictionary = session.clock()
+	if told.is_empty():
+		return
+	world.world_day = int(told["day"])
+	world.world_hour = int(told["hour"])
+	world.world_minute = int(told["minute"])
+	world.world_cur_day = int(told["cur_day"])
+	world.world_clock_stamp = Gen2WorldClock.host_seconds()
+
+
+func follow_clock(screen: Gen2WorldScreen, sets_clock: bool) -> void:  ## to the host's; a jump a script made is the hosting player's to send
+	var clock: Gen2WorldClock = screen.get("_clock")
+	var told: Dictionary = client.clock()
+	if clock == null or clock.pinned or told.is_empty() or world == null or screen.process_mode == Node.PROCESS_MODE_DISABLED:
+		return
+	var shown: Dictionary = _shown(clock)
+	var jumped: float = 0.0 if _clock_shown.is_empty() else PokeCoopJohto.behind(_clock_shown, shown)
+	if sets_clock and not _clock_shown.is_empty() and (jumped < -CLOCK_DRIFT_SECONDS or jumped > CLOCK_TICK_SECONDS
+			or not PokeCoopJohto.same_week(_clock_shown, shown)):
+		_clock_seq = client.set_clock(int(shown["day"]), int(shown["hour"]), int(shown["minute"]), int(shown["cur_day"]))
+	_clock_shown = shown
+	if _clock_seq > int(client.state.get("last_seq", 0)):
+		return
+	var gap: float = PokeCoopJohto.behind(shown, told)
+	if gap > CLOCK_DRIFT_SECONDS and PokeCoopJohto.same_week(shown, told):
+		screen.call(&"_advance_day_cycle", gap)
+	elif gap < -CLOCK_DRIFT_SECONDS or not PokeCoopJohto.same_week(shown, told):
+		world.set_world_clock(int(told["day"]), int(told["hour"]), int(told["minute"]), int(told["cur_day"]))
+		clock.set("_elapsed_seconds", float(told["second"]))
+		for step: StringName in [&"_sync_host_clock", &"_update_time_of_day", &"_refresh_labels"]:
+			screen.call(step)
+	_clock_shown = _shown(clock)
+
+
+static func _shown(clock: Gen2WorldClock) -> Dictionary:
+	var out: Dictionary = clock.snapshot()
+	out["second"] = out["elapsed_seconds"]
+	return out

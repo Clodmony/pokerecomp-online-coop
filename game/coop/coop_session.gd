@@ -391,6 +391,8 @@ func _advance_links() -> void:
 		var waiting: bool = not link.scene_driver.is_empty() and panel != null and not overlay_open()
 		link.busy = PokeCoopWorldLink.unrest(screen) if shown and not waiting else &""
 		link.advance()
+		if shown:
+			link.follow_clock(screen, host != null)
 	if cable != null and not is_same(client.state, _cable_state):
 		_cable_state = client.state
 		cable.refresh()
@@ -698,6 +700,8 @@ func open_start() -> Control:
 			Gen2OakSpeech.NAME_RIVAL: String((client.state.get("campaign", {}) as Dictionary).get("rival_name", "")),
 		}
 		opening_screen.spoken.connect(_on_spoken)
+		opening_screen.asks_clock = host != null
+		opening_screen.clock_set.connect(func(_day: int, hour: int, minute: int) -> void: client.set_clock(-1, hour, minute))
 		opening_screen.begin(data, 0, "", false)
 	return opening_screen
 
