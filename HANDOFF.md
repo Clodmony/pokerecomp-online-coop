@@ -6,25 +6,21 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #162, PR #164).
+Last updated 2026-10-15 (after #165, PR #166).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #163 (5284eccd;
-  #158, #159, #160 closed, #161 open for K21). `main` = upstream main
-  (ed886823, 0.1.78).
+- Default branch `pokerecomp-online-coop` at the merge of #164 (fef64c24;
+  #162 closed). `main` = upstream main (ed886823, 0.1.78).
 - Next decision number: D128.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#164** (draft) `coop/162-scripted-follow-ups`: Closes #162. **The owner
-  approved merging it (2026-10-15): merge it first in the next session.** Scenarios
-  `battle_crash` (B38's crash, `ROLLS=3`), `trainer_status_moves` (B43's
-  second half, ROUTE 3's LASS), `link_cut_rejoin` now with the relay's
-  `hold` (S24: four `already_connected` refusals). Tools only: `coop_seed.gd`
-  `at=`, `auto_battle` skips DISABLED/NO PP rows, `coop_relay.gd` `hold`.
-  Verify run `20261015-081707` all passed (GUT 5207/5207, 7 scenarios). No
-  builds made.
+- **#166** (draft) `coop/165-route3-seeds`: Closes #165. `switch_offer`,
+  `mimic_suggest`, `party_balls`, `trainer_busy` build their own ROUTE 3 seed
+  (`SEED_ARGS`, three level 25 Pokémon spelt out with `mon=`, `at=`); tools and
+  docs only. Verify run `20261015-092118` all passed (GUT 5207/5207, the four
+  plus `trainer_status_moves`). No builds made.
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -48,16 +44,19 @@ Last updated 2026-10-15 (after #162, PR #164).
   `coop_save.gd` and the battle stage are generation-agnostic.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
-- #165: `switch_offer`, `mimic_suggest`, `party_balls`, `trainer_busy` build
-  their own ROUTE 3 seed with `at=` (small, tests only; needs #164 merged).
-- Possible issues, ask before filing: the session menu's FIGHT list is fixed
-  (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the map's wild table; a mouse
-  with a joystick interface is listed twice as a pad.
+- Possible issues, ask before filing: `bag_forty` and `partner_tracker_cabins`
+  still need a hand-moved `SEED=` and could build theirs with `SEED_ARGS` as
+  #165 did (`brock_from_seed`, `german_screens`, `both_versions` and
+  `vermilion_locks` take a seed on purpose); `coop_seed.gd`'s first `mon=`
+  drops the `party=` copies, so the two options don't combine; the session
+  menu's FIGHT list is fixed (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
+  map's wild table; a mouse with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
 
-- The Superset worktree holds `coop/162-scripted-follow-ups`, pushed. No
-  background processes.
+- The Superset worktree holds `coop/165-route3-seeds`, pushed. No background
+  processes. The main checkout is on `pokerecomp-online-coop`, behind
+  `origin` (pull before merging there).
 
 ## Working notes (stable, keep short)
 
