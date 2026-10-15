@@ -15,29 +15,119 @@ what is blocked. Verification levels are kept apart on purpose:
 
 Gold and Silver no longer run on Red and Blue's sharing tables. Johto's map
 scenes, which the host's well-formed check dropped (their keys are
-`group:number`), now reach the campaign and every window, owned scene by scene:
-story gates such as New Bark Town's teacher are the team's (D91), a walk's
+`group:number`), now reach the campaign and every window, owned scene by scene
+in the one table #173 and #178 started (`PokeCoopJohto.OWN_GIFTS`): story gates
+such as LANCE's staircase in Mahogany's mart are the team's (D91); a walk's
 scenes (link rooms, Fast Ship, Magnet Train, contest gates, League rooms, Unown
-dex) each player's (D72). The flags a map load clears and the League rooms' shut
-doors are each player's; the Ruins' unlocked Unown sets and the Rockets' hold
-are engine flags the team shares, so a puzzle one player solves is solved for
-both while the Unown caught stay each player's (D128). Johto's own key items
-reach every player once; Red's gift TMs, its "unique items" and its one-off wild
-Pokémon no longer fire in a Gold campaign. Johto's contested scenes lock by the
-scene or story talk a running script came from (the rival's, Slowpoke Well,
-the Radio Tower, the Rocket base, the Lake of Rage, the Dragon's Den), and the
-Elite Four is one run for the team with Johto's flags, rooms and classes. All of
-it lives in `PokeCoopJohto`, asked by generation. Branch `coop/174-johto-world`.
+dex, Route 43's toll) and, by the owner's decision with per-window openings, the
+opening's (New Bark Town's teacher, Elm's lab, Mom, Mr. POKéMON) each player's.
+The flags a map load clears and the League rooms' shut doors are each player's;
+the Ruins' unlocked Unown sets and the Rockets' hold are engine flags the team
+shares, so a puzzle one player solves is solved for both while the Unown caught
+stay each player's (D128). Johto's contested scenes lock by the scene or story
+talk a running script came from (the rival's after the opening, Slowpoke Well,
+the Radio Tower, the Rocket base, the Lake of Rage, the Dragon's Den), the Elite
+Four is one run for the team with Johto's flags, rooms and classes, and Red's
+one-off wild Pokémon stay out of Johto. `tools/coop_seed.gd`'s Gold seed takes
+`at2=` (the second player elsewhere) and `event=[-]<flag>`. Merged with #173,
+#175 and #178 (one set of Johto tables). Branch `coop/174-johto-world`.
 
 | Verification | Result |
 |---|---|
-| Tests before the fix (`test_coop_johto_world`, the API-only lines left out) | 0/7 passing, 8/23 asserts: SILVER's New Bark Town scene `[<null>] expected to equal [1]`; unlocked Unown `[0] expected to equal [1]`; GOLD's own Pokémon Center scene `[<null>]` (dropped), a temporary flag shared; the door shut behind GOLD shared and the lobby's clear not held; Red's flag 41 handed SILVER TM item 242, commits `["gift:242", "gift:5"]`; the BICYCLE reached nobody; Cherrygrove City `not_a_scene` and Route 22 a scene |
-| Screens before the fix (`johto_gate` on the base branch) | GOLD takes CHIKORITA from ELM's table, and SILVER walking west is stopped again: "Wait, BLUE!" at 1,8; the check finds no pulled `24:4` scene and no Route 29 |
-| Tests after | `test_coop_johto_world` 8/8; `test_coop_ownership` 11/11 with three Johto routing tests; every co-op suite (`-gselect=test_coop`) 342/342 |
-| Screens after, `johto_gate` (imported Gold and Silver) | SILVER stopped by the teacher ("Wait, BLUE!"); GOLD walks the lab's front wall to its door, ELM's intro, "So, you like CHIKORITA, the grass POKéMON?", YES; the table keeps two balls; SILVER walks west and stands on Route 29 (map 24/3, cell 54,8), its window having pulled `24:4` = 1. Every capture looked at |
-| `tools/verify.sh johto_gate gold_and_silver` | import, GUT 5226/5226, gates, boot, ENet demo, ENet demo gold, three processes, `johto_gate` and `gold_and_silver` ok (run `20261016-010623`); the `gold_and_silver` captures as in #172 |
-| Not run | A Ruins puzzle, a Johto rival scene, the League and the Fast Ship on a cartridge (no Gold seed yet, #183): the redraw of a League exit or a chamber floor in a window standing there is written, not seen; Silver hosting; Windows; played |
-| Left over | ELM's lab, Mom's POKéGEAR and MR. POKéMON's house stay the campaign's scenes until #173 decides the opening's gifts (a second player never meets MR. POKéMON's scene, so gets no POKéDEX there); the Burned Tower's beasts wait for #180; a fresh Gold campaign shows the cartridge's unset story objects (the officer in ELM's lab, the rival by the lab), #173's opening |
+| Tests before the fix (`test_coop_johto_world` on 55ca6928, the API-only lines left out) | 0/7 passing, 8/23 asserts: SILVER's map scene `[<null>] expected to equal [1]`; unlocked Unown `[0] expected to equal [1]`; GOLD's own Pokémon Center scene `[<null>]` (dropped), a temporary flag shared; the door shut behind GOLD shared and the lobby's clear not held; Red's flag 41 handed SILVER TM item 242, commits `["gift:242", "gift:5"]`; the BICYCLE reached nobody; Johto's rival maps `not_a_scene` and Route 22 a scene |
+| Screens before the fix (`johto_gate` on 6731fdc0, with this branch's seed options) | BEFORE_SCREENS |
+| Tests after | AFTER_TESTS |
+| Screens after, `johto_gate` (imported Gold and Silver, a `gold new` seed) | GOLD below LANCE at the Lake of Rage (night, the host's clock): "...are being forced to evolve", YES, LANCE gone; SILVER in Mahogany's mart first: a plain shop, no stairs; SILVER walks out and in again: LANCE in the mart, then SILVER beside the uncovered staircase, the guard shoved aside, LANCE gone; the check finds `3:40` = 1 pulled by SILVER's window and the staircase's flag 738 in the campaign. Every capture looked at |
+| `tools/verify.sh johto_gate gold_opening johto_day_care gold_and_silver` | VERIFY_RESULT |
+| Not run | A Ruins puzzle, a Johto rival scene, the League and the Fast Ship on a cartridge: the redraw of a League exit or a chamber floor in a window standing there is written, not seen; Silver hosting; Windows; played |
+| Left over | The Burned Tower's beasts wait for #180; a campaign hosted before this keeps the opening's scenes it was given, which each player's own now hide |
+
+## Gold and Silver: a day care and eggs per player (#178, D135, 2026-10-16)
+
+Each player has their own day care (D128). The Day-Care's two places, its step
+counter, the egg it builds and the man's and lady's flags were already player
+keys in `PokeCoopOwnership`, so each window breeds, steps and hatches on its own
+world. Route 34's callback still wrote four event flags (the man indoors or by
+the pen, the two Pokémon in the pen) into the campaign, so each load of Route 34
+or the Day-Care sent one player's pen to the partner's world and left it in the
+team's story. They are now each player's own (`PokeCoopJohto.OWN_GIFTS`, which
+`PokeCoopPolicy.own_entries` answers for Gold and Silver). The host no longer
+clears Red and Blue's Safari and Seafoam flags by number from a Gold campaign
+once Gold and Silver have own entries. `tools/coop_seed.gd -- gold new <dir>`
+seats two new Johto players, `at=` on any map and `care=<p1|p2>:...[:egg]`
+filling one player's day care, with its egg a step from hatching. The new
+`johto_day_care` scenario uses it. Branch `coop/178-johto-day-care`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_day_care`) | 5/6 passing: the day care's places, egg, hatching and checkpoint were already each player's. `test_the_route_34_pen_shows_each_player_their_own_day_care` failed: GOLD's window held SILVER's pen, `[false, true, false, true] != [true, false, false, false]`, and the campaign held flags 1766 and 1768 |
+| Screens before the fix, `johto_day_care` | Both windows drew their own pen, because the callback rewrites the four flags on every load before the objects are built. The check failed: the host's autosave kept `[1766]` in the campaign's flags |
+| Tests after | `test_coop_johto_day_care` 7/7 (with the seed's `care=`; without the host's new guard, `test_a_gold_host_leaves_johto_flags_alone...` fails on Johto events 590, 591 and 1280), `test_coop_gold_silver` 6/6, `test_coop_ownership` 8/8 |
+| Screens after, `johto_day_care` (imported Gold and Silver) | GOLD's window: GOLD's man by the pen with DITTO and CYNDAQUIL; "Ah, it's you! ... Your POKéMON had an EGG! ... You want it?" YES; "GOLD received the EGG!"; the man goes back indoors; one step south gives "Huh?", the egg cracks, CYNDAQUIL comes out, NO nickname; the party shows CHIKORITA and CYNDAQUIL L5. SILVER's window: no man outside, SENTRET alone in the pen; through the back door SILVER's man is indoors: "Huh? Back already? Your SENTRET needs a little more time with us. If you want your POKéMON back, it will cost ¥100." NO, "Come again." The host's autosave: GOLD's day care DITTO and CYNDAQUIL with the egg handed over, SILVER's SENTRET with SILVER's man, no pen flag in the campaign. Every capture looked at |
+| `tools/verify.sh johto_day_care gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `johto_day_care` and `gold_and_silver` ok (run `20261016-010119`) |
+| Not run | A deposit and a withdrawal through the Day-Care's own menus in a window (the scenario seeds the day care); an egg laid by step counting in a window (the seed lays it); German Gold and Silver; Windows; played |
+| Left over | A Pokémon in a day care is in its player's world only: the host's team and PC drop it while it is away, and it comes back under a new uid (D135) |
+
+## Gold and Silver's opening, starters, gifts and wild tables (#173, D131, 2026-10-16)
+
+The owner chose that the rival steals per window (D131). A Gold or Silver
+player who plays the opening plays it alone, from the clock and Oak's speech to
+the Mystery Egg handed to Elm, and joins the campaign when they leave Elm's lab
+(`PokeCoopJohto.opening_over`); before, the host waited for Red and Blue's lab
+flag and the player never left the opening, so the tab hid it. The starter's
+`EVENT_GOT_<it>_FROM_ELM` and the lab's three ball flags are each player's, so
+the theft and every later rival team follow that player's pick in their window.
+A new Johto campaign starts where the opening ends (`InitializeEventsScript`'s
+facts from the cartridge's catalog, the errand's flags and scenes); a late
+joiner in New Bark Town also gets the Pokégear with Mom's and Elm's numbers,
+the Pokédex, the aide's Potion and five Poké Balls and their starter's flags.
+The officer asks the rival's name only before the campaign has one; a later
+window answers him with it. Gift Pokémon (the TOGEPI egg chain, SHUCKLE, EEVEE,
+SPEAROW, TYROGUE) and the Guide Gent's tour and Mom's bank are each player's;
+story items and TMs reach everyone by Johto's own ids, where Red and Blue's ids
+had been handing out other items. Wild Pokémon from both versions run on Gold
+and Silver, keyed by map group and number, a grass slot by the time of day the
+window's world reports. The tab offers the opening and the both-versions switch
+for Gold and Silver; it still has no rival field. `coop_autoplay` plays Johto's
+opening from `played.gd`'s legs (`ball=` picks the starter) and presses through
+Generation 2's title. Branch `coop/173-johto-opening`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_gold_silver`) | 7 of 14 failing: the opening never ended ("the lab left with the egg given: Gold joins the campaign"); the officer's name not kept (`[""]` for `["KAMON"]`); a late joiner's Elm's lab scene `[0]` for `[2]`, no egg errand, no starter flags, no Pokégear or Pokédex, `[3000, 0]` for `[3000, 5]` Poké Balls; Bill's EEVEE gone for the second player; a MAX REPEL handed to the partner as Red's SECRET KEY, FALKNER's TM31 to nobody; no Johto wild slot (`[0]` for `[74]`); `test_coop_device`'s Gold form without "Play Oak's opening" and "From both versions" |
+| Tests after | `test_coop_gold_silver` 13/13 (the before-only egg case dropped as it passed before); all `test_coop` suites 338/338 |
+| Screens, `gold_opening` (imported Gold and Silver, two autoplayed windows) | Gold picks CYNDAQUIL and its rival sends out TOTODILE; Silver picks TOTODILE and its rival sends out CHIKORITA; each lab afterwards holds only the third ball (CHIKORITA's for Gold, CYNDAQUIL's for Silver); the first window named the rival, Silver's officer was answered with that name (`officer` in its log); both left the opening and met in New Bark Town (Gold's capture draws SILVER at the lab door; in Silver's they stand on one cell). Every capture of both runs looked at |
+| Screens, `gold_and_silver` | the Gold form offers Play Oak's opening (Elm's lab, Mr. Pokémon's egg), Start in New Bark Town and From both versions, no rival; the New Bark start now carries five Poké Balls |
+| `tools/verify.sh gold_opening gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `gold_opening` and `gold_and_silver` ok (run `20261016-010050`) |
+| Not run | Wild Pokémon from both versions in a window (tests only: the Silver window's substitute at a real time of day); a Gold save brought in; the partner's Elm call after FALKNER, which the TOGEPI egg waits on (#174); Windows; played |
+| Left over | The opening's battles go through the co-op battle field, whose Generation 2 screen is #176; the rival's name in the scenario is whatever `played.gd`'s presses type |
+
+## The host's clock for every window (#175, D133, 2026-10-16)
+
+A Gold or Silver campaign keeps one clock (D128): a reading at a host second,
+saved with the campaign (`PokeCoopCampaign.clock`, rules in `PokeCoopJohto`)
+and started at the hosting device's weekday and time. Every `state` carries
+the reading (protocol 9); each window opens its world on it, runs it on by its
+own time since and follows it once a frame, ticking up when behind and set
+back when ahead or on another weekday, so the time of day, the weekday and
+every event that reads them agree. A reopened campaign finds the clock run on;
+a host clock put back holds it. Only the hosting player sets it (`clock`,
+`not_host` otherwise): the opening's time question is asked in the hosting
+window alone (`Gen2IntroScreen.asks_clock`, ready for #173), and a weekday the
+hosting world's scripts set (Mom's) reaches every window while a joiner's is
+put back. Red and Blue keep no clock. The launcher tool's `clock=HH:MM[:D]`
+starts a new campaign's clock at a named time, and `gold_and_silver_night`
+photographs both windows at night. Branch `coop/175-host-clock`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (a probe on the old code) | both windows of a Gold campaign opened on SUNDAY 6:00 AM: `[0, 6, 0] != [5, 0, 35]` (the host's FRIDAY 0:35 AM), and no `state` carried a clock |
+| Screens before the fix (`gold_and_silver_night` on the old code) | both windows in the morning palette, hint bar "time 06:00", while the host was asked for 9:30 PM and the machine's own clock read 0:50 AM; the scenario's check failed |
+| Tests after | `test_coop_host_clock` 9/9: join, five hours on, two world screens drawn at night and following the host an hour on and back to the morning, a hosting player's weekday reaching the joiner and a joiner's put back, a reopen three days and four hours later, a host clock put back, `not_host`, the joiner's opening without the time question, a saved clock reading back exactly; Red and Blue carry no clock |
+| Screens after, `gold_and_silver_night` (imported Gold and Silver, `clock=21:30:5`) | both windows draw New Bark Town in the night palette with lit windows, hint bar "time 21:30"; every capture line reads "at FRIDAY 9:30 PM NITE" in both windows; SILVER's steps south seen from GOLD's window. Every capture looked at |
+| `tools/verify.sh gold_and_silver_night gold_and_silver launcher_host_join` | import, GUT 5224/5224, gates, boot, ENet demo, ENet demo gold, three processes, the three scenarios ok (run `20261016-010134`); `gold_and_silver` now opens at the hosting device's own time (00:49, the night palette), and Red's `launcher_host_join` is unchanged ("time 06:00", Oak's speech). An earlier run found `demo gold`'s "the save reloads both players" failing now and then: the clock's fractional host second did not survive the file's JSON, so the clock is kept in whole seconds and a test reads a saved clock back. Two runs under the load of four other agents also had `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer` (ENet timing) and `gold_and_silver` (p1's window never started) fail; both passed alone (`test_coop_device` 41/41) |
+| Not run | Gold's opening in two windows (#173 offers it); Mom's weekday and DST questions in a played window; Windows; played |
+| Left over | daylight saving time stays each window's flag; battles fought on the host keep their default time of day (Moonlight, Morning Sun, Synthesis) until #176 |
 
 ## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
 

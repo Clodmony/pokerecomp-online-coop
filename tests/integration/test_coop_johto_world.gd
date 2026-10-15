@@ -5,8 +5,9 @@ extends GutTest
 ## a window sends them at rest points.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
-const NEW_BARK_SCENE: String = "24:4"  ## SCENE_NEWBARKTOWN_NOOP lets a player past the teacher
-const TEACHER_LETS_YOU_GO: int = 1
+const MAHOGANY_MART_SCENE: String = "3:40"  ## SCENE_MAHOGANYMART1F_LANCE_UNCOVERS_STAIRS, which LANCE at the Lake of Rage sets
+const LANCE_UNCOVERS_STAIRS: int = 1
+const OPENING_SCENES: Array[String] = ["24:4", "24:5", "24:6", "26:10"]  ## New Bark Town's teacher, Elm's lab, Mom, Mr. Pokémon
 const INNER_CHAMBER_SCENE: String = "3:27"
 const STRANGE_PRESENCE: int = 1
 const EVENT_SOLVED_KABUTO_PUZZLE: int = 0x2A1
@@ -19,7 +20,7 @@ const INDIGO_LOBBY: Vector2i = Vector2i(16, 2)
 const EVENT_BEAT_ELITE_4_WILL: int = 0x5B8
 const EVENT_WILLS_ROOM_ENTRANCE_CLOSED: int = 0x309
 const EVENT_WILLS_ROOM_EXIT_OPEN: int = 0x30A
-const CHERRYGROVE: Vector2i = Vector2i(26, 3)
+const AZALEA: Vector2i = Vector2i(8, 7)
 const LAKE_OF_RAGE: Vector2i = Vector2i(9, 6)
 const EVENT_LAKE_OF_RAGE_LANCE: int = 0x6D4
 const ROUTE_22: Vector2i = Vector2i(0, 0x21)
@@ -42,7 +43,7 @@ func before_each() -> void:
 	_clients = []
 	_host = PokeCoopHost.create(_data, PokeCoopCampaign.create("johto1", _data.id, _data.sha1), PokeCoopTransport.new())
 	_host.allow_new_players = true
-	PokeCoopPolicy.start_campaign(_host.campaign)
+	PokeCoopPolicy.start_campaign(_host.campaign, _data)
 
 
 func after_each() -> void:
@@ -85,10 +86,24 @@ func test_a_gate_one_player_opens_is_open_in_the_other_window() -> void:
 	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
 	var silver: PokeCoopClient = _join(2, "SILVER", RomRegistry.SILVER)
 
-	_send_world(gold, {"map_scenes": _setting({NEW_BARK_SCENE: TEACHER_LETS_YOU_GO})})
+	_send_world(gold, {"map_scenes": _setting({MAHOGANY_MART_SCENE: LANCE_UNCOVERS_STAIRS})})
 
-	assert_eq(_seen(silver, "map_scenes").get(NEW_BARK_SCENE), TEACHER_LETS_YOU_GO, "New Bark Town's teacher lets SILVER go too")
-	assert_eq(Gen2WorldState.from_dict(PokeCoopWorldLink._host_world(silver)).map_scene(24, 4), TEACHER_LETS_YOU_GO)
+	assert_eq(_seen(silver, "map_scenes").get(MAHOGANY_MART_SCENE), LANCE_UNCOVERS_STAIRS, "LANCE waits in SILVER's mart too")
+	assert_eq(Gen2WorldState.from_dict(PokeCoopWorldLink._host_world(silver)).map_scene(3, 40), LANCE_UNCOVERS_STAIRS)
+
+
+func test_the_openings_scenes_are_each_players_own() -> void:
+	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
+	var silver: PokeCoopClient = _join(2, "SILVER", RomRegistry.SILVER)
+	var moved: Dictionary = {}
+	for scene: String in OPENING_SCENES:
+		moved[scene] = 7
+
+	_send_world(gold, {"map_scenes": _setting(moved)})
+
+	for scene: String in OPENING_SCENES:
+		assert_eq(_seen(gold, "map_scenes").get(scene), 7, scene)
+		assert_ne(_seen(silver, "map_scenes").get(scene), 7, "every player meets the teacher, Elm, Mom and Mr. Pokémon: " + scene)
 
 
 func test_a_ruins_puzzle_one_player_solves_is_solved_for_both_and_the_unown_stay_each_players() -> void:
@@ -148,15 +163,17 @@ func test_red_and_blues_items_tms_and_one_off_wilds_stay_out_of_a_gold_campaign(
 	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
 	var silver: PokeCoopClient = _join(2, "SILVER", RomRegistry.SILVER)
 
-	_send_world(gold, {"event_flags": _setting({RED_GIFT_TM_FLAG: true}), "items": _setting({POKE_BALL: 1})})
-
 	var other: PokeCoopPlayer = _host.player(silver.player_id)
+	var balls: int = other.item_count(POKE_BALL)
+	var held: int = _host.player(gold.player_id).item_count(POKE_BALL)
+	_send_world(gold, {"event_flags": _setting({RED_GIFT_TM_FLAG: true}), "items": _setting({POKE_BALL: held + 1})})
+
 	assert_eq(other.item_count(RED_GIFT_TM), 0, "Red's gift TM flag is another event in Johto")
 	assert_eq(_host.campaign.commit_ids(PokeCoopPolicy.GIFT_COMMIT_PREFIX), [], "a POKé BALL is no unique item")
-	assert_eq(other.item_count(POKE_BALL), 1, "an item found with the story still reaches everyone (D52)")
+	assert_eq(other.item_count(POKE_BALL), balls + 1, "an item found with the story still reaches everyone (D52)")
 	assert_eq(PokeCoopPolicy.unique_wild(_data), [], "SNORLAX and the like are each player's in Johto (D128)")
 	assert_false(PokeCoopPolicy.unique_wild(null).is_empty(), "Red and Blue keep theirs")
-	assert_eq(PokeCoopHost._window_encounter(false, 0, 0, SNORLAX, CHERRYGROVE, _data), "")
+	assert_eq(PokeCoopHost._window_encounter(false, 0, 0, SNORLAX, AZALEA, _data), "")
 
 
 func test_a_johto_key_item_reaches_every_player_and_a_late_joiner() -> void:
@@ -170,25 +187,27 @@ func test_a_johto_key_item_reaches_every_player_and_a_late_joiner() -> void:
 	assert_eq(_host.player(late.player_id).item_count(BICYCLE), 1, "the BICYCLE reaches a player who joins later")
 
 
-func test_the_first_player_into_a_johto_rival_scene_drives_it() -> void:
+func test_the_first_player_into_a_johto_rival_scene_drives_it_and_cherrygroves_is_each_openings() -> void:
 	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
 	var silver: PokeCoopClient = _join(2, "SILVER", RomRegistry.SILVER)
 
-	assert_eq(_host.claim_scene(_host.player(gold.player_id), CHERRYGROVE, true), &"")
-	assert_eq(_host.claim_scene(_host.player(silver.player_id), CHERRYGROVE, true), &"scene_taken")
+	assert_eq(_host.claim_scene(_host.player(gold.player_id), AZALEA, true), &"")
+	assert_eq(_host.claim_scene(_host.player(silver.player_id), AZALEA, true), &"scene_taken")
 	assert_eq(_host.claim_scene(_host.player(silver.player_id), ROUTE_22, true), &"not_a_scene", "Red's Route 22 is no Johto scene")
+	assert_eq(_host.claim_scene(_host.player(silver.player_id), Vector2i(26, 3), true), &"not_a_scene",
+		"Cherrygrove City's rival is in each player's own opening (D131)")
 
 
 func test_a_johto_scene_plays_while_a_script_its_scene_or_its_story_talk_started_runs() -> void:
 	var scenes: Dictionary = PokeCoopPolicy.rival_scenes(_data)
-	assert_true(scenes.has(CHERRYGROVE) and scenes.has(LAKE_OF_RAGE), "Cherrygrove's rival and the Lake of Rage are contested")
-	var meet: Dictionary = {"kind": &"coord_events", "map_group": 26, "map_number": 3, "event": {"scene": 1}}
-	var noop: Dictionary = {"kind": &"coord_events", "map_group": 26, "map_number": 3, "event": {"scene": 0}}
-	var talk: Dictionary = {"kind": &"objects", "map_group": 26, "map_number": 3, "event": {"event_flag": -1}}
+	assert_true(scenes.has(AZALEA) and scenes.has(LAKE_OF_RAGE), "Azalea's rival and the Lake of Rage are contested")
+	var meet: Dictionary = {"kind": &"coord_events", "map_group": 8, "map_number": 7, "event": {"scene": 1}}
+	var noop: Dictionary = {"kind": &"coord_events", "map_group": 8, "map_number": 7, "event": {"scene": 0}}
+	var talk: Dictionary = {"kind": &"objects", "map_group": 8, "map_number": 7, "event": {"event_flag": -1}}
 	var lance: Dictionary = {"kind": &"objects", "map_group": 9, "map_number": 6, "event": {"event_flag": EVENT_LAKE_OF_RAGE_LANCE}}
 	assert_true(PokeCoopJohto.scene_request(meet))
-	assert_false(PokeCoopJohto.scene_request(noop), "the city after the rival plays no scene")
-	assert_false(PokeCoopJohto.scene_request(talk), "talking to someone in the city plays no scene")
+	assert_false(PokeCoopJohto.scene_request(noop), "the town after the rival plays no scene")
+	assert_false(PokeCoopJohto.scene_request(talk), "talking to someone in the town plays no scene")
 	assert_true(PokeCoopJohto.scene_request(lance), "LANCE at the Lake of Rage does")
 	assert_false(PokeCoopJohto.scene_request({}))
 	assert_false(PokeCoopJohto.scene_playing(null))

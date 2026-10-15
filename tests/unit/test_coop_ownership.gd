@@ -119,15 +119,15 @@ func test_each_players_own_gift_flags_and_objects_stay_with_them() -> void:
 
 func test_johtos_map_scenes_travel_by_name_and_a_walks_own_stay_with_its_player() -> void:
 	var changes: Dictionary = PokeCoopOwnership.well_formed({
-		"map_scenes": {"set": {"24:4": 1, "20:1": 1, "3:27": 1}, "erase": ["16:3"]},
+		"map_scenes": {"set": {"3:40": 1, "20:1": 1, "3:27": 1, "24:4": 1, "9:4": 1}, "erase": ["16:3"]},
 	})
 
-	var halves: Dictionary = PokeCoopOwnership.route(changes, [], PokeCoopJohto.OWN_ENTRIES)
+	var halves: Dictionary = PokeCoopOwnership.route(changes, [], PokeCoopJohto.OWN_GIFTS)
 
-	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {"map_scenes": {"set": {"24:4": 1, "3:27": 1}, "erase": []}},
-		"New Bark Town's teacher and the Ruins' inner chamber are the team's")
-	assert_eq(halves[PokeCoopOwnership.PLAYER], {"map_scenes": {"set": {"20:1": 1}, "erase": ["16:3"]}},
-		"the Pokémon Center's link floor and WILL's room are each walk's")
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {"map_scenes": {"set": {"3:40": 1, "3:27": 1}, "erase": []}},
+		"LANCE's stairs in Mahogany and the Ruins' inner chamber are the team's")
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {"map_scenes": {"set": {"20:1": 1, "24:4": 1, "9:4": 1}, "erase": ["16:3"]}},
+		"the link floor, New Bark Town's teacher (the opening, owner 2026-10-16), Route 43's toll and WILL's room are each player's")
 
 
 func test_johtos_unlocked_unown_and_the_rockets_hold_are_the_teams_and_its_walk_flags_each_players() -> void:
@@ -143,7 +143,7 @@ func test_johtos_unlocked_unown_and_the_rockets_hold_are_the_teams_and_its_walk_
 		"event_flags": {"set": {3: true, 0x309: true, 0x30A: true, 0x2A1: true}, "erase": []},
 	}
 
-	var halves: Dictionary = PokeCoopOwnership.route(changes, badges, PokeCoopJohto.OWN_ENTRIES)
+	var halves: Dictionary = PokeCoopOwnership.route(changes, badges, PokeCoopJohto.OWN_GIFTS)
 
 	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {
 		"engine_flags": {"set": {unown: true, radio: true, badges[0]: true}, "erase": []},

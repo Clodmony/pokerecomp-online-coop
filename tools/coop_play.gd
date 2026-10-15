@@ -137,8 +137,16 @@ func _capture_due() -> void:
 		if _frames < int(shot["frame"]):
 			continue
 		var image: Image = root.get_viewport().get_texture().get_image()
-		print("coop play: capture %s %s" % [shot["path"], error_string(image.save_png(shot["path"]))])
+		print("coop play: capture %s %s%s" % [shot["path"], error_string(image.save_png(shot["path"])), _clock_shown()])
 		_captures.erase(shot)
+
+
+func _clock_shown() -> String:
+	var session: PokeCoopSession = _session if _session != null else Gen2GameRuntime.instance().coop
+	var screen: Gen2WorldScreen = session.screen if session != null and is_instance_valid(session.screen) else null
+	var clock: Gen2WorldClock = screen.get("_clock") if screen != null and PokeCoopJohto.plays(session.data) else null
+	return "" if clock == null else " at %s %s %s" % [Gen2ClockSetScreen.DAYS[clock.day].strip_edges(), Gen2WorldClock.reading(clock.hour, clock.minute).strip_edges(),
+		Gen2ClockSetScreen.TIME_OF_DAY_WORDS[mini(clock.time_of_day(), 2)]]
 
 
 func _drive_battle() -> void:

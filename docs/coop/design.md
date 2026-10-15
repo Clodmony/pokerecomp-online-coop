@@ -161,24 +161,31 @@ Their outcomes do not commit campaign story rewards.
 
 Gold and Silver are a version pair as Red and Blue are; Crystal follows and
 plays with Crystal only. Their rules live in `PokeCoopJohto` (D130). A new
-player starts in New Bark Town by the house's door with CHIKORITA, CYNDAQUIL or
-TOTODILE at level 5 (#172); Gold's opening and its rival come with #173. The rules above
-carry over, with these choices:
+player plays their own opening, from the bedroom to the Mystery Egg handed to
+Elm, with their own rival theft and fight (D131), or starts in New Bark Town by
+the house's door with CHIKORITA, CYNDAQUIL or TOTODILE at level 5 and what the
+opening hands everyone (#172, #173). The rules above carry over, with these choices:
 
 - The host's clock is the campaign's: time of day and weekday are the same in
-  every window.
-- Each player's own: Pokégear, phone contacts, calls and rematches; a day care
-  that breeds only their Pokémon; the roaming RAIKOU, ENTEI and SUICUNE; and
+  every window, it starts at the hosting device's time, only the hosting player
+  sets it, and it runs on while the campaign is closed (D133).
+- Each player's own: the starter, so the rival's teams answer it in that
+  player's window; the gift Pokémon (the TOGEPI egg, SHUCKLE, EEVEE, SPEAROW,
+  TYROGUE); Pokégear, phone contacts, calls and rematches; a day care
+  that breeds only their Pokémon (its two places, steps, egg and Route 34's pen,
+  D135); the roaming RAIKOU, ENTEI and SUICUNE; and
   the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
   SUDOWOODO, SNORLAX), which are not unique encounters here.
 - Shared: the Ruins of Alph's puzzles and the Unown letters they unlock (the
-  Unown caught stay each player's); story gates and map scenes such as New
-  Bark Town's teacher, the Rockets' hold on Mahogany and the Radio Tower, and
-  the gyms' badges (D132).
+  Unown caught stay each player's); story gates and map scenes such as LANCE's
+  staircase in Mahogany's mart, the Rockets' hold on Mahogany and the Radio
+  Tower, and the gyms' badges (D132).
 - Each walk's own: the eight flags a map load clears and the scenes of the link
   rooms, the Fast Ship, the Magnet Train, the contest's gates, the League's
-  rooms and the Unown dex (D132).
-- Contested scenes the first player in drives, as in Kanto (D72): the rival's,
+  rooms, Route 43's toll and the Unown dex; and the opening's scenes: New Bark
+  Town's teacher, Elm's lab, Mom and Mr. POKéMON (owner, D132).
+- Contested scenes the first player in drives, as in Kanto (D72): the rival's
+  after the opening,
   Team Rocket at Slowpoke Well, the Radio Tower and the Rocket base, the Lake of
   Rage's LANCE, the Dragon's Den's DRAGON FANG. The Elite Four is one run for
   the team (D91, D132).

@@ -41,8 +41,12 @@ How a new player starts:
   as in the cartridge. See "The opening" below.
 - **Start in Pallet Town** with one of the three starters, level 5, and 3000
   money. On Gold and Silver: **Start in New Bark Town** with CHIKORITA,
-  CYNDAQUIL or TOTODILE, the only way in until Gold's opening is built (#173);
-  a Gold or Silver campaign asks no rival's name.
+  CYNDAQUIL or TOTODILE, and what the opening hands everyone (Pokégear,
+  Pokédex, the aide's Potion and five Poké Balls); a Gold or Silver campaign
+  asks no rival's name on the tab. It has one clock, the
+  host's: it starts at the hosting device's weekday and time, every window
+  shows the same time of day and weekday, and it runs on while the campaign is
+  closed.
 - **Bring a trainer from a save**, if the cartridge has a single-player save on
   this device: that trainer's team, PC, bag, money and place. The first player
   of a new campaign who brings a save brings its story and badges too.
@@ -109,6 +113,15 @@ or one after another:
   same shared flags, badges and beaten trainers as everyone else's. The rival
   keeps the starter he took in the first opening to finish. Someone still in
   the opening shows in the CO-OP menu's list but not in the world.
+
+On Gold and Silver the opening is longer, as on the cartridge (D131): the clock
+and Oak's speech, Mom's Pokégear, Elm's starter, the errand to Mr. Pokémon for
+the egg and Oak's Pokédex, the rival who steals from Elm's lab the starter
+strong against yours and fights you in Cherrygrove, the officer and the egg
+handed to Elm. All of it is yours alone; you join the others when you leave
+Elm's lab after that. The officer asks the rival's name only of the first player
+to reach him; a later player's officer hears the name the campaign already has.
+The rival's later teams answer your own starter in your window.
 
 ## Split screen on one PC
 

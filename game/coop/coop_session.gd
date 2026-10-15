@@ -78,6 +78,7 @@ var _dialled_at: int = 0
 var _quit_at: int = -1
 var quit_app: Callable = Callable()
 var _paused_at: int = 0
+var _rival_told: String = ""
 var _continuing: int = -1
 var _direct_trade: int = 0
 var _direct_open: bool = false
@@ -145,7 +146,7 @@ static func new_campaign(game: GameData, title: String, rival: String = "", both
 	campaign.title = title
 	campaign.rival_name = rival
 	campaign.both_versions = both_versions
-	PokeCoopPolicy.start_campaign(campaign)
+	PokeCoopPolicy.start_campaign(campaign, game)
 	move_legacy(game)
 	return id if PokeCoopSave.write(campaign_path(game, id), campaign, []) == OK else ""
 
@@ -208,7 +209,8 @@ static func hosting(
 	if campaign == null:
 		campaign = PokeCoopCampaign.create(path.get_file().get_basename(), game.id, game.sha1)
 		campaign.title = title
-		PokeCoopPolicy.start_campaign(campaign)
+		PokeCoopPolicy.start_campaign(campaign, game)
+	PokeCoopJohto.start_campaign(campaign, game)
 	var serving: PokeCoopHost = PokeCoopHost.create(game, campaign, link_out)
 	serving.save_path = path
 	serving.allow_new_players = true
@@ -362,6 +364,7 @@ func _share_wild_tables() -> void:
 	if _both_versions == null and not (client.other_wild.get("tables", {}) as Dictionary).is_empty():
 		_both_versions = BothVersions.new()
 		_both_versions.client = client
+		_both_versions.time = func() -> int: return link.world.object_time_of_day if link != null and link.world != null else 0
 		_both_versions.own = PokeCoopPolicy.wild_species(PokeCoopPolicy.wild_tables(data))
 		Gen2ModHost.instance().register_wild_substitute(BothVersions.ID, _both_versions)
 
@@ -391,6 +394,8 @@ func _advance_links() -> void:
 		var waiting: bool = not link.scene_driver.is_empty() and panel != null and not overlay_open()
 		link.busy = PokeCoopWorldLink.unrest(screen) if shown and not waiting else &""
 		link.advance()
+		if shown:
+			link.follow_clock(screen, host != null)
 	if cable != null and not is_same(client.state, _cable_state):
 		_cable_state = client.state
 		cable.refresh()
@@ -404,6 +409,8 @@ func _tend_world() -> void:
 	if (screen.process_mode == Node.PROCESS_MODE_DISABLED) != frozen:
 		hold_world(screen, screen.get("_audio_player"), frozen)
 	var world: Gen2WorldAPI = screen.get("_world")
+	if world != null and PokeCoopJohto.plays(data):
+		_tend_officer(world)
 	if world != null and not rival_name().is_empty() and world.rival_name != rival_name():
 		world.rival_name = rival_name()
 	_actor.show_marks(screen.get("_screen"), not frozen and _world_quiet())
@@ -698,6 +705,8 @@ func open_start() -> Control:
 			Gen2OakSpeech.NAME_RIVAL: String((client.state.get("campaign", {}) as Dictionary).get("rival_name", "")),
 		}
 		opening_screen.spoken.connect(_on_spoken)
+		opening_screen.asks_clock = host != null
+		opening_screen.clock_set.connect(func(_day: int, hour: int, minute: int) -> void: client.set_clock(-1, hour, minute))
 		opening_screen.begin(data, 0, "", false)
 	return opening_screen
 
@@ -708,6 +717,16 @@ func _on_spoken(_player_name: String, rival: String) -> void:
 	var tree: SceneTree = opening_screen.get_tree()
 	opening_screen = null
 	tree.change_scene_to_node(open_world())
+
+
+func _tend_officer(world: Gen2WorldAPI) -> void:  ## Johto's officer asks only before the campaign's rival has a name (D131)
+	var named: String = rival_name()
+	if screen.get("_rival_name_host") != null and not named.is_empty():
+		journal.add(PokeCoopLog.WORLD, "officer", {"rival": named}, client.player_id)
+		screen.call(&"_on_rival_named", named)
+	elif named.is_empty() and not world.rival_name in ["", Gen2WorldScriptRunner.UNNAMED] and world.rival_name != _rival_told:
+		_rival_told = world.rival_name
+		client.send({"type": "opening", "rival": world.rival_name})
 
 
 func rival_name() -> String:
@@ -954,6 +973,9 @@ class BothVersions extends RefCounted:
 	const ID: StringName = &"coop_both_versions"
 	var client: PokeCoopClient = null
 	var own: Dictionary = {}
+	var time: Callable = Callable()
 
 	func substitute_wild(context: Dictionary) -> Dictionary:
+		if time.is_valid():
+			context["time_of_day"] = time.call()
 		return PokeCoopPolicy.other_wild(context, client.other_wild.get("tables", {}), own) if client != null else {}

@@ -14,6 +14,7 @@ signal finished(save: Gen2SaveData)
 ## Carries why the run could not be written, having written nothing.
 signal failed(message: String)
 signal spoken(player_name: String, rival_name: String)
+signal clock_set(day: int, hour: int, minute: int)
 
 const WORLD_SCENE: String = "res://game/world/world_screen.tscn"
 const LAUNCHER_SCENE: String = "res://game/main/main.tscn"
@@ -33,6 +34,7 @@ var _gender: int = Gen2SaveData.GENDER_MALE
 var _standalone: bool = true
 ## False for a driver that keeps its own save, such as a co-op window.
 var writes_save: bool = true
+var asks_clock: bool = true  ## false when another's clock is the game's: a co-op joiner's (D133)
 var preset_names: Dictionary = {}
 
 var _splash: Gen2SplashScreen = null
@@ -253,6 +255,9 @@ func _finish_fade() -> void:
 ## `OakSpeech` farcalls `InitClock` before its first `PrintText`, then
 ## `SetDayOfWeek` after the hour and minute have been accepted.
 func _start_clock() -> void:
+	if not asks_clock:
+		_start_speech()
+		return
 	_clock_screen = Gen2ClockSetScreen.new()
 	if not _clock_screen.open(_data):
 		_clock_screen.free()
@@ -265,6 +270,7 @@ func _start_clock() -> void:
 
 func _on_clock_set(day: int, hour: int, minute: int) -> void:
 	_clock = {"day": day, "hour": hour, "minute": minute}
+	clock_set.emit(day, hour, minute)
 	Gen2Screen.drop(_clock_screen)
 	_clock_screen = null
 	_start_speech()

@@ -2026,46 +2026,92 @@ owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
 scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
 joins (`demo gold`).
 
+## D131. Gold and Silver's opening: the rival steals per window (owner, 2026-10-16)
+
+Asked in #173 what the rival steals when two players each picked a starter at
+Elm's lab. The owner chose per window, as the cartridge: each player plays their
+own opening, and in that player's window the rival steals the starter strong
+against that player's pick, as Red and Blue co-op gives each player their own
+opening and rival fight. Built that way:
+
+- A player's opening runs from the bedroom (the clock and Oak's speech) through
+  Elm's starter, Mr. Pokémon's egg and Oak's Pokédex, the theft, the rival's
+  fight in Cherrygrove and the officer, to the egg handed to Elm
+  (`EVENT_GAVE_MYSTERY_EGG_TO_ELM`); it ends when the player leaves Elm's lab,
+  and only then does the player join the campaign's story and see the others.
+  The opening's own story is dropped then, as Red's is (D50).
+- A new Gold or Silver campaign starts at that point (`PokeCoopJohto.start_campaign`):
+  `InitializeEventsScript`'s facts from the cartridge's own catalog, the
+  errand's flags and map scenes. A campaign made before #173 gets them once.
+- The starter's `EVENT_GOT_<it>_FROM_ELM` and the lab's ball flags are each
+  player's own, so every later rival fight in that player's window uses the
+  team strong against their pick and their lab shows their own two balls gone.
+- The rival's name: the tab offers no rival field for Gold and Silver, since the
+  cartridge names him after the theft. The officer asks the campaign's first
+  player to reach him; that name is the campaign's (as Red's first Oak's speech
+  is), and a later player's window answers the officer with it.
+- A late joiner who starts in New Bark Town holds what the opening hands
+  everyone: Mom's Pokégear with Mom's and Elm's numbers, Oak's Pokédex, the
+  aide's Potion and five Poké Balls, their starter's flags and the ball the
+  rival took from them.
+- Gift Pokémon are one per player (D61): the TOGEPI egg (its aide, hatching,
+  Elm's call and Everstone), SHUCKLE, EEVEE, SPEAROW's mail and TYROGUE, and the
+  Guide Gent's tour and Mom's bank, by their flags (`PokeCoopJohto.OWN_GIFTS`).
+  Story items and TMs reach everyone once as Red and Blue's do (D52), by
+  Johto's own item ids (`SHARED_ITEMS`, `GIFT_TMS`), which Red and Blue's ids
+  had stood in for.
+- Wild Pokémon from both versions (D104) work on Gold and Silver: the tables
+  are keyed by map group and number, and a grass slot is taken from the other
+  version's table for the time of day the window's world reports (#175 makes
+  that the host's clock).
+
 ## D132. Sharing Johto's world (#174, 2026-10-16)
 
 Gold and Silver ran on Red and Blue's tables: their map scenes (`map_scenes`,
 keyed `group:number`) were dropped by the host's well-formed check, so no scene
-reached the campaign or a partner and a window reopened with every scene at
-zero; every event flag was the campaign's, temporary ones too; engine flags
-were each player's but the badges, so a Ruins puzzle one player solved unlocked
-the Unown only in their world; Red's gift TM flags and unique items fired on
-other Johto events (flag 41 handed every player Red's TM item 242, a POKé BALL
-was a "unique item"); SNORLAX and the birds were one encounter per campaign;
-and the rival locks, the League run and its redraws named Kanto's maps.
-Following D91 (a gate one clears is cleared for both) and D72 (a walk's own
-state stays with it), `PokeCoopJohto` now holds Johto's answers, asked by
-generation, and Red and Blue's stay as they were:
+a window played reached the campaign or a partner; every event flag was the
+campaign's, temporary ones too; engine flags were each player's but the badges,
+so a Ruins puzzle one player solved unlocked the Unown only in their world;
+SNORLAX and the birds were one encounter per campaign; and the rival locks, the
+League run and its redraws named Kanto's maps. Following D91 (a gate one clears
+is cleared for both) and D72 (a walk's own state stays with it), Johto's answers
+are `PokeCoopJohto`'s, in the one set of tables #173 (D131) and #178 (D135)
+started, and Red and Blue's stay as they were:
 
-- **Map scenes** are owned scene by scene like event flags. The campaign keeps
-  the story's (New Bark Town's teacher, the Ruins' inner chamber, the gates of
-  Ecruteak, Mahogany and Route 43, the rival's); each player keeps a walk's:
-  the link rooms, the Fast Ship and its ports, the Magnet Train's stations, the
-  contest's gates, the League's rooms and the Hall of Fame, the bicycle gates,
-  the Trainer House and the Unown dex.
-- **Event flags**: each player keeps the eight `EVENT_TEMPORARY_UNTIL_MAP_RELOAD`
-  flags (dropped from a campaign when it is hosted), the League rooms' shut
-  entrances and LANCE's room after him; everything else stays the campaign's.
+- **Map scenes** are owned scene by scene like event flags, listed with each
+  player's own flags in `PokeCoopJohto.OWN_GIFTS`. The campaign keeps the
+  story's: LANCE's staircase in Mahogany's mart, the Ruins' inner chamber, the
+  gates of Ecruteak and Victory Road, the Radio Tower, the rival's. Each player
+  keeps a walk's: the link rooms, the Fast Ship and its ports, the Magnet
+  Train's stations, the contest's gates, the League's rooms and the Hall of
+  Fame, the bicycle gates, the Trainer House, the Unown dex and Route 43's
+  gate, whose toll Route 43 asks again on every entry.
+- **The opening's scenes are each player's (owner, 2026-10-16).** With
+  per-window openings (D131), New Bark Town's teacher, Elm's lab, Mom's
+  POKéGEAR, Route 29's catch tutorial and Mr. POKéMON's house are each player's
+  own: every player meets Elm, Mom and Mr. POKéMON and gets their own POKéDEX.
+  Cherrygrove City's rival belongs to the opening too, so it is no contested
+  scene.
+- **Event flags**: besides D131's gifts and D135's day care, each player keeps
+  the eight `EVENT_TEMPORARY_UNTIL_MAP_RELOAD` flags (dropped from a campaign
+  when it is hosted), the League rooms' shut entrances and LANCE's room after
+  him; everything else stays the campaign's.
 - **Engine flags** the team shares beside the badges: the four unlocked Unown
   sets (a puzzle solved for both, D128) and the Rockets' hold (the radio
-  signal, the Radio Tower and Mahogany).
-- **Key items** kept for good reach every player once (D52): the BICYCLE,
-  COIN CASE, ITEMFINDER, the three rods, S.S. TICKET, CARD KEY, BASEMENT KEY,
-  PASS, SQUIRTBOTTLE and the seven HMs; other items found with the story reach
-  everyone as before. Red's gift TMs and its one-off wild Pokémon do not apply
-  to Johto: gifts one per player are #173's, story legendaries #180's.
+  signal, the Radio Tower and Mahogany), by a `team_engine_flags` entry in the
+  same table.
+- **Items**: one rule with D131: Johto's key items and HMs reach every player
+  once (`SHARED_ITEMS`), a gift TM's flag hands its TM to every player once
+  (`GIFT_TMS`), and other items found with the story reach everyone (D52). Red's
+  one-off wild Pokémon do not apply: Johto's are one per player (D128, #180).
 - **Contested scenes** (D72, D84): a Johto scene has no script byte that moves
   while it plays, so a window claims a map while a script runs there that one
   of the map's contested scenes (by its coordinate event or map entry) or a
-  story talk (by the person's hide flag) started: the rival in Cherrygrove,
-  Azalea, Sprout Tower, the Burned Tower, Olivine, Goldenrod's underground,
-  Victory Road and Mt. Moon; the Radio Tower's 5F; LANCE in Mahogany's mart and
-  the Rocket base's B2F and B3F; Team Rocket and KURT in Slowpoke Well; LANCE at
-  the Lake of Rage; the DRAGON FANG in the Dragon's Den.
+  story talk (by the person's hide flag) started: the rival in Azalea, Sprout
+  Tower, the Burned Tower, Olivine, Goldenrod's underground, Victory Road and
+  Mt. Moon; the Radio Tower's 5F; LANCE in Mahogany's mart and the Rocket
+  base's B2F and B3F; Team Rocket and KURT in Slowpoke Well; LANCE at the Lake
+  of Rage; the DRAGON FANG in the Dragon's Den.
 - **The Elite Four** is one run for the team as in Kanto (D93): the four, LANCE
   and each room's open exit are the campaign's, the lobby's clear is held while
   a player is in the League, and a window standing in a room or a Ruins chamber
@@ -2073,7 +2119,55 @@ generation, and Red and Blue's stay as they were:
 
 Costs: a scene pulled for the map a window stands on applies at once (Johto's
 coordinate events read it on the next step, and map entry scripts run only on
-entry); the gift scenes of the opening (ELM's lab, Mom's POKéGEAR, MR.
-POKéMON's house) stay the campaign's until #173 decides them; the Burned
-Tower's beasts wait for #180; the League's and the Ruins' redraws are written
-but not seen on a cartridge yet.
+entry); a campaign hosted before this keeps the opening's scenes it was given,
+which each player's own now hide; the Burned Tower's beasts wait for #180; the
+League's and the Ruins' redraws are written but not seen on a cartridge yet.
+
+## D133. The host's clock for every window (#175, protocol 9, 2026-10-16)
+
+D128 makes the host's clock the campaign's one clock. How it travels:
+
+- **One reading at a host second.** A Gold or Silver campaign keeps the weekday,
+  hour, minute, second and `wCurDay` it read at a host second
+  (`PokeCoopCampaign.clock`, saved with the campaign); the time now is that
+  reading plus the seconds since (`PokeCoopJohto`). A new campaign starts it at
+  the hosting device's own weekday and time, as an RTC set to the real time; a
+  tool may name another (`clock=HH:MM[:D]`). Red and Blue keep none, and their
+  files and messages are unchanged.
+- **Each window runs it on.** Every `state` carries the reading as the host
+  sent it, and a window runs it on by its own milliseconds since, so devices
+  whose system clocks disagree still agree. A world opens on it, and once a
+  frame the shown world follows it: a world behind ticks its own minutes up to
+  it (phone timers count them); one ahead, or on another weekday, is set to it.
+  A world held under the CO-OP menu or a battle catches up when it comes back.
+- **Closed, it keeps running.** A reopened campaign reads from its saved
+  stamp, so the clock ran while it was closed. A host second earlier than the
+  stamp (the host's clock was put back) holds the reading until real time
+  reaches it again: the world never runs backwards, as `Gen2WorldClock`'s own
+  rule.
+- **The hosting player sets it.** A `clock` message is taken from the hosting
+  device's player only (`not_host` for the others): the opening's time
+  question, which only the hosting window asks (`Gen2IntroScreen.asks_clock`;
+  a joiner's opening goes straight to Oak's speech), and any jump the hosting
+  window's own scripts make, such as Mom's weekday. A joiner's own jump is put
+  back to the host's clock.
+- **Protocol 9**, since a window of protocol 8 would keep its own clock.
+
+Left out: daylight saving time stays each window's flag (Mom's question sets it
+for that window's Pokégear; the clock itself does not move), and battles fought
+on the host keep their default time of day for Moonlight, Morning Sun and
+Synthesis until co-op battles on the Generation 2 screen (#176) pass it.
+
+## D135. A Johto day care lives in its player's world (2026-10-16)
+
+D128 gives each Gold and Silver player their own day care. The cartridge keeps
+the day care in world state (`wDayCareMan`, `wDayCareLady`, the two box
+structs, `wStepsToEgg`, the egg), which `PokeCoopOwnership` already classes as
+the player's, so each window breeds and hatches on its own world, as upstream's
+code does. Route 34's callback also writes four event flags from the player's
+own day care on every load (the man indoors, the same man by the pen, the two
+Pokémon in the pen); those are each player's own entries, listed in
+`PokeCoopJohto.OWN_GIFTS`, so they never reach the campaign. A Pokémon in a
+day care is in its player's world only: the host's team and PC drop it while it
+is away and take it back under a new uid, as they do for any Pokémon a window
+adds. Red and Blue's day care (one place, Route 5) is unchanged.

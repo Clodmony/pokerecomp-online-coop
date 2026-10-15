@@ -126,7 +126,8 @@ func _receive(message: Dictionary) -> void:
 		"log":
 			journal.take_relayed(message.get("lines"), "host", "", journal.share)
 		"wild_tables":
-			other_wild = {"game_id": PokeCoopTransport.text(message.get("game_id")), "tables": PokeCoopPolicy.sane_wild_tables(message.get("tables"))}
+			var game: String = PokeCoopTransport.text(message.get("game_id"))
+			other_wild = {"game_id": game, "tables": PokeCoopPolicy.sane_wild_tables(message.get("tables"), not PokeCoopJohto.is_game(StringName(game)))}
 			journal.add(PokeCoopLog.CLIENT, "wild_tables", {"game": other_wild["game_id"]}, player_id)
 		"battle":
 			var view: Dictionary = message.get("view", {})
@@ -210,6 +211,15 @@ func answer_challenge(id: String, yes: bool) -> int:
 
 func request_save() -> int:
 	return send({"type": "save"})
+
+
+func clock() -> Dictionary:  ## the host's clock as of now (D133): the last state's reading run on since; empty on Red and Blue
+	var told: Variant = state.get("clock", {})
+	return PokeCoopJohto.moved(told, (Time.get_ticks_msec() - state_at) / 1000.0) if told is Dictionary and not (told as Dictionary).is_empty() else {}
+
+
+func set_clock(day: int, hour: int, minute: int, cur_day: int = -1) -> int:
+	return send({"type": "clock", "day": day, "hour": hour, "minute": minute, "cur_day": cur_day})
 
 
 ## A tool's label for what drives this window, such as the autopilot's leg: unnumbered, after all sent before it.
