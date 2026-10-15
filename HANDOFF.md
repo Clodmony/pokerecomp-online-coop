@@ -66,7 +66,8 @@ Last updated 2026-10-15 (after #171, PR #186).
 - No session links in commits or PR bodies (owner's rule, 2026-10-15): no
   `Claude-Session:` trailer, PR bodies end with the "Generated with Claude
   Code" line only. The history and PR bodies were cleaned once (D129);
-  GitHub Support's purge of the old PR refs is the owner's request.
+  The owner opened a GitHub Support ticket (2026-10-15)
+  to drop the old commits from 34 PR refs and garbage-collect them.
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
 - Merge, when the owner says so: in the main checkout on
