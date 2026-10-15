@@ -1,7 +1,7 @@
 extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
-##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]...
+##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing it and each next one joining; p1 imports it, p2 a copy;
 ## `both` turns on wild Pokémon from both versions (D104).
 
@@ -33,7 +33,7 @@ func _initialize() -> void:
 		for key: String in options:
 			if arg.begins_with(key):
 				options[key] = int(arg.trim_prefix(key))
-	var extras: Array = Array(args.slice(3)).filter(func(arg: String) -> bool: return arg.begins_with("mon=") or arg.begins_with("item="))
+	var extras: Array = Array(args.slice(3)).filter(func(arg: String) -> bool: return arg.begins_with("mon=") or arg.begins_with("item=") or arg.begins_with("at="))
 	quit(_seed(data, args[1], args[2], options["level="], options["party="], args.has("both"), extras))
 
 
@@ -65,9 +65,15 @@ func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party:
 	if not refused.is_empty():
 		push_error("coop seed: %s" % refused)
 		return 1
-	var written: Error = write_seed(data, save, out_dir, _beside(world), both)
+	var partner: Vector2i = _beside(world)
+	for extra: String in extras.filter(func(arg: String) -> bool: return arg.begins_with("at=")):
+		var parts: PackedStringArray = extra.trim_prefix("at=").split(":")
+		save.world.map_id = Vector2i(int(parts[0]), int(parts[1]))
+		save.world.player_cell = _cell(parts[2])
+		partner = _cell(parts[3]) if parts.size() > 3 else save.world.player_cell + Vector2i.LEFT
+	var written: Error = write_seed(data, save, out_dir, partner, both)
 	print("coop seed: %s on %s %s, badges %d, party %d, %s" % [
-		last, world.map_id(), world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
+		last, save.world.map_id, save.world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
 	return 0 if written == OK else 1
 
 
@@ -88,7 +94,7 @@ static func shape(data: GameData, save: Gen2SaveData, extras: Array) -> String:
 	editor.data = data
 	editor.save = save
 	var first: bool = true
-	for extra: String in extras:
+	for extra: String in extras.filter(func(arg: String) -> bool: return not arg.begins_with("at=")):
 		var parts: PackedStringArray = extra.substr(extra.find("=") + 1).split(":")
 		var number: int = named(data, "item" if extra.begins_with("item=") else "species", parts[0])
 		if number <= 0:
@@ -166,6 +172,10 @@ static func fill_party(data: GameData, save: Gen2SaveData, size: int) -> void:
 		editor.set_dvs(mon, top, top, top, special)
 		mon.hp = editor.max_hp_for(mon)
 		used.append(mon.dvs)
+
+
+static func _cell(text: String) -> Vector2i:
+	return Vector2i(int(text.get_slice(",", 0)), int(text.get_slice(",", 1)))
 
 
 static func _leg_name(leg: Callable) -> String:
