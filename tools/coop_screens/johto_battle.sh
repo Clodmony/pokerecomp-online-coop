@@ -8,7 +8,7 @@ DURATION=150
 press p1 1.8 SELECT @FIGHT.+FALKNER
 press p2 6.6 SELECT @JOIN
 press p1 18 R A                        # FIGHT to <PKMN>, the party list
-shot p1 20.5 gold_party_held_item      # SQUIRTLE's BERRY beside its icon, "BLUE's POKéMON"
+shot p1 20.5 gold_party_held_item      # the held-item mark on SQUIRTLE's icon
 press p1 22 "@SWITCH.+SQUIRTLE"
 press p1 23.5 "@SWITCH.+SQUIRTLE"
 press p1 25 "@SWITCH.+SQUIRTLE"
