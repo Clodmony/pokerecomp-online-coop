@@ -32,6 +32,7 @@ var last_events: Array = []
 var seen: Dictionary = {}
 ## Who a caught wild goes to and the wild itself, once a ball has held.
 var catch: Dictionary = {}
+var amulet_owners: Dictionary = {}  ## whose Pokémon brought an Amulet Coin in (D134)
 var _pending_joins: Array = []
 var _absent: Dictionary = {}
 var _left: Dictionary = {}
@@ -68,6 +69,7 @@ static func start(
 		out.battle.init_enemy_trainer(trainer_class)
 	out._enlist(player, fighters)
 	out._attached[player.player_id] = true
+	out._note_amulet(out.battle.party(Gen2Battle.PLAYER).active)
 	return out
 
 
@@ -437,10 +439,18 @@ func _advance(events: Array) -> void:
 	for event: Dictionary in events:
 		if StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT and int(event.get("side", 0)) == Gen2Battle.ENEMY:
 			seen[int(event.get("species", 0))] = true
+		elif StringName(event.get("type", &"")) == Gen2Battle.SENT_OUT:
+			_note_amulet(int(event.get("index", -1)))
 	suggestions.clear()
 	if phase() == AWAITING_ACTION:
 		_apply_joins(events)
 	last_events = events
+
+
+func _note_amulet(index: int) -> void:
+	var entering: Gen2BattleMon = battle.party(Gen2Battle.PLAYER).at(index)
+	if entering != null and Gen2HeldItem.effect_of(battle.data, entering.item) == Gen2HeldItem.AMULET_COIN:
+		amulet_owners[roster.owner_at(index)] = true
 
 
 func _enemy_action() -> Dictionary:
@@ -595,6 +605,8 @@ static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
 		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
 		"substitute": Gen2Substatus.has(member.substatus, Gen2Substatus.SUBSTITUTE), "minimized": member.minimized,
+		"item": member.item, "exp": member.exp, "gender": String(member.gender()), "shiny": Gen2Stats.is_shiny(member.dvs),
+		"unown_form": Gen2Battle.unown_form_of(member),
 	}
 
 

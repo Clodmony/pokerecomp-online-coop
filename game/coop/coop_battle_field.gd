@@ -63,6 +63,7 @@ var _overlay: Control = null
 var _surround: Color = Color.TRANSPARENT
 var _flute_watch: Dictionary = {}
 var _party_page: Gen2PartyMenuPage = null
+var _exp_seen: int = 0
 
 
 static func over(battle_panel: PokeCoopBattlePanel, game_data: GameData) -> PokeCoopBattleField:
@@ -172,7 +173,7 @@ func _draw_menu() -> void:
 	var menu: PokeCoopBattleMenu = panel.menu
 	if menu.clicks != _clicks:
 		_clicks = menu.clicks
-		_play_cue({"sound": Gen1Sfx.SFX_PRESS_AB})
+		_play_cue({"sound": Gen1Sfx.SFX_PRESS_AB if _gen1() else Gen2Sfx.SFX_READ_TEXT_2})
 	var shown: bool = not is_playing() and menu.page != PokeCoopBattleMenu.NONE
 	_menu_layer.visible = shown
 	var drawn: String = menu.signature() if shown else ""
@@ -232,7 +233,19 @@ static func scene_view(view: Dictionary, game: GameData) -> Dictionary:
 		out[prefix + "_status"] = int(mon.get("status", 0))
 		out[prefix + "_substitute"] = bool(mon.get("substitute", false))
 		out[prefix + "_minimized"] = bool(mon.get("minimized", false))
+		if game != null and game.generation != RomRegistry.GEN1:
+			out.merge({prefix + "_shiny": bool(mon.get("shiny", false)), prefix + "_gender": StringName(mon.get("gender", "")),
+				prefix + "_unown_form": int(mon.get("unown_form", 0))})
+	if game != null and game.generation != RomRegistry.GEN1:
+		out["exp_pixels"] = exp_pixels(game, int(ally.get("species", 0)), int(ally.get("level", 0)), int(ally.get("exp", 0)))
 	return out
+
+
+static func exp_pixels(game: GameData, species: int, level: int, exp: int) -> int:  ## `CalcExpBar`, full while a level is still to be told
+	if species <= 0 or level <= 0 or level >= Gen2Experience.MAX_LEVEL:
+		return 0
+	var rate: int = int(game.species(species).get("growth_rate", Gen2Experience.GROWTH_MEDIUM_FAST))
+	return Gen2ExpBarAnimation.pixels_for(rate, level, mini(exp, Gen2Experience.total_exp_at(rate, level + 1)))
 
 
 static func _species_name(game: GameData, species: int) -> String:
@@ -289,7 +302,7 @@ func _queue_event(event: Dictionary, rest: Array, out: Dictionary, names: Dictio
 	for page: int in paged.size():
 		_messages.append({"text": paged[page], "stats": stats} if page == 0 and not stats.is_empty() else {"text": paged[page]})
 		if page == 0 and type == PokeCoopBattleSession.BALL_THROWN:
-			_messages.append_array(toss_steps(event))
+			_messages.append_array(toss_steps(event, data))
 	if type == PokeCoopBattleSession.BALL_THROWN:
 		_messages.append_array(catch_steps(event, panel.client.player_id, data))
 	elif type == PokeCoopBattleSession.ITEM_USED:
@@ -316,6 +329,11 @@ func _screen_line(event: Dictionary, out: Dictionary, trainer: String) -> String
 	var named: Dictionary = event.duplicate()
 	named["type"] = StringName(event.get("type", &""))
 	return String(_words.call("_describe", named))
+
+
+func _screen_text(label: String, view: Dictionary) -> String:
+	_screen_line({}, out_now(view), _trainer_name(view))
+	return String(_words.call("_battle_text", label, {"side": Gen2Battle.ENEMY}))
 
 
 func _exit_tree() -> void:
@@ -357,11 +375,11 @@ func _open(view: Dictionary) -> void:
 	_messages.append({"stage": PokeCoopBattleStage.INTRO, "side": Gen2Battle.ENEMY})
 	if bool(view.get("trainer", false)):
 		_messages.append({"balls": {Gen2Battle.PLAYER: mine, Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
-		_messages.append({"text": _de(data, "%s wants\nto fight!") % _trainer_name(view)})
+		_messages.append({"text": (_de(data, "%s wants\nto fight!") if _gen1() else "%s\nwants to battle!") % _trainer_name(view)})
 		_messages.append({"balls": {}})
 		_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.ENEMY})
-		_messages.append({"text": _de(data, "%s sent\nout %s!") % [_trainer_name(view), _species_name(data, enemy)]})
-		_messages.append_array(send_out_steps(Gen2Battle.ENEMY))
+		_messages.append({"text": (_de(data, "%s sent\nout %s!") if _gen1() else "%s\nsent out\n%s!") % [_trainer_name(view), _species_name(data, enemy)]})
+		_messages.append_array(send_out_steps(Gen2Battle.ENEMY, data, bool((view.get("enemy", {}) as Dictionary).get("shiny", false))))
 		_messages.append({"cry": enemy})
 	else:
 		_messages.append({"cry": enemy})
@@ -374,7 +392,9 @@ func _open(view: Dictionary) -> void:
 	_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.PLAYER})
 	var named: String = String(opening[name_key(Gen2Battle.PLAYER)])
 	_messages.append({"text": _de(data, "Go! %s!") % (named if not named.is_empty() else _species_name(data, ally))})
-	_messages.append_array(send_out_steps(Gen2Battle.PLAYER))
+	var lead: Array = view.get("allies", [])
+	var shiny: bool = int(view.get("active", 0)) < lead.size() and bool(lead[int(view.get("active", 0))].get("shiny", false))
+	_messages.append_array(send_out_steps(Gen2Battle.PLAYER, data, shiny))
 	_messages.append({"cry": ally})
 
 
@@ -382,6 +402,8 @@ func _open(view: Dictionary) -> void:
 func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 	var side: int = int(event.get("side", 0))
 	_queue_state(event, out, side)
+	if not _gen1():
+		_queue_johto(event, view)
 	match StringName(event.get("type", &"")):
 		Gen2Battle.HP_BAR:
 			_messages.append({
@@ -395,11 +417,11 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 				_messages.append({"balls": {} if _offered else {Gen2Battle.ENEMY: ball_tiles(view, Gen2Battle.ENEMY, "")}})
 			_enemy_down = false if side == Gen2Battle.ENEMY else _enemy_down
 			_offered = _offered and side != Gen2Battle.ENEMY
-			_messages.append({"enter": event})
+			_messages.append({"enter": _entering(event, view)})
 		Gen2Battle.FAINTED:
 			_enemy_down = _enemy_down or side == Gen2Battle.ENEMY
 			_messages.append({"stage": PokeCoopBattleStage.FAINT, "side": side})
-			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false))))
+			_messages.append_array(faint_sounds(side, int(out.get(side, 0)), bool(view.get("trainer", false)), data))
 			if side == Gen2Battle.ENEMY and not bool(view.get("trainer", false)) and String(view.get("outcome", "")) == "won":
 				_messages.append({"fanfare": false, "gym": false})
 				_fanfared = true
@@ -414,6 +436,40 @@ func _queue(event: Dictionary, out: Dictionary, view: Dictionary) -> void:
 					"max_hp": int((event.get("new_stats", {}) as Dictionary).get("hp", 0))})
 		Gen2Battle.ANIMATION:
 			_queue_animation(event, out)
+
+
+func _gen1() -> bool:
+	return data == null or data.generation == RomRegistry.GEN1
+
+
+func _queue_johto(event: Dictionary, view: Dictionary) -> void:  ## the panel at `HUD_DRAWN`, the exp bar per award and level
+	var index: int = int(event.get("index", -1))
+	match StringName(event.get("type", &"")):
+		Gen2Battle.HUD_DRAWN:
+			_messages.append({"stage": PokeCoopBattleStage.APPEAR, "side": int(event.get("side", 0))})
+		Gen2Battle.EXP_GAINED:
+			_exp_seen = int(event.get("exp", 0))
+			if index == int(view.get("active", -1)):
+				_messages.append({"panel": {"exp_pixels": exp_pixels(data, species_at(view, Gen2Battle.PLAYER, index),
+					int(_board.shown.get("player_level", _level_of(view, index))), _exp_seen)}})
+		Gen2Battle.GREW_LEVEL:
+			if index == int(view.get("active", -1)):
+				_messages.append({"panel": {"exp_pixels": exp_pixels(data, species_at(view, Gen2Battle.PLAYER, index),
+					int(event.get("new_level", 0)), _exp_seen)}})
+
+
+func _entering(event: Dictionary, view: Dictionary) -> Dictionary:
+	if _gen1() or int(event.get("side", 0)) != Gen2Battle.PLAYER:
+		return event
+	var allies: Array = view.get("allies", [])
+	var at: int = allies.find_custom(func(ally: Dictionary) -> bool: return int(ally.get("index", -1)) == int(event.get("index", -1)))
+	return event.merged({"exp_pixels": exp_pixels(data, int(allies[at]["species"]), int(event.get("level", 0)),
+		int(allies[at].get("exp", 0))) if at >= 0 else 0})
+
+
+static func _level_of(view: Dictionary, index: int) -> int:
+	var allies: Array = view.get("allies", [])
+	return int(allies[index].get("level", 0)) if index >= 0 and index < allies.size() else 0
 
 
 func _queue_state(event: Dictionary, out: Dictionary, side: int) -> void:
@@ -435,12 +491,18 @@ func _queue_state(event: Dictionary, out: Dictionary, side: int) -> void:
 		Gen2Battle.DELAY:
 			_messages.append({"hold": int(event.get("frames", 0))})
 		Gen2Battle.FLED:
-			_messages.append({"sound": Gen1Sfx.SFX_RUN, "under": true})
+			_messages.append({"sound": Gen1Sfx.SFX_RUN if _gen1() else Gen2Sfx.SFX_RUN, "under": true})
 
 
 func _queue_animation(event: Dictionary, out: Dictionary) -> void:
 	var index: int = int(event.get("index", 0))
 	var enemy_turn: bool = bool(event.get("enemy_turn", false))
+	if not _gen1():
+		_messages.append({"anim": index, "enemy": enemy_turn, "after": int(event.get("after_anim", 0)),
+			"param": int(event.get("param", 0)), "effectiveness": int(event.get("effectiveness", Gen2Layout.MATCHUP_EFFECTIVE)),
+			"species": int(out.get(Gen2Battle.ENEMY if enemy_turn else Gen2Battle.PLAYER, 0)), "off_field": event.get("off_field", [false, false]),
+			"restore": bool(event.get("restore_user_pic", false))})
+		return
 	if index == Gen2Battle.ANIM_SEND_OUT_MON:
 		if int(event.get("param", 0)) == Gen2Battle.SEND_OUT_ANIM_NORMAL:
 			_messages.append_array(send_out_steps(Gen2Battle.ENEMY if enemy_turn else Gen2Battle.PLAYER))
@@ -458,15 +520,21 @@ func _queue_animation(event: Dictionary, out: Dictionary) -> void:
 
 
 ## `RemoveFaintedPlayerMon`'s cry, or a trainer's Pokémon's fall and thud; a wild one's is silent.
-static func faint_sounds(side: int, species: int, trainer: bool) -> Array:
+static func faint_sounds(side: int, species: int, trainer: bool, game: GameData = null) -> Array:
 	if side == Gen2Battle.PLAYER:
 		return [{"cry": species}]
-	return [{"sound": Gen1Sfx.SFX_FAINT_FALL}, {"sound": Gen1Sfx.SFX_FAINT_THUD}] if trainer else []
+	return [{"sound": Gen1Sfx.SFX_FAINT_FALL}, {"sound": Gen1Sfx.SFX_FAINT_THUD}] if trainer and (game == null or game.generation == RomRegistry.GEN1) else []
 
 
-## `SendOutMon`'s poof in front of the player's, then `AnimateSendingOutMon`.
-static func send_out_steps(side: int) -> Array:
+## `SendOutMon`'s poof in front of the player's, then `AnimateSendingOutMon`; Gold and Silver's `ANIM_SEND_OUT_MON` instead.
+static func send_out_steps(side: int, game: GameData = null, shiny: bool = false) -> Array:
 	var grow: Dictionary = {"stage": PokeCoopBattleStage.SEND_OUT, "side": side}
+	if game != null and game.generation != RomRegistry.GEN1:
+		var out: Array = []
+		for param: int in [Gen2Battle.SEND_OUT_ANIM_NORMAL, Gen2Battle.SEND_OUT_ANIM_SHINY] if shiny else [Gen2Battle.SEND_OUT_ANIM_NORMAL]:
+			out.append({"anim": Gen2Battle.ANIM_SEND_OUT_MON, "enemy": side == Gen2Battle.ENEMY, "after": 0, "param": param, "species": 0,
+				"instead": grow if param == Gen2Battle.SEND_OUT_ANIM_NORMAL else {}})
+		return out + [{"stage": PokeCoopBattleStage.APPEAR, "side": side}]
 	if side == Gen2Battle.ENEMY:
 		return [grow]
 	return [{"anim": Gen1Layout.ANIM_ID_POOF, "enemy": true, "after": 0, "ball": true, "species": 0}, grow]
@@ -475,7 +543,7 @@ static func send_out_steps(side: int) -> Array:
 static func _panels(scene: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
 	for key: String in scene:
-		if key.get_slice("_", 1) in ["species", "name", "level", "max", "status", "substitute", "minimized"]:
+		if key.get_slice("_", 1) in ["species", "name", "level", "max", "status", "substitute", "minimized", "shiny", "gender", "unown", "pixels"]:
 			out[key] = scene[key]
 	return out
 
@@ -483,7 +551,10 @@ static func _panels(scene: Dictionary) -> Dictionary:
 func _trainer_name(view: Dictionary) -> String:
 	var trainer_class: int = int(view.get("trainer_class", 0))
 	var named: String = String(view.get("trainer_name", ""))
-	return named if not named.is_empty() else (data.trainer_name(trainer_class) if trainer_class > 0 else "")
+	if not named.is_empty() or trainer_class <= 0:
+		return named
+	var own: String = "" if _gen1() else String(data.trainer_party(trainer_class, int(view.get("trainer_index", 0))).get("name", ""))
+	return data.trainer_name(trainer_class) + ("" if own.is_empty() else " " + own)
 
 
 func _queue_outcome(view: Dictionary) -> void:
@@ -517,12 +588,14 @@ func _queue_victory(view: Dictionary) -> void:
 	var me: String = _player_name(panel.client.player_id)
 	var prize: int = int((view.get("prizes", {}) as Dictionary).get(panel.client.player_id, 0))
 	if not _fanfared:
-		_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false))
-			or int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS})
+		_messages.append({"fanfare": trainer, "gym": bool(view.get("gym", false)) or (int(view.get("trainer_class", 0)) == Gen1Layout.RIVAL3_CLASS
+			if _gen1() else Gen2Battle.JOHTO_GYM_LEADERS.has(int(view.get("trainer_class", 0))))})
 	_fanfared = true
 	var said: String = Gen2TextStream.fill_context(String(view.get("win_text", "")), {"player": me,
 		"rival": String((panel.client.state.get("campaign", {}) as Dictionary).get("rival_name", ""))})
-	var lines: Array = [_de(data, "%s defeated\n%s!") % [me, _trainer_name(view)], said] if trainer else []
+	var defeated: String = "" if _gen1() else _screen_text("BattleText_EnemyWasDefeated", view)
+	defeated = _de(data, "%s defeated\n%s!") % [me, _trainer_name(view)] if defeated.is_empty() else defeated
+	var lines: Array = [defeated, said] if trainer else []
 	if prize > 0:
 		lines.append(_de(data, "%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
 	for line: int in lines.size():
@@ -682,6 +755,8 @@ func _start_anim(step: Dictionary) -> void:
 	_sounding = step
 	_anim_after = step if int(step["after"]) != 0 and int(step["anim"]) < Gen2BattleScreen.ANIM_MOVE_LIMIT else {}
 	_anim = _animation(step)
+	if _anim == null and not (step.get("instead", {}) as Dictionary).is_empty():
+		_messages.push_front(step["instead"])
 	if _anim == null:
 		_anim = _applying()
 	_play_sounds()
@@ -765,8 +840,18 @@ func _animation(step: Dictionary) -> Gen2BattleAnimPlayer:
 		_anim_data = Gen2BattleAnimData.from_game_data(data)
 	var index: int = int(step["anim"])
 	var move: bool = index < Gen2BattleScreen.ANIM_MOVE_LIMIT and not bool(step.get("ball", false))
-	if _anim_data == null or not _anim_data.gen1() or (move and not Gen2OptionsStore.current().battle_scene):
+	if _anim_data == null or (move and not Gen2OptionsStore.current().battle_scene):
 		return null
+	if not _anim_data.gen1():
+		var wobbles: Array[int] = []
+		wobbles.assign(step.get("wobbles", []))
+		var played: Gen2BattleAnimPlayer = _seeded(Gen2BattleAnimPlayer.create(_anim_data, index, bool(step["enemy"]), int(step.get("param", 0)), wobbles))
+		if played != null:
+			played.cur_item = int(step.get("cur_item", 0))
+			var off_field: Array = step.get("off_field", [false, false])
+			played.player_off_field = bool(off_field[0])
+			played.enemy_off_field = bool(off_field[1])
+		return played
 	var enemy_turn: bool = bool(step["enemy"])
 	var row: int = index - 1
 	if index >= Gen2BattleScreen.ANIM_MOVE_LIMIT:
@@ -791,6 +876,8 @@ func _applying() -> Gen2BattleAnimPlayer:
 		var record: Dictionary = data.world_audio(&"sfx", sfx)
 		if not record.is_empty():
 			audio.play_record(record, &"waited_sfx", data.audio_assets())
+	if _anim_data == null or not _anim_data.gen1():
+		return _seeded(Gen2BattleAnimPlayer.create(_anim_data, after + Gen2BattleAnimPlayer.BATTLE_AFTERANIMS, bool(step["enemy"])))
 	var pair: Variant = Gen2BattleScreen.GEN1_APPLYING_TYPES.get(after, null)
 	if not pair is Array:
 		return null
@@ -934,9 +1021,15 @@ func _draw_sheet() -> void:
 
 
 ## `TossBallAnimation`: the toss, the poof, a shake a wobble, and out unless caught.
-static func toss_steps(event: Dictionary) -> Array:
+static func toss_steps(event: Dictionary, game: GameData = null) -> Array:
 	var wobbles: int = clampi(int(event.get("wobbles", 0)), 0, 3)
 	var caught: bool = bool(event.get("caught", false))
+	if game != null and game.generation != RomRegistry.GEN1:
+		var answers: Array = range(wobbles).map(func(_wobble: int) -> int: return Gen2BattleAnimScript.WOBBLE_NEXT)
+		answers.append(Gen2BattleAnimScript.WOBBLE_CAUGHT if caught else Gen2BattleAnimScript.WOBBLE_ESCAPED)
+		var ball: int = int(event.get("ball", 0))
+		return [{"anim": Gen2BattleScreen.ANIM_THROW_POKE_BALL, "enemy": false, "after": 0, "ball": true, "species": 0,
+			"param": mini(ball, Gen2WorldPartyHost.ITEM_POKE_BALL), "cur_item": ball, "wobbles": answers}]
 	var rows: Array = [
 		int(Gen2BattleScreen.GEN1_TOSS_ANIMS.get(int(event.get("ball", 0)), Gen1Layout.ANIM_ID_ULTRATOSS)),
 		Gen1Layout.ANIM_ID_POOF,
@@ -963,6 +1056,11 @@ func _take_commands(commands: Array) -> void:
 		var operands: Array = command.get("operands", [])
 		var record: Dictionary = {}
 		match StringName(command["name"]):
+			Gen2BattleAnimScript.SOUND:
+				record = data.world_audio(&"sfx", int(operands[1]))
+			Gen2BattleAnimScript.CRY:
+				var cried: Dictionary = data.species_cry(int(_sounding.get("species", 0)))
+				record = Gen2BattleAnimScript.cry_with_offsets(cried, int(operands[0])) if not cried.is_empty() else {}
 			Gen2BattleAnimPlayer.GEN1_SOUND:
 				record = data.gen1_sound(-1, int(operands[0]))
 			Gen2BattleAnimPlayer.GEN1_MOVE_SOUND:
@@ -991,13 +1089,17 @@ func _play_cue(cue: Dictionary) -> void:
 	if audio == null:
 		return
 	if cue.has("cry") or cue.has("sound"):
-		var cue_record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"]))
+		var cue_record: Dictionary = data.species_cry(int(cue["cry"])) if cue.has("cry") else data.gen1_sound(-1, int(cue["sound"])) \
+			if _gen1() else data.world_audio(&"sfx", int(cue["sound"]))
 		if not cue_record.is_empty():
 			audio.play_record(cue_record, &"cry" if cue.has("cry") else &"sound", data.audio_assets())
 		return
 	var music: int = Gen1Layout.MUSIC_DEFEATED_GYM_LEADER if bool(cue.get("gym", false)) else \
 		(Gen1Layout.MUSIC_DEFEATED_TRAINER if bool(cue["fanfare"]) else Gen1Layout.MUSIC_DEFEATED_WILD_MON)
-	var record: Dictionary = data.gen1_sound(Gen1Layout.VICTORY_MUSIC_BANK, music)
+	if not _gen1():
+		music = Gen2Battle.MUSIC_GYM_VICTORY if bool(cue.get("gym", false)) else \
+			(Gen2Battle.MUSIC_TRAINER_VICTORY if bool(cue["fanfare"]) else Gen2Battle.MUSIC_WILD_VICTORY)
+	var record: Dictionary = data.gen1_sound(Gen1Layout.VICTORY_MUSIC_BANK, music) if _gen1() else data.world_audio(&"music", music)
 	if not record.is_empty():
 		audio.play_record(record, &"map_music", data.audio_assets(), true)
 
@@ -1085,7 +1187,8 @@ static func message(
 	var who_acted: String = String(names.get(String(event.get("player", "")), ""))
 	match StringName(event.get("type", &"")):
 		Gen2Battle.CAUGHT:
-			return _de(game, "All right!\n%s was caught!") % _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
+			return (_de(game, "All right!\n%s was caught!") if game.generation == RomRegistry.GEN1 else Gen2BattleScreen.CAUGHT_TEXT) \
+				% _species_name(game, int(out.get(Gen2Battle.ENEMY, 0)))
 		Gen2Battle.MOVE_OFFERED:
 			return forget_ask(String(event.get("name", "")), String(game.move(int(event.get("move", 0))).get("name", "")), game, false)
 		PokeCoopBattleSession.JOINED:
@@ -1113,7 +1216,7 @@ static func _throw_line(event: Dictionary, thrower: String, wild: String, game: 
 	var thrown: String = _de(game, "%s used\n%s!") % [thrower, game.item_name(int(event.get("ball", 0)))]
 	if bool(event.get("caught", false)):
 		var jingle: String = Gen2TextStream.sound_token(Gen1Sfx.SFX_CAUGHT_MON) if game.generation == RomRegistry.GEN1 else ""
-		return thrown + "\n" + _de(game, "All right!\n%s was caught!") % wild + jingle
+		return thrown + "\n" + (_de(game, "All right!\n%s was caught!") if game.generation == RomRegistry.GEN1 else Gen2BattleScreen.CAUGHT_TEXT) % wild + jingle
 	var near: Array[String] = [
 		"You missed the\nPOKéMON!", "Darn! The POKéMON\nbroke free!", "Aww! It appeared\nto be caught!",
 		"Shoot! It was so\nclose too!",

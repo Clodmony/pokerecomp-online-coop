@@ -25,6 +25,9 @@ const RATTATA: int = 19
 const ONIX: int = 95
 const POKE_BALL: int = 4
 const POTION: int = 20
+const JOHTO_ITEMS: Dictionary = {5: 5, 18: 2, 7: 1, 191: 1}  ## Gold's numbers (#176): one item for each pocket
+const JOHTO_BERRY: int = 173
+const FALKNER_CLASS: int = 1
 const SNAPSHOT_MSEC: int = 10000
 const SNAPSHOTS_ALL_SECONDS: int = 1800
 const SNAPSHOTS_OLD_EVERY: int = 300
@@ -221,12 +224,26 @@ func _cartridge_players() -> void:
 	blue.add_mon(_saved(SQUIRTLE, 12, _data.moves_at_level(SQUIRTLE, 12), 200))
 	blue.add_mon(_saved(RATTATA, 9, _data.moves_at_level(RATTATA, 9), 200))
 	blue.give_item(POKE_BALL, 5)
+	if PokeCoopJohto.plays(_data):
+		for player: PokeCoopPlayer in [red, blue]:
+			player.items = {}
+			for item: int in JOHTO_ITEMS:
+				player.give_item(item, int(JOHTO_ITEMS[item]))
+		var lead: Gen2SaveMon = _saved(SQUIRTLE, 20, _data.moves_at_level(SQUIRTLE, 20), 200)
+		lead.item = JOHTO_BERRY
+		lead.hp = 30
+		blue.team[0]["mon"] = lead
 
 
 func _cartridge_encounters() -> void:
 	_host.register_encounter("wild:pidgey", {"species": PIDGEY, "level": 5, "label": "wild PIDGEY L5"})
 	_host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
 	_host.register_encounter("wild:onix", {"species": ONIX, "level": 60, "label": "wild ONIX L60"})
+	if PokeCoopJohto.plays(_data):
+		_host.register_encounter("trainer:falkner", {
+			"kind": "trainer", "trainer_class": FALKNER_CLASS, "trainer_index": 0, "label": "FALKNER (Violet Gym)", "gym": true,
+		})
+		return
 	_host.register_encounter("trainer:brock", {
 		"kind": "trainer", "trainer_class": BROCK_CLASS, "trainer_index": 0,
 		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)", "gym": true,

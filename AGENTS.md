@@ -191,7 +191,7 @@ before pushing.
 | `game/coop/coop_battle_session.gd` | `PokeCoopBattleSession`: one battle, turn authority, suggestions, joins, results |
 | `game/coop/coop_versus.gd` | `PokeCoopVersus`: friend battle, both human sides, mirrored views and post-fight healing/experience |
 | `game/coop/coop_policy.gd` | `PokeCoopPolicy`: provisional rules kept out of the simulation |
-| `game/coop/coop_johto.gd` | `PokeCoopJohto`: Gold and Silver's own rules (D130), asked by `PokeCoopPolicy` |
+| `game/coop/coop_johto.gd` | `PokeCoopJohto`: Gold and Silver's own rules (D130), asked by `PokeCoopPolicy`, and their prize money (D134) |
 | `game/coop/coop_host.gd` | `PokeCoopHost`: authoritative validation, protocol, save checkpoints, lifecycle |
 | `game/coop/coop_client.gd` | `PokeCoopClient`: intentions out, authoritative state in |
 | `game/coop/coop_transport.gd` | `PokeCoopTransport`: message transport base and in-memory loopback |
@@ -201,7 +201,7 @@ before pushing.
 | `game/coop/coop_battle_panel.gd` | `PokeCoopBattlePanel`: a battle's rows, presses, refusals and closing |
 | `game/coop/coop_menu.gd` | `PokeCoopMenu`: START > CO-OP, the session menu on the world's own screen |
 | `game/coop/coop_touch_gestures.gd` | `PokeCoopTouchGestures`: swipes and taps over the screen while a co-op menu or battle is up |
-| `game/coop/coop_battle_menu.gd` | `PokeCoopBattleMenu`: a battle's rows as the cartridge's FIGHT/PKMN/ITEM/RUN, move, party and bag lists and YES/NO boxes, with partners' marks |
+| `game/coop/coop_battle_menu.gd` | `PokeCoopBattleMenu`: a battle's rows as the cartridge's FIGHT/PKMN/ITEM/RUN, move, party and bag lists (Gold and Silver's pack pockets) and YES/NO boxes, with partners' marks |
 | `game/coop/coop_ownership.gd` | `PokeCoopOwnership`: owner of every world, save and runtime field; patches and routing |
 | `game/coop/coop_world_link.gd` | `PokeCoopWorldLink`: a window's world state, party and PC kept in step with the host |
 | `game/coop/coop_battle_field.gd` | `PokeCoopBattleField`: a co-op battle drawn on the world's own 160x144 screen, the touch pad free beside it |
@@ -224,7 +224,7 @@ before pushing.
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69); `tour=` photographs every screen |
 | `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead, `mon=` and `item=` shape it, `at=<group>:<number>:<x>,<y>` puts both players there (beside a trainer) |
-| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/unit/test_coop_lobby.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd`, `tests/integration/test_coop_gold_silver.gd` | co-op tests |
+| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/unit/test_coop_lobby.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd`, `tests/integration/test_coop_gold_silver.gd`, `tests/integration/test_coop_johto_battles.gd` | co-op tests |
 
 ## Conventions specific to the fork
 

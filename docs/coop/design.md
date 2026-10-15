@@ -177,6 +177,10 @@ carry over, with these choices:
 - Mystery Gift works between the two players; the Time Capsule trades between
   a Gold or Silver player and a Red or Blue player.
 - The campaign runs through Johto to Kanto and RED on Mt. Silver.
+- A shared battle plays on Gold and Silver's own battle screen: their
+  animations, panels (gender, shiny colours, the exp bar), lines and music, the
+  pack's four pockets, and each Pokémon's held item, which works for its owner's
+  side and, once eaten, is gone from its owner's record (#176).
 
 ## Sessions and connections
 
@@ -214,7 +218,7 @@ them live in `PokeCoopPolicy`.
 
 | Question | Rule | Issue |
 |---|---|---|
-| Prize money | Every participant receives the full prize, Pay Day included (owner, D61) | #36 |
+| Prize money | Every participant receives the full prize, Pay Day included (owner, D61). On Gold and Silver an Amulet Coin doubles it only for the player whose Pokémon carried the coin in (D134) | #36 |
 | Losing a battle | Each participant's own world whites them out and halves their own money (owner, D61) | #36 |
 | Gift Pokémon | One per player: EEVEE, LAPRAS, the Dojo's choice and the MAGIKARP sale are each player's own, as the fossils are (owner, D61) | #33 |
 | Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |

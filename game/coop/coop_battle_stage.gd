@@ -10,6 +10,7 @@ const INTRO: StringName = &"intro"
 const SLIDE: StringName = &"slide"
 const RESULT: StringName = &"result"
 const PANEL: StringName = &"panel"
+const APPEAR: StringName = &"appear"
 const RESULT_FRAMES: Array[int] = [4, 4, 4, 4, 4, 44]
 
 var map: PackedByteArray = PackedByteArray()
@@ -40,8 +41,12 @@ func reset(game_data: GameData, trainer_battle: bool) -> void:
 ## `InitBattleDisplay`: the back picture and the trainer or wild Pokémon, ready to slide in.
 func open(trainer_class: int) -> void:
 	Gen2BattleScreenMap.clear_intro_box(map)
-	pictures = {"player_backpic": Gen1Layout.PLAYER_BACKPICS[0], "enemy_trainer_pic": trainer_class if trainer else 0}
+	pictures = {"player_backpic": backpic(game), "enemy_trainer_pic": trainer_class if trainer else 0}
 	hidden = {Gen2Battle.PLAYER: true, Gen2Battle.ENEMY: true}
+
+
+static func backpic(game_data: GameData) -> String:  ## `GetTrainerBackpic`
+	return Gen1Layout.PLAYER_BACKPICS[0] if game_data == null or game_data.generation == RomRegistry.GEN1 else "chris"
 
 
 func party_balls(rows: Dictionary) -> void:
@@ -76,6 +81,9 @@ func begin(kind: StringName, side: int, trainer_class: int = 0) -> void:
 			sizes.assign(RESULT_FRAMES)
 			pictures["enemy_trainer_pic"] = trainer_class
 		PANEL:
+			hidden.erase(side)
+		APPEAR:
+			Gen2BattleScreenMap.stamp(map, side == Gen2Battle.PLAYER, game.generation)
 			hidden.erase(side)
 	_routine = {"kind": kind, "side": side, "sizes": sizes, "delay": 0, "step": 0}
 
@@ -147,6 +155,11 @@ func enter(event: Dictionary, game: GameData) -> void:
 	shown[prefix + "status"] = int(statuses[0 if side == Gen2Battle.PLAYER else 1]) if statuses.size() == 2 else 0
 	shown[prefix + "substitute"] = false
 	shown[prefix + "minimized"] = false
+	if game.generation != RomRegistry.GEN1:
+		shown.merge({prefix + "shiny": bool(event.get("shiny", false)), prefix + "gender": StringName(event.get("gender", "")),
+			prefix + "unown_form": int(event.get("unown_form", 0))}, true)
+		if event.has("exp_pixels"):
+			shown["exp_pixels"] = int(event["exp_pixels"])
 
 
 ## A turn played out: the host's view shows, and a blank side with a Pokémon up is stamped.
