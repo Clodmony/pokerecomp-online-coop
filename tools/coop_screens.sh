@@ -7,7 +7,9 @@
 #
 # A scenario (tools/coop_screens/<name>.sh) is sourced and calls, with seconds
 # counted from the moment that window's world opens (60 frames a second):
-#   press <p1|p2> <second> KEY...   KEYs one per 0.3 s from that second (U D L R A B START SELECT, - waits, D*6 holds D six)
+#   press <p1|p2> <second> KEY...   KEYs one per 0.3 s from that second (U D L R A B START SELECT, - waits, D*6 holds D six);
+#                                   in a battle an @ key walks one menu level, is dropped while a turn's lines play, and
+#                                   the party list and bag take about 1.5 s to open
 #   shot  <p1|p2> <second> <name>   writes <out>/<name>.png
 #   close <p1|p2> <second> [signal] closes that window (TERM, or KILL for no goodbye), in seconds after it was launched
 #   cut   p2 <second> <seconds>     with RELAY=p2, p2 dials the host through tools/coop_relay.gd, which drops every

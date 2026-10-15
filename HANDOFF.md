@@ -6,43 +6,53 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #157 merged, closing #27).
+Last updated 2026-10-15 (after the group #158-#161, PR #PRNUM).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #157 (2026-10-15;
-  #27 closed, D126). #156 before it closed #26 (D125). `main` = upstream main
-  (ed886823, 0.1.78).
-- Next decision number: D127.
+- Default branch `pokerecomp-online-coop` at the merge of #157 (#27 closed,
+  D126). `main` = upstream main (ed886823, 0.1.78).
+- Next decision number: D128.
 
 ## Open pull requests (the owner says when to merge)
 
-- None. #157 merged on 2026-10-15 and closed #27 (D126: Gen 1 sessions share
-  `Gen1TrainerAI` with the battle screen, pinned by two co-op tests).
-- #149 now holds the Gen 2 halves of #28 and #27 (later milestone, D61).
+- **#PRNUM** (draft) `coop/158-scripted-hand-cases`: Closes #158, #159, #160,
+  part of #161 (K16 done; K21 needs the cartridge file on the Play tab, a
+  hand case). Scenarios for K16, K18, K20, S09, S24, B37-B40, B43; two co-op
+  battle bugs fixed (nicknames named by species; traded Pokémon never
+  disobeyed, D127, an upstream-file change in `effect_commands.gd`). Verify
+  run VERIFYSTAMP.
+- #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
 
-- The owner's retest of #140 (merged) with the private build
-  `builds/140-picked-pad-only-490f0aad` (hand, P11 and K17).
-- A hand-played session (test cases K17-K21, B34-B43, P10, P11, K16, T08,
-  S20; `docs/coop/readiness.md`).
-- No battle issue is left in M4. Open milestones next: M10 (#44 private
-  builds: check what is left; #45 Android; #46 iOS), M0 #15 private CI, M13
-  provenance (#55, #56), M12 German (#50).
-- Possible issue: the session menu's FIGHT list is fixed (BROCK, wild ONIX
-  L60, PIDGEY L5, RATTATA L4 from `register_encounter`), not the map's wild
-  table. Ask the owner before filing.
-- Noticed, not filed: a mouse that also exposes a joystick interface is listed
-  twice as a pad; harmless with a pick, odd under "Every controller". Ask
-  before filing.
+- **The owner's hand-played session** before Gen 2: two devices, Pallet Town
+  to BROCK, `docs/coop/readiness.md`; also #140's retest with
+  `builds/140-picked-pad-only-490f0aad` (P11, K17) and K21.
+- **Gen 2 (the owner asked, 2026-10-15)**: Gen 1 is feature-complete (M1-M9,
+  M11 have no open feature issue) but only 8 of 205 hand cases are played.
+  Gen 2 overturns D61's scope, so the owner decides it. If yes: one scoping
+  issue first for the owner's choices (clock and time of day, phone, day care
+  and eggs, Bug-Catching Contest, Unown, roaming beasts, the Kanto story after
+  Johto, the Gen 2 trainer AI from #149), then a milestone of about 8-12
+  issues. The code survey of what is Gen 1 only (2026-10-15): the gate
+  (`coop_lobby.gd:13` GAMES, `coop_policy.gd:75` VERSION_PAIRS), policy
+  (starters, opening, gifts, wild tables), `coop_ownership.gd` map-script
+  bytes, `coop_world_link.gd` rest points and story locks, the battle menu's
+  cursor and bag layout, the field's animations (none outside Gen 1), Cable
+  Club trades and the link battle, `coop_seed.gd` and `coop_autoplay.gd` legs;
+  `coop_save.gd` and the battle stage are generation-agnostic.
+- #162: JUMP KICK's crash (B38), B43's second half, S24's dead link.
+- Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
+  CI, M13 (#55, #56), M12 German (#50).
+- Possible issues, ask before filing: the session menu's FIGHT list is fixed
+  (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the map's wild table; a mouse
+  with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
 
-- Main checkout on `pokerecomp-online-coop`, clean. The Superset worktree
-  that held #26 and #27 is detached at the merge of #157; the owner may
-  remove it in Superset or reuse it for the next issue. `coop/27-session-trainer-ai`
-  is deleted (local and remote). No background processes.
+- The Superset worktree holds `coop/158-scripted-hand-cases`, pushed. No
+  background processes.
 
 ## Working notes (stable, keep short)
 
@@ -66,17 +76,15 @@ Last updated 2026-10-15 (after #157 merged, closing #27).
 
 ## Cleanup the owner may approve
 
-Done on 2026-10-15: every merged `coop/*` branch (local and remote), the #44
-and #53 builds, old scratch and verify runs; the retired private repository is
-archived (not deleted) and its checkout and worktrees are removed. An
-uncommitted PvP draft found in one of them is kept as a patch beside
-`rewrite.git` under `~/dev-scratch/pokerecomp-coop/`. Left:
-
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
-  `builds/pokerecomp-online-coop-0c6da178` (and its zips), never listed.
-- Superset still lists a workspace of the retired repository
-  (`honeysuckle-seahorse`) whose folder is gone, and this repository's
-  workspace that held #26 and #27 (detached); remove both in Superset.
-- `~/dev-scratch/pokerecomp-coop/`: keep `rewrite.git` and the PvP patch;
-  the rest (`bag-size`, `migrate`, `verify`, the filter scripts, logs and
-  body files) is migration leftovers.
+  `builds/pokerecomp-online-coop-0c6da178` and its two zips, never listed.
+- Superset lists a workspace of the retired repository
+  (`honeysuckle-seahorse`) whose folder is gone; remove it in Superset.
+- `~/dev-scratch/pokerecomp-coop/`: keep `rewrite.git` and the PvP patch
+  (2026-10-11, five co-op files; friend battles have landed since, so it is
+  likely superseded); the rest (`bag-size`, `migrate`, `verify`, the filter
+  scripts, logs and body files) is migration leftovers.
+- The owner's own user folder holds 15 test caches under `rom_cache`
+  (`coophost*`, `coopclient*` from 2026-10-06/07, `daycaretest`,
+  `evolutiontest`, `testgen1name`, `testred` from 2026-10-13): suites run
+  outside `tools/verify.sh` left them. About 16 MB; the owner may delete them.

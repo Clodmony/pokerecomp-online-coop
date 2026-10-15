@@ -43,7 +43,8 @@ field `untouched`. Branch `coop/158-scripted-hand-cases`.
 | Screens: `battle_level_twice` (B39) | L5 to L10 in one line, the stats box beside it only; no LEECH SEED offer, as Generation 1 teaches only the last level's moves (`_raise_levels`) |
 | Screens: `battle_items`, `battle_flows` (B40, B39) | ANTIDOTE, POTION ("Use item on which POKéMON?", +20), POKé FLUTE ("Played the POKé FLUTE.", "Now, that's a catchy tune!"); `battle_flows` from its own seed: L15, LEER's "Delete an older move?", "Abandon learning LEER?" |
 | Screens: `brock_full_heal` (B43) | GEODUDE poisoned, then BROCK's FULL HEAL (item 52, cured); the second half of B43 (a status move on a statused Pokémon) is the unit test's only |
-| Not run | K21 (needs the cartridge file picked on the Play tab); a hand-played session; Blue, German, Windows |
+| `tools/verify.sh` with 21 scenarios (run `20261015-030910`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes; 20 scenarios ok, `send_out_suggest` failed for want of a seed and now builds its own (`SEED_ARGS`): rerun `20261015-034317` all passed |
+| Not run | K21 (needs the cartridge file picked on the Play tab); JUMP KICK's crash, B43's second half and S24's dead link (#162); a hand-played session; Blue, German, Windows |
 
 ## A session's trainer fights with the cartridge's trainer AI (#27, D126, 2026-10-15)
 
