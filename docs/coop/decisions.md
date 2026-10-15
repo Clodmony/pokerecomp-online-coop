@@ -1995,3 +1995,17 @@ Generation 1 co-op is feature-complete, and the owner asked to scope Generation
 D61 (gifts one per player, full prize money, leaving and absence), D91 (a
 story gate one clears is cleared for both) and D72 (sharing at rest points)
 carry over unchanged.
+
+## D129. Session links leave the history (owner, 2026-10-15)
+
+375 co-op commits ended with a `Claude-Session:` link to the agent session, and
+26 pull request descriptions ended with one. The owner asked to remove them as
+the personal data was removed when the fork went public (2026-10-13). Deleting the repository and
+recreating it would have turned every merged pull request into a closed issue
+and re-dated everything, so the owner chose a rewrite in place instead: the
+co-op commits' messages lost the line (trees, authors and dates unchanged; three
+messages that cite a commit by hash cite its rewritten hash), both branches were
+force-pushed once at the owner's request, and the pull request descriptions were
+edited. The rule from here on: no session link in commits or pull requests.
+GitHub still serves the old commits through each pull request's own ref until
+GitHub Support purges them; that request is the owner's.

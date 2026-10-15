@@ -10,13 +10,18 @@ Last updated 2026-10-15 (after #171, PR #186).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #170 (df1cbd4e;
+- Default branch `pokerecomp-online-coop` at the merge of #170 (108975b2;
   #167 closed). `main` = upstream main (ed886823, 0.1.78).
-- Next decision number: D129.
+- History rewritten once (D129, 2026-10-15): the co-op commits lost their
+  session links, so every co-op hash changed. The old history is backed up in
+  `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
+- Next decision number: D130.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#186** (draft) `coop/171-gen2-scope`: Closes #171. Docs only: D128 (the
+- **#186** (draft) `coop/171-gen2-scope`: Closes #171, plus D129's docs
+  (the decision, `AGENTS.md`'s rules, the rewritten hashes in `progress.md`).
+  Docs only: D128 (the
   owner's Gold and Silver choices), `design.md`'s Gold and Silver section,
   `playbook.md` phase 5, a progress entry. Release gates pass; verify not run
   (no code). **The owner approved merging it (2026-10-15): merge it first in
@@ -46,7 +51,7 @@ Last updated 2026-10-15 (after #171, PR #186).
 ## Worktrees and background processes
 
 - The Superset worktree holds `coop/171-gen2-scope`, pushed. No background
-  processes. The main checkout is on `pokerecomp-online-coop` at df1cbd4e, up
+  processes. The main checkout is on `pokerecomp-online-coop` at 108975b2, up
   to date.
 
 ## Working notes (stable, keep short)
@@ -60,8 +65,8 @@ Last updated 2026-10-15 (after #171, PR #186).
 
 - No session links in commits or PR bodies (owner's rule, 2026-10-15): no
   `Claude-Session:` trailer, PR bodies end with the "Generated with Claude
-  Code" line only. 375 older
-  commits up to 8059a721 have one; history is not rewritten (no force-push).
+  Code" line only. The history and PR bodies were cleaned once (D129);
+  GitHub Support's purge of the old PR refs is the owner's request.
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
 - Merge, when the owner says so: in the main checkout on
@@ -81,6 +86,10 @@ Last updated 2026-10-15 (after #171, PR #186).
 - `git checkout -- '*.import'` after an editor import.
 
 ## Cleanup the owner may approve
+
+- `~/dev-scratch/pokerecomp-online-coop/session-links/` (the pre-D129
+  mirror, the hash map, the cleaned PR bodies) once GitHub Support purged the
+  old refs.
 
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
   `builds/pokerecomp-online-coop-0c6da178` and its two zips, never listed.

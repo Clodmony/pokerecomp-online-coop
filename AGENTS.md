@@ -39,7 +39,7 @@ Read before working:
   workflows are guarded to run only in `Decryptu/pokerecomp` and stay disabled
   here; keep both.
 - Never push to `upstream`. Its push URL is disabled on purpose. Never
-  force-push over existing work.
+  force-push over existing work (the one exception, D129, was the owner's).
 - No personal data in commits, docs, issues or pull requests (names, emails,
   hardware, local paths). Commits are authored as `Claude <noreply@anthropic.com>`
   (the clone's local git config).
@@ -50,7 +50,9 @@ Read before working:
   owner to supply it locally and never downloads one.
 - Work on feature branches (`coop/<issue>-<topic>`) and open **draft** pull
   requests against `pokerecomp-online-coop`. Reference the issue the work closes.
-- Commits may carry AI attribution trailers; the fork's pre-push hook allows them.
+- Commits may carry `Co-Authored-By` trailers; the fork's pre-push hook allows
+  them. No session links (`Claude-Session:`, claude.ai URLs) in commits or pull
+  requests (D129).
 - Do not claim something works on a platform or in a mode that was not run.
   `progress.md` separates static inspection, passing tests, builds and played
   sessions.
