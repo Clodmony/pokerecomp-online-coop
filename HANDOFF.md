@@ -6,7 +6,7 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after the group #158-#161, PR #PRNUM).
+Last updated 2026-10-15 (after the group #158-#161, PR #163).
 
 ## Repository state
 
@@ -16,12 +16,13 @@ Last updated 2026-10-15 (after the group #158-#161, PR #PRNUM).
 
 ## Open pull requests (the owner says when to merge)
 
-- **#PRNUM** (draft) `coop/158-scripted-hand-cases`: Closes #158, #159, #160,
+- **#163** (draft) `coop/158-scripted-hand-cases`: Closes #158, #159, #160,
   part of #161 (K16 done; K21 needs the cartridge file on the Play tab, a
   hand case). Scenarios for K16, K18, K20, S09, S24, B37-B40, B43; two co-op
   battle bugs fixed (nicknames named by species; traded Pokémon never
   disobeyed, D127, an upstream-file change in `effect_commands.gd`). Verify
-  run VERIFYSTAMP.
+  runs `20261015-030910` (GUT 5207/5207, 20 of 21 scenarios; the 21st
+  lacked a seed) and `20261015-034317` (all passed). No builds made.
 - #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
 
 ## Next candidates
@@ -55,6 +56,10 @@ Last updated 2026-10-15 (after the group #158-#161, PR #PRNUM).
   background processes.
 
 ## Working notes (stable, keep short)
+
+- A scenario can build its own seed (`SEED_ARGS`, `coop_seed.gd`'s `mon=`
+  and `item=`); in battles an `@` press walks one menu level and is dropped
+  while a turn's lines play (see `tools/coop_screens.sh`'s usage).
 
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
