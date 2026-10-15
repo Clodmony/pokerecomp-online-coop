@@ -11,6 +11,41 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Hand-test cases as scripted two-window runs (#158, #159, #160, part of #161; D127, 2026-10-15)
+
+Cases that had tests but no two-window scenario now have one each, run on the
+imported Red cartridge with every capture looked at. Two co-op bugs turned up
+and are fixed: the battle field's opening said "Go! PIKACHU!" for a nicknamed
+lead, and the co-op party list, "is already out!" and a partner's suggestion
+named allies by species; and a traded Pokémon never disobeyed in co-op (D127).
+The runner gains `close <who> <second> [signal]` (the split screen's second
+window too), `RELAY=p2` with `cut p2 <second> <seconds>` (a UDP relay,
+`tools/coop_relay.gd`, that drops a window's link both ways) and `SEED_ARGS`
+(the scenario builds its own seed); `tools/coop_seed.gd` takes `mon=` (species,
+level, moves, nickname, traded, status, HP, EXP) and `item=`. The launcher tool
+waits for the Co-op tab before pressing a cartridge and for "Who plays where?"
+before choosing halves (both raced and failed runs on a busy desktop), tries
+each connected pad in turn for the second half, and joins with the address
+field `untouched`. Branch `coop/158-scripted-hand-cases`.
+
+| Verification | Result |
+|---|---|
+| GUT, the opening's line before the fix | `test_the_battle_fields_opening_sends_out_the_lead_by_its_nickname`: `Go! CHARMANDER!` where the lead is SPARKY |
+| GUT, the menus before the fix | `test_the_battle_menus_name_the_allies_by_their_nicknames`: `CHARMANDER` for BLUE's BUBBLES, "CHARMANDER is already out!" (the party-row assertion was written after the fix: the party page draws nothing on the test cache) |
+| GUT, obedience before the fix | `test_a_co_op_roster_pokemon_obeys_its_own_owner_and_not_a_traded_one` (engine) and `test_a_traded_pokemon_above_the_badge_level_disobeys_its_owner_in_a_session`: 0 disobediences in 60 and 40 tries; the opening's rival test now gives GREEN's L60 GREEN's own OT |
+| Screens: `split_partner_closed`, `split_partner_leaves` (K18) | the second half closed or left: RED's window back to 1152x648, every controller (`device -1`), RED walks on alone; BLUE's half quits by itself |
+| Screens: `split_host_killed` (K20) | "The session ended: host unreachable." on BLUE's half, which quits about 3 s after the host's SIGKILL |
+| Screens: `link_cut_minute` (S09) | 60 s cut: "Lost the host: reconnecting...", redials, "Back in the session." as p2; RED sees BLUE walk again |
+| Screens: `link_cut_rejoin` (S24) | 8 s cut, back as the same trainer; on localhost both ends time out within about 2 s (ENet's minimum), so the host had already dropped BLUE: the "still holds the dead link" path stays covered by its unit test only |
+| Screens: `join_remembered` (K16) | second round with the field untouched: it shows `127.0.0.1:<port>`, Join dials it, BLUE back as the same trainer |
+| Screens: `battle_text` (B37) | "Go! SPARKY!", HORN DRILL misses then "One-hit KO!", "…with EXP.ALL,", the traded KADABRA's boosted EXP and two "used instead" turns, "SPARKY fainted!", "Bring out which POKéMON?" |
+| Screens: `battle_effects` (B38) | SUBSTITUTE's doll, the red bar, MINIMIZE's dot, TOXIC, "MEW transformed into", HITMONLEE sent out; JUMP KICK never missed, so no crash was seen |
+| Screens: `battle_level_twice` (B39) | L5 to L10 in one line, the stats box beside it only; no LEECH SEED offer, as Generation 1 teaches only the last level's moves (`_raise_levels`) |
+| Screens: `battle_items`, `battle_flows` (B40, B39) | ANTIDOTE, POTION ("Use item on which POKéMON?", +20), POKé FLUTE ("Played the POKé FLUTE.", "Now, that's a catchy tune!"); `battle_flows` from its own seed: L15, LEER's "Delete an older move?", "Abandon learning LEER?" |
+| Screens: `brock_full_heal` (B43) | GEODUDE poisoned, then BROCK's FULL HEAL (item 52, cured); the second half of B43 (a status move on a statused Pokémon) is the unit test's only |
+| `tools/verify.sh` with 21 scenarios (run `20261015-030910`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes; 20 scenarios ok, `send_out_suggest` failed for want of a seed and now builds its own (`SEED_ARGS`): rerun `20261015-034317` all passed |
+| Not run | K21 (needs the cartridge file picked on the Play tab); JUMP KICK's crash, B43's second half and S24's dead link (#162); a hand-played session; Blue, German, Windows |
+
 ## A session's trainer fights with the cartridge's trainer AI (#27, D126, 2026-10-15)
 
 #27 asked for the enemy's choice to move out of the battle screen into a

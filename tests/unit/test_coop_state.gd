@@ -286,6 +286,38 @@ func test_a_seed_with_a_full_party_gives_each_player_six_of_their_own_told_apart
 			"the host tells every one apart")
 
 
+func test_a_seed_shapes_the_party_and_the_bag_by_name_and_keeps_a_traded_pokemon_traded() -> void:
+	var save := Gen2SaveData.new()
+	save.player_id = 0xFFFF
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	save.world = Gen2WorldSnapshot.new()
+	save.world.world_state = Gen2WorldState.new({}, {}, {}, {0: 0})
+
+	assert_eq(Seed.shape(_data, save, ["mon=pikachu:20:moves=TACKLE/Transform:nick=SPARKY:status=PSN:hp=9",
+		"mon=DITTO:30:traded", "item=guard spec:2", "item=POTION:4"]), "")
+	assert_eq(save.party.map(func(mon: Gen2SaveMon) -> Array: return [mon.species, mon.level, mon.nickname]),
+		[[Fixture.PIKACHU, 20, "SPARKY"], [Fixture.DITTO, 30, ""]], "the first mon= replaces the walked party")
+	var lead: Gen2SaveMon = save.party[0]
+	assert_eq([Array(lead.moves).slice(0, 3), lead.status, lead.hp], [[Fixture.TACKLE, Fixture.TRANSFORM, 0], 8, 9])
+	assert_eq([save.world.world_state.item_quantity(Fixture.GUARD_SPEC), save.world.world_state.item_quantity(Fixture.POTION)], [2, 4],
+		"names match without case, spaces or dots")
+	assert_string_contains(Seed.shape(_data, save, ["mon=MISSINGNO:5"]), "no mon named MISSINGNO")
+	var editor := Gen2SaveEditor.new()
+	editor.data = _data
+	editor.save = save
+	var four: Gen2SaveMon = save.party[1]
+	Seed.teach(editor, four, [Fixture.TACKLE, Fixture.GROWL, Fixture.EMBER, Fixture.SLASH])
+	Seed.teach(editor, four, [Fixture.TRANSFORM, Fixture.TACKLE])
+	assert_eq(Array(four.moves), [Fixture.TRANSFORM, Fixture.TACKLE, 0, 0], "no move of the old four is left behind")
+
+	assert_eq(Seed.write_seed(_data, save, SEED_DIR, Vector2i(5, 9)), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SEED_DIR.path_join(PokeCoopSession.campaign_path(_data).trim_prefix("user://")))
+	for held: PokeCoopPlayer in loaded["players"]:
+		var mons: Array = held.team.map(func(entry: Dictionary) -> Gen2SaveMon: return entry["mon"])
+		assert_eq(mons.map(func(mon: Gen2SaveMon) -> bool: return mon.ot_id == held.trainer_id), [true, false],
+			"the traded one stays someone else's, so it may disobey")
+
+
 func test_a_player_part_way_through_the_opening_is_saved_with_their_own_story() -> void:
 	var campaign := PokeCoopCampaign.create("c1", _data.id, _data.sha1)
 	campaign.title = "WITH BLUE"

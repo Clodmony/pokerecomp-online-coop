@@ -269,7 +269,7 @@ func _pick_ally() -> Dictionary:
 	if cursor >= allies.size():
 		return {}
 	var ally: Dictionary = allies[cursor]
-	var name: String = _species_name(int(ally.get("species", 0)))
+	var name: String = _ally_name(ally)
 	if int(ally.get("hp", 0)) <= 0:
 		_note = Gen2BattleSwitchMenu.no_energy_text(true)
 	elif int(ally["index"]) == int(_view.get("active", -1)):
@@ -560,7 +560,7 @@ func _suggestion_words(said: Dictionary) -> String:
 		"switch", "send_out":
 			var allies: Array = _view.get("allies", [])
 			var at: int = allies.find_custom(func(ally: Dictionary) -> bool: return int(ally["index"]) == value)
-			return _species_name(int(allies[at]["species"])) if at >= 0 else ""
+			return _ally_name(allies[at]) if at >= 0 else ""
 		"item":
 			var named: String = data.item_name(value) if data != null else ""
 			var whom: String = _name(String(said.get("recipient", "")))
@@ -724,11 +724,7 @@ func _draw_party(out: Image) -> void:
 		return
 	var allies: Array = _view.get("allies", [])
 	_scroll = Gen2BattleMenu.list_scrolled(_scroll, cursor, allies.size(), PARTY_ROWS)
-	var shown: Array = allies.slice(_scroll, _scroll + PARTY_ROWS).map(func(ally: Dictionary) -> Dictionary: return {
-		"index": int(ally["index"]), "species": int(ally["species"]), "name": _species_name(int(ally["species"])),
-		"level": int(ally["level"]), "hp": int(ally["hp"]), "max_hp": int(ally["max_hp"]),
-		"status": int(ally.get("status", 0)), "fainted": int(ally["hp"]) <= 0,
-	})
+	var shown: Array = allies.slice(_scroll, _scroll + PARTY_ROWS).map(_party_row)
 	if shown.map(_species_of) != _party_shown.map(_species_of):
 		_party_page.reset(shown, cursor - _scroll)
 	_party_shown = shown
@@ -839,6 +835,19 @@ func _take_over_text() -> String:
 func _name(player_id: String) -> String:
 	var view: Dictionary = (client.state.get("players", {}) as Dictionary).get(player_id, {})
 	return String(view.get("name", player_id))
+
+
+func _party_row(ally: Dictionary) -> Dictionary:
+	return {
+		"index": int(ally["index"]), "species": int(ally["species"]), "name": _ally_name(ally),
+		"level": int(ally["level"]), "hp": int(ally["hp"]), "max_hp": int(ally["max_hp"]),
+		"status": int(ally.get("status", 0)), "fainted": int(ally["hp"]) <= 0,
+	}
+
+
+func _ally_name(ally: Dictionary) -> String:
+	var named: String = String(ally.get("name", ""))
+	return named if not named.is_empty() else _species_name(int(ally.get("species", 0)))
 
 
 func _species_name(species: int) -> String:

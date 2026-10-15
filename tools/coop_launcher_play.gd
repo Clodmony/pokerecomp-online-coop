@@ -2,7 +2,7 @@ extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
 ##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split[=stacked]]
-##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
+##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [by_address [untouched]] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
 
 const LAUNCHER: String = "res://game/main/main.tscn"
 const STEP_FRAMES: int = 20
@@ -21,6 +21,7 @@ var _starter: int = -1
 var _rival: int = -1
 var _rival_name: String = ""
 var _by_address: bool = false
+var _untouched: bool = false
 var _both_versions: bool = false
 var _split: bool = false
 var _layout: String = "Side by side"
@@ -84,6 +85,8 @@ func _read_option(arg: String) -> bool:
 			_rival_name = value.to_upper()
 		"by_address":
 			_by_address = true
+		"untouched":
+			_untouched = true
 		"both_versions":
 			_both_versions = true
 		"tour":
@@ -228,6 +231,8 @@ func _until_heard() -> bool:
 
 
 func _choose_cartridge() -> bool:
+	if _page() == null or not _page().is_visible_in_tree():
+		return false
 	return _press(PokeCoopLobby.title(_game)) or true
 
 
@@ -360,7 +365,7 @@ func _choose_layout() -> bool:
 func _choose_halves() -> bool:
 	if not get_nodes_in_group(Gen2FocusGuard.MODAL_GROUP).any(func(sheet: Node) -> bool:
 			return sheet is PokeCoopTabParts.Sheet and (sheet as PokeCoopTabParts.Sheet).listens and not sheet.is_queued_for_deletion()):
-		return true
+		return _halves_pressed > 0 or _frames - _step_at > 180
 	if _halves_pressed == 0 and not _captures.is_empty():
 		root.get_viewport().get_texture().get_image().save_png(String(_captures[0]["path"]).get_base_dir() + "/who_plays_where.png")
 	var press: InputEvent = InputEventKey.new()
@@ -368,9 +373,12 @@ func _choose_halves() -> bool:
 	if _halves_pressed > 0:
 		press = InputEventJoypadButton.new()
 		(press as InputEventJoypadButton).button_index = JOY_BUTTON_A
-		press.device = int(PokePadChoice.connected()[0]["device"])
+		var pads: Array = PokePadChoice.connected()
+		if pads.is_empty():
+			return false
+		press.device = int(pads[(_halves_pressed - 1) % pads.size()]["device"])
 	press.set("pressed", true)
-	print("coop launcher: %s chooses a half with %s" % [_player_id, press.as_text()])
+	print("coop launcher: %s chooses a half with %s on device %d" % [_player_id, press.as_text(), press.device])
 	_halves_pressed += 1
 	root.push_input(press)
 	return false
@@ -387,6 +395,13 @@ func _join_host() -> bool:
 		return true
 	if _frames - _step_at < 240 and not _by_address:
 		return false
+	if _untouched and _round > 0:
+		var field: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool:
+			return node is LineEdit and node.name == "address" and (node as Control).is_visible_in_tree())
+		if field.is_empty():
+			return false
+		print("coop launcher: %s joins with the address field untouched, showing \"%s\"" % [_player_id, (field[0] as LineEdit).text])
+		return _press("Join")
 	return _type("address", "%s:%d" % [_address, _port]) and _press("Join")
 
 

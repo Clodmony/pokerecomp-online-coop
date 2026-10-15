@@ -249,6 +249,21 @@ func test_each_owner_keeps_the_experience_their_pokemon_earned() -> void:
 
 
 ## Gains of a partner's Pokémon over one fight in which both teams' leads took part.
+func test_a_traded_pokemon_above_the_badge_level_disobeys_its_owner_in_a_session() -> void:
+	var disobeyed: Dictionary = {}
+	for ot: int in [RED_ID, RED_ID + 7]:
+		for seed_value: int in 40:
+			var red: PokeCoopPlayer = _player("red", RED_ID, [_saved(Fixture.PIKACHU, 50, [Fixture.TACKLE, Fixture.GROWL], ot)])
+			var session: PokeCoopBattleSession = _start(red, _enemy(Fixture.GEODUDE, 50, [Fixture.GROWL]), seed_value)
+			var events: Array = _act(session, red, {"type": "move", "slot": 0}).get("events", [])
+			var obeyed: bool = events.any(func(event: Dictionary) -> bool:
+				return event["type"] == Gen2Battle.USED_MOVE and int(event.get("side", -1)) == Gen2Battle.PLAYER \
+					and int(event.get("move", 0)) == Fixture.TACKLE and not bool(event.get("instead", false)))
+			disobeyed[ot] = int(disobeyed.get(ot, 0)) + int(not obeyed)
+	assert_eq(int(disobeyed[RED_ID]), 0, "RED's own PIKACHU")
+	assert_gt(int(disobeyed[RED_ID + 7]), 0, "a PIKACHU L50 traded to RED, with no badge")
+
+
 func _partner_gain(partner_ot: int) -> int:
 	var red: PokeCoopPlayer = _red()
 	var blue: PokeCoopPlayer = _blue(1, partner_ot)

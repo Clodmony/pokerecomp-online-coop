@@ -4329,9 +4329,7 @@ static func check_obedience(turn: Gen2Turn) -> void:
 	var user: Gen2BattleMon = turn.attacker()
 	if turn.side != Gen2Battle.PLAYER or turn.locked or turn.called or turn.disobeyed:
 		return
-	if battle.is_link_battle or battle.in_battle_tower or battle.player_id < 0:
-		return
-	if user.ot_id < 0 or user.ot_id == battle.player_id:
+	if battle.is_link_battle or battle.in_battle_tower or not battle._is_traded(user):
 		return
 	var gen1: bool = battle.is_gen1()
 	var limit: int = _obedience_level(
