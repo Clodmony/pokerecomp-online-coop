@@ -1,7 +1,7 @@
-# A co-op bag holds forty rows (D109), on a seed at Pewter's south gate (SEED=<coop_seed.gd out dir, leg viridian_forest>,
-# BLUE's bag twenty different items, the PC its POTION): BLUE withdraws the POTION, which the cartridge would refuse, then
-# scrolls the bag to its twenty-first row.
-: "${SEED:?bag_forty needs SEED=<an out dir of tools/coop_seed.gd>}"
+# A co-op bag holds forty rows (D109), on a seed at Pewter's south gate (BLUE's bag twenty different items, the PC
+# its POTION): BLUE withdraws the POTION, which the cartridge would refuse, then scrolls the bag to its twenty-first row.
+SEED_ARGS="red viridian_forest $(printf 'item=%s ' POKEBALL GREATBALL ULTRABALL ANTIDOTE BURNHEAL ICEHEAL AWAKENING \
+	PARLYZHEAL FULLRESTORE MAXPOTION HYPERPOTION SUPERPOTION ESCAPEROPE REPEL FIRESTONE THUNDERSTONE WATERSTONE HPUP PROTEIN IRON)"
 HOST_ARGS=bare
 DURATION=100
 press p2 4 U - U - U - U - U - U - U - U       # german_screens' walk to the POKéMON CENTER's PC
