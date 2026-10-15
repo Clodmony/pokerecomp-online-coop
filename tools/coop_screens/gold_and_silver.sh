@@ -19,7 +19,7 @@ press p1 14 SELECT
 shot p1 14.6 gold_menu                # "SILVER" in NEW BARK TOWN
 press p1 16 B
 press p2 13 D D D                     # on SILVER's clock, about four seconds behind GOLD's
-shot p1 20 gold_sees_silver_walk      # SILVER a step south, where the neighbour stops it
+shot p1 20 gold_sees_silver_walk      # SILVER walks south (the neighbour may stop it)
 check() {
 	grep -q "in JOHTO .* GOLD, .*team CYNDAQUIL:5, .* on WorldScreen" "$out/p1.log" \
 		&& grep -q "in JOHTO .* SILVER, .*team TOTODILE:5, .* on WorldScreen" "$out/p2.log"

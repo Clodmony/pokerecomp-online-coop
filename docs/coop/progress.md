@@ -11,6 +11,34 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
+
+The gate of M14. Gold and Silver are a version pair (`VERSION_PAIRS`, the tab's
+`GAMES`): a Silver player joins a Gold campaign and the reverse; Crystal, Red and
+another Gold dump are refused. Their rules live in `PokeCoopJohto` (D130, the
+owner's choice of a shared core with Johto's rules in their own file): a new
+player stands in New Bark Town by the house's door (24:4, cells 13,6 then 12,6)
+with CHIKORITA, CYNDAQUIL or TOTODILE at level 5, and a Gold campaign gets none
+of Red and Blue's intro flags. The tab offers only "Start in New Bark Town" for
+Gold and Silver: no Oak's opening (it plays, but the host ends it on Red and
+Blue's lab flag, so the player would never leave it; #173), no rival field and
+no both-versions switch. The CO-OP menu and the tab name a Johto map's
+landmark. `coop_session.gd demo gold` runs the ENet slice on the Generation 2
+fixture, in CI and `tools/verify.sh`. Gold and Silver's world, clock, battles
+and services are #173 to #184. Branch `coop/172-gold-silver-gate`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_gold_silver`) | 1/6 passing (Crystal and Red were already refused): Silver refused `content_mismatch`; `[1] expected to equal [158]` (Red's starter list); the campaign held Red and Blue's intro flags `{0, 32, 33, 34, 35, 39}` and map scripts; no battle, no save |
+| Socket before the fix (`demo gold`, the version pair taken out) | `FAIL both clients are welcomed` |
+| Screens before the fix (Gold host from `coop_session.gd host gold`, a Silver window) | Silver: "session ended (refused: content_mismatch)"; Gold: the window opens on no world, `Nonexistent function 'script_busy' in base 'Nil'` every frame (the player was placed on Pallet Town's map id 0:0) |
+| Tests after | `test_coop_gold_silver` 6/6; `test_coop_device` 41/41 with `test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters` |
+| Socket after | `demo gold`: all 16 steps, "each sees the other in New Bark Town" to "the save reloads both players"; `demo` (Red) all 16 |
+| Screens after, `gold_and_silver` (imported Gold and Silver) | the tab lists Gold and Silver "Ready", "Plays together with Gold and Silver"; the form shows Start in New Bark Town and the three Johto chips, no rival, no opening; both windows at the house's door on 24:4, each drawing the other; CO-OP menu "SILVER / NEW BARK TOWN"; SILVER's step south seen from GOLD's window. A Gold host from `coop_session.gd` puts its two players at 13,6 and 12,6 as well. Every capture looked at |
+| `tools/verify.sh gold_and_silver launcher_host_join` | import, GUT 5215/5215, gates, boot, ENet demo, ENet demo gold, three processes, `gold_and_silver` and `launcher_host_join` ok (run `20261016-001027`); Red's tab still offers the opening and Start in Pallet Town, its CO-OP menu "BLUE IN THE OPENING" |
+| Not run | Bring a trainer from a Gold save; German Gold and Silver (#50); Windows; played |
+| Left over | `coop_session.gd host gold`'s scripted players get Red and Blue's item ids (5 GREAT BALL on Gold); the tab's name field starts at RED on any cartridge |
+
 ## Gold and Silver scoped (#171, D128, 2026-10-15)
 
 Planning only, nothing built. The owner chose the Generation 2 rules (D128,
