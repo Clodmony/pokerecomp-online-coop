@@ -1,7 +1,7 @@
-# Two windows on the S.S. Anne's first deck (SEED=<a tools/coop_seed.gd out dir>, both moved to SS_ANNE_1F (20,7) and (24,7)): RED
+# Two windows on the S.S. Anne's first deck (an ss_anne seed, both moved to SS_ANNE_1F (20,7) and (24,7)): RED
 # goes into the third cabin from the stern; BLUE's arrow stands over that cabin's door, not the first one in the
 # map's list, and RED's points at the cabin's own door out.
-: "${SEED:?partner_tracker_cabins needs SEED=<an out dir of tools/coop_seed.gd>}"
+SEED_ARGS="red ss_anne at=0:95:20,7:24,7"
 HOST_ARGS=bare
 DURATION=24
 shot p1 4 p1_hall
