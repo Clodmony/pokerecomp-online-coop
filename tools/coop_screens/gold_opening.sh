@@ -1,4 +1,4 @@
-# Gold's opening for both players (#173, D131, test cases G10 to G12): a Gold window picks CYNDAQUIL and a Silver window
+# Gold's opening for both players (#173, D131, test cases J10 to J12): a Gold window picks CYNDAQUIL and a Silver window
 # TOTODILE, each plays its own errand to Mr. Pokémon, its own rival theft and fight in Cherrygrove and the officer, hands
 # the egg to Elm, leaves the lab and meets the other in New Bark Town. Only the first window is asked the rival's name.
 GAME=gold

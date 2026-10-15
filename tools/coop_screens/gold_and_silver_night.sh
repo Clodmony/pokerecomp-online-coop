@@ -1,4 +1,4 @@
-# The host's clock for every window (#175, D133, test cases G30 to G32): GOLD hosts a new Gold campaign from the launcher
+# The host's clock for every window (#175, D133, test cases J30 to J32): GOLD hosts a new Gold campaign from the launcher
 # with its clock set to FRIDAY 9:30 PM (`clock=21:30:5`, whatever the machine's own time), SILVER joins on a Silver
 # cartridge; both windows draw New Bark Town at night, and each capture line names the window's own weekday and time.
 GAME=gold

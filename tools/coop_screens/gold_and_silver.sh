@@ -1,4 +1,4 @@
-# Gold and Silver on the Co-op tab (#172, test cases G01 to G03): GOLD hosts a new Gold campaign from the launcher
+# Gold and Silver on the Co-op tab (#172, test cases J01 to J03): GOLD hosts a new Gold campaign from the launcher
 # with CYNDAQUIL, SILVER finds it nearby on a Silver cartridge and joins with TOTODILE; both stand in New Bark Town
 # by the house and see each other, and the CO-OP menu says where the partner is. Seconds count from each launch.
 GAME=gold

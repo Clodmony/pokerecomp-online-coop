@@ -1,4 +1,4 @@
-# Gold and Silver's day care (#178, test cases G50 to G54): a seed stands GOLD and SILVER in Route 34's pen. GOLD's
+# Gold and Silver's day care (#178, test cases J50 to J54): a seed stands GOLD and SILVER in Route 34's pen. GOLD's
 # day care holds DITTO and CYNDAQUIL with their egg waiting, SILVER's man a SENTRET. GOLD's window shows GOLD's man
 # outside and both of GOLD's in the pen, SILVER's only SENTRET; GOLD takes the egg, and one step hatches it in GOLD's
 # party, while SILVER goes in by the back door and finds SILVER's man indoors, raising SENTRET.
