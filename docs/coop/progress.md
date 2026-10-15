@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## `bag_forty` and `partner_tracker_cabins` build their own seed (#167, 2026-10-15)
+
+The last two scenarios that needed a seed moved there by hand (`SEED=`) now
+name it in `SEED_ARGS`, so `tools/verify.sh` runs them unattended. `bag_forty`
+walks to `viridian_forest` (both players at Pewter's south gate, the PC with its
+POTION, the bag empty) and stocks twenty different items with `item=`, built
+with `printf` because the runner reads only the first line of `SEED_ARGS`.
+`partner_tracker_cabins` walks to `ss_anne` and moves both players onto
+SS_ANNE_1F with `at=0:95:20,7:24,7`. `brock_from_seed`, `german_screens`,
+`both_versions` and `vermilion_locks` take a seed on purpose and keep `SEED=`.
+No game code changed. Branch `coop/167-scenario-seeds`.
+
+| Verification | Result |
+|---|---|
+| Screens before the change, without `SEED=` | both stop at once: "SEED: bag_forty needs SEED=<an out dir of tools/coop_seed.gd>", the same for `partner_tracker_cabins` |
+| Screens after the change, no `SEED=` | seeds "viridian_forest on (0, 2) (18, 35), badges 0, party 1" and "ss_anne on (0, 95) (20, 7), badges 2, party 1"; both checks pass, no script errors. `bag_forty`: BLUE withdraws the PC's POTION ("Withdrew POTION."), the bag opens on ULTRA BALL, twenty downs reach PROTEIN, IRON, POTION, CANCEL, SAVE writes the campaign; `partner_tracker_cabins`: both in the hall, BLUE's arrow over the cabin door RED took, RED inside the cabin with its arrow over the cabin's own door (it blinks: one of the two shots catches it). `p2_hall`, on p2's later clock, already shows RED gone into the cabin. Every capture looked at |
+| Not run | Blue, German, Windows |
+
 ## A seed's `mon=` replaces only the lead (#168, 2026-10-15)
 
 `tools/coop_seed.gd`'s first `mon=` cleared the whole party, so `party=<n>`
