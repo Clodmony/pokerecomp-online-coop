@@ -16,7 +16,8 @@ Last updated 2026-10-15 (after #165, PR #166).
 
 ## Open pull requests (the owner says when to merge)
 
-- **#166** (draft) `coop/165-route3-seeds`: Closes #165. `switch_offer`,
+- **#166** (draft) `coop/165-route3-seeds`: Closes #165. **The owner
+  approved merging it (2026-10-15): merge it first in the next session.** `switch_offer`,
   `mimic_suggest`, `party_balls`, `trainer_busy` build their own ROUTE 3 seed
   (`SEED_ARGS`, three level 25 Pokémon spelt out with `mon=`, `at=`); tools and
   docs only. Verify run `20261015-092118` all passed (GUT 5207/5207, the four
@@ -44,12 +45,12 @@ Last updated 2026-10-15 (after #165, PR #166).
   `coop_save.gd` and the battle stage are generation-agnostic.
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
-- Possible issues, ask before filing: `bag_forty` and `partner_tracker_cabins`
-  still need a hand-moved `SEED=` and could build theirs with `SEED_ARGS` as
-  #165 did (`brock_from_seed`, `german_screens`, `both_versions` and
-  `vermilion_locks` take a seed on purpose); `coop_seed.gd`'s first `mon=`
-  drops the `party=` copies, so the two options don't combine; the session
-  menu's FIGHT list is fixed (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
+- #167: `bag_forty` and `partner_tracker_cabins` build their own seed with
+  `SEED_ARGS` (tests only). #168: `coop_seed.gd`'s first `mon=` drops the
+  `party=` copies; make it replace only the lead (check the legs' party size
+  first). Both filed at the owner's request (2026-10-15).
+- Possible issues, ask before filing: the session menu's FIGHT list is fixed
+  (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
   map's wild table; a mouse with a joystick interface is listed twice as a pad.
 
 ## Worktrees and background processes
