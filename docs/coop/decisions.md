@@ -2025,3 +2025,38 @@ are. This adds a file against `CONTRIBUTING.md`'s "extend, do not add" on the
 owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
 scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
 joins (`demo gold`).
+
+## D133. The host's clock for every window (#175, protocol 9, 2026-10-16)
+
+D128 makes the host's clock the campaign's one clock. How it travels:
+
+- **One reading at a host second.** A Gold or Silver campaign keeps the weekday,
+  hour, minute, second and `wCurDay` it read at a host second
+  (`PokeCoopCampaign.clock`, saved with the campaign); the time now is that
+  reading plus the seconds since (`PokeCoopJohto`). A new campaign starts it at
+  the hosting device's own weekday and time, as an RTC set to the real time; a
+  tool may name another (`clock=HH:MM[:D]`). Red and Blue keep none, and their
+  files and messages are unchanged.
+- **Each window runs it on.** Every `state` carries the reading as the host
+  sent it, and a window runs it on by its own milliseconds since, so devices
+  whose system clocks disagree still agree. A world opens on it, and once a
+  frame the shown world follows it: a world behind ticks its own minutes up to
+  it (phone timers count them); one ahead, or on another weekday, is set to it.
+  A world held under the CO-OP menu or a battle catches up when it comes back.
+- **Closed, it keeps running.** A reopened campaign reads from its saved
+  stamp, so the clock ran while it was closed. A host second earlier than the
+  stamp (the host's clock was put back) holds the reading until real time
+  reaches it again: the world never runs backwards, as `Gen2WorldClock`'s own
+  rule.
+- **The hosting player sets it.** A `clock` message is taken from the hosting
+  device's player only (`not_host` for the others): the opening's time
+  question, which only the hosting window asks (`Gen2IntroScreen.asks_clock`;
+  a joiner's opening goes straight to Oak's speech), and any jump the hosting
+  window's own scripts make, such as Mom's weekday. A joiner's own jump is put
+  back to the host's clock.
+- **Protocol 9**, since a window of protocol 8 would keep its own clock.
+
+Left out: daylight saving time stays each window's flag (Mom's question sets it
+for that window's Pokégear; the clock itself does not move), and battles fought
+on the host keep their default time of day for Moonlight, Morning Sun and
+Synthesis until co-op battles on the Generation 2 screen (#176) pass it.

@@ -42,7 +42,10 @@ How a new player starts:
 - **Start in Pallet Town** with one of the three starters, level 5, and 3000
   money. On Gold and Silver: **Start in New Bark Town** with CHIKORITA,
   CYNDAQUIL or TOTODILE, the only way in until Gold's opening is built (#173);
-  a Gold or Silver campaign asks no rival's name.
+  a Gold or Silver campaign asks no rival's name. It has one clock, the
+  host's: it starts at the hosting device's weekday and time, every window
+  shows the same time of day and weekday, and it runs on while the campaign is
+  closed.
 - **Bring a trainer from a save**, if the cartridge has a single-player save on
   this device: that trainer's team, PC, bag, money and place. The first player
   of a new campaign who brings a save brings its story and badges too.

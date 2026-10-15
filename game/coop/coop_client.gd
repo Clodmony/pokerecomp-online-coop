@@ -212,6 +212,15 @@ func request_save() -> int:
 	return send({"type": "save"})
 
 
+func clock() -> Dictionary:  ## the host's clock as of now (D133): the last state's reading run on since; empty on Red and Blue
+	var told: Variant = state.get("clock", {})
+	return PokeCoopJohto.moved(told, (Time.get_ticks_msec() - state_at) / 1000.0) if told is Dictionary and not (told as Dictionary).is_empty() else {}
+
+
+func set_clock(day: int, hour: int, minute: int, cur_day: int = -1) -> int:
+	return send({"type": "clock", "day": day, "hour": hour, "minute": minute, "cur_day": cur_day})
+
+
 ## A tool's label for what drives this window, such as the autopilot's leg: unnumbered, after all sent before it.
 func send_wild_tables(tables: Dictionary) -> void:
 	transport.send(PokeCoopTransport.HOST_PEER, {"type": "wild_tables", "tables": tables})

@@ -166,7 +166,8 @@ TOTODILE at level 5 (#172); Gold's opening and its rival come with #173. The rul
 carry over, with these choices:
 
 - The host's clock is the campaign's: time of day and weekday are the same in
-  every window.
+  every window, it starts at the hosting device's time, only the hosting player
+  sets it, and it runs on while the campaign is closed (D133).
 - Each player's own: Pokégear, phone contacts, calls and rematches; a day care
   that breeds only their Pokémon; the roaming RAIKOU, ENTEI and SUICUNE; and
   the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
