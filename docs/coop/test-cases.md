@@ -38,6 +38,7 @@ Red (or Blue) cartridge, the same one.
 | S21 | START > CO-OP (or SELECT) while a partner fights | Partners, where they are and the last save above; FIGHT offers, JOIN <partner> / VS <foe>, REJOIN after leaving, LEAVE SESSION, CANCEL; JOIN closes START and joins | `test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving` | start_coop_menu, leave_rejoin_takeover | |
 | S22 | LEAVE SESSION, then NO or B; again, then YES | NO and B return to the rows; YES leaves to the Co-op tab | `test_the_co_op_menu_fights_joins_rejoins_and_asks_before_leaving` | start_coop_menu, launcher_leave_rehost | |
 | S23 | SELECT on the map, in the bag (Gen 1 swap) and in a co-op battle | Opens CO-OP on the map only; the bag swaps; in a battle nothing opens | `test_select_opens_the_co_op_menu_only_where_the_world_does_not_read_it` | start_coop_menu | |
+| S24 | `tools/coop_seed.gd -- red pewter_gym <dir> level=25 party=3 mon=CHARMANDER:25:moves=EMBER` | The seed log says "party 3": the `mon=` lead first, the two lead copies behind it; on a full party a second `mon=` is refused with "the party is full" | `test_a_seed_mon_replaces_only_the_lead_so_party_copies_stay_behind_it` | | |
 
 
 ## Co-op tab

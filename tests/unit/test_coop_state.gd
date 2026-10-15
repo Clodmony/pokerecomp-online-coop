@@ -286,6 +286,20 @@ func test_a_seed_with_a_full_party_gives_each_player_six_of_their_own_told_apart
 			"the host tells every one apart")
 
 
+func test_a_seed_mon_replaces_only_the_lead_so_party_copies_stay_behind_it() -> void:
+	var save := Gen2SaveData.new()
+	save.player_id = 0xFFFF
+	save.party.append(_saved(Fixture.CHARMANDER, 12))
+	save.world = Gen2WorldSnapshot.new()
+	Seed.fill_party(_data, save, 6)
+
+	assert_eq(Seed.shape(_data, save, ["mon=PIKACHU:20:moves=TACKLE"]), "", "a full party still takes a new lead")
+	assert_eq(save.party.map(func(mon: Gen2SaveMon) -> Array: return [mon.species, mon.level]),
+		[[Fixture.PIKACHU, 20]] + range(5).map(func(_at: int) -> Array: return [Fixture.CHARMANDER, 12]))
+	assert_eq(Array(save.party[0].moves).slice(0, 2), [Fixture.TACKLE, 0], "the options shape the new lead, not a copy")
+	assert_string_contains(Seed.shape(_data, save, ["mon=PIKACHU:20", "mon=DITTO:30"]), "the party is full")
+
+
 func test_a_seed_shapes_the_party_and_the_bag_by_name_and_keeps_a_traded_pokemon_traded() -> void:
 	var save := Gen2SaveData.new()
 	save.player_id = 0xFFFF
@@ -296,7 +310,7 @@ func test_a_seed_shapes_the_party_and_the_bag_by_name_and_keeps_a_traded_pokemon
 	assert_eq(Seed.shape(_data, save, ["mon=pikachu:20:moves=TACKLE/Transform:nick=SPARKY:status=PSN:hp=9",
 		"mon=DITTO:30:traded", "item=guard spec:2", "item=POTION:4"]), "")
 	assert_eq(save.party.map(func(mon: Gen2SaveMon) -> Array: return [mon.species, mon.level, mon.nickname]),
-		[[Fixture.PIKACHU, 20, "SPARKY"], [Fixture.DITTO, 30, ""]], "the first mon= replaces the walked party")
+		[[Fixture.PIKACHU, 20, "SPARKY"], [Fixture.DITTO, 30, ""]], "the first mon= replaces the walked lead")
 	var lead: Gen2SaveMon = save.party[0]
 	assert_eq([Array(lead.moves).slice(0, 3), lead.status, lead.hp], [[Fixture.TACKLE, Fixture.TRANSFORM, 0], 8, 9])
 	assert_eq([save.world.world_state.item_quantity(Fixture.GUARD_SPEC), save.world.world_state.item_quantity(Fixture.POTION)], [2, 4],
