@@ -217,6 +217,7 @@ before pushing.
 | `tools/verify.sh` | one unattended check of a branch: CI's stages, then two-window scenarios and the private builds, with a short summary |
 | `tools/coop_play.gd` | one player's window on the real world screen |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
+| `tools/coop_relay.gd` | a UDP relay between one scenario window and the host that cuts the link on cue (`RELAY=p2`, `cut`) |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69); `tour=` photographs every screen |
 | `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead |

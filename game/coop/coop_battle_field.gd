@@ -372,7 +372,8 @@ func _open(view: Dictionary) -> void:
 	var ally: int = int(opening[Gen2Battle.PLAYER])
 	_messages.append({"hold": Gen2BattleScreen.PLAYER_ENTRANCE_FRAMES})
 	_messages.append({"stage": PokeCoopBattleStage.SLIDE, "side": Gen2Battle.PLAYER})
-	_messages.append({"text": _de(data, "Go! %s!") % _species_name(data, ally)})
+	var named: String = String(opening[name_key(Gen2Battle.PLAYER)])
+	_messages.append({"text": _de(data, "Go! %s!") % (named if not named.is_empty() else _species_name(data, ally))})
 	_messages.append_array(send_out_steps(Gen2Battle.PLAYER))
 	_messages.append({"cry": ally})
 

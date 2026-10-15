@@ -1,8 +1,8 @@
-# "Use next POKéMON?" with the partner in a wild battle (#151, test case B36; SEED: tools/coop_seed.gd red viridian_forest
-# level=25 party=3, then RED's lead at 1 HP knowing only SELFDESTRUCT). RED fights the session menu's wild ONIX,
+# "Use next POKéMON?" with the partner in a wild battle (#151, test case B36; SEED_ARGS: RED's CHARMANDER L25 at 1 HP
+# knowing only SELFDESTRUCT and two more at L25). RED fights the session menu's wild ONIX,
 # BLUE joins; the first turn faints RED's CHARMANDER either way: RED's window asks "Use next POKéMON?", BLUE's asks
 # the same and BLUE points at NO (a suggestion to run), so RED's box wears BLUE's mark there; RED answers YES.
-: "${SEED:?send_out_suggest needs SEED=<an out dir of tools/coop_seed.gd>}"
+SEED_ARGS="red viridian_forest mon=CHARMANDER:25:moves=SELFDESTRUCT:hp=1 mon=CHARMANDER:25 mon=CHARMANDER:25"
 HOST_ARGS=bare
 DURATION=55
 press p1 2 SELECT @FIGHT.+ONIX
