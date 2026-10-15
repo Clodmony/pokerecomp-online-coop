@@ -72,7 +72,9 @@ const RIVAL_SCENES: Dictionary = {
 }
 
 
-const VERSION_PAIRS: Array = [[RomRegistry.RED, RomRegistry.BLUE], [RomRegistry.RED_DE, RomRegistry.BLUE_DE]]
+const VERSION_PAIRS: Array = [
+	[RomRegistry.RED, RomRegistry.BLUE], [RomRegistry.RED_DE, RomRegistry.BLUE_DE], [RomRegistry.GOLD, RomRegistry.SILVER],
+]
 ## A wild met in the grass or the water is, half the time, the other version's Pokémon from the same map and slot (D104).
 const WILD_TABLES: Dictionary = {"grass": Gen2WorldEncounter.METHOD_GRASS, "water": Gen2WorldEncounter.METHOD_SURF}
 const WILD_SLOTS: int = 10
@@ -99,7 +101,6 @@ static func versus_experience(award: Gen2Battle, faced: Dictionary, foes: Array)
 	return events
 
 
-## Prize money with Pay Day's: every participant is paid all of it (D61).
 static func same_story(game: StringName, other: StringName) -> bool:
 	return game == other or VERSION_PAIRS.any(func(pair: Array) -> bool: return pair.has(game) and pair.has(other))
 
@@ -175,6 +176,7 @@ static func plays_with(game: StringName, sha1: String, campaign_game: StringName
 		and campaign_sha1 == RomRegistry.sha1_for(campaign_game)
 
 
+## Prize money with Pay Day's: every participant is paid all of it (D61).
 static func prize_shares(total: int, participants: Array) -> Dictionary:
 	var out: Dictionary = {}
 	for player_id: Variant in participants if total > 0 else []:
@@ -219,8 +221,22 @@ static func new_player_money() -> int:
 	return NEW_PLAYER_MONEY
 
 
+static func starters(data: GameData) -> Array[int]:
+	return PokeCoopJohto.STARTERS if PokeCoopJohto.plays(data) else STARTERS
+
+
+static func start_map(data: GameData) -> Vector2i:
+	return PokeCoopJohto.START_MAP if PokeCoopJohto.plays(data) else START_MAP
+
+
+static func start_cells(data: GameData) -> Array[Vector2i]:
+	return PokeCoopJohto.START_CELLS if PokeCoopJohto.plays(data) else START_CELLS
+
+
 ## A new campaign begins after Oak's intro, which its players never see.
 static func start_campaign(campaign: PokeCoopCampaign) -> void:
+	if PokeCoopJohto.is_game(campaign.game_id):
+		return
 	campaign.commit("intro:starters_given", {"flags": INTRO_DONE_FLAGS})
 	settle_intro(campaign)
 
@@ -243,11 +259,12 @@ static func settle_intro(campaign: PokeCoopCampaign) -> void:
 		campaign.revision += 1
 
 
-## A player new to the campaign in Pallet Town: [param starter] if it is one of the three, at Oak's level, theirs.
+## A player new to the campaign in its first town: [param starter] if it is one of the three, at Oak's level, theirs.
 static func set_up_new_player(
 	data: GameData, player: PokeCoopPlayer, starter: int, joined_before: int
 ) -> void:
-	var species: int = starter if STARTERS.has(starter) else STARTERS[joined_before % STARTERS.size()]
+	var offered: Array[int] = starters(data)
+	var species: int = starter if offered.has(starter) else offered[joined_before % offered.size()]
 	var mon: Gen2BattleMon = Gen2BattleMon.create(
 		data, species, STARTER_LEVEL, data.moves_at_level(species, STARTER_LEVEL)
 	)
@@ -257,7 +274,8 @@ static func set_up_new_player(
 		saved.original_trainer = player.name
 		saved.caught_level = STARTER_LEVEL
 		player.add_mon(saved)
-	player.place(START_MAP, START_CELLS[joined_before % START_CELLS.size()], 0)
+	var cells: Array[Vector2i] = start_cells(data)
+	player.place(start_map(data), cells[joined_before % cells.size()], 0)
 
 
 static func set_up_opening_player(data: GameData, player: PokeCoopPlayer) -> void:

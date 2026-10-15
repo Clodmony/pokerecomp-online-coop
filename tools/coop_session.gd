@@ -1,12 +1,12 @@
 extends SceneTree
 
 ## Co-op sessions over ENet on the synthetic test cache, no cartridge needed:
-##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [logs] | check host|p1|p2 [port] [logs]
+##   Godot --headless --path . -s res://tools/coop_session.gd -- demo [port] [gold] [logs] | check host|p1|p2 [port] [logs]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- host [port] [game] [bare] [snapshots=<dir>] [seed=<n>]
 ##   Godot --headless --path . -s res://tools/coop_session.gd -- client <address> [port] <player_id> [game]
-## `demo` runs a host and two clients in one process, `check` one per process (tools/coop_two_process.sh); each exits 0 only if
-## every step passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`, `bare` with
-## nobody in it yet, `snapshots=` a tools/coop_resume.sh seed in `<dir>/<n>/` every 10 s it changed, `seed=` the host's rolls. Logs: `user://coop_logs`.
+## `demo` runs a host and two clients in one process (`gold`: Silver joins Gold, Generation 2's fixture), `check` one per process (tools/coop_two_process.sh);
+## each exits 0 only if every step passed. `host red` plays an imported cartridge, campaign in `user://coop_campaigns/<game>/<game>.json`, `bare` with nobody
+## in it yet, `snapshots=` a tools/coop_resume.sh seed in `<dir>/<n>/` every 10 s it changed, `seed=` the host's rolls. Logs: `user://coop_logs`.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const STEP_FRAMES: int = 600
@@ -18,8 +18,6 @@ const SAVE_PATH: String = "user://coop_demo_campaign.json"
 ## `constants/event_constants.asm` at the pinned pokered commit, Pallet's two doorsteps; Brock is class 34, party 0.
 const EVENT_BEAT_BROCK: int = 0x77
 const BROCK_CLASS: int = 34
-const PALLET_RED: Vector2i = Vector2i(5, 6)
-const PALLET_BLUE: Vector2i = Vector2i(13, 6)
 const CHARMANDER: int = 4
 const SQUIRTLE: int = 7
 const PIDGEY: int = 16
@@ -52,6 +50,7 @@ var _logging: bool = false
 var _journals: Array = []
 var _snapshots: String = ""
 var _rolls: String = ""
+var _town: Vector2i = PALLET
 var _snapshot_at: int = 0
 var _snapshot_state: String = ""
 var _snapshot_count: int = 0
@@ -64,12 +63,19 @@ func _initialize() -> void:
 	_logging = args.has("logs") or _mode in ["host", "client"]
 	if args.has("logs"):
 		args.remove_at(args.find("logs"))
+	var johto: bool = _mode == "demo" and args.has("gold")
+	if johto:
+		args.remove_at(args.find("gold"))
 	_directory = RomCache.directory_for(
 		StringName("coop%s%d" % [_mode, OS.get_process_id()]), "0123456789abcdef"
 	)
 	var game: String = _game_arg(args)
 	_data = GameData.open(StringName(game)) if not game.is_empty() \
+		else Fixture.build(_directory, String(RomRegistry.GOLD), RomRegistry.GEN2) if johto \
 		else Fixture.build(_directory, "testgame", RomRegistry.GEN1)
+	if johto and _data != null:
+		_data.sha1 = RomRegistry.sha1_for(RomRegistry.GOLD)
+		_town = PokeCoopPolicy.start_map(_data)
 	if _data == null:
 		push_error("coop: no imported cache for %s" % game)
 		_finish(1)
@@ -127,11 +133,11 @@ func _new_host(port: int) -> bool:
 	_host.save_path = SAVE_PATH
 	_host.journal = _journal("host", "HOST", port)
 	var red: PokeCoopPlayer = _host.add_player("RED", 100)
-	red.place(PALLET, Vector2i(5, 5), 0)
+	red.place(_town, Vector2i(5, 5), 0)
 	red.add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH, Fixture.GROWL], 100))
 	red.add_mon(_saved(Fixture.PIKACHU, 20, [Fixture.TACKLE], 100))
 	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
-	blue.place(PALLET, Vector2i(6, 5), 0)
+	blue.place(_town, Vector2i(6, 5), 0)
 	blue.add_mon(_saved(Fixture.CHARMANDER, 20, [Fixture.TACKLE, Fixture.GROWL], 200))
 	_host.register_encounter("wild:stall", {"species": Fixture.GEODUDE, "level": 50, "moves": [Fixture.GROWL]})
 	_host.register_encounter("wild:weak", {"species": Fixture.BULBASAUR, "level": 2, "moves": [Fixture.GROWL]})
@@ -157,7 +163,8 @@ func _dial(address: String, port: int, player_id: String) -> PokeCoopClient:
 		return null
 	var client: PokeCoopClient = PokeCoopClient.over(link)
 	client.journal = _journal("join", player_id.to_upper(), port)
-	client.greet(player_id, _data.id, _data.sha1, player_id)
+	var game: StringName = RomRegistry.SILVER if _town != PALLET and player_id == "p2" else _data.id
+	client.greet(player_id, game, _data.sha1 if game == _data.id else RomRegistry.sha1_for(game), player_id)
 	return client
 
 
@@ -204,13 +211,13 @@ func _start_host(port: int, game: String, bare: bool = false) -> void:
 
 func _cartridge_players() -> void:
 	var red: PokeCoopPlayer = _host.add_player("RED", 100)
-	red.place(PALLET, PALLET_RED, Gen2WorldSprite.FACING_DOWN)
+	red.place(PokeCoopPolicy.start_map(_data), PokeCoopPolicy.start_cells(_data)[0], Gen2WorldSprite.FACING_DOWN)
 	red.add_mon(_saved(CHARMANDER, 12, _data.moves_at_level(CHARMANDER, 12), 100))
 	red.add_mon(_saved(PIDGEY, 9, _data.moves_at_level(PIDGEY, 9), 100))
 	red.give_item(POKE_BALL, 5)
 	red.give_item(POTION, 2)
 	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
-	blue.place(PALLET, PALLET_BLUE, Gen2WorldSprite.FACING_DOWN)
+	blue.place(PokeCoopPolicy.start_map(_data), PokeCoopPolicy.start_cells(_data)[1], Gen2WorldSprite.FACING_DOWN)
 	blue.add_mon(_saved(SQUIRTLE, 12, _data.moves_at_level(SQUIRTLE, 12), 200))
 	blue.add_mon(_saved(RATTATA, 9, _data.moves_at_level(RATTATA, 9), 200))
 	blue.give_item(POKE_BALL, 5)
@@ -250,9 +257,9 @@ func _start_demo(port: int) -> void:
 	_blue = _dial("127.0.0.1", port, "p2")
 	_steps = [
 		["both clients are welcomed", _noop, func() -> bool: return _red.player_id == "p1" and _blue.player_id == "p2"],
-		["each sees the other in Pallet Town", _noop, func() -> bool: return _red.nearby().has("p2") and _blue.nearby().has("p1")],
+		["each sees the other in %s" % ("New Bark Town" if _town != PALLET else "Pallet Town"), _noop, func() -> bool: return _red.nearby().has("p2") and _blue.nearby().has("p1")],
 		["red starts a battle", func() -> void: _red.start_battle("wild:stall"), _red_battle_known],
-		["blue explores meanwhile", func() -> void: _blue.step(PALLET, Vector2i(6, 6), 0), func() -> bool: return _host.player("p2").cell == Vector2i(6, 6)],
+		["blue explores meanwhile", func() -> void: _blue.step(_town, Vector2i(6, 6), 0), func() -> bool: return _host.player("p2").cell == Vector2i(6, 6)],
 		["blue starts and wins a battle of its own", func() -> void: _fight(_blue, "wild:weak"), func() -> bool: return _won(_blue, _new_battle(_blue))],
 		["blue joins red's battle", func() -> void: _blue.join_battle(_battle), func() -> bool: return (_red.battle(_battle).get("participants", []) as Array).has("p2")],
 		["blue's suggestion shows without acting", func() -> void: _blue.suggest(_battle, "switch", 2), _suggestion_seen],

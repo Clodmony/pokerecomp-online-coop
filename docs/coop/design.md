@@ -157,10 +157,13 @@ Their outcomes do not commit campaign story rewards.
   commit with a stable id (`victory:<encounter id>`), so it happens exactly once
   even if messages repeat.
 
-## Gold and Silver (D128, not built yet)
+## Gold and Silver (D128)
 
 Gold and Silver are a version pair as Red and Blue are; Crystal follows and
-plays with Crystal only. The rules above carry over, with these choices:
+plays with Crystal only. Their rules live in `PokeCoopJohto` (D130). A new
+player starts in New Bark Town by the house's door with CHIKORITA, CYNDAQUIL or
+TOTODILE at level 5 (#172); Gold's opening and its rival come with #173. The rules above
+carry over, with these choices:
 
 - The host's clock is the campaign's: time of day and weekday are the same in
   every window.

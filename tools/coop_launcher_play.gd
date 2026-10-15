@@ -329,9 +329,9 @@ func _fill_new_campaign(campaign: String) -> bool:
 func _choose_start() -> void:
 	if _starter < 0:
 		return
-	_press("Start in Pallet Town")
 	var data: GameData = GameData.open(_game)
-	_press(String(data.species(PokeCoopPolicy.STARTERS[_starter]).get("name", "")) if data != null else "")
+	_press(PokeCoopPage.start_label(data))
+	_press(String(data.species(PokeCoopPolicy.starters(data)[_starter]).get("name", "")) if data != null else "")
 
 
 func _new_player_if_asked(verb: String) -> bool:
