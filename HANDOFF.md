@@ -26,7 +26,8 @@ Last updated 2026-10-16 (after #172, PR #187).
   `game/coop/coop_johto.gd` (D130, the owner's choice: shared core, Johto's
   rules in their own file); `coop_session.gd demo gold` in CI and verify; new
   scenario `gold_and_silver`. Verify all passed (GUT 5215/5215, both ENet
-  demos, `gold_and_silver`, `launcher_host_join`).
+  demos, `gold_and_silver`, `launcher_host_join`). **The owner approved
+  merging it (2026-10-16): merge it first in the next session.**
 
 ## Next candidates
 
@@ -100,8 +101,6 @@ Last updated 2026-10-16 (after #172, PR #187).
 - `~/dev-scratch/pokerecomp-online-coop/session-links/` (the pre-D129
   mirror, the hash map, the cleaned PR bodies) once GitHub Support purged the
   old refs.
-- `~/dev-scratch/pokerecomp-online-coop/verify/` (two #172 runs with Gold
-  captures).
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
   `builds/pokerecomp-online-coop-0c6da178` and its two zips, never listed.
 - Superset lists a workspace of the retired repository
