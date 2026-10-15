@@ -157,6 +157,24 @@ Their outcomes do not commit campaign story rewards.
   commit with a stable id (`victory:<encounter id>`), so it happens exactly once
   even if messages repeat.
 
+## Gold and Silver (D128, not built yet)
+
+Gold and Silver are a version pair as Red and Blue are; Crystal follows and
+plays with Crystal only. The rules above carry over, with these choices:
+
+- The host's clock is the campaign's: time of day and weekday are the same in
+  every window.
+- Each player's own: Pokégear, phone contacts, calls and rematches; a day care
+  that breeds only their Pokémon; the roaming RAIKOU, ENTEI and SUICUNE; and
+  the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
+  SUDOWOODO, SNORLAX), which are not unique encounters here.
+- Shared: the Ruins of Alph's puzzles (the Unown caught stay each player's).
+- The Bug-Catching Contest takes both players at once; each is judged on their
+  own catch.
+- Mystery Gift works between the two players; the Time Capsule trades between
+  a Gold or Silver player and a Red or Blue player.
+- The campaign runs through Johto to Kanto and RED on Mt. Silver.
+
 ## Sessions and connections
 
 - Host-authoritative: clients send intentions; the host validates them and

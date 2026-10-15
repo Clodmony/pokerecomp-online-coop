@@ -103,6 +103,14 @@ Rough estimate, a guess: two to four working sessions with two or three agents
 in parallel to reach the Hall of Fame in two windows, before the hand-played
 session.
 
+### 5. Gold and Silver (M14, D128)
+
+Scoped with the owner in #171. The gate first (#172), then the opening (#173),
+the world (#174) and the clock (#175), battles (#176, #149), the per-player
+services (#177 phone, #178 day care, #179 contest, #180 legendaries), the
+Cable Club and Mystery Gift (#181), the Time Capsule (#182, design first),
+seeds and playthroughs (#183), Kanto and RED (#184), then Crystal (#185).
+
 ## The owner's decisions (2026-10-07, D72)
 
 1. The rest-point rule (#84) is adopted.

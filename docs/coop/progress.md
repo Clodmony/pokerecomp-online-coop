@@ -11,6 +11,13 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver scoped (#171, D128, 2026-10-15)
+
+Planning only, nothing built. The owner chose the Generation 2 rules (D128,
+`design.md`'s Gold and Silver section) and milestone M14 holds the work: #172
+to #185 and #149, ordered in `playbook.md`'s phase 5. Co-op still plays Red
+and Blue only.
+
 ## `bag_forty` and `partner_tracker_cabins` build their own seed (#167, 2026-10-15)
 
 The last two scenarios that needed a seed moved there by hand (`SEED=`) now
@@ -48,7 +55,7 @@ or `item=` now says why: the seed read `reason` where the save editor answers
 | GUT before the change | `test_a_seed_mon_replaces_only_the_lead_so_party_copies_stay_behind_it` fails: party `[[25, 20]]` (PIKACHU alone) instead of PIKACHU and five CHARMANDER copies |
 | Seeds after the change | `pewter_gym level=25 party=3 mon=CHARMANDER:25:moves=EMBER`: "party 3"; `switch_offer`'s three `mon=`: "party 3", as before |
 | `tools/verify.sh switch_offer battle_text` on the first fix (run `20261015-123851`) | GUT 5207/5208: `test_no_function_is_over_the_complexity_ceiling` (`shape` over 20); its per-Pokémon options moved to `_dress` |
-| `tools/verify.sh switch_offer battle_text` on cbda9346 (run `20261015-124808`) | import, GUT 5208/5208, gates, boot, ENet demo, three processes, both scenarios ok; both seeds byte for byte the first run's; `switch_offer`: RED's three balls, "Will P1 change POKéMON?" in both windows, P1 and P2 each defeat the LASS; `battle_text`: SPARKY (PIKACHU L20) leads, KADABRA L60 second, HORN DRILL's "One-hit KO!", EXP.ALL's lines (every capture of the first run looked at; the second ran the same seeds) |
+| `tools/verify.sh switch_offer battle_text` on 99ad340d (run `20261015-124808`) | import, GUT 5208/5208, gates, boot, ENet demo, three processes, both scenarios ok; both seeds byte for byte the first run's; `switch_offer`: RED's three balls, "Will P1 change POKéMON?" in both windows, P1 and P2 each defeat the LASS; `battle_text`: SPARKY (PIKACHU L20) leads, KADABRA L60 second, HORN DRILL's "One-hit KO!", EXP.ALL's lines (every capture of the first run looked at; the second ran the same seeds) |
 | Not run | Blue, German, Windows |
 
 ## ROUTE 3 scenarios build their own seed (#165, 2026-10-15)
@@ -68,7 +75,7 @@ so. No game code changed. Branch `coop/165-route3-seeds`.
 | Screens: `switch_offer` before the change, without `SEED=` | stops at once: "SEED: switch_offer needs SEED=<an out dir of tools/coop_seed.gd>" |
 | Screens: the four with `party=3 level=25 mon=...` | pass, but the seed log says "party 1": RED's balls row shows one Pokémon, not three |
 | Screens: the four with three `mon=` | seed "party 3" each; `party_balls`: under "LASS wants to fight!" her two balls and RED's three, after RATTATA faints her row with it crossed out, "P1 defeated LASS!"; `switch_offer`: both windows "LASS is about to use NIDORAN♂!" and RED's "Will P1 change POKéMON?" with YES/NO, BLUE's window the same question, NO keeps CHARMANDER in; `mimic_suggest`: both windows TACKLE, TAIL WHIP, QUICK ATTACK, BLUE's cursor on TAIL WHIP and its ▷ in RED's list, RED copies TACKLE; `trainer_busy`: DIG one command for two turns, DIGLETT drawn once, BLUE steps into the LASS's sight while RED fights and again after, never spotted (RED wears the battle's "!" in BLUE's window), no takeover for P2. Every capture looked at |
-| `tools/verify.sh party_balls switch_offer mimic_suggest trainer_busy trainer_status_moves` on 03a5947b (run `20261015-092118`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes, all five scenarios ok, none given a `SEED=`; the same events in the logs (seeds "party 3", the switch offer, BLUE's MIMIC suggestion, no takeover for P2); `mimic_suggest`'s battle (no fixed `seed=`) was still on at its last capture, CHARMANDER using the copied TACKLE |
+| `tools/verify.sh party_balls switch_offer mimic_suggest trainer_busy trainer_status_moves` on b98fcd5f (run `20261015-092118`) | import, GUT 5207/5207, gates, boot, ENet demo, three processes, all five scenarios ok, none given a `SEED=`; the same events in the logs (seeds "party 3", the switch offer, BLUE's MIMIC suggestion, no takeover for P2); `mimic_suggest`'s battle (no fixed `seed=`) was still on at its last capture, CHARMANDER using the copied TACKLE |
 | Not run | Blue, German, Windows |
 
 ## Scripted follow-ups: JUMP KICK's crash, a trainer's status moves, a dead link the host holds (#162, 2026-10-15)
@@ -166,9 +173,9 @@ POKéDEX entry and the nickname prompt. The field is still its own node, not
 |---|---|
 | GUT, before | `test_the_fields_lines_are_the_battle_screens_with_each_pokemons_own_name`: `["CHARMANDER"] expected to equal ["SPARKY"]`; `test_a_move_to_forget_and_a_move_to_mimic_are_picked_on_the_cartridges_lists`: the field stopped at "trying to learn TACKLE!", no "Delete an older move" or "Abandon learning", no YES/NO box |
 | GUT, after | `test_coop_session` 177/177, co-op suites 317/317; the nickname prompt scrolled with B: `B scrolled the question to its YES/NO box` failed before the prompt's fix, passes after |
-| `tools/verify.sh battle_flows=<seed> catch_for_partner lose_and_white_out`, run `20261014-235125` on 97466993 | all passed: whole suite 5200/5200, gates, boot, ENet demo, three processes, the three scenarios. Captures looked at: `battle_flows` (the `viridian_forest` seed, RED's CHARMANDER at L14 on 6 HP with three POTIONs) shows "P1 used POTION!", the party screen and "recovered by 20!", EMBER's lines, the stats box beside "grew to level 15!", "Delete an older move to make room for LEER?" and "Abandon learning LEER?" with YES/NO; `lose_and_white_out` ends at the spawn with no second line. `catch_for_partner` passed but BLUE's captures stayed on the POKéDEX page: the scenario had lost BLUE's presses |
+| `tools/verify.sh battle_flows=<seed> catch_for_partner lose_and_white_out`, run `20261014-235125` on 176aee52 | all passed: whole suite 5200/5200, gates, boot, ENet demo, three processes, the three scenarios. Captures looked at: `battle_flows` (the `viridian_forest` seed, RED's CHARMANDER at L14 on 6 HP with three POTIONs) shows "P1 used POTION!", the party screen and "recovered by 20!", EMBER's lines, the stats box beside "grew to level 15!", "Delete an older move to make room for LEER?" and "Abandon learning LEER?" with YES/NO; `lose_and_white_out` ends at the spawn with no second line. `catch_for_partner` passed but BLUE's captures stayed on the POKéDEX page: the scenario had lost BLUE's presses |
 | `catch_for_partner` rerun after restoring BLUE's presses | BLUE alone: "New POKéDEX data will be added for", PIDGEY's page, "give a nickname to PIDGEY?" with YES/NO; NO, then BLUE in the world with PIDGEY L5 third in the party; RED in the world. The question's scrolling line took A only (upstream's `Gen2NicknamePromptScreen`), where the cartridge's `WaitForTextScrollButtonPress` also takes B: fixed for single-player too |
-| `tools/verify.sh catch_for_partner`, run `20261015-001328` on 7d43075e with the prompt's fix (committed after) | all passed: whole suite 5200/5200, gates, boot, ENet demo, three processes; BLUE's B scrolls the nickname question to its YES/NO box, NO, PIDGEY in BLUE's party |
+| `tools/verify.sh catch_for_partner`, run `20261015-001328` on b7b6998a with the prompt's fix (committed after) | all passed: whole suite 5200/5200, gates, boot, ENet demo, three processes; BLUE's B scrolls the nickname question to its YES/NO box, NO, PIDGEY in BLUE's party |
 | Not run | a hand-played session; Blue, German, Windows; a catch into a full team ("transferred to BILL's PC!" is static only) |
 
 ## A redial stays the same trainer; no reconnection secrets (#20, D124, 2026-10-14)
@@ -184,7 +191,7 @@ real suspend still needs the Android build (#45). Branch
 | Probe, socket, test cartridge | a joiner's link swapped for a dead one without telling the host: on a fresh campaign the redial was refused `already_connected` twice and welcomed as the same player 4.0 s later, when the host let the old link go (3.0 s); joined from the device's remembered players instead, the first refusal made it join as somebody new, `p3` BLUE beside the absent `p2` |
 | GUT, before | `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer`: not welcomed again within 12 s, `["p3"] expected to equal ["p2"]`, `[3] expected to equal [2]` players |
 | GUT, after | `test_coop_device` 40/40, with `test_a_second_window_on_a_device_whose_player_is_in_joins_as_somebody_new` for the fallback kept (it fails with the fallback removed) |
-| `tools/verify.sh leave_rejoin_takeover launcher_host_join`, run `20261014-192005` on b001ae49 | all passed: suite 5192/5192, gates, boot, ENet demo, three processes; captures looked at: RED away and the take-over question, REJOIN back into the PIDGEY fight, the Co-op tab's host and join, BLUE's opening and "BLUE joined the session" |
+| `tools/verify.sh leave_rejoin_takeover launcher_host_join`, run `20261014-192005` on e26498f5 | all passed: suite 5192/5192, gates, boot, ENet demo, three processes; captures looked at: RED away and the take-over question, REJOIN back into the PIDGEY fight, the Co-op tab's host and join, BLUE's opening and "BLUE joined the session" |
 | Not run | a phone's suspend (#45); no scenario, nothing new on screen |
 
 ## A pick stays on the pad it found; the normal-window report traced (#140, D123, 2026-10-14)
@@ -203,8 +210,8 @@ wins. Branch `coop/140-picked-pad-only`.
 | Probe, normal window, Red, HEAD | the owner's DualSense Edge picked (GUID and serial), a third virtual "Microsoft X-Box pad" made through uinput pressing d-pad left and right while the window had focus, the other program's two virtual pads pressing A, X and a trigger on their own: every press came in as a joypad event of devices 2 to 4, `PokePadChoice.heard` false for each, no `gen2_` or `ui_` action down, no key event at all; Steam's controller log shows its desktop layout (app 413080) activating for those pads meanwhile |
 | GUT, before | `test_the_pick_stays_on_the_pad_it_found_while_look_alikes_come_and_go` failed: picked device 1 moved to 0 once twins took numbers 0 and 2 ("[0] expected to equal [1]"), device 0 pressed A, Settings marked the twin |
 | GUT, after | `test_pad_choice` 4/4, `test_coop_lobby` 61 asserts, `test_coop_device` 38/38, `test_source_budget` 4/4 (comment lines unchanged) |
-| Screens (scripted), Red | `local_split` on 490f0aad: Hosting, How to split the screen?, Who plays where? (Enter: left half the keyboard; A: right half the DualSense Edge), BLUE joins, both halves 1280x1440 with the partner arrow, the window whole again |
-| `tools/verify.sh --builds local_split`, run `20261014-185139` on 490f0aad | all passed: suite 5190/5190, gates, boot, ENet demo, three processes, the scenario, Linux and Windows builds boot (`builds/140-picked-pad-only-490f0aad`) |
+| Screens (scripted), Red | `local_split` on 356b8a87: Hosting, How to split the screen?, Who plays where? (Enter: left half the keyboard; A: right half the DualSense Edge), BLUE joins, both halves 1280x1440 with the partner arrow, the window whole again |
+| `tools/verify.sh --builds local_split`, run `20261014-185139` on 356b8a87 | all passed: suite 5190/5190, gates, boot, ENet demo, three processes, the scenario, Linux and Windows builds boot (`builds/140-picked-pad-only-490f0aad`) |
 | Not run | the owner's own pads by hand (P11); a fresh private build played with the other program's pads pressing |
 
 ## Four small follow-ups in one session (#151, D122, 2026-10-14)
@@ -225,7 +232,7 @@ right and nothing changed. Branch `coop/151-small-follow-ups`, on top of #28.
 | GUT, before | the new session test found the partner's menu on the party page instead of the question, their cursor a `send_out` suggestion, the owner's box marked on YES only, and the send-out RUN row without `suggest` |
 | GUT, after | `test_coop_session` 169/169, `test_coop_lobby` 11/11 (the layout memory test is new) |
 | `send_out_suggest` (new; the `switch_offer` seed with RED's lead at 1 HP knowing only SELFDESTRUCT, against the session menu's ONIX) | RED's CHARMANDER faints on the first turn; both windows ask "Use next POKéMON?"; BLUE's cursor on NO reaches the host as a `run` suggestion and RED's box shows BLUE's ▷ on NO while RED's cursor stands on YES; RED's YES opens "Bring out which POKéMON?" and the next CHARMANDER comes out. Captures looked at |
-| `tools/verify.sh send_out_suggest=<seed> mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest local_split_stacked` on 18b5352a | all passed: whole suite 5189/5189, gates, boot, ENet demo and three processes, the five scenarios; load 1.38 before and 0.49 after the scenarios on 16 cores; captures looked at |
+| `tools/verify.sh send_out_suggest=<seed> mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest local_split_stacked` on 221d8d70 | all passed: whole suite 5189/5189, gates, boot, ENet demo and three processes, the five scenarios; load 1.38 before and 0.49 after the scenarios on 16 cores; captures looked at |
 | Not run | a hand-played session; the split layout memory on screen (GUT only, `local_split_stacked` starts from a fresh user folder); German, Blue, Windows |
 
 ## Every Red and Blue battle question has an owner; the partner may suggest its answer (#28, D121, 2026-10-14)
@@ -243,7 +250,7 @@ milestone (D61). Branch `coop/28-switch-offer-routing`.
 | GUT, before | the Mimic and learn tests failed with `invalid_suggestion`; the replacement test and every ownership check passed already; the window test found the partner's menu on no page during Mimic, then the marks on the MIMIC and forget lists at no tile (-1, -1) |
 | GUT, after | co-op suites 306/306 |
 | `mimic_suggest` (new; the `switch_offer` seed with RED's lead knowing MIMIC and EMBER) | RED's CHARMANDER uses MIMIC on the LASS's RATTATA; both windows show TACKLE, TAIL WHIP, QUICK ATTACK; BLUE's cursor on TAIL WHIP reaches the host as a suggestion and RED's list shows BLUE's ▷ there; after three seconds RED copies TACKLE ("CHARMANDER learned TACKLE!"). Captures looked at |
-| `tools/verify.sh mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest` on a72c041b | all passed: whole suite 5188/5188, gates, boot, ENet demo and three processes, the three scenarios; every capture looked at |
+| `tools/verify.sh mimic_suggest=<seed> switch_offer=<seed> switch_and_suggest` on 132c87f8 | all passed: whole suite 5188/5188, gates, boot, ENet demo and three processes, the three scenarios; every capture looked at |
 | Not run | a hand-played session; a move to learn in two real windows (GUT only); German, Blue, Windows |
 
 ## A Generation 1 trade keeps the catch rate out of the item (#65, D120, 2026-10-14)
@@ -260,8 +267,8 @@ own field. Co-op trades send the host's rows and never took this path. Branch
 |---|---|
 | GUT, before | `test_a_generation_1_trade_keeps_the_catch_rate_out_of_the_item` failed: `candidate_save_invalid`, catch rate 0 where 255 was sent |
 | GUT, after | `test_link` 36/36 |
-| `tools/verify.sh cable_club_trade`, twice on 3d9a5f16 | whole suite 5184/5184, gates, boot, ENet demo and three processes ok; `cable_club_trade` failed both times before any trade, stalled in the opening (Oak's parcel; a menu opened in the bedroom) while another program held a CPU core (load average about 2) |
-| `tools/verify.sh cable_club_trade` on 706a0263, load average 0.4 | all passed: whole suite 5184/5184, ENet ok, `cable_club_trade` in 278 s: P1's MACHOKE arrives in P2's party and evolves into MACHAMP, P2's MANKEY joins P1, each uid once; captures looked at. The windows showed 15 frames a second in this run too, so the frame rate alone does not explain the two failures |
+| `tools/verify.sh cable_club_trade`, twice on a9a96978 | whole suite 5184/5184, gates, boot, ENet demo and three processes ok; `cable_club_trade` failed both times before any trade, stalled in the opening (Oak's parcel; a menu opened in the bedroom) while another program held a CPU core (load average about 2) |
+| `tools/verify.sh cable_club_trade` on ecc97785, load average 0.4 | all passed: whole suite 5184/5184, ENet ok, `cable_club_trade` in 278 s: P1's MACHOKE arrives in P2's party and evolves into MACHAMP, P2's MANKEY joins P1, each uid once; captures looked at. The windows showed 15 frames a second in this run too, so the frame rate alone does not explain the two failures |
 | Real cartridge, single-player save-slot trade | not run |
 
 ## Verify's ENet stages on free ports (#146, 2026-10-14)
@@ -277,7 +284,7 @@ ports. Branch `coop/146-verify-port`.
 | Verification | Result |
 |---|---|
 | Probe, before | with 24680 and 24690 held by a UDP socket: the ENet demo ("coop: cannot listen on port 24680") and the three-process check ("cannot listen on port 24690") both exit 1 |
-| `tools/verify.sh` with 24680 held by a UDP socket (24690 was not held in this run), on f238d34f plus this change | all passed: whole suite 5183/5183, gates, boot, ENet demo 16/16 on 26419, three processes (host 4, p1 7, p2 8 steps) on 26442 |
+| `tools/verify.sh` with 24680 held by a UDP socket (24690 was not held in this run), on 35095834 plus this change | all passed: whole suite 5183/5183, gates, boot, ENet demo 16/16 on 26419, three processes (host 4, p1 7, p2 8 steps) on 26442 |
 
 ## Split screen top and bottom (#144, D119, 2026-10-14)
 
@@ -295,7 +302,7 @@ reaches the second window in its argument (`stacked`). Branch
 | GUT, after | `test_coop_lobby` 11/11; source budget at the comment ceiling (41583, net zero) |
 | Screens (scripted), Red | `local_split_stacked`: How to split the screen? with Side by side focused; Top and bottom picked; Who plays where? asks for the top half, then the bottom; RED's window 1920,0 2560x720 and BLUE's 1920,720 2560x720 on the owner's 2560x1440 monitor; both in Pallet Town, each seeing the other in the wider view; RED leaves, BLUE's window quits and RED's tab is 1152x648 again. `local_split` (Side by side): halves 1280x1440, as before. All captures looked at |
 | Probe, partner arrow in a wide half | `partner_tracker_split` with Top and bottom: RED's arrow at the top while BLUE walks onto Route 1 (22 px from the window's top), BLUE's at the bottom (23 px from its bottom), both inside the window. In these runs the developer's debug line (shown only with debug keys on) is drawn over part of each arrow |
-| `tools/verify.sh local_split local_split_stacked split_quit partner_tracker_split`, commit 306b53bd | whole suite 5183/5183, gates, boot, three processes and all four scenarios ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16 |
+| `tools/verify.sh local_split local_split_stacked split_quit partner_tracker_split`, commit bd3e7fdf | whole suite 5183/5183, gates, boot, three processes and all four scenarios ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16 |
 | Not run | split screen on Windows; a portrait monitor; played by hand |
 
 ## The partner arrow inside the window, split screen included (#142, 2026-10-14)
@@ -320,7 +327,7 @@ it. Branch `coop/142-partner-arrow`.
 | GUT, after | `test_coop_session` 167/167; source budget 4/4 at the comment ceiling (net zero) |
 | Screens (scripted), Red | `partner_tracker_split`, before: no arrow in any of the 8 captures. After: RED's arrow on the right edge while BLUE stands at their door, at the top when BLUE walks onto Route 1; BLUE's on the left edge, then at the bottom left from Route 1; 6 of 8 captures show it, the other two fall in the blink. All captures looked at |
 | `partner_tracker_cabins`, from an `ss_anne` seed moved onto SS_ANNE_1F | BLUE's arrow over the cabin door RED took; RED's, inside the cabin, over its door in the top row, now fully inside the 1152x648 window (it was 4 pixels from the buffer's top, 7 of which the window cuts off) |
-| `tools/verify.sh partner_tracker partner_tracker_split partner_tracker_cabins local_split`, commit 7e883375 | whole suite 5182/5182, gates, boot, three processes, `partner_tracker`, `partner_tracker_split`, `local_split` ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16. `partner_tracker_cabins` failed for want of its seed; rerun with one (above): ok |
+| `tools/verify.sh partner_tracker partner_tracker_split partner_tracker_cabins local_split`, commit 2759e602 | whole suite 5182/5182, gates, boot, three processes, `partner_tracker`, `partner_tracker_split`, `local_split` ok. The ENet demo failed because another program on this machine held UDP 24680; rerun on 24690: 16/16. `partner_tracker_cabins` failed for want of its seed; rerun with one (above): ok |
 | Not run | a top-and-bottom split (split screen was side by side only; see #144 above); split screen on Windows; a phone in portrait |
 
 ## Split screen's controllers and quitting; the Co-op tab after a re-import (#140, #139, #138, D117, D118, 2026-10-13)
@@ -342,7 +349,7 @@ imported again on the Play tab is Ready without a restart. Branch
 | GUT, before | `test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_shown_again` failed: "the tab reads the cartridges again when it comes back". The split-screen and quit tests call the new `halves`, `pressed`, `quit_both` and `QUIT_BOTH` |
 | GUT, after | `test_coop_lobby` 10/10, `test_coop_device` 38/38, `test_coop_session` 166/166: halves by press with twin virtual pads and a picked DualSense, each half hearing only its pad; QUIT BOTH asked like LEAVE SESSION; the right half quits with code 3 and a host whose child exited with 3 quits after its goodbye; a dropped link ends the right half at once |
 | Screens (scripted), Red | `local_split`: Who plays where? gets Enter (left: keyboard) and A on the first pad (right: the DualSense); halves 1280x1440 side by side; the toast names both and how to quit. `split_quit`: BLUE picks QUIT BOTH, "Close both windows?", YES: BLUE's window quits (frame 1262), RED's follows about 5 s later (frame 1992) and the campaign file holds BLUE |
-| `tools/verify.sh local_split split_quit`, commit 2ad81874 | all passed: whole suite 5181/5181, gates, boot, ENet demo, three processes, both scenarios |
+| `tools/verify.sh local_split split_quit`, commit 9b5d202e | all passed: whole suite 5181/5181, gates, boot, ENet demo, three processes, both scenarios |
 | Not run | killing the host's process by hand (K20 is covered by GUT only); the halves on Windows; the owner's other program pressing its own virtual pads during a split |
 
 ## Split screen on one PC (#53, D116, 2026-10-13)
@@ -360,10 +367,10 @@ quits when its session ends, giving the left its window back. Branch
 | GUT, before | `test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked`: parse error, no `PokeCoopLobby.SplitScreen` or `PokePadChoice.held` |
 | GUT, after | passes: controllers per half for none, one and two pads, the halves of a screen, the second window's argument read back, a held pad over "Every controller" and the keyboard's half hearing no pad |
 | Screens (scripted), Red | `local_split`: RED hosts SPLIT and presses Split screen; RED's window at 1920,0 1280x1400 and BLUE's at 3200,0 1280x1400 (the owner's second monitor, halves side by side), with the two connected controllers split between them by name; BLUE names themself on the right half and both play in Pallet Town; RED leaves, BLUE's window quits by itself and RED's tab is 1152x648 again. One of four runs failed before the split: an A press from a real controller opened Red's save screen in the focused window |
-| `tools/verify.sh local_split launcher_host_join coop_tab_tour`, commit f009f001 | all passed: whole suite 5176/5176, gates, boot, ENet demo, three processes, three scenarios; the tour's Hosting shots show Split screen wide and upright |
+| `tools/verify.sh local_split launcher_host_join coop_tab_tour`, commit 0314cae6 | all passed: whole suite 5176/5176, gates, boot, ENet demo, three processes, three scenarios; the tour's Hosting shots show Split screen wide and upright |
 | Played by the owner, KDE | it worked, but the taskbar showed below the halves: they asked for the work area |
 | After: whole monitor, kept on top | `local_split` asks for 1920,0 2560x1440 and gets 1280x1400 halves: KWin caps a window at the work area, so the always-visible panel stays (it needs Auto hide). X11 state read while playing: `_NET_WM_STATE_ABOVE` on both; after the split, RED's window without it |
-| `tools/verify.sh local_split`, commit 13de787f | all passed: whole suite 5176/5176, gates, boot, ENet demo, three processes, local_split |
+| `tools/verify.sh local_split`, commit f66f974a | all passed: whole suite 5176/5176, gates, boot, ENet demo, three processes, local_split |
 | Not run | a button pressed on a real controller in the half without the focus (the setting is Godot's `Input.ignore_joypad_on_unfocused_application`, off in both halves); an exported build; Windows, so whether the halves cover its taskbar; Wayland's own driver (the project runs on X11, where a game may place its window) |
 
 ## A controller types on the Co-op tab (#128, D115, 2026-10-13)
@@ -380,7 +387,7 @@ until a digit was deleted and typed again. Branch `coop/128-controller-typing`.
 | GUT, before the fix | `test_join_dials_the_remembered_address_the_field_shows`: no dial ("Join dials what the field shows without a keystroke"); `test_a_pad_types_an_address_and_a_name_on_the_tabs_own_keys`: no sheet after A on the address field |
 | GUT, after | both pass: the pad lands on a key, the d-pad reaches every key, keys type the address (one Delete), B returns to the field, Join dials it; on New player the letter keys rename the trainer and Done closes them |
 | Screens (scripted), Red | `coop_tab_tour` with two new shots, `keys_address` and `keys_name`, light and dark, wide and upright: every key on the card (a first run clipped the tenth and seventh column; now 8 wide, 5 upright, 3 for the address) |
-| `tools/verify.sh coop_tab_tour launcher_host_join`, commit 98ceb52f | all passed: whole suite 5175/5175, gates, boot, ENet demo, three processes, both scenarios |
+| `tools/verify.sh coop_tab_tour launcher_host_join`, commit 2a59b9f0 | all passed: whole suite 5175/5175, gates, boot, ENet demo, three processes, both scenarios |
 | Not run | a real controller by hand, a phone, Windows; the keys on Edit campaign's fields (same code path, not shot) |
 
 ## BROCK's leg autoplayed from a seed next to a plain window (#133, 2026-10-13)
@@ -397,7 +404,7 @@ at once, and a failure names its leg. New scenario `brock_from_seed`. Branch
 | Before: a `viridian_forest` seed (`level=25 party=3`), RED autoplayed `route=brock from=pewter_gym`, BLUE a plain window | `p1 leg pewter_gym 5 s ... cell (4, 13)`, then `p1 FAILED at leg 1: nothing moved for 150 s` |
 | Before: the same seed with both windows autoplayed | both reached BROCK and the BOULDERBADGE (p2 in 53 s, p1 in 57 s): the walk to BROCK was never the problem |
 | After: `brock_from_seed` on that seed | `meet_in_pewter_gym 0 s`, beat the JR. TRAINER♂ and BROCK, `p1 finished, brock reached in 49 s`; captures looked at |
-| `tools/verify.sh brock_from_seed=<seed> playthrough_brock`, on 48739ad8 plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `brock_from_seed` finished from the seed; `playthrough_brock` from Oak's speech, where BLUE's `meet_in_pewter_gym` still waited 22 s for RED; both took the BOULDERBADGE; captures looked at |
+| `tools/verify.sh brock_from_seed=<seed> playthrough_brock`, on f8c57a36 plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `brock_from_seed` finished from the seed; `playthrough_brock` from Oak's speech, where BLUE's `meet_in_pewter_gym` still waited 22 s for RED; both took the BOULDERBADGE; captures looked at |
 
 ## A seed per scenario, and a runner that fails without Godot (#132, D114, 2026-10-13)
 
@@ -409,7 +416,7 @@ listens. Branch `coop/132-scenario-runner`.
 |---|---|
 | Before (probes with a stand-in Godot that records the host's user folder) | `GODOT='~/nonexistent' tools/coop_screens.sh switch_and_suggest` exited 0, "no captures", "done"; `SEED=<dir> tools/verify.sh switch_and_suggest story_seed` gave the seed to both: `switch_and_suggest seeded=yes` |
 | After, same probes | the missing binary exits 2 naming it; an exported `SEED` makes verify exit 2 before any stage; `switch_and_suggest story_seed=<dir>`: `seeded=no`, then `seeded=yes`; a host that never listens fails the scenario (exit 1) |
-| `tools/verify.sh switch_and_suggest story_seed=~/…` (a `viridian_forest` seed, the `~` left to verify), on 60d76fdb plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `story_seed` reloaded the seed (map 0/2, cell 18,35, `SEED=` in its `run.env`), `switch_and_suggest` started fresh (map 0/0, empty `SEED=`); captures looked at |
+| `tools/verify.sh switch_and_suggest story_seed=~/…` (a `viridian_forest` seed, the `~` left to verify), on 10dda425 plus this change | all passed: whole suite 5173/5173, gates, boot, ENet demo, three processes; `story_seed` reloaded the seed (map 0/2, cell 18,35, `SEED=` in its `run.env`), `switch_and_suggest` started fresh (map 0/0, empty `SEED=`); captures looked at |
 
 ## SHIFT's switch offer in co-op battles (#28, D113, 2026-10-13)
 
@@ -422,7 +429,7 @@ the Pokémon's owner; Baton Pass is not in Red and Blue. Branch
 | Verification | Result |
 |---|---|
 | GUT, before the fix | the four new tests failed: after a trainer's Pokémon fainted the phase was `action`, not `offer`, for the owner on SHIFT; the view had no `offer`; the field had no line for the question; the host never learned the window's style and the menu stayed shut |
-| GUT, after | the new tests pass (five session, one window end to end, one field); whole suite 5173/5173 in `tools/verify.sh` on 6965b198. The first verify run (8fcd2433) had one failure outside co-op, `test_a_turn_on_the_spot_in_grass_rolls_a_wild_encounter`; it passed alone (76/76) and in the final run |
+| GUT, after | the new tests pass (five session, one window end to end, one field); whole suite 5173/5173 in `tools/verify.sh` on b081332d. The first verify run (97e518cc) had one failure outside co-op, `test_a_turn_on_the_spot_in_grass_rolls_a_wild_encounter`; it passed alone (76/76) and in the final run |
 | Screens (scripted), Red | `switch_offer` (new; a `viridian_forest` seed with `level=25 party=3` moved onto ROUTE 3 as `party_balls`', RED's lead knowing only EMBER): both windows on SHIFT, BLUE joins RED's fight with the LASS; when RATTATA faints both say "LASS is about to use NIDORAN♂!" over her ball row (one crossed out), RED's window asks "Will P1 change POKéMON?" with YES/NO over CHARMANDER where the battle screen puts it, BLUE's shows the same question; after NO the row goes and "LASS sent out NIDORAN♂!". `party_balls` now passes through the same question; `switch_and_suggest` and `catch_for_partner` unchanged. All passed in `tools/verify.sh`; every capture looked at. A first try from the same seed with the autoplay's BROCK leg (`route=brock from=pewter_gym`) never moved: it found no walk to BROCK, before any battle |
 | Not run | a hand-played session; YES in two windows (switching to the partner's Pokémon is covered by GUT only); German, Blue, Windows |
 
@@ -436,8 +443,8 @@ commit, booted, and zipped with `BUILD.txt` and `PLAYING.md`. Branch
 | Verification | Result |
 |---|---|
 | Before | builds were exported by hand from the working tree; the newest (2026-10-12, old checkout) predate 0.1.78, the bag and the party balls |
-| `tools/verify.sh --coop --builds`, commit ed2866ac | import, co-op suites 286/286, gates, boot, ENet demo, three processes, then the builds: `Linux` (88 MB) and `Windows Desktop` (121 MB) exported in seconds from the archive, the Linux build boots headless and the Windows build under Wine 11.19 in a fresh prefix, both in the run's private user folder; the zips (40 MB, 49 MB) hold the binary, `BUILD.txt` (0.1.78, protocol 8, the commit) and `PLAYING.md` |
-| `tools/verify.sh --builds=builds`, commit 0f58e0f8 | all passed: whole suite 5167/5167, gates, boot, ENet demo, three processes; both builds boot (Linux headless, Windows under Wine) and sit zipped in the checkout's `builds/` for the owner's session |
+| `tools/verify.sh --coop --builds`, commit 1ff803a1 | import, co-op suites 286/286, gates, boot, ENet demo, three processes, then the builds: `Linux` (88 MB) and `Windows Desktop` (121 MB) exported in seconds from the archive, the Linux build boots headless and the Windows build under Wine 11.19 in a fresh prefix, both in the run's private user folder; the zips (40 MB, 49 MB) hold the binary, `BUILD.txt` (0.1.78, protocol 8, the commit) and `PLAYING.md` |
+| `tools/verify.sh --builds=builds`, commit 0a5bc3c5 | all passed: whole suite 5167/5167, gates, boot, ENet demo, three processes; both builds boot (Linux headless, Windows under Wine) and sit zipped in the checkout's `builds/` for the owner's session |
 | The same with uncommitted doc edits | every other stage passes, builds: FAILED (uncommitted changes at the start), exit 1 |
 | Not run | a build on a real Windows PC or a second Linux machine, a hand-played session (the issue stays open for it) |
 

@@ -6,62 +6,53 @@ repository so it survives any worktree path and any tool; per-checkout agent
 memory is not read by a session that starts in another worktree. State goes
 here; stable recipes go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-15 (after #167, PR #170).
+Last updated 2026-10-15 (after #171, PR #186).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the merge of #169 (bc8202f8;
-  #168 closed). `main` = upstream main (ed886823, 0.1.78).
-- Next decision number: D128.
+- Default branch `pokerecomp-online-coop` at the merge of #170 (108975b2;
+  #167 closed). `main` = upstream main (ed886823, 0.1.78).
+- History rewritten once (D129, 2026-10-15): the co-op commits lost their
+  session links, so every co-op hash changed. The old history is backed up in
+  `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
+- Next decision number: D130.
 
 ## Open pull requests (the owner says when to merge)
 
-- **#170** (draft) `coop/167-scenario-seeds`: Closes #167. `bag_forty`
-  (`viridian_forest` plus twenty `item=`) and `partner_tracker_cabins`
-  (`ss_anne at=0:95:20,7:24,7`) build their own seed with `SEED_ARGS`.
-  Scenarios and docs only. Verify run `20261015-201845` all passed (GUT
-  5208/5208, both scenarios, every capture looked at). **The owner approved
-  merging it (2026-10-15): merge it first in the next session.**
-- #149 holds the Gen 2 halves of #28 and #27 (later milestone, D61).
+- **#186** (draft) `coop/171-gen2-scope`: Closes #171, plus D129's docs
+  (the decision, `AGENTS.md`'s rules, the rewritten hashes in `progress.md`).
+  Docs only: D128 (the
+  owner's Gold and Silver choices), `design.md`'s Gold and Silver section,
+  `playbook.md` phase 5, a progress entry. Release gates pass; verify not run
+  (no code). **The owner approved merging it (2026-10-15): merge it first in
+  the next session.**
 
 ## Next candidates
 
-- **The owner's hand-played session** before Gen 2: two devices, Pallet Town
-  to BROCK, `docs/coop/readiness.md`; also #140's retest with
-  `builds/140-picked-pad-only-490f0aad` (P11, K17) and K21 (#161, needs the
-  cartridge file picked on the Play tab).
-- **Gen 2 (the owner asked, 2026-10-15)**: Gen 1 is feature-complete (M1-M9,
-  M11 have no open feature issue) but only 8 of 205 hand cases are played.
-  Gen 2 overturns D61's scope, so the owner decides it. If yes: one scoping
-  issue first for the owner's choices (clock and time of day, phone, day care
-  and eggs, Bug-Catching Contest, Unown, roaming beasts, the Kanto story after
-  Johto, the Gen 2 trainer AI from #149), then a milestone of about 8-12
-  issues. The code survey of what is Gen 1 only (2026-10-15): the gate
-  (`coop_lobby.gd:13` GAMES, `coop_policy.gd:75` VERSION_PAIRS), policy
-  (starters, opening, gifts, wild tables), `coop_ownership.gd` map-script
-  bytes, `coop_world_link.gd` rest points and story locks, the battle menu's
-  cursor and bag layout, the field's animations (none outside Gen 1), Cable
-  Club trades and the link battle, `coop_seed.gd` and `coop_autoplay.gd` legs;
-  `coop_save.gd` and the battle stage are generation-agnostic.
-  **Next issue (the owner chose, 2026-10-15): the Gen 2 scoping issue.** File
-  it with the choices above as questions for the owner, ask them, record the
-  answers (decisions from D128), then propose the milestone's issues.
+- **M14 Gold and Silver co-op** (milestone 16 in the API), in
+  `playbook.md` phase 5's order. First: **#172**, the gate (`coop_lobby.gd`
+  `GAMES`, `coop_policy.gd` `VERSION_PAIRS`, the Co-op tab, `coop_save.gd`),
+  tested on `battle_fixture.gd`'s Generation 2 fixture, then a two-window
+  scenario in New Bark Town (needs an imported Gold or Silver cartridge from
+  the owner; ask whether one is imported). Open owner questions written into
+  issues: the rival's stolen starter (#173), RED joined or per player (#184),
+  the Time Capsule's design (#182).
+- **The owner's hand-played session** of Red/Blue: two devices, Pallet Town to
+  BROCK, `docs/coop/readiness.md`; also #140's retest with
+  `builds/140-picked-pad-only-490f0aad` (P11, K17) and K21 (#161).
 - Open milestones otherwise: M10 (#44 builds, #45 Android, #46 iOS), M0 #15
   CI, M13 (#55, #56), M12 German (#50).
-- With #170 merged, every scenario but `brock_from_seed`, `german_screens`,
-  `both_versions`, `vermilion_locks` and `story_seed` (seed on purpose) runs
-  unattended in `tools/verify.sh`.
 - Possible issues, ask before filing: the session menu's FIGHT list is fixed
-  (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the
-  map's wild table; a mouse with a joystick interface is listed twice as a pad;
-  `partner_tracker_cabins`' `p2_hall` (p2's clock lags) already shows RED gone
-  into the cabin, so it never photographs both in the hall from BLUE's side.
+  (BROCK, ONIX L60, PIDGEY L5, RATTATA L4), not the map's wild table; a mouse
+  with a joystick interface is listed twice as a pad;
+  `partner_tracker_cabins`' `p2_hall` never photographs both in the hall from
+  BLUE's side.
 
 ## Worktrees and background processes
 
-- The Superset worktree holds `coop/167-scenario-seeds`, pushed. No
-  background processes. The main checkout is on `pokerecomp-online-coop` at
-  bc8202f8, up to date.
+- The Superset worktree holds `coop/171-gen2-scope`, pushed. No background
+  processes. The main checkout is on `pokerecomp-online-coop` at 108975b2, up
+  to date.
 
 ## Working notes (stable, keep short)
 
@@ -72,6 +63,11 @@ Last updated 2026-10-15 (after #167, PR #170).
   usage). A battle's outcome repeats for a fixed `seed=` in `HOST_ARGS` when
   the presses give the same turns.
 
+- No session links in commits or PR bodies (owner's rule, 2026-10-15): no
+  `Claude-Session:` trailer, PR bodies end with the "Generated with Claude
+  Code" line only. The history and PR bodies were cleaned once (D129);
+  The owner opened a GitHub Support ticket (2026-10-15)
+  to drop the old commits from 34 PR refs and garbage-collect them.
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`; without it
   `gh` answers for the upstream repository.
 - Merge, when the owner says so: in the main checkout on
@@ -91,6 +87,10 @@ Last updated 2026-10-15 (after #167, PR #170).
 - `git checkout -- '*.import'` after an editor import.
 
 ## Cleanup the owner may approve
+
+- `~/dev-scratch/pokerecomp-online-coop/session-links/` (the pre-D129
+  mirror, the hash map, the cleaned PR bodies) once GitHub Support purged the
+  old refs.
 
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
   `builds/pokerecomp-online-coop-0c6da178` and its two zips, never listed.
