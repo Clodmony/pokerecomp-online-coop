@@ -1950,3 +1950,15 @@ when the session loses the class. The Generation 2 half (`Gen2BattleAI`'s
 choice from the trainer's flags, a random usable move in sessions until then)
 joins #149 with Generation 2's other battle questions, in the later milestone
 (D61). `battle_screen.gd` is left alone.
+
+## D127. A traded Pokémon disobeys in co-op as it would alone (2026-10-15)
+
+`CheckForDisobedience` compared a Pokémon's OT with the battle's one
+`player_id`, which a co-op session leaves unset (each Pokémon's owner is in
+`owner_trainer_ids`, D62), so in co-op every Pokémon obeyed: `battle_text`'s
+traded KADABRA L30 with no badge obeyed every turn. `check_obedience` now asks
+`_is_traded`, the owner-aware check experience already uses: a Pokémon obeys
+its own owner, and one traded to them obeys up to the campaign's badge level,
+the battle's badge mask as before. The exemptions (link, tower, locked, called,
+the enemy) are unchanged and still draw no roll. This follows the brief's rule
+that a shared battle feels like a solo run, so it needs no new owner decision.

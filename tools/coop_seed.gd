@@ -1,10 +1,11 @@
 extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
-##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both]
-## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=; p1 imports it, p2 a copy;
+##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]...
+## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing it and each next one joining; p1 imports it, p2 a copy;
 ## `both` turns on wild Pokémon from both versions (D104).
 
+const TRADER: String = "TRADER"
 const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
 
@@ -32,10 +33,11 @@ func _initialize() -> void:
 		for key: String in options:
 			if arg.begins_with(key):
 				options[key] = int(arg.trim_prefix(key))
-	quit(_seed(data, args[1], args[2], options["level="], options["party="], args.has("both")))
+	var extras: Array = Array(args.slice(3)).filter(func(arg: String) -> bool: return arg.begins_with("mon=") or arg.begins_with("item="))
+	quit(_seed(data, args[1], args[2], options["level="], options["party="], args.has("both"), extras))
 
 
-func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0, both: bool = false) -> int:
+func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0, both: bool = false, extras: Array = []) -> int:
 	var story: Dictionary = _gen1_story_start(data)
 	if not story.has("world"):
 		push_error("coop seed: %s" % story.get("reason", ""))
@@ -59,6 +61,10 @@ func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party:
 	fill_party(data, save, party)
 	if level > 0:
 		_raise(data, save, level)
+	var refused: String = shape(data, save, extras)
+	if not refused.is_empty():
+		push_error("coop seed: %s" % refused)
+		return 1
 	var written: Error = write_seed(data, save, out_dir, _beside(world), both)
 	print("coop seed: %s on %s %s, badges %d, party %d, %s" % [
 		last, world.map_id(), world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
@@ -75,6 +81,72 @@ static func _raise(data: GameData, save: Gen2SaveData, level: int) -> void:
 		for slot: int in Gen2SaveMon.MAX_MOVES:
 			editor.set_move(mon, slot, int(known[slot]) if slot < known.size() else Gen2SaveEditor.NO_MOVE)
 		mon.hp = editor.max_hp_for(mon)
+
+
+static func shape(data: GameData, save: Gen2SaveData, extras: Array) -> String:
+	var editor := Gen2SaveEditor.new()
+	editor.data = data
+	editor.save = save
+	var first: bool = true
+	for extra: String in extras:
+		var parts: PackedStringArray = extra.substr(extra.find("=") + 1).split(":")
+		var number: int = named(data, "item" if extra.begins_with("item=") else "species", parts[0])
+		if number <= 0:
+			return "no %s named %s" % [extra.get_slice("=", 0), parts[0]]
+		if extra.begins_with("item="):
+			var stocked: Dictionary = editor.set_item_quantity(number, int(parts[1]) if parts.size() > 1 else 1)
+			if not bool(stocked.get("ok", false)):
+				return "%s: %s" % [extra, stocked.get("reason", "")]
+			continue
+		if first:
+			save.party.clear()
+			first = false
+		var added: Dictionary = editor.add_party_member(number, int(parts[1]) if parts.size() > 1 else 5)
+		if not bool(added.get("ok", false)):
+			return "%s: %s" % [extra, added.get("reason", "")]
+		var mon: Gen2SaveMon = save.party.back()
+		for part: String in parts.slice(2):
+			var value: String = part.get_slice("=", 1)
+			match part.get_slice("=", 0):
+				"moves":
+					teach(editor, mon, Array(value.split("/")).map(func(move: String) -> int: return named(data, "move", move)))
+				"nick":
+					editor.set_nickname(mon, value.replace("_", " "))
+				"traded":
+					mon.ot_id = save.player_id % 0xFFFF + 7
+					mon.original_trainer = TRADER
+				"status":
+					editor.set_status(mon, {"SLP": 3, "PSN": 8, "BRN": 16, "FRZ": 32, "PAR": 64}.get(value, 0))
+				"hp":
+					editor.set_hp(mon, int(value))
+				"exp":
+					mon.exp = int(value)
+				_:
+					return "%s: no option %s" % [extra, part]
+	return ""
+
+
+static func teach(editor: Gen2SaveEditor, mon: Gen2SaveMon, moves: Array) -> void:
+	for slot: int in range(Gen2SaveMon.MAX_MOVES - 1, -1, -1):
+		editor.set_move(mon, slot, Gen2SaveEditor.NO_MOVE)
+	for slot: int in mini(moves.size(), Gen2SaveMon.MAX_MOVES):
+		editor.set_move(mon, slot, int(moves[slot]))
+
+
+static func named(data: GameData, kind: String, name: String) -> int:
+	var count: int = data.species_count() if kind == "species" else (data.move_count() if kind == "move" else data.item_count())
+	for number: int in range(1, count + 1):
+		var row: Dictionary = data.species(number) if kind == "species" else (data.move(number) if kind == "move" else data.item(number))
+		if _plain(String(row.get("name", ""))) == _plain(name):
+			return number
+	return 0
+
+
+static func _plain(name: String) -> String:
+	var kept: String = ""
+	for letter: String in name.to_upper().replace("É", "E").replace("é", "E"):
+		kept += letter if (letter >= "A" and letter <= "Z") or (letter >= "0" and letter <= "9") else ""
+	return kept
 
 
 static func fill_party(data: GameData, save: Gen2SaveData, size: int) -> void:
@@ -119,7 +191,7 @@ static func write_seed(data: GameData, save: Gen2SaveData, out_dir: String, part
 		var player := PokeCoopPlayer.create(id, id.to_upper(), trainer)
 		var own: Gen2SaveData = Gen2SaveData.from_dict(save.to_dict())
 		own.player_id = trainer
-		for mon: Gen2SaveMon in own.party:
+		for mon: Gen2SaveMon in own.party.filter(func(mon: Gen2SaveMon) -> bool: return mon.original_trainer != TRADER):
 			mon.ot_id = trainer
 			mon.original_trainer = player.name
 		PokeCoopPolicy.import_save(own, player, campaign if players.is_empty() else null,

@@ -540,4 +540,4 @@ class SplitScreen extends RefCounted:
 		_before = {}
 		PokePadChoice.held = {}
 		PokePadChoice.apply()
-		print("coop split: the window has the whole screen again")
+		print("coop split: the window has the whole screen again, controller device %d" % PokePadChoice.device())
