@@ -1,8 +1,8 @@
-# A trainer fighting one player spots nobody else (SEED=<a tools/coop_seed.gd out dir> with RED on ROUTE 3 (20,6)
+# A trainer fighting one player spots nobody else (seed: RED on ROUTE 3 (20,6)
 # and BLUE at (22,6)): RED walks into the LASS's sight and fights her; BLUE steps into the same sight line
 # meanwhile and is not spotted, and once RED has won the LASS is beaten in BLUE's world too. With RED's lead a
 # DIGLETT knowing only DIG, each DIG is one command and comes up out of the ground drawn once.
-: "${SEED:?trainer_busy needs SEED=<an out dir of tools/coop_seed.gd>}"
+SEED_ARGS="red pewter_gym mon=DIGLETT:25:moves=DIG mon=CHARMANDER:25 mon=CHARMANDER:25 at=0:14:20,6:22,6"
 HOST_ARGS=bare
 DURATION=70
 P1_ARGS=auto_battle
