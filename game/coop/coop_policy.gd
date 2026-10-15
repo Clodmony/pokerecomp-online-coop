@@ -77,7 +77,7 @@ const VERSION_PAIRS: Array = [
 ]
 ## A wild met in the grass or the water is, half the time, the other version's Pokémon from the same map and slot (D104).
 const WILD_TABLES: Dictionary = {"grass": Gen2WorldEncounter.METHOD_GRASS, "water": Gen2WorldEncounter.METHOD_SURF}
-const WILD_SLOTS: int = 10
+const WILD_SLOTS: int = 21  ## Johto's grass: seven slots each by morning, day and night
 const OTHER_VERSION_TAG: StringName = &"other_version"
 const CHALLENGE_BATTLE: String = "battle"
 const CHALLENGE_TRADE: String = "trade"
@@ -112,8 +112,10 @@ static func other_version(game: StringName) -> StringName:
 	return &""
 
 
-## This cartridge's Generation 1 wild slots, `{"grass"|"water": {map number: [[species, level], ...]}}`.
+## This cartridge's wild slots, `{"grass"|"water": {map number (Johto's group * 256 + number): [[species, level], ...]}}`.
 static func wild_tables(data: GameData) -> Dictionary:
+	if PokeCoopJohto.plays(data):
+		return PokeCoopJohto.wild_tables(data)
 	var out: Dictionary = {}
 	for table: String in WILD_TABLES:
 		var maps: Dictionary = {}
@@ -125,7 +127,7 @@ static func wild_tables(data: GameData) -> Dictionary:
 	return out
 
 
-static func sane_wild_tables(raw: Variant) -> Dictionary:
+static func sane_wild_tables(raw: Variant, gen1: bool = true) -> Dictionary:
 	if not raw is Dictionary:
 		return {}
 	var out: Dictionary = {}
@@ -137,22 +139,24 @@ static func sane_wild_tables(raw: Variant) -> Dictionary:
 		for number: Variant in maps:
 			var slots: Variant = maps[number]
 			if not String(number).is_valid_int() or not slots is Array or (slots as Array).size() > WILD_SLOTS \
-					or not (slots as Array).all(func(slot: Variant) -> bool: return _sane_slot(slot)):
+					or not (slots as Array).all(func(slot: Variant) -> bool: return _sane_slot(slot, gen1)):
 				return {}
 			out[table][str(int(String(number)))] = (slots as Array).map(func(slot: Array) -> Array: return [int(slot[0]), int(slot[1])])
 	return out
 
 
-static func _sane_slot(slot: Variant) -> bool:
-	return slot is Array and (slot as Array).size() == 2 and Gen2WorldEncounter.valid_mon(int(slot[0]), int(slot[1]), true)
+static func _sane_slot(slot: Variant, gen1: bool) -> bool:
+	return slot is Array and (slot as Array).size() == 2 and Gen2WorldEncounter.valid_mon(int(slot[0]), int(slot[1]), gen1)
 
 
 ## A [method Gen2ModHost.substitute_wild] answer: on the upper half of `roll`, the other version's slot when it holds a Pokémon [param own] never has.
 static func other_wild(context: Dictionary, tables: Dictionary, own: Dictionary) -> Dictionary:
 	var table: String = "water" if StringName(context.get("method", &"")) == Gen2WorldEncounter.METHOD_SURF else "grass"
-	var slots: Array = (tables.get(table, {}) as Dictionary).get(str(int(context.get("map_number", -1))), [])
-	var slot: int = int(context.get("slot", -1))
-	if int(context.get("roll", 0)) < 128 or int(context.get("map_group", -1)) != 0 or slot < 0 or slot >= slots.size():
+	var place: Vector2i = PokeCoopJohto.wild_place(context, table == "grass") if int(context.get("generation", 0)) == RomRegistry.GEN2 \
+		else Vector2i(int(context.get("map_number", -1)) if int(context.get("map_group", -1)) == 0 else -1, int(context.get("slot", -1)))
+	var slots: Array = (tables.get(table, {}) as Dictionary).get(str(place.x), [])
+	var slot: int = place.y
+	if int(context.get("roll", 0)) < 128 or slot < 0 or slot >= slots.size():
 		return {}
 	var other: Array = slots[slot]
 	if own.has(int(other[0])):
@@ -185,7 +189,7 @@ static func prize_shares(total: int, participants: Array) -> Dictionary:
 
 
 static func own_entries(data: GameData) -> Dictionary:
-	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
+	return PokeCoopJohto.OWN_GIFTS if PokeCoopJohto.plays(data) else OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
 
 
 ## Takes a window's clear of the run out of [param changes], for the host to hold: answers whether there was one.
@@ -217,6 +221,12 @@ static func clear_league(campaign: PokeCoopCampaign) -> void:
 	campaign.revision += 1
 
 
+static func opening_over(data: GameData, story: Dictionary, map: Vector2i) -> bool:
+	if PokeCoopJohto.plays(data):
+		return PokeCoopJohto.opening_over(story, map)
+	return map != OPENING_LAB and (story.get("event_flags", {}) as Dictionary).has(OPENING_DONE_FLAG)
+
+
 static func new_player_money() -> int:
 	return NEW_PLAYER_MONEY
 
@@ -234,8 +244,9 @@ static func start_cells(data: GameData) -> Array[Vector2i]:
 
 
 ## A new campaign begins after Oak's intro, which its players never see.
-static func start_campaign(campaign: PokeCoopCampaign) -> void:
+static func start_campaign(campaign: PokeCoopCampaign, data: GameData = null) -> void:
 	if PokeCoopJohto.is_game(campaign.game_id):
+		PokeCoopJohto.start_campaign(campaign, data)
 		return
 	campaign.commit("intro:starters_given", {"flags": INTRO_DONE_FLAGS})
 	settle_intro(campaign)
@@ -276,6 +287,8 @@ static func set_up_new_player(
 		player.add_mon(saved)
 	var cells: Array[Vector2i] = start_cells(data)
 	player.place(start_map(data), cells[joined_before % cells.size()], 0)
+	if PokeCoopJohto.plays(data):
+		PokeCoopJohto.set_up_new_player(data, player, species)
 
 
 static func set_up_opening_player(data: GameData, player: PokeCoopPlayer) -> void:
@@ -314,12 +327,14 @@ static func share_gifts(
 	flags_before: Dictionary, held_before: Dictionary,
 ) -> Array[int]:
 	var gifts: Array[int] = []
-	for item: int in SHARED_ITEMS:
+	var johto: bool = PokeCoopJohto.is_game(campaign.game_id)
+	for item: int in PokeCoopJohto.SHARED_ITEMS if johto else SHARED_ITEMS:
 		if int(held_before.get(item, 0)) == 0 and receiver.item_count(item) > 0:
 			gifts.append(item)
-	for flag: int in GIFT_TMS:
+	var tms: Dictionary = PokeCoopJohto.GIFT_TMS if johto else GIFT_TMS
+	for flag: int in tms:
 		if not flags_before.has(flag) and campaign.has_flag(flag):
-			gifts.append(int(GIFT_TMS[flag]))
+			gifts.append(int(tms[flag]))
 	for item: int in gifts:
 		if campaign.commit(GIFT_COMMIT_PREFIX + str(item), {}):
 			for other: PokeCoopPlayer in others:
@@ -334,9 +349,10 @@ static func share_found_items(
 ) -> void:
 	var touched: Dictionary = held_before.duplicate()
 	touched.merge(receiver.items)
+	var johto: bool = PokeCoopJohto.plays(data)
 	for item: int in touched:
 		var change: int = receiver.item_count(item) - int(held_before.get(item, 0))
-		if change == 0 or handled.has(item) or SHARED_ITEMS.has(item):
+		if change == 0 or handled.has(item) or (PokeCoopJohto.SHARED_ITEMS if johto else SHARED_ITEMS).has(item):
 			continue
 		var key: bool = (int(data.item(item).get("permissions", 0)) & Gen2WorldPack.CANT_TOSS) != 0
 		for other: PokeCoopPlayer in others:
@@ -344,7 +360,7 @@ static func share_found_items(
 				continue
 			if change > 0:
 				_stow(other, item, change)
-			elif key and not OWN_FOSSILS.has(item):
+			elif key and not (PokeCoopJohto.OWN_FOSSILS if johto else OWN_FOSSILS).has(item):
 				other.take_item(item, mini(-change, other.item_count(item)))
 
 

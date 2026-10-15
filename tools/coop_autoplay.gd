@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [partner=none: meets no partner] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions; Gold or Silver: its opening] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [partner=none: meets no partner] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -209,7 +209,7 @@ func _choose() -> int:
 
 
 func _intro_button(intro: Gen2IntroScreen) -> int:
-	if intro.animation_frames_left() != 0 or _paced(PokeButton.A) == PokeButton.NONE:
+	if not _played._intro_reads_press(intro) or _paced(PokeButton.A) == PokeButton.NONE:
 		return PokeButton.NONE
 	var screen: Control = intro.current()
 	if screen != null and screen.has_method(&"choosing_name") and bool(screen.call(&"choosing_name")):
@@ -292,7 +292,7 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 
 
 func _route_legs() -> Array:
-	var legs: Array = _opening_legs() + _brock_legs()
+	var legs: Array = _johto_opening_legs() if PokeCoopJohto.plays(_session.data) else _opening_legs() + _brock_legs()
 	for stretch: StringName in ROUTES.get(_route, []):
 		legs += call(stretch)
 	_labels = _leg_labels(legs)
@@ -354,6 +354,18 @@ func _opening_legs() -> Array:
 		["starter", p._talk(RomRegistry.pick(_kit.LAB_STARTER_BALLS, game) + Vector2i(_ball, 0), UP), p._flag(_kit.EVENT_GOT_STARTER)],
 		["rival_and_out", p._warp_to(_kit.PALLET_TOWN), p._on_map(_kit.PALLET_TOWN)],
 	]
+
+
+func _johto_opening_legs() -> Array:  ## played.gd's walk to the egg handed to Elm with the `ball=` starter, then the partner (D131)
+	_route = "johto_opening"
+	if String((_session.client.me().get("opening", {}) as Dictionary).get("stage", "")).is_empty():
+		return []
+	var legs: Array = _played._gen2_legs()
+	legs = legs.slice(0, legs.find_custom(func(leg: Variant) -> bool: return leg is Array and leg[0] == "lab_out_again") + 1)
+	var starter: int = legs.find_custom(func(leg: Variant) -> bool: return leg is Array and leg[0] == "starter")
+	legs[starter] = ["starter", _played._talk(_kit.BELOW_ELMS_BALL + Vector2i(_ball, 0), UP), legs[starter][2]]
+	var over: Callable = func(_world: Gen2WorldAPI) -> bool: return (_session.client.me().get("opening", {}) as Dictionary).is_empty()
+	return legs + [["opening_over", _standing, over], _meet_partner("meet_in_new_bark", func(_world: Gen2WorldAPI) -> bool: return false)]
 
 
 func _brock_legs() -> Array:

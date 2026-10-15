@@ -200,7 +200,7 @@ func _start_host(port: int, game: String, bare: bool = false) -> void:
 	if loaded.is_empty():
 		if not bare:
 			_cartridge_players()
-		PokeCoopPolicy.start_campaign(campaign)
+		PokeCoopPolicy.start_campaign(campaign, _data)
 	else:
 		_host.adopt_players(loaded["players"])
 	_cartridge_encounters()

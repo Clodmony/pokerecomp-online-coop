@@ -161,14 +161,17 @@ Their outcomes do not commit campaign story rewards.
 
 Gold and Silver are a version pair as Red and Blue are; Crystal follows and
 plays with Crystal only. Their rules live in `PokeCoopJohto` (D130). A new
-player starts in New Bark Town by the house's door with CHIKORITA, CYNDAQUIL or
-TOTODILE at level 5 (#172); Gold's opening and its rival come with #173. The rules above
-carry over, with these choices:
+player plays their own opening, from the bedroom to the Mystery Egg handed to
+Elm, with their own rival theft and fight (D131), or starts in New Bark Town by
+the house's door with CHIKORITA, CYNDAQUIL or TOTODILE at level 5 and what the
+opening hands everyone (#172, #173). The rules above carry over, with these choices:
 
 - The host's clock is the campaign's: time of day and weekday are the same in
   every window, it starts at the hosting device's time, only the hosting player
   sets it, and it runs on while the campaign is closed (D133).
-- Each player's own: Pokégear, phone contacts, calls and rematches; a day care
+- Each player's own: the starter, so the rival's teams answer it in that
+  player's window; the gift Pokémon (the TOGEPI egg, SHUCKLE, EEVEE, SPEAROW,
+  TYROGUE); Pokégear, phone contacts, calls and rematches; a day care
   that breeds only their Pokémon; the roaming RAIKOU, ENTEI and SUICUNE; and
   the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
   SUDOWOODO, SNORLAX), which are not unique encounters here.

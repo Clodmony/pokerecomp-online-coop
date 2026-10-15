@@ -11,6 +11,40 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver's opening, starters, gifts and wild tables (#173, D131, 2026-10-16)
+
+The owner chose that the rival steals per window (D131). A Gold or Silver
+player who plays the opening plays it alone, from the clock and Oak's speech to
+the Mystery Egg handed to Elm, and joins the campaign when they leave Elm's lab
+(`PokeCoopJohto.opening_over`); before, the host waited for Red and Blue's lab
+flag and the player never left the opening, so the tab hid it. The starter's
+`EVENT_GOT_<it>_FROM_ELM` and the lab's three ball flags are each player's, so
+the theft and every later rival team follow that player's pick in their window.
+A new Johto campaign starts where the opening ends (`InitializeEventsScript`'s
+facts from the cartridge's catalog, the errand's flags and scenes); a late
+joiner in New Bark Town also gets the Pokégear with Mom's and Elm's numbers,
+the Pokédex, the aide's Potion and five Poké Balls and their starter's flags.
+The officer asks the rival's name only before the campaign has one; a later
+window answers him with it. Gift Pokémon (the TOGEPI egg chain, SHUCKLE, EEVEE,
+SPEAROW, TYROGUE) and the Guide Gent's tour and Mom's bank are each player's;
+story items and TMs reach everyone by Johto's own ids, where Red and Blue's ids
+had been handing out other items. Wild Pokémon from both versions run on Gold
+and Silver, keyed by map group and number, a grass slot by the time of day the
+window's world reports. The tab offers the opening and the both-versions switch
+for Gold and Silver; it still has no rival field. `coop_autoplay` plays Johto's
+opening from `played.gd`'s legs (`ball=` picks the starter) and presses through
+Generation 2's title. Branch `coop/173-johto-opening`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_gold_silver`) | 7 of 14 failing: the opening never ended ("the lab left with the egg given: Gold joins the campaign"); the officer's name not kept (`[""]` for `["KAMON"]`); a late joiner's Elm's lab scene `[0]` for `[2]`, no egg errand, no starter flags, no Pokégear or Pokédex, `[3000, 0]` for `[3000, 5]` Poké Balls; Bill's EEVEE gone for the second player; a MAX REPEL handed to the partner as Red's SECRET KEY, FALKNER's TM31 to nobody; no Johto wild slot (`[0]` for `[74]`); `test_coop_device`'s Gold form without "Play Oak's opening" and "From both versions" |
+| Tests after | `test_coop_gold_silver` 13/13 (the before-only egg case dropped as it passed before); all `test_coop` suites 338/338 |
+| Screens, `gold_opening` (imported Gold and Silver, two autoplayed windows) | Gold picks CYNDAQUIL and its rival sends out TOTODILE; Silver picks TOTODILE and its rival sends out CHIKORITA; each lab afterwards holds only the third ball (CHIKORITA's for Gold, CYNDAQUIL's for Silver); the first window named the rival, Silver's officer was answered with that name (`officer` in its log); both left the opening and met in New Bark Town (Gold's capture draws SILVER at the lab door; in Silver's they stand on one cell). Every capture of both runs looked at |
+| Screens, `gold_and_silver` | the Gold form offers Play Oak's opening (Elm's lab, Mr. Pokémon's egg), Start in New Bark Town and From both versions, no rival; the New Bark start now carries five Poké Balls |
+| `tools/verify.sh gold_opening gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `gold_opening` and `gold_and_silver` ok (run `20261016-010050`) |
+| Not run | Wild Pokémon from both versions in a window (tests only: the Silver window's substitute at a real time of day); a Gold save brought in; the partner's Elm call after FALKNER, which the TOGEPI egg waits on (#174); Windows; played |
+| Left over | The opening's battles go through the co-op battle field, whose Generation 2 screen is #176; the rival's name in the scenario is whatever `played.gd`'s presses type |
+
 ## The host's clock for every window (#175, D133, 2026-10-16)
 
 A Gold or Silver campaign keeps one clock (D128): a reading at a host second,

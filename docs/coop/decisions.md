@@ -2026,6 +2026,45 @@ owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
 scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
 joins (`demo gold`).
 
+## D131. Gold and Silver's opening: the rival steals per window (owner, 2026-10-16)
+
+Asked in #173 what the rival steals when two players each picked a starter at
+Elm's lab. The owner chose per window, as the cartridge: each player plays their
+own opening, and in that player's window the rival steals the starter strong
+against that player's pick, as Red and Blue co-op gives each player their own
+opening and rival fight. Built that way:
+
+- A player's opening runs from the bedroom (the clock and Oak's speech) through
+  Elm's starter, Mr. Pokémon's egg and Oak's Pokédex, the theft, the rival's
+  fight in Cherrygrove and the officer, to the egg handed to Elm
+  (`EVENT_GAVE_MYSTERY_EGG_TO_ELM`); it ends when the player leaves Elm's lab,
+  and only then does the player join the campaign's story and see the others.
+  The opening's own story is dropped then, as Red's is (D50).
+- A new Gold or Silver campaign starts at that point (`PokeCoopJohto.start_campaign`):
+  `InitializeEventsScript`'s facts from the cartridge's own catalog, the
+  errand's flags and map scenes. A campaign made before #173 gets them once.
+- The starter's `EVENT_GOT_<it>_FROM_ELM` and the lab's ball flags are each
+  player's own, so every later rival fight in that player's window uses the
+  team strong against their pick and their lab shows their own two balls gone.
+- The rival's name: the tab offers no rival field for Gold and Silver, since the
+  cartridge names him after the theft. The officer asks the campaign's first
+  player to reach him; that name is the campaign's (as Red's first Oak's speech
+  is), and a later player's window answers the officer with it.
+- A late joiner who starts in New Bark Town holds what the opening hands
+  everyone: Mom's Pokégear with Mom's and Elm's numbers, Oak's Pokédex, the
+  aide's Potion and five Poké Balls, their starter's flags and the ball the
+  rival took from them.
+- Gift Pokémon are one per player (D61): the TOGEPI egg (its aide, hatching,
+  Elm's call and Everstone), SHUCKLE, EEVEE, SPEAROW's mail and TYROGUE, and the
+  Guide Gent's tour and Mom's bank, by their flags (`PokeCoopJohto.OWN_GIFTS`).
+  Story items and TMs reach everyone once as Red and Blue's do (D52), by
+  Johto's own item ids (`SHARED_ITEMS`, `GIFT_TMS`), which Red and Blue's ids
+  had stood in for.
+- Wild Pokémon from both versions (D104) work on Gold and Silver: the tables
+  are keyed by map group and number, and a grass slot is taken from the other
+  version's table for the time of day the window's world reports (#175 makes
+  that the host's clock).
+
 ## D133. The host's clock for every window (#175, protocol 9, 2026-10-16)
 
 D128 makes the host's clock the campaign's one clock. How it travels:
