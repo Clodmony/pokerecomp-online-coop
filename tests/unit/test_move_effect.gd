@@ -4431,6 +4431,21 @@ func test_obedience_exemptions_do_not_draw_randomness() -> void:
 		assert_eq(battle.rng.state, before, reason)
 
 
+func test_a_co_op_roster_pokemon_obeys_its_own_owner_and_not_a_traded_one() -> void:
+	var disobeyed: Dictionary = {}
+	for owner_ot: int in [1, 2]:
+		for seed_value: int in 60:
+			var battle: Gen2Battle = _battle()
+			battle.player.ot_id = owner_ot
+			battle.owner_trainer_ids[battle.player] = 1
+			battle.rng.seed = seed_value
+			var turn: Gen2Turn = _turn(battle, Fixture.TACKLE)
+			Gen2EffectCommands.check_obedience(turn)
+			disobeyed[owner_ot] = int(disobeyed.get(owner_ot, 0)) + int(turn.ended)
+	assert_eq(int(disobeyed[1]), 0, "its owner's own Pokémon")
+	assert_gt(int(disobeyed[2]), 0, "a traded one above the badge level, with no battle-wide player id")
+
+
 func test_obedience_badge_thresholds_use_only_the_four_source_badges() -> void:
 	for mask: int in 256:
 		var expected: int = 10

@@ -1083,6 +1083,38 @@ func test_the_battle_field_draws_the_hosts_view_and_names_who_was_out() -> void:
 		"Go! %s!" % pikachu, "the name is whoever was sent out, not who is out at the end")
 
 
+func test_the_battle_fields_opening_sends_out_the_lead_by_its_nickname() -> void:
+	(_host.player(_red.player_id).team[0]["mon"] as Gen2SaveMon).nickname = "SPARKY"
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var field: PokeCoopBattleField = add_child_autofree(
+		PokeCoopBattleField.over(autofree(PokeCoopBattlePanel.over(_red, _data)), _data))
+
+	field._open(_red.battle(_battle_of(_red)))
+
+	var lines: Array = field._messages.map(func(step: Dictionary) -> String: return String(step.get("text", "")))
+	assert_has(lines, "Go! SPARKY!", "`SendOutMonText` names the nickname, as the battle screen does")
+
+
+func test_the_battle_menus_name_the_allies_by_their_nicknames() -> void:
+	(_host.player(_red.player_id).team[0]["mon"] as Gen2SaveMon).nickname = "SPARKY"
+	(_host.player(_blue.player_id).team[0]["mon"] as Gen2SaveMon).nickname = "BUBBLES"
+	_send(func() -> void: _red.start_battle("wild:stall"))
+	var battle_id: String = _battle_of(_red)
+	_send(func() -> void: _blue.join_battle(battle_id))
+	var bubbles: int = (_red.battle(battle_id)["allies"] as Array).filter(func(ally: Dictionary) -> bool:
+		return String(ally["name"]) == "BUBBLES")[0]["index"]
+	_send(func() -> void: _blue.suggest(battle_id, "switch", bubbles))
+	var panel: PokeCoopBattlePanel = add_child_autofree(PokeCoopBattlePanel.over(_red, _data))
+	panel._process(0.0)
+	var menu: PokeCoopBattleMenu = panel.menu
+
+	assert_eq(menu.spelled()[0][1], "BUBBLES", "the partner's suggestion")
+	assert_eq(menu._party_row(_red.battle(battle_id)["allies"][0])["name"], "SPARKY", "the party list")
+	menu.cursor = 0
+	menu._pick_ally()
+	assert_string_contains(menu._note, "SPARKY", "`SwitchMonAlreadyOut`")
+
+
 func test_a_turns_animations_play_through_on_a_cache_without_them() -> void:
 	_send(func() -> void: _red.start_battle("wild:stall"))
 	var battle_id: String = _battle_of(_red)
@@ -2625,7 +2657,8 @@ func test_start_lists_co_op_only_while_a_co_op_world_is_up() -> void:
 
 func test_the_rival_fight_of_an_opening_is_the_players_own() -> void:
 	var green_client: PokeCoopClient = _new_player(3, "GREEN", PokeCoopPolicy.PLAY_OPENING)
-	_host.player(green_client.player_id).add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH], 300))
+	var green: PokeCoopPlayer = _host.player(green_client.player_id)
+	green.add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH], green.trainer_id))
 	_host.broadcast()
 	var window: PokeCoopWorldLink = _window(green_client)
 	var results: Array = []

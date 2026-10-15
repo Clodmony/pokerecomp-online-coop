@@ -192,6 +192,7 @@ Kept small so upstream merges stay cheap (#14):
 |---|---|
 | `game/battle/party.gd` | `MAX_ALLIED_SIZE` and `add_members()`; `create()` unchanged |
 | `game/battle/battle.gd` | `owner_trainer_ids`, read by `_is_traded`; `exp_all_groups`, the party indices each EXP.ALL pass splits over (D62) |
+| `game/battle/effect_commands.gd` | `check_obedience` asks `_is_traded`, so a co-op roster's traded Pokémon disobey as they would alone (D127) |
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/save/save_prompt.gd` | the failure step draws no YES/NO (D70) |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64), and clears the item of a Pokémon arriving in a Generation 1 game (D120) |
