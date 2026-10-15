@@ -1,6 +1,6 @@
 # Playing co-op
 
-How two people play a Red or Blue campaign together with this fork. Each
+How two people play a Red or Blue (or Gold or Silver) campaign together with this fork. Each
 player needs their own copy of the game imported on the Play tab; nothing from
 the cartridge is sent between devices.
 
@@ -40,7 +40,8 @@ How a new player starts:
   stopping you at the grass, his lab, your starter and the rival's challenge,
   as in the cartridge. See "The opening" below.
 - **Start in Pallet Town** with one of the three starters, level 5, and 3000
-  money.
+  money. On Gold and Silver: **Start in New Bark Town** with CHIKORITA,
+  CYNDAQUIL or TOTODILE, the only way in until Gold's opening is built (#173).
 - **Bring a trainer from a save**, if the cartridge has a single-player save on
   this device: that trainer's team, PC, bag, money and place. The first player
   of a new campaign who brings a save brings its story and badges too.

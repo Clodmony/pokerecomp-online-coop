@@ -12,7 +12,7 @@
 #               =<seed dir> is that scenario's SEED, the others start a fresh
 #               campaign (an exported SEED is refused rather than given to all)
 #
-# Stages: import, GUT, release gates, boot smoke test, ENet demo, three
+# Stages: import, GUT, release gates, boot smoke test, ENet demos (Red, Gold), three
 # processes (both on free UDP ports), then each scenario, then the builds. Full logs and captures go to
 # $VERIFY_OUT/<stamp>/ (default ~/dev-scratch/pokerecomp-online-coop/verify), the
 # summary to <stamp>/summary.txt and stdout. Exits 0 only if every stage passed.
@@ -113,6 +113,7 @@ free_port() {
 demo_port="$(free_port)" three_port="$(free_port)"
 note "enet ports: demo $demo_port, three processes $three_port"
 stage enet-demo 180 "coop demo: all" "$godot" --headless --path . -s res://tools/coop_session.gd -- demo "$demo_port"
+stage enet-demo-gold 180 "coop demo: all" "$godot" --headless --path . -s res://tools/coop_session.gd -- demo "$demo_port" gold
 
 if (cd "$root" && XDG_DATA_HOME="$out/xdg" GODOT="$godot" "${sandbox[@]}" tools/coop_two_process.sh "$three_port" 180) \
 	> "$out/three-processes.log" 2>&1; then

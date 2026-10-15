@@ -386,9 +386,7 @@ func _foe(running: Dictionary) -> String:
 
 
 func _place(map: Variant) -> String:
-	if not map is Vector2i or data == null or data.generation != RomRegistry.GEN1:
-		return ""
-	return data.landmark_name(data.area_landmark((map as Vector2i).y)).strip_edges()
+	return PokeCoopLobby.landmark(data, map) if map is Vector2i else ""
 
 
 func _name(player_id: Variant) -> String:

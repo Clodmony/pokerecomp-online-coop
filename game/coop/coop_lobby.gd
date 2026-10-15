@@ -10,7 +10,7 @@ const SEEN_MSEC: int = 4000
 const RETRY_MSEC: int = 3000
 const DIAL_MSEC: int = 60000
 const MAX_BEACON_BYTES: int = 1400
-const GAMES: Array[StringName] = [&"red", &"blue", &"red_de", &"blue_de"]
+const GAMES: Array[StringName] = [&"red", &"blue", &"red_de", &"blue_de", &"gold", &"silver"]
 const READY: StringName = &"ready"
 const STALE: StringName = &"stale"
 const MISSING: StringName = &"missing"
@@ -65,9 +65,14 @@ static func fitting(rows: Array, game_id: StringName, rom_sha1: String) -> Array
 
 
 static func place(data: GameData, map: Vector2i) -> String:
-	if data == null or data.generation != RomRegistry.GEN1 or map.x < 0 or map.y < 0:
+	return landmark(data, map).capitalize()
+
+
+static func landmark(data: GameData, map: Vector2i) -> String:
+	if data == null or map.x < 0 or map.y < 0:
 		return ""
-	return data.landmark_name(data.area_landmark(map.y)).strip_edges().capitalize()
+	var area: int = data.area_landmark(map.y) if data.generation == RomRegistry.GEN1 else data.map_landmark(data.world_map(map.x, map.y))
+	return data.landmark_name(area).strip_edges()
 
 
 static func when(unix: int) -> String:

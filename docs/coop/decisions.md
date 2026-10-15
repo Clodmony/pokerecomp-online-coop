@@ -2009,3 +2009,19 @@ force-pushed once at the owner's request, and the pull request descriptions were
 edited. The rule from here on: no session link in commits or pull requests.
 GitHub still serves the old commits through each pull request's own ref until
 GitHub Support purges them; that request is the owner's.
+
+## D130. Gold and Silver's rules in their own file (owner, 2026-10-16)
+
+Asked during #172 whether Generation 2 co-op could be built apart from Red and
+Blue's, so Johto work cannot break the Red and Blue campaign. A full copy of the
+co-op subsystem would make every networking, lobby and save fix twice, break
+upstream's file and comment budgets, and leave the Time Capsule (#182) needing a
+bridge between two systems. The owner chose the middle way: the core stays
+shared (transport, host, client, battle sessions, saves, the Co-op tab, the
+session menu), and every Gold and Silver story rule lives in
+`game/coop/coop_johto.gd` (`PokeCoopJohto`), which `PokeCoopPolicy` asks by the
+cartridge's generation. Red and Blue's rules stay in `PokeCoopPolicy` as they
+are. This adds a file against `CONTRIBUTING.md`'s "extend, do not add" on the
+owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
+scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
+joins (`demo gold`).

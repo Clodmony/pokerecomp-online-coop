@@ -721,7 +721,7 @@ func _game_of(data: GameData) -> StringName:
 
 func _both_versions_switch(host: VBoxContainer, key: String, game: StringName) -> void:
 	var other: StringName = PokeCoopPolicy.other_version(game)
-	if other.is_empty():
+	if other.is_empty() or PokeCoopJohto.is_game(game):
 		return
 	_caption(host, "Wild Pokémon")
 	var row: Control = Gen2LauncherUI.switch(_theme, &"sparkle", "From both versions", bool(_form.get(key, false)),
@@ -742,9 +742,9 @@ func _start_options(host: VBoxContainer) -> void:
 	var data: GameData = _data()
 	var slots: Array = [] if data == null else Gen2SaveStore.slots_for(data.id, data.sha1, data).filter(
 		func(row: Dictionary) -> bool: return bool(row["valid"]))
-	var choice: StringName = StringName(_form.get("start", OPENING))
-	var options: Array = [[OPENING, "Play Oak's opening", "Your room, Oak's lab, your own rival fight"],
-		[PALLET, "Start in Pallet Town", "With a level %d starter and %d money" % [PokeCoopPolicy.STARTER_LEVEL, PokeCoopPolicy.NEW_PLAYER_MONEY]]]
+	var choice: StringName = _start_choice()
+	var options: Array = [] if PokeCoopJohto.plays(data) else [[OPENING, "Play Oak's opening", "Your room, Oak's lab, your own rival fight"]]
+	options.append([PALLET, start_label(data), "With a level %d starter and %d money" % [PokeCoopPolicy.STARTER_LEVEL, PokeCoopPolicy.NEW_PLAYER_MONEY]])
 	if not slots.is_empty():
 		options.append([BRING, "Bring a trainer from a save", "Slot %d: %s · %s" % [int(slots[0]["slot"]) + 1, slots[0]["player_name"],
 			_row(_game)["title"]]])
@@ -781,12 +781,17 @@ func _choose_start(start: StringName, label: String) -> void:
 		_landing = tile
 
 
+static func start_label(data: GameData) -> String:
+	return "Start in " + (PokeCoopJohto.TOWN if PokeCoopJohto.plays(data) else "Pallet Town")
+
+
 func _starter_chips(data: GameData) -> Container:
 	var chips := GridContainer.new()
-	chips.columns = PokeCoopPolicy.STARTERS.size()
+	var offered: Array[int] = PokeCoopPolicy.starters(data)
+	chips.columns = offered.size()
 	chips.add_theme_constant_override("h_separation", Gen2LauncherUI.GAP_SM)
-	for index: int in PokeCoopPolicy.STARTERS.size():
-		var species: String = String(data.species(PokeCoopPolicy.STARTERS[index]).get("name", "#%d" % PokeCoopPolicy.STARTERS[index])) \
+	for index: int in offered.size():
+		var species: String = String(data.species(offered[index]).get("name", "#%d" % offered[index])) \
 			if data != null else str(index)
 		var pick: Gen2LauncherButton = Gen2LauncherButton.create(_theme, species, Gen2LauncherButton.Variant.SEGMENT)
 		pick.set_active(int(_form.get("starter", 1)) == index)
@@ -818,10 +823,16 @@ func _slot_chips(slots: Array) -> HFlowContainer:
 	return chips
 
 
+func _start_choice() -> StringName:
+	var choice: StringName = StringName(_form.get("start", OPENING))
+	return PALLET if choice == OPENING and PokeCoopJohto.plays(_data()) else choice
+
+
 func _starter() -> int:
-	match StringName(_form.get("start", OPENING)):
+	match _start_choice():
 		PALLET:
-			return PokeCoopPolicy.STARTERS[clampi(int(_form.get("starter", 1)), 0, PokeCoopPolicy.STARTERS.size() - 1)]
+			var offered: Array[int] = PokeCoopPolicy.starters(_data())
+			return offered[clampi(int(_form.get("starter", 1)), 0, offered.size() - 1)]
 		BRING:
 			return 0
 	return PokeCoopPolicy.PLAY_OPENING

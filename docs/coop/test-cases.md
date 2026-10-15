@@ -70,6 +70,18 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | K20 | In split screen, kill the host's process | The right half gives up at once ("host unreachable") and quits instead of redialling for two minutes | `test_a_split_screens_right_half_whose_host_is_gone_gives_up_at_once` | split_host_killed | |
 | K21 | With a cartridge "Re-import on Play" on the Co-op tab, import it again on the Play tab, then open the Co-op tab | The tile says Ready and HOST and JOIN play with it, without a restart | `test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_shown_again` | | |
 
+## Gold and Silver
+
+Needs Gold and Silver imported; the rules are `PokeCoopJohto`'s (D130).
+
+| ID | Case | Expected | Automated | Two windows | Hand |
+|---|---|---|---|---|---|
+| G01 | Open the Co-op tab with Gold and Silver imported, pick Gold | Gold and Silver tiles "Ready"; "Plays together with Gold and Silver"; Crystal is not offered | `test_gold_and_silver_are_one_story_and_crystal_plays_alone` | gold_and_silver | |
+| G02 | Gold: HOST, + New campaign, then Create and host | No "Play Oak's opening" and no "From both versions"; "Start in New Bark Town" with CHIKORITA, CYNDAQUIL, TOTODILE; the host stands at the house's door in New Bark Town with the chip's starter | `test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters`, `test_a_new_player_picks_one_of_johtos_starters` | gold_and_silver | |
+| G03 | A Silver device joins the Gold host from Nearby as a new player | New in <campaign>, you play Silver; it stands beside the host by the door; each window draws the other; START > CO-OP (or SELECT) names the partner in NEW BARK TOWN | `test_a_silver_player_joins_a_gold_campaign_in_new_bark_town` | gold_and_silver | |
+| G04 | Crystal, Red or another Gold dump joins a Gold host | Refused: the cartridges differ | `test_crystal_red_and_another_gold_are_told_why` | | |
+| G05 | Fight a battle, save, stop and host the Gold campaign again | The file keeps Gold and both players in New Bark Town; both come back as themselves and see each other | `test_a_gold_campaign_fights_saves_and_reopens_with_both_in_new_bark_town`, `coop_session.gd demo gold` | | |
+
 ## Wild Pokémon from both versions
 
 | ID | Case | Expected | Automated | Two windows | Hand |

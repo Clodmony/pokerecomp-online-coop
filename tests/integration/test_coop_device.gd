@@ -648,6 +648,39 @@ func test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder(
 	RomCache.clear(blaue_cache)
 
 
+func test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters() -> void:
+	var cache: String = RomCache.directory_for(&"coopdevicegold", "")
+	var gold: GameData = Fixture.build(cache, String(RomRegistry.GOLD), RomRegistry.GEN2)
+	gold.sha1 = RomRegistry.sha1_for(RomRegistry.GOLD)
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return gold if id == RomRegistry.GOLD else null
+	PokeCoopPage.forget()
+	var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+	assert_true(_press(page, "Gold"))
+	_press(page, "HOST")
+	_press(page, "+ New campaign")
+	_type(page, "title", "johto")
+	var said: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is Label).map(func(label: Label) -> String:
+		return label.text)
+	assert_does_not_have(said, "Play Oak's opening", "Gold's opening waits for #173")
+	assert_does_not_have(said, "From both versions", "Johto has no wild tables to swap yet")
+	assert_true(_press(page, "Start in New Bark Town"))
+	assert_true(_press(page, "Create and host"))
+	var hosting: PokeCoopSession = Gen2GameRuntime.instance().coop
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+
+	var me: PokeCoopPlayer = hosting.host.player(hosting.client.player_id)
+	assert_eq([me.map, me.cell], [PokeCoopJohto.START_MAP, PokeCoopJohto.START_CELLS[0]])
+	assert_eq(int(hosting.client.me()["team"][0]["species"]), 155, "the middle chip, CYNDAQUIL")
+	assert_eq(hosting.host.campaign.game_id, RomRegistry.GOLD)
+	_close_all()
+	var folder: String = PokeCoopSession.campaign_path(gold).get_base_dir()
+	for path: String in DirAccess.get_files_at(folder):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(folder.path_join(path)))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
+	RomCache.clear(cache)
+
+
 func test_wild_pokemon_from_both_versions_is_a_campaign_switch_off_until_turned_on() -> void:
 	var cache: String = RomCache.directory_for(&"coopdevicerote", "")
 	var rote: GameData = Fixture.build(cache, String(RomRegistry.RED_DE), RomRegistry.GEN1)
