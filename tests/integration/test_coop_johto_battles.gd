@@ -184,14 +184,14 @@ func test_a_won_trainer_battle_pays_every_participant_the_cartridges_whole_prize
 		[quarter * 4, quarter * 4], "`BattleWon.give_money` pays four quarters to each (D61)")
 
 
-func test_an_amulet_coin_doubles_the_prize_of_its_holders_player_only() -> void:
+func test_an_amulet_coin_doubles_every_participants_prize() -> void:
 	(_host.player(_silver.player_id).team[0]["mon"] as Gen2SaveMon).item = Fixture.AMULET_COIN
 	var before: Array = [_host.player(_gold.player_id).money, _host.player(_silver.player_id).money]
 	var battle_id: String = _joined("trainer:leader")
 	var quarter: int = 99 * 14
 	_fight_out(battle_id)
 	assert_eq([_host.player(_gold.player_id).money - int(before[0]), _host.player(_silver.player_id).money - int(before[1])],
-		[quarter * 4, quarter * 8], "the coin SILVER's PIKACHU carried in pays SILVER double (D134)")
+		[quarter * 8, quarter * 8], "the coin SILVER's PIKACHU carried in pays GOLD and SILVER double (owner, D134)")
 
 
 func test_the_field_draws_gender_shininess_and_the_exp_bar() -> void:
@@ -227,3 +227,12 @@ func test_the_field_plays_gold_and_silvers_send_out_toss_and_trainer_lines() -> 
 	var lines: Array = field._messages.map(func(step: Dictionary) -> String: return String(step.get("text", "")))
 	assert_has(lines, "LEADER\nwants to battle!", "`WantsToBattleText`, not Red and Blue's \"wants to fight\"")
 	assert_true(field._messages.any(func(step: Dictionary) -> bool: return step.get("stage") == PokeCoopBattleStage.APPEAR))
+
+
+func test_an_amulet_coin_on_the_pokemon_that_opens_the_battle_counts_too() -> void:
+	(_host.player(_gold.player_id).team[0]["mon"] as Gen2SaveMon).item = Fixture.AMULET_COIN
+	var before: Array = [_host.player(_gold.player_id).money, _host.player(_silver.player_id).money]
+	var battle_id: String = _joined("trainer:leader")
+	_fight_out(battle_id)
+	assert_eq([_host.player(_gold.player_id).money - int(before[0]), _host.player(_silver.player_id).money - int(before[1])],
+		[99 * 14 * 8, 99 * 14 * 8], "GOLD's lead brought the coin in before anything was sent out")

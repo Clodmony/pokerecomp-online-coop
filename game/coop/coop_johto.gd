@@ -15,10 +15,10 @@ static func is_game(game_id: StringName) -> bool:
 	return RomRegistry.generation_for(game_id) == RomRegistry.GEN2
 
 
-static func prize_shares(battle: Gen2Battle, participants: Array, amulet_owners: Dictionary) -> Dictionary:  ## D61, D134
+static func prize_shares(battle: Gen2Battle, participants: Array) -> Dictionary:  ## D61, D134: one Amulet Coin doubles every share
 	var out: Dictionary = {}
+	var amulet: bool = battle.amulet_coin
 	for player_id: Variant in participants:
-		var amulet: bool = amulet_owners.has(String(player_id))
 		var paid: int = int(Gen2Battle.prize_money_split(battle.battle_reward, amulet, 0, 0, Gen2WorldInventory.MAX_MONEY)["wallet"]) \
 			if battle.battle_reward > 0 else 0
 		paid += Gen2Battle.double_reward(battle.pay_day_money) if amulet else battle.pay_day_money

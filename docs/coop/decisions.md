@@ -2026,15 +2026,14 @@ owner's decision. Red and Blue keep their GUT suites, ENet demo and two-window
 scenarios on every pull request; the ENet demo also runs a Gold campaign Silver
 joins (`demo gold`).
 
-## D134. An Amulet Coin pays its holder's player double (#176, 2026-10-16)
+## D134. One Amulet Coin doubles every participant's prize (#176, owner, 2026-10-16)
 
 D61 pays every participant the full prize. On Gold and Silver the engine's
 `amulet_coin` is one flag for the whole allied side, set when any Pokémon holding
-the coin comes in. Doubling everyone's prize for a partner's coin would make one
-coin pay twice over, so the session notes whose Pokémon carried an Amulet Coin in
-(`PokeCoopBattleSession.amulet_owners`) and `PokeCoopJohto.prize_shares` doubles
-the prize and Pay Day for those players only: each gets what their own cartridge
-would have paid. The prize is `BattleWon.give_money`'s four quarters (the host
-paid one quarter before). Mom's savings are not taken from a co-op prize yet:
-the whole of it goes to the wallet. Provisional, in `PokeCoopJohto`; the owner may
-choose otherwise.
+the coin comes in. Asked whether a partner's coin should double everyone's prize
+or only its carrier's player's, the owner chose everyone's: the players are a
+team, as with a story gate one clears (D91). `PokeCoopJohto.prize_shares` reads
+the side's flag and doubles the prize and Pay Day for every participant. The
+prize is `BattleWon.give_money`'s four quarters (the host paid one quarter
+before). Mom's savings are not taken from a co-op prize yet: the whole of it goes
+to the wallet.

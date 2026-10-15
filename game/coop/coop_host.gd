@@ -997,7 +997,7 @@ func _file_catch(caught: Dictionary, battle_id: String) -> void:
 
 func _pay(session: PokeCoopBattleSession) -> Dictionary:
 	var total: int = session.battle.battle_reward + session.battle.pay_day_money
-	var split: Dictionary = PokeCoopJohto.prize_shares(session.battle, session.participants, session.amulet_owners) \
+	var split: Dictionary = PokeCoopJohto.prize_shares(session.battle, session.participants) \
 		if PokeCoopJohto.plays(data) else PokeCoopPolicy.prize_shares(total, session.participants)
 	for payee: String in split:
 		player(payee).add_money(int(split[payee]))
