@@ -2,10 +2,12 @@ extends "res://tools/preview_world_story.gd"
 
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
-## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy;
-## `both` turns on wild Pokémon from both versions (D104).
+## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
+## `gold new <out dir> [at=...] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]...` seats two new Johto players, care= filling one's day care (`egg`: the pair's egg waits a step from hatching).
 
 const TRADER: String = "TRADER"
+const JOHTO_NEW: String = "new"
+const DAY_CARE_KEYS: Array[String] = ["day_care_man", "day_care_lady", "day_care_mons", "steps_to_egg", "day_care_egg"]
 const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
 
@@ -15,6 +17,9 @@ func _initialize() -> void:
 	if args.has("list"):
 		print("\n".join(legs))
 		quit(0)
+		return
+	if args.size() >= 3 and args[1] == JOHTO_NEW:
+		quit(_johto_seed(GameData.open(StringName(args[0])), args[2], Array(args.slice(3))))
 		return
 	if args.size() < 3 or not legs.has(args[1]):
 		push_error("usage: <game> <last leg>|list <out dir>; legs: %s" % ", ".join(legs))
@@ -217,6 +222,70 @@ static func write_seed(data: GameData, save: Gen2SaveData, out_dir: String, part
 			PokeCoopOwnership.badge_flags(data), PokeCoopPolicy.own_entries(data))
 		players.append(player)
 	(players[1] as PokeCoopPlayer).cell = partner_cell
+	return _write(data, campaign, players, out_dir)
+
+
+func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
+	if not PokeCoopJohto.plays(data) or PokeToolPath.refuses(out_dir):
+		push_error("coop seed: no imported Gold or Silver cache, or no out dir")
+		return 1
+	var campaign := PokeCoopCampaign.create(String(data.id), data.id, data.sha1)
+	var players: Array = []
+	for index: int in 2:
+		var id: String = campaign.take_player_id()
+		var player := PokeCoopPlayer.create(id, ["GOLD", "SILVER"][index], 17800 + index)
+		player.money = PokeCoopPolicy.new_player_money()
+		PokeCoopPolicy.set_up_new_player(data, player, 0, index)
+		players.append(player)
+	for option: String in options:
+		var parts: PackedStringArray = option.substr(option.find("=") + 1).split(":")
+		if option.begins_with("at="):
+			for index: int in 2:
+				var cell: Vector2i = _cell(parts[2 + index]) if parts.size() > 2 + index else _cell(parts[2]) + Vector2i.LEFT * index
+				(players[index] as PokeCoopPlayer).place(Vector2i(int(parts[0]), int(parts[1])), cell, Gen2WorldSprite.FACING_DOWN)
+		elif option.begins_with("care="):
+			var refused: String = _day_care(data, players[1 if parts[0] == "p2" else 0], parts.slice(1))
+			if not refused.is_empty():
+				push_error("coop seed: %s: %s" % [option, refused])
+				return 1
+	var written: Error = _write(data, campaign, players, out_dir)
+	print("coop seed: Johto, %s, %s" % [(players as Array).map(func(member: PokeCoopPlayer) -> String: return "%s on %s %s" % [member.name, member.map, member.cell]), error_string(written)])
+	return 0 if written == OK else 1
+
+
+static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStringArray) -> String:
+	var state := Gen2WorldState.new()
+	var egg: bool = parts[-1] == "egg"
+	for slot: int in mini((parts.size() - int(egg)) / 2, 2):
+		var species: int = named(data, "species", parts[slot * 2])
+		var level: int = int(parts[slot * 2 + 1])
+		var mon: Gen2BattleMon = Gen2BattleMon.create(data, species, level, data.moves_at_level(species, level)) if species > 0 else null
+		if mon == null:
+			return "no species named %s" % parts[slot * 2]
+		var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(mon)
+		saved.ot_id = player.trainer_id
+		saved.original_trainer = player.name
+		state.set_day_care_mon(slot, saved)
+		state.set_day_care_has_mon(slot, true)
+	var random := RandomNumberGenerator.new()
+	var built: Gen2SaveMon = Gen2WorldDayCare.make_egg(data, state.day_care_mon(0), state.day_care_mon(1), player.name, player.trainer_id, random) if egg else null
+	if egg and built == null:
+		return "an egg needs two Pokémon"
+	if built != null:
+		built.happiness = 1
+		state.set_day_care_egg(built)
+		state.set_day_care_man_flags(state.day_care_man_flags() | Gen2WorldDayCare.MAN_HAS_EGG)
+	else:
+		Gen2WorldDayCare.init_breeding(state, data, player.name, player.trainer_id, random)
+	var world: Dictionary = state.to_dict()
+	var kept: Dictionary = {"step_count": Gen2WorldState.EGG_STEP_PHASE - 1 if egg else 0}
+	for key: String in DAY_CARE_KEYS:
+		kept[key] = world[key]
+	player.apply_world_patch(PokeCoopOwnership.patch({}, kept))
+	return ""
+
+
+static func _write(data: GameData, campaign: PokeCoopCampaign, players: Array, out_dir: String) -> Error:
 	var folder: String = ProjectSettings.globalize_path(out_dir)
 	var target: String = folder.path_join(PokeCoopSession.campaign_path(data).trim_prefix("user://"))
 	DirAccess.make_dir_recursive_absolute(target.get_base_dir())

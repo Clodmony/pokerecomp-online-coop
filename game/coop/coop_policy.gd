@@ -185,6 +185,8 @@ static func prize_shares(total: int, participants: Array) -> Dictionary:
 
 
 static func own_entries(data: GameData) -> Dictionary:
+	if PokeCoopJohto.plays(data):
+		return PokeCoopJohto.OWN_ENTRIES
 	return OWN_GIFTS if data != null and data.generation == RomRegistry.GEN1 else {}
 
 
