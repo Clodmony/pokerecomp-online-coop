@@ -6,7 +6,9 @@ extends RefCounted
 
 const TRADED: String = "traded"
 const CANCELED: String = "canceled"
-const LINK_ROOMS: Array[Vector2i] = [Vector2i(0, Gen1Layout.TRADE_CENTER), Vector2i(0, Gen1Layout.COLOSSEUM)]
+const LINK_ROOMS: Array[Vector2i] = [  ## Red and Blue's Trade Center and Colosseum, then Gold and Silver's (CABLE_CLUB's 2 and 3)
+	Vector2i(0, Gen1Layout.TRADE_CENTER), Vector2i(0, Gen1Layout.COLOSSEUM), Vector2i(20, 2), Vector2i(20, 3),
+]
 
 var data: GameData = null
 ## Every swap made, so the host can save the campaign after one.

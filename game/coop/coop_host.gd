@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 9
+const PROTOCOL: int = 10
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -61,6 +61,7 @@ var notes: Dictionary = {}
 var challenges: Dictionary = {}
 var _challenge_serial: int = 0
 var _challenge_told: Dictionary = {}
+var _seated: Dictionary = {}  ## who sits at the Colosseum's table waiting on whom
 var wild_tables: Dictionary = {}
 
 
@@ -361,6 +362,8 @@ func name_catch(sender: PokeCoopPlayer, battle_id: String, nickname: String) -> 
 
 
 func _trade(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
+	if PokeCoopTransport.number(message.get("colosseum")) == 1:
+		return _colosseum(sender, message)
 	var swaps: int = trades.swaps
 	var answer: StringName = trades.handle(sender, message, players)
 	if trades.swaps != swaps:
@@ -368,6 +371,28 @@ func _trade(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 		if battles.is_empty():
 			_write_campaign("trade")
 	return answer
+
+
+func _colosseum(sender: PokeCoopPlayer, message: Dictionary) -> StringName:  ## Gold and Silver's Colosseum: both at its table, one battle (D137)
+	_seated.erase(sender.player_id)
+	if PokeCoopTransport.number(message.get("leave")) == 1:
+		return &""
+	var partner: PokeCoopPlayer = trades.partner_for(sender, players)
+	if not PokeCoopJohto.plays(data) or partner == null or partner.player_id != PokeCoopTransport.text(message.get("partner")) \
+			or not sender.is_free() or not partner.is_free():
+		return &"no_partner"
+	if String(_seated.get(partner.player_id, "")) != sender.player_id:
+		_seated[sender.player_id] = partner.player_id
+		return &""
+	_seated.erase(partner.player_id)
+	var battle_id: String = campaign.take_battle_id()
+	var session: PokeCoopVersus = PokeCoopVersus.pit(data, battle_id, seeds.randi(), partner, sender)
+	if session == null:
+		return &"no_fit_pokemon"
+	session.colosseum = true
+	battles[battle_id] = session
+	_log_battle_start(session)
+	return &""
 
 
 func _hello(peer: int, message: Dictionary) -> StringName:
@@ -566,6 +591,7 @@ func _on_disconnected(peer: int) -> void:
 	_release_scenes(leaving.player_id)
 	trades.leave(leaving.player_id, players)
 	trades.unpair(leaving.player_id)
+	_seated.erase(leaving.player_id)
 	for asked: Dictionary in challenges.values():
 		if leaving.player_id in [asked["from"], asked["to"]]:
 			_settle_challenge(asked, "left")
@@ -709,6 +735,8 @@ func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 
 
 func challenge(sender: PokeCoopPlayer, message: Dictionary, now: int = Time.get_ticks_msec()) -> StringName:
+	if message.has("mystery_gift"):
+		return PokeCoopJohto.note_mystery_gift(data, sender, message)
 	if message.has("answer"):
 		var asked: Dictionary = challenges.get(PokeCoopTransport.text(message.get("id")), {})
 		if asked.is_empty() or String(asked["to"]) != sender.player_id:
@@ -718,7 +746,8 @@ func challenge(sender: PokeCoopPlayer, message: Dictionary, now: int = Time.get_
 		return &""
 	var partner: PokeCoopPlayer = player(PokeCoopTransport.text(message.get("partner")))
 	var kind: String = PokeCoopTransport.text(message.get("kind"))
-	if partner == null or partner == sender or not kind in [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE]:
+	if partner == null or partner == sender or not kind in [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE, PokeCoopPolicy.CHALLENGE_GIFT] \
+			or (kind == PokeCoopPolicy.CHALLENGE_GIFT and not (PokeCoopJohto.gift_ready(sender) and PokeCoopJohto.gift_ready(partner))):
 		return &"invalid_challenge"
 	if not free_to_meet(sender) or not free_to_meet(partner):
 		return &"partner_busy"
@@ -743,6 +772,12 @@ func _meet(asked: Dictionary) -> StringName:
 		return &"partner_busy"
 	if String(asked["kind"]) == PokeCoopPolicy.CHALLENGE_TRADE:
 		trades.pair(first, second)
+		return &""
+	if String(asked["kind"]) == PokeCoopPolicy.CHALLENGE_GIFT:
+		PokeCoopJohto.mystery_gift(data, [first, second], int(PokeCoopJohto.reading(campaign.clock, Gen2WorldClock.host_seconds())["cur_day"]), seeds)
+		journal.add(PokeCoopLog.HOST, "mystery_gift", {"rounds": [first.gift_round, second.gift_round]}, second.player_id)
+		if battles.is_empty():
+			_write_campaign("mystery_gift")
 		return &""
 	var battle_id: String = campaign.take_battle_id()
 	var session: PokeCoopVersus = PokeCoopVersus.pit(data, battle_id, seeds.randi(), first, second)
@@ -1169,6 +1204,7 @@ func _private_view(viewer: PokeCoopPlayer) -> Dictionary:
 		out["trade_partner"] = {
 			"player_id": partner.player_id, "name": partner.name,
 			"trainer_id": partner.trainer_id, "party": partner.team_rows(),
+			"game_id": partner.game_id if not partner.game_id.is_empty() else String(campaign.game_id),
 		}
 	return out
 

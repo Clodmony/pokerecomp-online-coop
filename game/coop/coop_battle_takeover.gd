@@ -7,6 +7,7 @@ extends RefCounted
 var client: PokeCoopClient = null
 var data: GameData = null
 ## The battles the world opened itself, whose evolutions it runs itself.
+const SEATED_MSEC: int = 60000  ## how long a Colosseum seat waits for the partner's
 var claimed: Dictionary = {}
 var waiting_on: String = ""
 var send_party: Callable = Callable()
@@ -21,8 +22,9 @@ static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopBattle
 
 
 func takes_battle(context: Dictionary) -> bool:
+	var kind: StringName = StringName(context.get("battle_kind", &""))
 	return client != null and client.connected and not client.me().is_empty() \
-		and StringName(context.get("battle_kind", &"")) in [&"wild", &"trainer"] \
+		and (kind in [&"wild", &"trainer"] or (kind == &"link_battle" and int(context.get("generation", 0)) == RomRegistry.GEN2)) \
 		and StringName(context.get("gen1_ghost", &"")) != Gen1Layout.GHOST_UNIDENTIFIED
 
 
@@ -53,6 +55,7 @@ class Bridge extends Node:
 	var _seq: int = -1
 	var _asking: Dictionary = {}
 	var _done: bool = false
+	var _since: int = 0
 
 	func _init(takeover: PokeCoopBattleTakeover) -> void:
 		_owner = takeover
@@ -70,6 +73,11 @@ class Bridge extends Node:
 			enemies.append(Gen2SaveBattleAdapter.from_battle_mon(member).to_dict())
 		var summary: Dictionary = context.get("summary", {})
 		client.journal.add(PokeCoopLog.WORLD, "takeover_start", {"summary": summary, "enemy": enemies.size()}, client.player_id)
+		_since = Time.get_ticks_msec()
+		if StringName(summary.get("battle_kind", &"")) == &"link_battle":
+			_asking = {"type": "trade", "colosseum": 1, "partner": String((client.me().get("trade_partner", {}) as Dictionary).get("player_id", ""))}
+			_ask_when_free()
+			return
 		_asking = {
 			"type": "window_battle", "kind": String(summary.get("battle_kind", "wild")),
 			"trainer_class": int(summary.get("trainer_class", 0)),
@@ -111,6 +119,10 @@ class Bridge extends Node:
 			_battle_id = _new_battle()
 			if not _battle_id.is_empty():
 				_owner.claimed[_battle_id] = true
+			elif _asking.has("colosseum") and Time.get_ticks_msec() - _since >= SEATED_MSEC:
+				client.send({"type": "trade", "colosseum": 1, "leave": 1})
+				_finish(&"ran")
+				return
 		var outcome: String = String(client.battle(_battle_id).get("outcome", ""))
 		if not _battle_id.is_empty() and not outcome.is_empty():
 			if _owner.busy.is_valid() and bool(_owner.busy.call()):

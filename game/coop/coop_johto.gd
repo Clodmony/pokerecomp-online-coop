@@ -248,3 +248,39 @@ static func prize_shares(battle: Gen2Battle, participants: Array) -> Dictionary:
 		if paid > 0:
 			out[String(player_id)] = paid
 	return out
+
+
+static func mystery_gift(data: GameData, pair: Array, day: int, random: RandomNumberGenerator) -> void:  ## two Game Boy Colors face to face (D128, D137)
+	var blocks: Array = []
+	for member: PokeCoopPlayer in pair:
+		Gen2MysteryGift.begin_session(member.mystery_gift, day)
+		var trainer := Gen2SaveData.new()
+		trainer.player_id = member.trainer_id
+		trainer.player_name = member.name
+		blocks.append(Gen2MysteryGift.stage_player_data(trainer, member.mystery_gift, 0, random))
+	var tables: Dictionary = {"items": data.mystery_gift_table(false), "decos": data.mystery_gift_table(true)}
+	for side: int in 2:
+		var window := Gen2MysteryGiftTransport.new()
+		window.peer = blocks[1 - side]
+		var member: PokeCoopPlayer = pair[side]
+		var told: Dictionary = Gen2MysteryGift.exchange(member.mystery_gift, window, blocks[side], tables, data)
+		Gen2MysteryGift.restore(member.mystery_gift)  ## the box a Continue would open the world on
+		member.gift_round = {"serial": int(member.gift_round.get("serial", 0)) + 1, "outcome": String(told["outcome"]),
+			"gift": String(told["name"]), "partner": (pair[1 - side] as PokeCoopPlayer).name}
+
+
+static func gift_ready(member: PokeCoopPlayer) -> bool:  ## `MainMenu_GetWhichMenu`: Carrie has explained the machine
+	return member != null and Gen2MysteryGift.menu_row_unlocked(member.mystery_gift)
+
+
+static func note_mystery_gift(data: GameData, member: PokeCoopPlayer, message: Dictionary) -> StringName:  ## what a window may change: Carrie's unlock, a gift taken
+	var section: Dictionary = member.mystery_gift
+	if not plays(data):
+		return &"unknown_message"
+	if PokeCoopTransport.number(message.get("unlocked"), -1) == 0 and not gift_ready(member):
+		section["daily_partners"] = 0
+	elif PokeCoopTransport.number(message.get("taken")) <= 0 or PokeCoopTransport.number(message.get("taken")) != int(section["backup_item"]):
+		return &"invalid_mystery_gift"
+	section["backup_item"] = 0
+	Gen2MysteryGift.restore(section)
+	return &""

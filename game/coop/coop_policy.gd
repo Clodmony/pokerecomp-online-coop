@@ -81,6 +81,7 @@ const WILD_SLOTS: int = 21  ## Johto's grass: seven slots each by morning, day a
 const OTHER_VERSION_TAG: StringName = &"other_version"
 const CHALLENGE_BATTLE: String = "battle"
 const CHALLENGE_TRADE: String = "trade"
+const CHALLENGE_GIFT: String = "gift"  ## Gold and Silver's Mystery Gift between two players (#181)
 const CHALLENGE_ANSWER_MSEC: int = 30000
 const CHALLENGE_EXPIRE_MSEC: int = 60000
 

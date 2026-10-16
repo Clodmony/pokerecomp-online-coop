@@ -16,6 +16,7 @@ var _faced: Array = [{}, {}]
 var _forfeit: int = -1
 var _awards: Array = []
 var _side_events: Array = [[], []]
+var colosseum: bool = false  ## Gold and Silver's link battle: `LoadPokemonData` after `StartBattle`, no experience (D137)
 
 
 static func pit(data: GameData, battle_id: String, seed_value: int, first: PokeCoopPlayer, second: PokeCoopPlayer) -> PokeCoopVersus:
@@ -237,12 +238,14 @@ func _award() -> void:
 		var mine: Dictionary = fighters_of(battle.data, member)
 		var foes: Dictionary = fighters_of(battle.data, _members[_ids[1 - side]])
 		for mon: Gen2BattleMon in mine["mons"] + foes["mons"]:
-			mon.restore_health()
+			if not colosseum:
+				mon.restore_health()
 		var award: Gen2Battle = Gen2Battle.create_parties(battle.data, Gen2Party.create(mine["mons"]),
 			Gen2Party.create(foes["mons"]), RandomNumberGenerator.new(), true, 0)
 		award.player_id = member.trainer_id
 		_awards.append(award)
-		_side_events[side] = (_side_events[side] as Array) + PokeCoopPolicy.versus_experience(award, _faced[side], foes["mons"])
+		if not colosseum:
+			_side_events[side] = (_side_events[side] as Array) + PokeCoopPolicy.versus_experience(award, _faced[side], foes["mons"])
 
 
 func abandon() -> void:

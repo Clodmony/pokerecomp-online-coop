@@ -77,6 +77,8 @@ var _scene_welcome: int = -1
 var scene_driver: String = ""
 ## Patches the host has not applied yet, by sequence number (D51).
 var _unacked: Dictionary = {}
+var _gift_seen: Dictionary = {}
+var _gift_report: Dictionary = {}
 
 
 static func over(
@@ -91,6 +93,7 @@ static func over(
 	out._rival_scenes = PokeCoopPolicy.rival_scenes(data)
 	out._rev_seen = int(session.me().get("holdings_rev", -1))
 	out._holdings_sent = out._holdings()
+	out._gift_seen = window_save.mystery_gift.duplicate(true) if out.johto else {}
 	out._world_saved()
 	world_state.changed.connect(out._on_state_changed)
 	return out
@@ -114,6 +117,7 @@ func advance() -> void:
 		_land_owed_step()
 		_release_switches()
 		_pull_world()
+		_tend_mystery_gift()
 		_held_frames = 0
 	else:
 		_held_frames += 1
@@ -133,6 +137,26 @@ func advance() -> void:
 		push_party()
 		if written:
 			save_seq = client.request_save()
+
+
+func _tend_mystery_gift() -> void:  ## the host keeps `sMysteryGiftData` (#181): in as a Continue restores it; Carrie's unlock and a gift taken out
+	var told: Dictionary = (client.me().get("mystery_gift", {}) as Dictionary).get("section", {})
+	if not johto or told.is_empty():
+		return
+	if told != _gift_seen:
+		_gift_seen = told.duplicate(true)
+		state.set_mystery_gift(told)
+		if world != null:
+			Gen2MysteryGift.copy_decorations_to_pc(state.mystery_gift(), world.data, state)
+		return
+	var report: Dictionary = {}
+	if int(state.mystery_gift()["unlocked"]) == 0 and int(told["unlocked"]) == Gen2MysteryGift.LOCKED:
+		report = {"type": "challenge", "mystery_gift": 1, "unlocked": 0}
+	elif int(state.mystery_gift()["item"]) == 0 and int(told["item"]) > 0:
+		report = {"type": "challenge", "mystery_gift": 1, "taken": int(told["item"])}
+	if not report.is_empty() and report != _gift_report:
+		_gift_report = report
+		client.send(report)
 
 
 ## Before the world goes (#88): a SAVE it just made leaves with its scene; answers the sequence number the host must reach.
@@ -443,6 +467,7 @@ static func local_save(session: PokeCoopClient, data: GameData) -> Gen2SaveData:
 	out.player_id = int(me.get("trainer_id", 0))
 	out.slot = 0
 	out.run_rules = Gen2Rules.new()
+	out.mystery_gift = Gen2MysteryGift.normalize((me.get("mystery_gift", {}) as Dictionary).get("section", {}))
 	_fill(out, me, session.box.get("rows", []))
 	var world: Gen2WorldSnapshot = continued_world(session)
 	after_the_credits(world, data.gen1_fly_warp(PokeCoopPolicy.START_MAP.y) if data.generation == RomRegistry.GEN1 else {})

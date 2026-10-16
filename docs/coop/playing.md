@@ -280,7 +280,24 @@ worlds in place. A disconnected player also ends the direct pairing.
 
 Both players go to a Pokémon Center's Cable Club receptionist, enter the Trade
 Center, sit at the table facing right and press A. The trade screen shows the
-partner's real party; trade-evolving Pokémon evolve on arrival.
+partner's real party; trade-evolving Pokémon evolve on arrival. On Gold and
+Silver the two sit on opposite sides of the table (the game's friend sprite
+shows the other side); held items go along, and a Pokémon holding its trade
+item, such as a METAL COAT, evolves on arrival and uses it up.
+
+On Gold and Silver, the Colosseum's receptionist and table start a battle
+between the two of you, each choosing their own moves. Afterwards both parties
+are as they were when you saved at the receptionist, with no experience, and
+each of you finds the result in the link record.
+
+## Mystery Gift
+
+On Gold and Silver, once both of you have talked to the girl on Goldenrod
+Dept. Store 5F, START > CO-OP lists GIFT and your partner's name. After they
+say YES, both of you see the MYSTERY GIFT screen with what the other sent:
+pick an item up from the man at any Pokémon Center's second floor; a
+decoration is sent home. One gift per partner a day on the
+campaign's clock, five a day.
 
 ## Leaving
 
