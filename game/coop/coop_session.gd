@@ -693,6 +693,7 @@ func _collect_evolutions() -> void:
 
 ## Oak's speech first for a new player who plays the opening; it opens the world.
 func open_start() -> Control:
+	_use_language()
 	var opening: Dictionary = client.me().get("opening", {}) if is_ready() else {}
 	if String(opening.get("stage", "")) != PokeCoopPolicy.OPENING_SPEECH or screen != null:
 		return open_world()
@@ -765,6 +766,7 @@ func _continue_world() -> void:
 func open_world() -> Gen2WorldScreen:
 	if not is_ready() or screen != null:
 		return screen
+	_use_language()
 	_claim_seams()
 	Gen2SaveStore.use_root("%s/%s" % [WINDOW_SAVES, client.player_id.validate_filename()])
 	var save: Gen2SaveData = PokeCoopWorldLink.local_save(client, data)
@@ -885,6 +887,10 @@ func _close_start_menu() -> void:
 	var start: Gen2StartMenuScreen = screen.get("_start_menu_host") if screen != null and is_instance_valid(screen) else null
 	if start != null:
 		start.closed.emit()
+
+
+func _use_language() -> void:
+	Gen1Text.use_language(RomRegistry.language_of(data.id))
 
 
 func _claim_seams() -> void:
