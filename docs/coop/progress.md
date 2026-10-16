@@ -11,6 +11,30 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The Gold tool host's encounters and the tab's own name (#188, 2026-10-16)
+
+Three leftovers of #172 and #173. A Gold or Silver host from
+`tools/coop_session.gd host <port> gold` offers Route 29's wild Pokémon from
+the cartridge's own grass table (`PokeCoopJohto.wild_tables`; morning, day and
+night, each species at its lowest level) and FALKNER in the session menu's
+FIGHT list, in place of Red and Blue's PIDGEY L5, RATTATA L4 and ONIX L60; its
+players already held Gold's item numbers since #176, now covered by a test.
+The Co-op tab's name field starts at the cartridge's own name on Gold and
+Silver (GOLD, SILVER: the first preset `Gen2PlayerNameChoices` offers, as the
+cartridge's naming screen does), RED on Red and Blue; a remembered name that is
+one of these defaults gives way to the cartridge's own, a name the player typed
+stays. `tools/coop_launcher_play.gd`'s `name=` with nothing keeps the name the
+tab offers. `johto_day_care` presses D before A, past the POKéDEX a late joiner
+has since #173, so `gold_party` shows the party. Branch `coop/188-gold-tool-host`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix | `test_a_gold_tool_host_hands_out_johtos_items_and_fights_johtos_wild_pokemon`: the items held (#176), the encounters `{16: 5, 19: 4, 95: 60} != {163: 3, 4: 4, 74: 5}`; `test_the_name_field_starts_at_the_cartridges_own_name`: `["RED", "RED", "RED"] != ["RED", "GOLD", "SILVER"]`, and a remembered RED stayed RED on Gold |
+| Tests after | `test_coop_gold_silver` 14/14; `test_the_name_field_starts_at_the_cartridges_own_name` passes |
+| Screens (scripted), Gold and Silver | `gold_and_silver` with `name=` (nothing typed): Gold's New campaign form reads GOLD, Silver's New in JOHTO form SILVER, "Join as SILVER"; both in New Bark Town as before. `johto_battle`: the session menu offers FIGHT wild PIDGEY, SENTRET, RATTATA and HOOTHOOT (L2, the imported Gold's Route 29) and FALKNER, no BROCK or ONIX; the PACK holds POKé BALL x5, POTION x2, BICYCLE and TM01; FALKNER beaten, POTION used (check: items used 18, won 1). `johto_day_care`: `gold_party` shows CHIKORITA and the hatched CYNDAQUIL. Every capture looked at |
+| `tools/verify.sh gold_and_silver johto_day_care johto_battle` | import, GUT 5266/5266, gates, boot, ENet demo, ENet demo gold, three processes and the three scenarios ok (run `20261016-115714`) |
+| Not run | Crystal (no co-op yet, #185); German Gold and Silver; Windows; played |
+
 ## Battles on the host use the campaign's time of day (#195, D133, 2026-10-16)
 
 Every Gold or Silver battle the host builds (from the session menu, a battle a
@@ -231,7 +255,7 @@ and services are #173 to #184. Branch `coop/172-gold-silver-gate`.
 | Screens after, `gold_and_silver` (imported Gold and Silver) | the tab lists Gold and Silver "Ready", "Plays together with Gold and Silver"; the form shows Start in New Bark Town and the three Johto chips, no rival, no opening; both windows at the house's door on 24:4, each drawing the other; CO-OP menu "SILVER / NEW BARK TOWN"; SILVER's step south seen from GOLD's window. A Gold host from `coop_session.gd` puts its two players at 13,6 and 12,6 as well. Every capture looked at |
 | `tools/verify.sh gold_and_silver launcher_host_join` | import, GUT 5215/5215, gates, boot, ENet demo, ENet demo gold, three processes, `gold_and_silver` and `launcher_host_join` ok (run `20261016-001027`); Red's tab still offers the opening and Start in Pallet Town, its CO-OP menu "BLUE IN THE OPENING" |
 | Not run | Bring a trainer from a Gold save; German Gold and Silver (#50); Windows; played |
-| Left over | `coop_session.gd host gold`'s scripted players get Red and Blue's item ids (5 GREAT BALL on Gold); the tab's name field starts at RED on any cartridge |
+| Left over | `coop_session.gd host gold`'s scripted players get Red and Blue's item ids (5 GREAT BALL on Gold; Johto's since #176); the tab's name field starts at RED on any cartridge; both fixed by #188 |
 
 ## Gold and Silver scoped (#171, D128, 2026-10-15)
 

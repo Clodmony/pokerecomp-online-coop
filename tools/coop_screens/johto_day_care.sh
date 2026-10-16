@@ -24,7 +24,7 @@ shot p1 49 gold_hatched               # CYNDAQUIL came out of its EGG
 shot p1 58 gold_no_nickname           # back on Route 34, "CYNDAQUIL hatched"
 press p1 66 START
 shot p1 67.5 gold_start_menu
-press p1 68 A
+press p1 68 D A                       # past the POKéDEX a late joiner has (#173) to POKéMON
 shot p1 70 gold_party                 # CHIKORITA and the hatched CYNDAQUIL, no EGG left
 press p2 5 U U
 shot p2 8 silver_day_care             # indoors: SILVER's man and the lady

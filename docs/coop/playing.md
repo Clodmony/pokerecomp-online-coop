@@ -17,7 +17,8 @@ the cartridge is sent between devices.
    place and last save: a Blaue cartridge hosts a Rote campaign too, and its
    file stays in Rote's folder. Pick one and press **Host <name>**, or press
    **+ New campaign**: name it, choose the rival's name (one of the cartridge's
-   own three, typed, or **Ask in Oak's speech**), type your name and choose how
+   own three, typed, or **Ask in Oak's speech**), type your name (it starts at
+   the one you used last, or GOLD or SILVER on those cartridges) and choose how
    you start (below), then **Create and host**.
 3. The **Hosting** screen shows the addresses others join at, each labelled by
    network (a VPN such as wg0 first, then the home network) with a **Copy**

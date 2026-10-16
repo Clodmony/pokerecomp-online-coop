@@ -13,6 +13,7 @@ const JOIN: StringName = &"join"
 const NEW_PLAYER: StringName = &"new_player"
 const BACK: Dictionary = {HOST: START, NEW_CAMPAIGN: HOST, JOIN: START}
 const DEFAULT_NAME: String = "RED"
+const DEFAULT_NAMES: Array[String] = ["RED", "GOLD", "SILVER"]  ## a remembered one gives way to this cartridge's own
 const MAX_TITLE: int = 24
 const MAX_NAME: int = 7
 const REFRESH_MSEC: int = 400
@@ -389,8 +390,13 @@ func _tint(game_id: Variant) -> Color:
 
 
 func _name() -> String:
-	var typed: String = String(_form.get("name", PokeCoopLobby.remembered().get("name", DEFAULT_NAME))).strip_edges().to_upper()
-	return typed if not typed.is_empty() else DEFAULT_NAME
+	var kept: String = String(PokeCoopLobby.remembered().get("name", ""))
+	var typed: String = String(_form.get("name", kept if not kept in DEFAULT_NAMES else _default_name())).strip_edges().to_upper()
+	return typed if not typed.is_empty() else _default_name()
+
+
+func _default_name() -> String:  ## the cartridge's own on Gold and Silver (`Gen2PlayerNameChoices`), RED on Red and Blue
+	return Gen2PlayerNameChoices.options(_data(), Gen2SaveData.GENDER_MALE)[1] if PokeCoopJohto.plays(_data()) else DEFAULT_NAME
 
 
 func _build_start() -> void:

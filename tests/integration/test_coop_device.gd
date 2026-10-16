@@ -682,6 +682,32 @@ func test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters() -> void
 	RomCache.clear(cache)
 
 
+func test_the_name_field_starts_at_the_cartridges_own_name() -> void:
+	var caches: Array = [RomCache.directory_for(&"coopdevicenamegold", ""), RomCache.directory_for(&"coopdevicenamesilver", "")]
+	var cartridges: Dictionary = {
+		RomRegistry.RED: _data,
+		RomRegistry.GOLD: Fixture.build(caches[0], String(RomRegistry.GOLD), RomRegistry.GEN2),
+		RomRegistry.SILVER: Fixture.build(caches[1], String(RomRegistry.SILVER), RomRegistry.GEN2),
+	}
+	PokeCoopLobby.open_game = func(id: StringName) -> GameData: return cartridges.get(id, null)
+	var offered: Callable = func(game: StringName) -> String:
+		PokeCoopPage.forget()
+		var page: PokeCoopPage = add_child_autofree(PokeCoopPage.create(Gen2LauncherTheme.active()))
+		_press(page, PokeCoopLobby.title(game))
+		_press(page, "HOST")
+		_press(page, "+ New campaign")
+		var fields: Array = PokeCoopPage._find(page, func(node: Node) -> bool: return node is LineEdit and node.name == "name")
+		return (fields[0] as LineEdit).text if not fields.is_empty() else ""
+
+	assert_eq([offered.call(RomRegistry.RED), offered.call(RomRegistry.GOLD), offered.call(RomRegistry.SILVER)], ["RED", "GOLD", "SILVER"])
+	PokeCoopLobby.remember({"name": "RED"})
+	assert_eq(offered.call(RomRegistry.GOLD), "GOLD", "another cartridge's own name gives way")
+	PokeCoopLobby.remember({"name": "MIMI"})
+	assert_eq([offered.call(RomRegistry.GOLD), offered.call(RomRegistry.RED)], ["MIMI", "MIMI"], "a name the player typed stays")
+	for cache: String in caches:
+		RomCache.clear(cache)
+
+
 func test_wild_pokemon_from_both_versions_is_a_campaign_switch_off_until_turned_on() -> void:
 	var cache: String = RomCache.directory_for(&"coopdevicerote", "")
 	var rote: GameData = Fixture.build(cache, String(RomRegistry.RED_DE), RomRegistry.GEN1)
