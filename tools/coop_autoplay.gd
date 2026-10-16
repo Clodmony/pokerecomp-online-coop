@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## A co-op window that plays itself with `tools/checks/played.gd`'s legs, fighting from the panel; prints "... finished" or "FAILED":
-##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions; Gold or Silver: its opening] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [partner=none: meets no partner] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
+##   Godot --path . -s res://tools/coop_autoplay.gd -- <address> [port] <player_id> [game] [opening] [route=brock|misty|trade|surge|erika|tower|koga|sabrina|blaine|victory|elite|watch_brock|both_versions; Gold or Silver: its opening, or falkner|bugsy] [from=<leg>[#<n>]|finished] [speed=1..4] [ball=0..2] [partner=none: meets no partner] [shots=<dir>, also <dir>/<player>_texts.tsv: every text shown]
 
 const PLAYED: String = "res://tools/checks/played.gd"
 const CHECK_RUN: String = "res://tools/lib/check_run.gd"
@@ -31,6 +31,10 @@ const ROUTES: Dictionary = {
 	"elite": [&"_misty_legs", &"_surge_legs", &"_erika_legs", &"_tower_legs", &"_koga_legs", &"_sabrina_legs",
 		&"_blaine_legs", &"_victory_legs", &"_elite_legs"],
 }
+const JOHTO_ROUTES: Dictionary = {"johto_opening": [], "falkner": [&"_falkner_legs"], "bugsy": [&"_falkner_legs", &"_bugsy_legs"]}
+const FALKNER := Vector2i(5, 1)
+const BUGSY := Vector2i(5, 7)
+const EVENT_SLOWPOKE_WELL_ROCKETS: int = 0x6FC  ## their hide flag, which the first player in sets for both (STORY_OBJECTS)
 const STAND_BY_SECONDS: float = 20.0
 const SURGE_MAPS: Dictionary = {
 	&"route_24": Vector2i(0, 35), &"route_25": Vector2i(0, 36), &"bills_house": Vector2i(0, 88),
@@ -292,8 +296,10 @@ func _leg_button(screen: Gen2WorldScreen) -> int:
 
 
 func _route_legs() -> Array:
-	var legs: Array = _johto_opening_legs() if PokeCoopJohto.plays(_session.data) else _opening_legs() + _brock_legs()
-	for stretch: StringName in ROUTES.get(_route, []):
+	var johto: bool = PokeCoopJohto.plays(_session.data)
+	_route = _route if not johto or JOHTO_ROUTES.has(_route) else "johto_opening"
+	var legs: Array = _johto_opening_legs() if johto else _opening_legs() + _brock_legs()
+	for stretch: StringName in (JOHTO_ROUTES if johto else ROUTES).get(_route, []):
 		legs += call(stretch)
 	_labels = _leg_labels(legs)
 	if _from.is_empty():
@@ -357,7 +363,6 @@ func _opening_legs() -> Array:
 
 
 func _johto_opening_legs() -> Array:  ## played.gd's walk to the egg handed to Elm with the `ball=` starter, then the partner (D131)
-	_route = "johto_opening"
 	if String((_session.client.me().get("opening", {}) as Dictionary).get("stage", "")).is_empty():
 		return []
 	var legs: Array = _played._gen2_legs()
@@ -366,6 +371,49 @@ func _johto_opening_legs() -> Array:  ## played.gd's walk to the egg handed to E
 	legs[starter] = ["starter", _played._talk(_kit.BELOW_ELMS_BALL + Vector2i(_ball, 0), UP), legs[starter][2]]
 	var over: Callable = func(_world: Gen2WorldAPI) -> bool: return (_session.client.me().get("opening", {}) as Dictionary).is_empty()
 	return legs + [["opening_over", _standing, over], _meet_partner("meet_in_new_bark", func(_world: Gen2WorldAPI) -> bool: return false)]
+
+
+func _falkner_legs() -> Array:  ## played.gd's walk on from New Bark Town, the partner met in the gym (#183)
+	var p: Variant = _played
+	var badge: Callable = p._engine(p._badge_at(_kit.VIOLET_GYM))
+	return [
+		_grind.bind(_kit.FALKNER_LEVEL, 0),
+		["new_bark_to_route_29_again", p._cross(Vector2i.LEFT, _kit.ROUTE_29), p._on_map(_kit.ROUTE_29)],
+		["route_29_to_cherrygrove_again", p._cross(Vector2i.LEFT, _kit.CHERRYGROVE_CITY), p._on_map(_kit.CHERRYGROVE_CITY)],
+		["cherrygrove_to_route_30_again", p._cross(Vector2i.UP, _kit.ROUTE_30), p._on_map(_kit.ROUTE_30)],
+		["route_30_to_route_31", p._cross(Vector2i.UP, _kit.ROUTE_31), p._on_map(_kit.ROUTE_31)],
+		["route_31_to_gate", p._warp_to(_kit.ROUTE_31_VIOLET_GATE), p._on_map(_kit.ROUTE_31_VIOLET_GATE)],
+		["gate_to_violet", p._warp_to(_kit.VIOLET_CITY), p._on_map(_kit.VIOLET_CITY)],
+		["violet_gym", p._warp_to(_kit.VIOLET_GYM), p._on_map(_kit.VIOLET_GYM)],
+		_meet_partner("meet_in_violet_gym", badge),
+		["falkner", p._talk_to(FALKNER), badge],
+	]
+
+
+func _bugsy_legs() -> Array:  ## each their own TOGEPI egg, the well's Rockets fought by the first one in (#183)
+	var p: Variant = _played
+	var badge: Callable = p._engine(p._badge_at(_kit.AZALEA_GYM))
+	var cleared: Callable = p._flag(EVENT_SLOWPOKE_WELL_ROCKETS)
+	return [
+		["gym_out", p._warp_to(_kit.VIOLET_CITY), p._on_map(_kit.VIOLET_CITY)],
+		["violet_center", p._warp_to(_kit.VIOLET_POKECENTER), p._on_map(_kit.VIOLET_POKECENTER)],
+		["togepi_egg", p._talk(_kit.BELOW_AIDE, UP), p._flag(_kit.EVENT_GOT_TOGEPI_EGG_FROM_ELMS_AIDE)],
+		["center_out", p._warp_to(_kit.VIOLET_CITY), p._on_map(_kit.VIOLET_CITY)],
+		["violet_to_route_32", p._cross(Vector2i.DOWN, _kit.ROUTE_32), p._on_map(_kit.ROUTE_32)],
+		["route_32_to_union_cave", p._warp_to(p._named(&"UNION_CAVE_1F")), p._on_map(p._named(&"UNION_CAVE_1F"))],
+		["union_cave_to_route_33", p._warp_to(_kit.ROUTE_33), p._on_map(_kit.ROUTE_33)],
+		["route_33_to_azalea", p._cross(Vector2i.LEFT, _kit.AZALEA_TOWN), p._on_map(_kit.AZALEA_TOWN)],
+		["azalea_to_kurt", p._warp_to(_kit.KURTS_HOUSE), p._on_map(_kit.KURTS_HOUSE)],
+		["kurt", p._talk(_kit.BELOW_KURT, UP), p._flag(_kit.EVENT_AZALEA_TOWN_SLOWPOKETAIL_ROCKET)],
+		["kurt_out", p._warp_to(_kit.AZALEA_TOWN), p._on_map(_kit.AZALEA_TOWN)],
+		_grind.bind(_kit.BUGSY_LEVEL, 0),
+		["azalea_to_well", p._warp_to(p._named(&"SLOWPOKE_WELL_B1F")), _either(p._on_map(p._named(&"SLOWPOKE_WELL_B1F")), cleared)],
+		["rockets", p._walk(_kit.BELOW_WELL_ROCKET), _either(p._on_map(_kit.KURTS_HOUSE), cleared)],
+		["back_to_azalea", p._warp_to(_kit.AZALEA_TOWN), p._on_map(_kit.AZALEA_TOWN)],
+		["azalea_gym", p._warp_to(_kit.AZALEA_GYM), p._on_map(_kit.AZALEA_GYM)],
+		_meet_partner("meet_in_azalea_gym", badge),
+		["bugsy", p._talk_to(BUGSY), badge],
+	]
 
 
 func _brock_legs() -> Array:
@@ -2006,6 +2054,9 @@ func _apply(button: int) -> void:
 		_tap_at = _frames
 		if _played != null:
 			_played._pressed_at = _frames
+	if PokeButton.is_direction(_tap):  ## an overlay's d-pad, let go at once: held through one slow frame at speed=, it repeats
+		input.release(_tap)
+		_tap = PokeButton.NONE
 
 
 func _paced(button: int) -> int:

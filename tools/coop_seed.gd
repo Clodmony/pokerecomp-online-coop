@@ -1,6 +1,6 @@
 extends "res://tools/preview_world_story.gd"
 
-## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
+## A two-player co-op campaign at a point of the Generation 1 or 2 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
 ## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag.
@@ -13,7 +13,8 @@ const SIDES: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Ve
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	var legs: Array = _gen1_story_legs().map(_leg_name)
+	var johto: bool = not args.is_empty() and PokeCoopJohto.is_game(StringName(args[0]))
+	var legs: Array = (_story_legs() if johto else _gen1_story_legs()).map(_leg_name)
 	if args.has("list"):
 		print("\n".join(legs))
 		quit(0)
@@ -29,8 +30,8 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var data: GameData = GameData.open(StringName(args[0]))
-	if data == null or data.generation != RomRegistry.GEN1:
-		push_error("coop seed: no imported Generation 1 cache for %s" % args[0])
+	if data == null or PokeCoopJohto.plays(data) != johto:
+		push_error("coop seed: no imported cache for %s" % args[0])
 		quit(1)
 		return
 	var options: Dictionary = {"level=": 0, "party=": 0}
@@ -43,25 +44,12 @@ func _initialize() -> void:
 
 
 func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party: int = 0, both: bool = false, extras: Array = []) -> int:
-	var story: Dictionary = _gen1_story_start(data)
-	if not story.has("world"):
+	var story: Dictionary = _walk(data, last)
+	if not story.has("save"):
 		push_error("coop seed: %s" % story.get("reason", ""))
 		return 1
 	var world: Gen2WorldAPI = story["world"]
 	var save: Gen2SaveData = story["save"]
-	var path: Array = []
-	var began: int = Time.get_ticks_msec()
-	for leg: Callable in _gen1_story_legs():
-		var walked: Dictionary = leg.call(world, save, story["random"], data, path)
-		print("coop seed: %s at %.1f s" % [_leg_name(leg), (Time.get_ticks_msec() - began) / 1000.0])
-		if not bool(walked.get("ok", false)):
-			push_error("coop seed: %s" % walked.get("reason", ""))
-			return 1
-		if _leg_name(leg) == last:
-			break
-	if world.gen1_step_out_of_door() and not bool(_gen1_settle(world, save, story["random"], data).get("ok", false)):
-		push_error("coop seed: no rest after stepping out of the door")
-		return 1
 	save.world = world.snapshot()
 	fill_party(data, save, party)
 	if level > 0:
@@ -78,8 +66,30 @@ func _seed(data: GameData, last: String, out_dir: String, level: int = 0, party:
 		partner = _cell(parts[3]) if parts.size() > 3 else save.world.player_cell + Vector2i.LEFT
 	var written: Error = write_seed(data, save, out_dir, partner, both)
 	print("coop seed: %s on %s %s, badges %d, party %d, %s" % [
-		last, save.world.map_id, save.world.player_cell, world.state.badge_count(), save.party.size(), error_string(written)])
+		last, save.world.map_id, save.world.player_cell, PokeCoopOwnership.badge_flags(data).filter(world.state.is_engine_flag_active).size(),
+		save.party.size(), error_string(written)])
 	return 0 if written == OK else 1
+
+
+func _walk(data: GameData, last: String) -> Dictionary:  ## the story through [param last], a Generation 1 walk stepped off its door
+	var gen1: bool = not PokeCoopJohto.plays(data)
+	var story: Dictionary = _gen1_story_start(data) if gen1 else _story_start(data)
+	if not story.has("world"):
+		return story
+	var world: Gen2WorldAPI = story["world"]
+	var path: Array = []
+	var began: int = Time.get_ticks_msec()
+	for leg: Callable in _gen1_story_legs() if gen1 else _story_legs():
+		var walked: Dictionary = leg.call(world, story["save"], story["random"], data, path)
+		print("coop seed: %s at %.1f s" % [_leg_name(leg), (Time.get_ticks_msec() - began) / 1000.0])
+		if not bool(walked.get("ok", false)):
+			return {"reason": "%s: %s" % [_leg_name(leg), walked.get("reason", "")]}
+		world = walked["world"] if walked.get("world") is Gen2WorldAPI else world
+		if _leg_name(leg) == last:
+			break
+	if gen1 and world.gen1_step_out_of_door() and not bool(_gen1_settle(world, story["save"], story["random"], data).get("ok", false)):
+		return {"reason": "no rest after stepping out of the door"}
+	return {"world": world, "save": story["save"]}
 
 
 static func _raise(data: GameData, save: Gen2SaveData, level: int) -> void:
@@ -193,7 +203,7 @@ static func _cell(text: String) -> Vector2i:
 
 
 static func _leg_name(leg: Callable) -> String:
-	return String(leg.get_method()).trim_prefix("_gen1_").trim_suffix("_leg")
+	return String(leg.get_method()).trim_prefix("_gen1_").trim_prefix("_").trim_suffix("_leg").trim_suffix("_path")
 
 
 static func _beside(world: Gen2WorldAPI) -> Vector2i:

@@ -11,6 +11,38 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver seeds and playthroughs to FALKNER and BUGSY (#183, 2026-10-16)
+
+`tools/coop_seed.gd` walks Gold and Silver's story too: `gold list` names
+upstream's fifteen Generation 2 legs (`players_house` to `kanto_crossing`), and
+`gold <leg> <out dir>` writes a two-player campaign where that leg leaves the
+story, both players past the opening, with Red's `level=`, `party=`, `mon=`,
+`item=` and `at=` (D78). `preview_world_story.gd`'s Generation 2 walk is split
+into `_story_start` and `_story_legs` for it, its output unchanged.
+`tools/coop_autoplay.gd` plays on after Gold's opening: `route=falkner` walks
+from New Bark Town through Cherrygrove and Routes 30 and 31 to Violet City's
+gym, the partner met there, and `route=bugsy` goes on through each player's own
+TOGEPI egg, Union Cave, KURT and the Slowpoke Well (the first player in fights
+its Rockets, the other finds them gone) to BUGSY. `playthrough_falkner` runs the
+first from the opening (GOLD on Gold, SILVER on Silver), `playthrough_bugsy` the
+second from a seed after FALKNER that it builds itself. On the way the
+autoplay's battle presses were fixed: a d-pad tap into the co-op battle menu was
+held four frames, and at `speed=4` on a loaded machine (15 fps) the input
+runtime's repeat fired within one of them, so the cursor overshot and wrapped
+and never reached the fourth move; an overlay's d-pad is now let go in the frame
+it is pressed. Gold's stretches from WHITNEY to Johto's Elite Four are not
+written yet. Branch `coop/183-johto-seeds-autoplay`.
+
+| Verification | Result |
+|---|---|
+| Before | `coop_seed.gd -- gold zephyr_badge <dir>`: `ERROR: usage: <game> <last leg>\|list <out dir>; legs: bedroom, oak, lab, ...` (Red's legs only). `playthrough_falkner` on the unchanged autoplay: both windows `finished, johto_opening reached` (239 s, 214 s), check failed |
+| First runs with the routes | `playthrough_falkner`: GOLD stalled in its first wild battle after the grind (Route 29), `nothing moved for 150 s`, the menu cursor parked on SMOKESCREEN on the way to EMBER; SILVER then waited for it in Violet Gym. `playthrough_bugsy`: both stalled in the Route 32 YOUNGSTER's fight once EMBER was the best move. A one-window probe at `FPS=15 speed=4` showed the cursor stepping 0, 1, 2, 3 and wrapping to 0 before the A landed |
+| Seeds | All fifteen Gold legs write a seed (badges 0 to 8, 16 after `kanto_crossing`); `silver hive_badge level=25 party=3 item=POTION:5` too; `story_seed` with `GAME=gold` on the `glacier_badge` seed reloads both players beside PRYCE, each with the party (its walk keys are Red's and do not apply on Gold's menu) |
+| Tests | `test_coop_state` 21/21 with `test_a_johto_story_seed_keeps_the_walked_world_past_the_opening_and_each_players_own_flags` (it passes on the unchanged `write_seed` too: a seed's world replaces the opening's flags); `test_source_budget` 4/4 |
+| Scenarios after the fix | Run side by side, each window at 15 fps: `playthrough_falkner` ok, GOLD finished in 422 s and SILVER in 394 s; FALKNER started by GOLD, SILVER joined, both paid 900. `playthrough_bugsy` ok, 353 s and 328 s; GOLD fought the well's four Rockets alone, SILVER found them gone; BUGSY started by SILVER, GOLD joined, both paid 1600. Every capture looked at |
+| Seen, not fixed | SILVER, inside the Slowpoke Well when GOLD beat its Rockets, still saw them standing until it left: the shared hide flag reached its world, the objects on its map were not redrawn |
+| Not run | WHITNEY onward (Azalea's rival, Ilex Forest's FARFETCH'D and CUT, Goldenrod) and every later stretch to Johto's Elite Four; the autoplay on Crystal; Windows; played |
+
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
 
 The owner chose that a Pokémon left in a day care keeps its uid (#196). The
