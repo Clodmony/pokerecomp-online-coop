@@ -238,6 +238,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/battle_anim_player.gd`, `game/battle/battle_screen_map.gd`, `tests/unit/test_battle_anim_player.gd` | Generation 1's `_AnimationSlideMonUp` rises from below into its box and ends home (DIG drew a second picture at the top of the screen); a picture slid up or down stays inside its box's rows, as `CopyPicTiles` with fewer rows does |
 | `game/world/world_pack.gd` | `gen1_bag_capacity`, the Generation 1 bag rows `receive_check` allows; the cartridge's twenty unless a co-op run raises it (D109) |
 | `game/battle/battle_screen.gd` | `add_trainer_hud`, a static split out of `_add_trainer_hud`, so the co-op field lays out the party balls the same way (D108) |
+| `game/battle/ai.gd`, `game/battle/battle_screen.gd` | `Gen2BattleAI.enemy_slot`, `enemy_action`, `random_slot` and `party_status_mask`, moved out of the screen's `_enemy_slot`, `_enemy_action`, `_random_slot` and `_party_status_mask`, so a co-op session picks a Generation 2 trainer's move as the screen does (D136) |
 | `.gutconfig.json` | `pre_run_script`: `tests/coop_test_folders.gd` keeps every run's co-op campaigns and session logs out of the player's folders |
 | `README.md` | AI-authorship notice at the top |
 

@@ -89,9 +89,10 @@ Their outcomes do not commit campaign story rewards.
   full teams the roster holds twelve; each player's team stays at six.
 - **The owner of the active Pokémon controls the turn.** Switching to the other
   player's Pokémon hands control to that player. A question about one Pokémon
-  (replacing it after a faint, a move it wants to learn, Mimic) goes to the
-  owner of that Pokémon; the replacement may be any standing allied Pokémon.
-  The partner sees the same question and may suggest every answer to it (D121).
+  (replacing it after a faint, a move it wants to learn, Mimic, on Gold and
+  Silver the receiver of its Baton Pass) goes to the owner of that Pokémon; the
+  replacement may be any standing allied Pokémon. The partner sees the same
+  question and may suggest every answer to it (D121, D136).
 - While the co-op panel is open the player's own world stands still.
 - **Leaving a battle** (D61, D62): a participant whose own world did not start
   the fight may LEAVE BATTLE. They are back where they were and explore; their

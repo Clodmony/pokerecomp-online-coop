@@ -444,14 +444,9 @@ func _advance(events: Array) -> void:
 
 
 func _enemy_action() -> Dictionary:
-	if battle.is_gen1():
-		return Gen2Battle.use_move(Gen1TrainerAI.select_slot(battle, rng))
-	var foe: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
-	var usable: Array = []
-	for slot: int in foe.moves.size():
-		if foe.can_use(slot):
-			usable.append(slot)
-	return Gen2Battle.use_move(usable[rng.randi_range(0, usable.size() - 1)] if not usable.is_empty() else 0)
+	var trainer_class: int = battle.enemy_trainer_class
+	return Gen2BattleAI.enemy_action(battle, trainer_class, battle.rules,
+		Gen2BattleAI.enemy_slot(battle, trainer_class, battle.rules, rng))
 
 
 func request_join(data: GameData, player: PokeCoopPlayer) -> StringName:
@@ -568,7 +563,7 @@ func view() -> Dictionary:
 		"owner": owner_deciding(), "learning": battle.pending_learn(Gen2Battle.PLAYER).duplicate(),
 		"participants": participants.duplicate(), "pending": pending_players(),
 		"left": _left.keys(), "attached": _attached.keys(), "stand_in_due": stand_in_due(),
-		"active": party.active, "allies": allies, "offer": battle.awaiting_switch_offer(),
+		"active": party.active, "allies": allies, "offer": battle.awaiting_switch_offer(), "use_next": battle.asking_use_next(),
 		"enemy": _battler_view(battle.mon(Gen2Battle.ENEMY)),
 		"enemy_party": battle.party(Gen2Battle.ENEMY).mons.map(func(mon: Gen2BattleMon) -> int: return mon.species),
 		"enemy_states": party_states(battle.party(Gen2Battle.ENEMY)),

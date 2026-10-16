@@ -229,8 +229,10 @@ session for both and goes back to the Co-op tab.
   ("BLUE suggests / EMBER"). It never acts by itself.
 - A question about one Pokémon goes to its owner: which Pokémon replaces it
   after a faint, which move it forgets for a new one (even while your
-  Pokémon is out), which move its MIMIC copies. Your partner sees the same
-  list and may point at an answer.
+  Pokémon is out), which move its MIMIC copies on Red and Blue (on Gold and
+  Silver MIMIC copies the foe's last move by itself), and on Gold and Silver
+  who takes its BATON PASS. Your partner sees the same list and may point at
+  an answer.
 - After choosing a ball you pick whom the catch is for. That player sees the
   new Pokédex entry and names the Pokémon; the thrower just sees it caught.
 - With BATTLE STYLE SHIFT in your OPTION menu, a trainer about to send out its

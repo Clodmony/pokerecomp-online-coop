@@ -206,6 +206,58 @@ static func trainer_policy(data: GameData, trainer_class: int, battle_tower: boo
 	}
 
 
+## `AIChooseMove` for the battle screen and a co-op session: the class's weights under [param rules].
+static func enemy_slot(
+	battle: Gen2Battle, trainer_class: int, rules: Gen2Rules, rng: RandomNumberGenerator
+) -> int:
+	if battle.is_gen1():
+		return Gen1TrainerAI.select_slot(battle, rng)
+	var foe: Gen2BattleMon = battle.mon(Gen2Battle.ENEMY)
+	if trainer_class == 0:
+		return random_slot(foe, rng)
+	var policy: Dictionary = trainer_policy(battle.data, trainer_class, battle.in_battle_tower)
+	var player: Gen2BattleMon = battle.mon(Gen2Battle.PLAYER)
+	return choose_slot(
+		foe, player, battle.data, rules.ai_move_weights(int(policy["move_weights"])), rng,
+		foe.turns_taken, player.turns_taken, battle.weather,
+		battle.screens[Gen2Battle.ENEMY], battle.screens[Gen2Battle.PLAYER],
+		Gen2AISwitch.has_bench(battle), Gen2AISwitch.matchup_score(battle),
+		Gen2AISwitch.has_bench(battle, Gen2Battle.PLAYER), battle.player_used_moves,
+		party_status_mask(battle.party(Gen2Battle.ENEMY)), battle.is_link_battle
+	)
+
+
+## [param slot] as the enemy's action, with its class's flags for a switch or an item.
+static func enemy_action(
+	battle: Gen2Battle, trainer_class: int, rules: Gen2Rules, slot: int
+) -> Dictionary:
+	var action: Dictionary = Gen2Battle.use_move(slot)
+	if trainer_class == 0 or battle.is_gen1():
+		return action
+	var policy: Dictionary = trainer_policy(battle.data, trainer_class, battle.in_battle_tower)
+	action["ai_item_switch"] = rules.ai_item_switch(int(policy["item_switch"]))
+	return action
+
+
+static func random_slot(mon: Gen2BattleMon, rng: RandomNumberGenerator) -> int:
+	var usable: Array = []
+	for slot: int in mon.moves.size():
+		if mon.can_use(slot):
+			usable.append(slot)
+	return usable[rng.randi_range(0, usable.size() - 1)] if not usable.is_empty() else 0
+
+
+## `AI_Smart_HealBell`'s walk of `wOTPartyMon1HP`: every living party member's
+## status byte ored together, the one that is out included.
+static func party_status_mask(party: Gen2Party) -> int:
+	var mask: int = Gen2Status.NONE
+	for index: int in party.size():
+		var member: Gen2BattleMon = party.at(index)
+		if member != null and not member.is_fainted():
+			mask |= member.status
+	return mask
+
+
 ## The two things that jump straight to `DontSwitch` without stopping the item
 ## half: a Mean Look the player landed, and a wrap the enemy is caught in.
 static func _can_leave(battle: Gen2Battle) -> bool:
