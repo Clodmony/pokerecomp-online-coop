@@ -6,62 +6,64 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-16 (M14 wave 1: three of five merged).
+Last updated 2026-10-16 (M14 wave 1 done: five issues merged).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at 6731fdc0: #190, #191, #192
-  merged (#175, #173, #178 closed), then the Gold and Silver test cases
-  renumbered J01 on (the German cases already use G01 to G10).
-  `main` = upstream main (ed886823, 0.1.78).
-- Next free decision number: D136 (D131 to D135 are wave 1's).
+- Default branch `pokerecomp-online-coop` at dfd0641f, the merge of #194.
+  `main` = upstream main (ed886823, 0.1.78). No open pull requests.
+- Next free decision number: D136.
 - Co-op protocol 9 (#175). Gold and Silver (USA/Europe) are imported in this
   machine's own user folder, so Gold and Silver scenarios run here.
 - History rewritten once (D129): the old co-op history is backed up in
   `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
 
-## M14 wave 1: five issues built in parallel (#189)
+## M14 wave 1 (#189, closed)
 
-One agent, worktree (`~/dev-scratch/pokerecomp-online-coop/worktrees/<issue>`),
-branch and draft PR per issue; the owner approved merging them in this order.
+Five issues built in parallel by one agent each, merged in the owner's order,
+each merge verified with `tools/verify.sh` before its push:
 
-| Issue | PR | Decision | State |
+| Issue | PR | Decision | Merge |
 |---|---|---|---|
-| #175 the host's clock for every window | #190 | D133 | merged (74c4e31a) |
-| #173 the opening, starters, gifts, wild tables | #191 | D131 | merged (9f83c8df) |
-| #178 day care and eggs per player | #192 | D135 | merged (65d3ff16) |
-| #174 sharing the Johto world | #193 | D132 | being reconciled with #191 by its agent (merge, no force-push) |
-| #176 co-op battles on the Generation 2 screen | #194 | D134 | ready; merge after #193 |
+| #175 the host's clock for every window | #190 | D133 | 74c4e31a |
+| #173 the opening, starters, gifts, wild tables | #191 | D131 | 9f83c8df |
+| #178 day care and eggs per player | #192 | D135 | 65d3ff16 |
+| #174 sharing the Johto world | #193 | D132 | 5f8077de |
+| #176 co-op battles on the Generation 2 screen | #194 | D134 | dfd0641f |
 
-- Owner's answers (2026-10-16): the rival steals per window (D131); New Bark
-  Town's teacher gate, Elm's lab, Mom's Pokégear and Mr. Pokémon's house are
-  each player's own (goes into #193's D132; its `johto_gate` scenario moves
-  to a later team gate); a late joiner keeps the Pokégear, Pokédex, Potion and
-  five Poké Balls (#191); an Amulet Coin carried in by any participant doubles
-  every participant's prize (D134, in #194).
-- Owner's answers to the PRs' questions (2026-10-16): daylight saving stays
-  each window's own and never moves the shared clock (add "the owner's choice"
-  to D133 with the next docs change that touches it); battles fought on the
-  host take the campaign's time of day in a follow-up, #195 (after #194); a
-  Pokémon keeps its uid through the day care, #196 (changes D135).
-- Merging the last two: in the main checkout, `git merge --no-ff`, resolve the
-  docs by keeping both sides (progress entries newest first, decisions by
-  number, test cases by J number), run `tools/verify.sh` with the PR's
-  scenarios plus `gold_and_silver`, look at the captures, then push.
-- Watch: `enet-demo-gold` failed once at "red beats the leader" during verify
-  under heavy load (5.7) and passed 9 of 9 runs alone or in parallel; every
-  demo step shares a 600-frame budget and the leader battle's turns are
-  random. File an issue if it recurs.
+- Last verify (on dfd0641f): GUT 5259/5259, gates, boot, both ENet demos,
+  three processes, `johto_battle`, `start_coop_menu`, `johto_gate`,
+  `gold_and_silver`: all passed.
+- The owner's answers are in the decisions: the rival steals per window
+  (D131); the opening's scenes (New Bark Town's teacher, Elm's lab, Mom, Mr.
+  Pokémon, Route 29's tutorial) are each player's own (D132); a late joiner
+  gets the Pokégear, Pokédex, Potion and five Poké Balls (D131); one Amulet
+  Coin doubles every participant's prize (D134). Daylight saving stays each
+  window's own and never moves the shared clock (owner, 2026-10-16: add "the
+  owner's choice" to D133 with the next docs change that touches it).
+- Gold and Silver hand-test cases use the prefix J (J01 to J54): the German
+  cases already had G01 to G10. The renumbering (6731fdc0) went straight onto
+  the integration branch during the merges, outside a pull request.
+- Not seen on a cartridge yet: a Ruins puzzle (its board is random), a Johto
+  rival lock, the League and its exit redraw, the Fast Ship, shiny, Unown,
+  weather and a catch in a joined battle, both-versions wild Pokémon in a
+  window, the day care's own deposit menus, an egg laid by walking.
+- Watch: `enet-demo-gold` failed once at "red beats the leader" under heavy
+  load and passed 9 of 9 runs alone or in parallel; every demo step shares a
+  600-frame budget and the leader battle's turns are random. File an issue if
+  it recurs.
 
-## After wave 1
+## Next candidates
 
-- Wave 2 candidates: #177 phone and #179 Bug-Catching Contest (#175 merged),
-  #183 seeds and autoplay (#173 merged; `coop_seed.gd -- gold new` and Johto
-  autoplay of the opening exist), #180 roamers and legendaries (after #193),
-  #181 Cable Club and Mystery Gift and #149 battle questions (after #194),
-  #188 the Gold tool host's items and the tab's default name (small; #194
-  gives the Gold tool host Johto items and FALKNER already), #195 battle time
-  of day (after #194), #196 the day care keeps a uid.
+- Wave 2, all unblocked now (prerequisites merged), one agent each as in
+  wave 1: #177 phone per player, #179 Bug-Catching Contest, #180 roamers and
+  legendaries, #181 Cable Club, link battles and Mystery Gift, #183 seeds and
+  autoplay (`coop_seed.gd -- gold new` with `at=`, `at2=`, `event=`, `care=`
+  and Johto autoplay of the opening exist), #149 Generation 2 battle
+  questions, #195 host battles use the campaign's time of day, #196 the day
+  care keeps a uid, #188 small leftovers (tab default name, the Gold tool
+  host's items, `johto_day_care`'s party capture). Likely overlaps: #181 and
+  #149 and #195 in the battle files; #177 and #179 in the clock and ownership.
 - Need the owner first: #182 the Time Capsule's design; #184 RED on Mt.
   Silver joined or per player. #185 Crystal comes last.
 - Outside M14: the owner's hand-played Red/Blue session (`readiness.md`), #140's
@@ -75,13 +77,11 @@ branch and draft PR per issue; the owner approved merging them in this order.
 
 ## Worktrees and background processes
 
-- Main checkout on `pokerecomp-online-coop` at 6731fdc0.
+- Main checkout on `pokerecomp-online-coop` at dfd0641f.
 - The Superset worktree is detached at the merge of #187 (no branch).
-- Wave 1 worktrees: `~/dev-scratch/pokerecomp-online-coop/worktrees/<issue>`;
-  173, 175 and 178 can go now (their branches are merged and deleted), 174 and
-  176 once #193 and #194 merge.
-- `~/dev-scratch/pokerecomp-online-coop/verify/` holds the wave's verify runs
-  (Gold captures, local only); delete with the worktrees.
+- Wave 1's worktrees and branches are removed. No background processes.
+- `~/dev-scratch/pokerecomp-online-coop/verify/` and `.../wave1/` hold the
+  wave's verify runs (Gold captures, local only); the owner may delete them.
 
 ## Working notes (stable, keep short)
 
