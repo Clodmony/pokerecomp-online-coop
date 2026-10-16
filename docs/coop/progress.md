@@ -35,10 +35,10 @@ one-off wild Pokémon stay out of Johto. `tools/coop_seed.gd`'s Gold seed takes
 | Verification | Result |
 |---|---|
 | Tests before the fix (`test_coop_johto_world` on 55ca6928, the API-only lines left out) | 0/7 passing, 8/23 asserts: SILVER's map scene `[<null>] expected to equal [1]`; unlocked Unown `[0] expected to equal [1]`; GOLD's own Pokémon Center scene `[<null>]` (dropped), a temporary flag shared; the door shut behind GOLD shared and the lobby's clear not held; Red's flag 41 handed SILVER TM item 242, commits `["gift:242", "gift:5"]`; the BICYCLE reached nobody; Johto's rival maps `not_a_scene` and Route 22 a scene |
-| Screens before the fix (`johto_gate` on 6731fdc0, with this branch's seed options) | BEFORE_SCREENS |
-| Tests after | AFTER_TESTS |
+| Screens before the fix (`johto_gate` on 6731fdc0, with this branch's seed options) | GOLD tells LANCE YES and he flies off, but SILVER walking into the mart again finds LANCE and DRAGONITE standing there and no stairs: SILVER's window pulled the flags and an empty `map_scenes`; the check fails |
+| Tests after | `test_coop_johto_world` 9/9 (the mart's scene shared, the opening's four each player's, Azalea's rival contested and Cherrygrove's not); `test_coop_ownership` 11/11 with three Johto routing tests; every co-op suite (`-gselect=test_coop_`) 366/366 |
 | Screens after, `johto_gate` (imported Gold and Silver, a `gold new` seed) | GOLD below LANCE at the Lake of Rage (night, the host's clock): "...are being forced to evolve", YES, LANCE gone; SILVER in Mahogany's mart first: a plain shop, no stairs; SILVER walks out and in again: LANCE in the mart, then SILVER beside the uncovered staircase, the guard shoved aside, LANCE gone; the check finds `3:40` = 1 pulled by SILVER's window and the staircase's flag 738 in the campaign. Every capture looked at |
-| `tools/verify.sh johto_gate gold_opening johto_day_care gold_and_silver` | VERIFY_RESULT |
+| `tools/verify.sh johto_gate gold_opening johto_day_care gold_and_silver` | import, GUT 5250/5250, gates, boot, ENet demo, ENet demo gold, three processes, `johto_gate`, `gold_opening`, `johto_day_care` and `gold_and_silver` ok (run `20261016-015925`) |
 | Not run | A Ruins puzzle, a Johto rival scene, the League and the Fast Ship on a cartridge: the redraw of a League exit or a chamber floor in a window standing there is written, not seen; Silver hosting; Windows; played |
 | Left over | The Burned Tower's beasts wait for #180; a campaign hosted before this keeps the opening's scenes it was given, which each player's own now hide |
 
