@@ -10,7 +10,8 @@ Last updated 2026-10-16 (M14 wave 1 done: five issues merged).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at dfd0641f, the merge of #194.
+- Default branch `pokerecomp-online-coop` at the merge of #194 (dfd0641f)
+  plus handoff commits.
   `main` = upstream main (ed886823, 0.1.78). No open pull requests.
 - Next free decision number: D136.
 - Co-op protocol 9 (#175). Gold and Silver (USA/Europe) are imported in this
@@ -77,11 +78,12 @@ each merge verified with `tools/verify.sh` before its push:
 
 ## Worktrees and background processes
 
-- Main checkout on `pokerecomp-online-coop` at dfd0641f.
+- Main checkout on `pokerecomp-online-coop`, up to date.
 - The Superset worktree is detached at the merge of #187 (no branch).
 - Wave 1's worktrees and branches are removed. No background processes.
-- `~/dev-scratch/pokerecomp-online-coop/verify/` and `.../wave1/` hold the
-  wave's verify runs (Gold captures, local only); the owner may delete them.
+- Wave 1's scratch (verify runs, Gold captures) is deleted. Left in scratch:
+  `gut1.sh` and the D129 leftovers (`session-links/`, `pr-links.tsv`,
+  `issue-links.tsv`, `coop7.txt`), which wait for GitHub Support.
 
 ## Working notes (stable, keep short)
 
@@ -112,8 +114,10 @@ each merge verified with `tools/verify.sh` before its push:
 
 ## Cleanup the owner may approve
 
-- `~/dev-scratch/pokerecomp-online-coop/session-links/` once GitHub Support
-  purged the old refs.
+- `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
+  `issue-links.tsv` and `coop7.txt` once GitHub Support purged the old refs.
+- The Superset worktree `quilted-acoustic` (detached at the merge of #187):
+  remove it in Superset or start the next issue's workspace from it.
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
   `builds/pokerecomp-online-coop-0c6da178` and its two zips.
 - Superset's workspace of the retired repository (`honeysuckle-seahorse`).
