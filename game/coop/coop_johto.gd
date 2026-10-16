@@ -27,6 +27,9 @@ const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the
 		44, 45, 84, 85, 86, 119, 1792, 1793,  ## the TOGEPI egg: its aide, hatching, Elm's call and Everstone
 		69, 70, 79, 80, 81, 97,  ## SHUCKLE (EVENT_GOT_SHUCKIE, _MANIA_TOOK_), EEVEE, SPEAROW's mail (_GOT_KENYA, _GAVE_KENYA), TYROGUE
 		1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
+		722, 776, 787, 788, 789, 790, 1844, 1861, 1862, 1863, 1864,  ## the Bug-Catching Contest's (D140): the warp to the judging, the
+		1814, 1815, 1816, 1817, 1818, 1819, 1820, 1821, 1822, 1823,  ## kept party, the prizes the officer holds, the gates' officers and
+		1824, 1825, 1826, 1827, 1828, 1829, 1830, 1831, 1832, 1833,  ## youngster, and the contestants in the park and at the judging
 		0, 1, 2, 3, 4, 5, 6, 7, 0x309, 0x30B, 0x30D, 0x30F, 0x311, 0x75F,  ## a map load's, the League's shut doors, LANCE's room
 	],
 	"map_scenes": [  ## the opening's (New Bark Town, the house, Elm's lab, Route 29, Mr. Pokémon), the link rooms, the Fast Ship and

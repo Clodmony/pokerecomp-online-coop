@@ -53,6 +53,7 @@ var _holdings_sent: Dictionary = {}
 var _rev_seen: int = -1
 var _box_rev_seen: int = -1
 var _uids: Array = []
+var _kept_uids: Array = []
 var _box_uids: Array = []
 ## Stored Pokémon only move, so the PC is re-read only when its slots change.
 var _box_objects: Array = []
@@ -495,10 +496,12 @@ static func out_of_a_link_room(world: Gen2WorldSnapshot, landing: Dictionary) ->
 
 static func _fill(into: Gen2SaveData, me: Dictionary, stored: Array) -> void:
 	into.party.clear()
-	for row: Dictionary in me.get("party", []):
-		var mon: Gen2SaveMon = Gen2SaveMon.from_dict(row["mon"])
-		if mon != null:
-			into.party.append(mon)
+	into.contest_stashed_party = []
+	for key: String in ["party", "kept"]:
+		for row: Dictionary in me.get(key, []):
+			var mon: Gen2SaveMon = Gen2SaveMon.from_dict(row["mon"])
+			if mon != null:
+				(into.party if key == "party" else into.contest_stashed_party).append(mon)
 	for held: Gen2SaveBox in into.boxes:
 		held.slots.fill(null)
 	for row: Dictionary in stored:
@@ -529,6 +532,7 @@ func _holdings() -> Dictionary:
 			))
 	return {
 		"party": save.party.map(func(mon: Gen2SaveMon) -> Dictionary: return mon.to_dict()),
+		"kept": save.contest_stashed_party.map(func(mon: Gen2SaveMon) -> Dictionary: return mon.to_dict()),
 		"boxes": _box_rows, "current_box": save.current_box,
 	}
 
@@ -539,7 +543,7 @@ func push_party() -> void:
 		return
 	var message: Dictionary = {
 		"type": "party", "rows": _hinted(now["party"], _uids), "rev": _rev_seen,
-		"current_box": now["current_box"],
+		"current_box": now["current_box"], "kept": _hinted(now["kept"], _kept_uids),
 	}
 	if now["boxes"] != _holdings_sent.get("boxes") or now["current_box"] != _holdings_sent.get("current_box"):
 		var stored: Array = []
@@ -563,6 +567,7 @@ static func _hinted(mons: Array, hints: Array) -> Array:
 func _pull_party() -> void:
 	var me: Dictionary = client.me()
 	_uids = (me.get("party", []) as Array).map(func(row: Dictionary) -> String: return String(row["uid"]))
+	_kept_uids = (me.get("kept", []) as Array).map(func(row: Dictionary) -> String: return String(row["uid"]))
 	var box_rev: int = int(client.box.get("rev", -1))
 	if box_rev != _box_rev_seen:
 		_box_rev_seen = box_rev

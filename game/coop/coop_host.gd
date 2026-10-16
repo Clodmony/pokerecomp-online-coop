@@ -3,7 +3,7 @@ extends RefCounted
 
 ## The authoritative side of a co-op session: checks each client's intentions and answers with the state it may see.
 
-const PROTOCOL: int = 9
+const PROTOCOL: int = 10
 ## A walk step, or a ledge hop over the cell between.
 const MAX_STEP_CELLS: int = 2
 const SHUTDOWN_GRACE_MSEC: int = 2000
@@ -696,15 +696,16 @@ func _settle_opening(member: PokeCoopPlayer) -> void:
 func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 	var rows: Variant = message.get("rows", [])
 	var stored: Variant = message.get("boxes", null)
+	var kept: Variant = message.get("kept", null)
 	if not sender.is_free():
 		return &"in_battle"
-	if not rows is Array or (stored != null and not stored is Array):
+	if not rows is Array or (stored != null and not stored is Array) or (kept != null and not kept is Array):
 		return &"invalid_party"
 	if not message.has("rev"):
 		return &"" if sender.replace_team(rows) else &"invalid_party"
 	return sender.replace_holdings(
 		rows, stored, PokeCoopTransport.number(message.get("current_box")),
-		PokeCoopTransport.number(message.get("rev"), -1)
+		PokeCoopTransport.number(message.get("rev"), -1), kept
 	)
 
 

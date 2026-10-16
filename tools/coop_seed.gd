@@ -3,7 +3,7 @@ extends "res://tools/preview_world_story.gd"
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
-## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag.
+## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [mon=<p1|p2>:<SPECIES>:<level>]... [event=[-]<flag>]... [clock=HH:MM[:D]]` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), mon= adding to one's party, event= setting (or with - clearing) a campaign flag, clock= starting the campaign's clock there.
 
 const TRADER: String = "TRADER"
 const JOHTO_NEW: String = "new"
@@ -256,6 +256,14 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 			if not refused.is_empty():
 				push_error("coop seed: %s: %s" % [option, refused])
 				return 1
+		elif option.begins_with("mon="):
+			var member: PokeCoopPlayer = players[1 if parts[0] == "p2" else 0]
+			if parts.size() != 3 or member.add_mon(_johto_mon(data, member, parts[1], int(parts[2]))).is_empty():
+				push_error("coop seed: %s: no such Pokémon, or no room" % option)
+				return 1
+		elif option.begins_with("clock="):
+			var pin: Dictionary = Gen2WorldClock.parse_pin(PackedStringArray([Gen2WorldClock.PIN_ARGUMENT + option.trim_prefix("clock=")]))
+			campaign.clock = PokeCoopJohto.set_to(pin, Gen2WorldClock.host_seconds()) if not pin.is_empty() else campaign.clock
 	var written: Error = _write(data, campaign, players, out_dir)
 	print("coop seed: Johto, %s, %s" % [(players as Array).map(func(member: PokeCoopPlayer) -> String: return "%s on %s %s" % [member.name, member.map, member.cell]), error_string(written)])
 	return 0 if written == OK else 1
@@ -265,14 +273,9 @@ static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStrin
 	var state := Gen2WorldState.new()
 	var egg: bool = parts[-1] == "egg"
 	for slot: int in mini((parts.size() - int(egg)) / 2, 2):
-		var species: int = named(data, "species", parts[slot * 2])
-		var level: int = int(parts[slot * 2 + 1])
-		var mon: Gen2BattleMon = Gen2BattleMon.create(data, species, level, data.moves_at_level(species, level)) if species > 0 else null
-		if mon == null:
+		var saved: Gen2SaveMon = _johto_mon(data, player, parts[slot * 2], int(parts[slot * 2 + 1]))
+		if saved == null:
 			return "no species named %s" % parts[slot * 2]
-		var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(mon)
-		saved.ot_id = player.trainer_id
-		saved.original_trainer = player.name
 		state.set_day_care_mon(slot, saved)
 		state.set_day_care_has_mon(slot, true)
 	var random := RandomNumberGenerator.new()
@@ -291,6 +294,17 @@ static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStrin
 		kept[key] = world[key]
 	player.apply_world_patch(PokeCoopOwnership.patch({}, kept))
 	return ""
+
+
+static func _johto_mon(data: GameData, player: PokeCoopPlayer, species_name: String, level: int) -> Gen2SaveMon:
+	var species: int = named(data, "species", species_name)
+	var mon: Gen2BattleMon = Gen2BattleMon.create(data, species, level, data.moves_at_level(species, level)) if species > 0 else null
+	if mon == null:
+		return null
+	var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(mon)
+	saved.ot_id = player.trainer_id
+	saved.original_trainer = player.name
+	return saved
 
 
 static func _write(data: GameData, campaign: PokeCoopCampaign, players: Array, out_dir: String) -> Error:
