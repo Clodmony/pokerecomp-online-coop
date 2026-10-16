@@ -6,16 +6,15 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-16 (the owner's first split-screen session: #217 and #218 found, PRs #219 and #220 open).
+Last updated 2026-10-16 (the owner's first split-screen session: #217 and #218 found, fixed and merged as #219 and #220).
 
 ## Repository state
 
-- Default branch `pokerecomp-online-coop` at the eight wave 2 merges and one
-  fix commit (b2aae3cf), plus handoff commits. `main` = upstream main
+- Default branch `pokerecomp-online-coop` at the eight wave 2 merges, one
+  fix commit (b2aae3cf), #219 and #220 (c97aa81a), plus handoff commits. `main` = upstream main
   (ed886823, 0.1.78).
-- Co-op protocol 10 (#177, #179, #181). Next free decision number: D142
-  (D141 is #219's, not merged yet). Hand-test cases run to J91 without gaps;
-  #219 adds K22, #220 adds G11.
+- Co-op protocol 10 (#177, #179, #181). Next free decision number: D142.
+  Hand-test cases run to J91, K22 and G11 without gaps.
 - Gold and Silver (USA/Europe) are imported in this machine's own user folder,
   so Gold and Silver scenarios run here; English Blue is not (`red_and_blue`
   can't run here), the German Rote and Blaue are.
@@ -70,17 +69,15 @@ final head passed.
   effects only, `Gen2AudioPlayer.music_scale`, D141); #218 ä, ö and ü drew as
   `?` because the Co-op tab's cartridge listing left Gen1Text on the English
   charmap (PR #220: the session sets its game's charmap in `open_start()` and
-  `open_world()`). Both verified (GUT 5298/5298 and every headless stage);
+  `open_world()`). Both verified (GUT 5298/5298 and every headless stage),
+  merged on the owner's word and verified again on c97aa81a (GUT 5299/5299);
   neither was run in two windows (the PC was in use), so the owner's next
-  session is their screen test.
-- Next session's build: `builds/session-red-fixes-fbf78301` (with zips), from
-  the local branch `session/red-fixes` (worktree
-  `~/dev-scratch/pokerecomp-online-coop/worktrees/session-fixes`, not pushed):
-  the integration tip with #219 and #220 merged; verify with `--builds` passed
-  (GUT 5299/5299, Linux and Windows boot). Fallback:
+  session is their screen test (K22, G11).
+- Next session's build: `builds/session-red-fixes-fbf78301` (with zips), built
+  before the merge from a local branch since deleted; its code is c97aa81a's
+  (only `HANDOFF.md` differs). Verify with `--builds` passed (GUT 5299/5299,
+  Linux and Windows boot). Fallback:
   `builds/session-red-wave2-b2aae3cf`. The private Superset page points at both.
-- Merging #219 and #220: both add a section at the top of `progress.md`; keep
-  both (done that way on `session/red-fixes`).
 - The owner's campaigns, settings and save slots are backed up in
   `~/dev-scratch/pokerecomp-online-coop/session-backup-20261016/`.
 - Virtual game controllers from other software can be connected to this
@@ -90,8 +87,9 @@ final head passed.
 
 ## Next candidates
 
-- #219 and #220 wait for the owner's merge; then the owner's next session on
-  `session-red-fixes-fbf78301` checks K22 and G11 by hand.
+- The owner's next session on `session-red-fixes-fbf78301`: K22 (one tune in
+  split screen) and G11 (umlauts) by hand; a joined battle still plays its
+  effects in both halves (D141), a follow-up if it bothers.
 - #183's remaining stretches (WHITNEY to Johto's Elite Four, from seeds).
 - #206 the Gold demo's leader step (log the outcome, then fix the rolls).
 - Filed during the wave, owner-approved: #208 no friend battles or trades
@@ -118,9 +116,6 @@ final head passed.
 - Main checkout on `pokerecomp-online-coop`, behind the pushed merges (pull
   when convenient; its `builds/` holds the session builds).
 - The Superset worktree `quilted-acoustic` (local branch `session/red-fallback` at 59016792, the fallback build's commit) and `~/dev-scratch/pokerecomp-online-coop/worktrees/wave2-merge` (branch `wave2/merge`, pushed): remove both after the session.
-- `~/dev-scratch/pokerecomp-online-coop/worktrees/217` and `218` (the PR
-  branches, pushed) and `session-fixes` (local `session/red-fixes`): remove
-  once #219 and #220 are merged.
 - No background processes.
 
 ## Working notes (stable, keep short)
@@ -166,8 +161,7 @@ final head passed.
   `session/red-fallback`; the worktree `wave2-merge` and branch `wave2/merge`;
   `~/dev-scratch/pokerecomp-online-coop/session/` (the page's source) and
   `session-backup-20261016/`; the three session builds and their zips in
-  `builds/`; the worktrees `217`, `218`, `session-fixes` and branch
-  `session/red-fixes` once #219 and #220 are merged.
+  `builds/`.
 - `~/dev-scratch/pokerecomp-online-coop/push-guard-merge-fix.md` once the
   owner applied or declined it.
 - `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
