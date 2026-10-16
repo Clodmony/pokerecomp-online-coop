@@ -644,6 +644,7 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
 	var money_before: int = sender.money
+	PokeCoopJohto.keep_story(halves[PokeCoopOwnership.CAMPAIGN], campaign)
 	if PokeCoopPolicy.take_league_clear(halves[PokeCoopOwnership.CAMPAIGN], campaign.game_id):
 		_league_cleared = true
 		journal.add(PokeCoopLog.HOST, "league_clear", {"held": PokeCoopPolicy.league_held(campaign, players.values())}, sender.player_id)

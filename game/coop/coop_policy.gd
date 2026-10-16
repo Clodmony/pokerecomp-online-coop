@@ -370,16 +370,17 @@ static func share_gifts(
 	return gifts
 
 
-## Items gained with a story change reach everyone; a key item it took is taken from all (D52).
+## Items gained with a story change reach everyone, but a one-off's own prize (D138); a key item it took is taken from all (D52).
 static func share_found_items(
 	data: GameData, receiver: PokeCoopPlayer, others: Array, held_before: Dictionary, handled: Array[int],
 ) -> void:
 	var touched: Dictionary = held_before.duplicate()
 	touched.merge(receiver.items)
 	var johto: bool = PokeCoopJohto.plays(data)
+	var kept: Array = PokeCoopJohto.SHARED_ITEMS + PokeCoopJohto.OWN_PRIZES if johto else SHARED_ITEMS
 	for item: int in touched:
 		var change: int = receiver.item_count(item) - int(held_before.get(item, 0))
-		if change == 0 or handled.has(item) or (PokeCoopJohto.SHARED_ITEMS if johto else SHARED_ITEMS).has(item):
+		if change == 0 or handled.has(item) or kept.has(item):
 			continue
 		var key: bool = (int(data.item(item).get("permissions", 0)) & Gen2WorldPack.CANT_TOSS) != 0
 		for other: PokeCoopPlayer in others:

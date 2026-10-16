@@ -38,7 +38,7 @@ const WORLD_STATE: Dictionary = {
 	"bug_contest_started": PLAYER, "contest_mon": PLAYER,
 	"contest_second_party_species": PLAYER, "swarm_map": CAMPAIGN,
 	"yanma_swarm_map": CAMPAIGN, "fishing_swarm_species": CAMPAIGN,
-	"roaming_mons": CAMPAIGN, "roam_cur_map": CAMPAIGN, "roam_last_map": CAMPAIGN,
+	"roaming_mons": PLAYER, "roam_cur_map": PLAYER, "roam_last_map": PLAYER,
 	"seen_species": PLAYER, "caught_species": PLAYER, "unown_dex": PLAYER,
 	"first_unown_seen": PLAYER, "phone_receive_cycle": PLAYER,
 	"phone_receive_minutes": PLAYER, "pending_special_phone_call": PLAYER,

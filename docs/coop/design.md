@@ -174,9 +174,12 @@ opening hands everyone (#172, #173). The rules above carry over, with these choi
   player's window; the gift Pokémon (the TOGEPI egg, SHUCKLE, EEVEE, SPEAROW,
   TYROGUE); Pokégear, phone contacts, calls and rematches; a day care
   that breeds only their Pokémon (its two places, steps, egg and Route 34's pen,
-  D135); the roaming RAIKOU, ENTEI and SUICUNE; and
-  the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
-  SUDOWOODO, SNORLAX), which are not unique encounters here.
+  D135); the roaming RAIKOU, ENTEI and SUICUNE, which each player releases at
+  the Burned Tower and meets in their own world; and the story legendaries and
+  one-off Pokémon (LUGIA, HO-OH, the red GYARADOS and its RED SCALE, SUDOWOODO,
+  SNORLAX, LAPRAS), which are not unique encounters here: one player's fight
+  leaves the partner's standing, SUDOWOODO and SNORLAX blocking their path
+  (D138). The Rocket base's ELECTRODEs stay the team's, the end of its story.
 - Shared: the Ruins of Alph's puzzles and the Unown letters they unlock (the
   Unown caught stay each player's); story gates and map scenes such as LANCE's
   staircase in Mahogany's mart, the Rockets' hold on Mahogany and the Radio

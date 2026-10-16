@@ -2278,3 +2278,42 @@ a Game Boy Color differs.
 Costs: a Colosseum battle is fought on the co-op battle field and panel, not
 on the cartridge's own link battle screen; the Mystery Gift is chosen from the
 co-op menu, not the title menu.
+
+## D138. Johto's beasts and one-off Pokémon are each player's (#180, owner, 2026-10-16)
+
+D128 gives each Gold and Silver player their own roaming RAIKOU, ENTEI and
+SUICUNE and their own story legendaries and one-off Pokémon, in place of D10's
+once per campaign (Red and Blue keep D10 and D36). Johto's one-offs were no
+unique encounters since D132, but the flags that hide them and the roam structs
+were the campaign's: SUDOWOODO one player beat was gone from the other's
+Route 36 and its sprite turned to the TWIN there, and the beasts one player
+released roamed both worlds, so one catch took RAIKOU from both. Johto's answers are
+`PokeCoopJohto`'s:
+
+- **Roamers.** `roaming_mons` and the two maps the roam walk remembers are the
+  player's. The Burned Tower's release (`EVENT_RELEASED_THE_BEASTS`, the two
+  hide flags of its standing and fleeing beasts, B1F's scene) is each player's
+  own, so each player watches their own three flee and `InitRoamMons` fills
+  that player's roam structs. The release opens nothing but a line from a girl
+  in Ecruteak, so no story gate (D91) is split.
+- **Story legendaries.** The fought and hide flags of SUDOWOODO, HO-OH, LUGIA,
+  Vermilion's SNORLAX, the red GYARADOS and Union Cave's LAPRAS (whose Friday
+  flag was already the player's engine flag) are each player's own entries in
+  `OWN_GIFTS`; SUDOWOODO and SNORLAX block a path each player clears for
+  themselves. The WEIRD TREE stays drawn as SUDOWOODO for the team: the host
+  never takes the TWIN a player's fight swaps in (`HELD_SPRITES`), which only
+  stands in for a tree that player has already cleared.
+- **What a one-off's script does beside it happens once.** Each red GYARADOS
+  hands its own player a RED SCALE, which no story share copies to the partner
+  (`OWN_PRIZES`); once the team has helped LANCE, the `appear LANCE` of a later
+  player's GYARADOS is dropped on the host (`STORY_HELD`), so LANCE does not
+  come back to the lake and replay Mahogany's mart scene.
+- **The Rocket base's three ELECTRODEs stay the team's**: beating them ends the
+  base's story, which D91 shares and D132 contests; per player would replay
+  LANCE's ending and HM06 for the second player (the owner's choice,
+  2026-10-16).
+
+Costs: a Gold
+campaign hosted before this keeps the one-offs and the release it shared in
+the campaign, so they stay gone for every player, and drops its roamers on
+load, since the campaign held them.
