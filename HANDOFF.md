@@ -6,7 +6,7 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-16 (#196 done, draft PR #197).
+Last updated 2026-10-16 (#196 done, PR #197 merged).
 
 ## Repository state
 
@@ -19,16 +19,17 @@ Last updated 2026-10-16 (#196 done, draft PR #197).
 - History rewritten once (D129): the old co-op history is backed up in
   `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
 
-## Open pull requests (the owner says when to merge)
+## #196 (merged, 2026-10-16)
 
-- **#197** (draft) `coop/196-day-care-uid`: Closes #196. A Pokémon keeps its
-  uid through the day care: `PokeCoopPlayer.day_care` keeps `{uid, mon}` of
-  each Pokémon away in the player's day care (saved with the campaign), and a
-  withdrawn row matching it takes the uid back. The rule is the host's, so Red
-  and Blue's Route 5 day care keeps a uid too (D135 updated, no new decision;
-  J55). Verify all passed: GUT 5264/5264, both ENet demos, three processes,
-  `johto_day_care`, `gold_and_silver`. Not run: a deposit and a withdrawal
-  through the Day-Care's own menus in a window.
+- PR #197 `coop/196-day-care-uid`, merged on the owner's word: a Pokémon keeps
+  its uid through the day care. `PokeCoopPlayer.day_care` keeps `{uid, mon}`
+  of each Pokémon away in the player's day care (saved with the campaign), and
+  a withdrawn row matching it takes the uid back. The rule is the host's, so
+  Red and Blue's Route 5 day care keeps a uid too (the owner kept it for both;
+  D135 updated, no new decision; J55). Verify all passed: GUT 5264/5264, both
+  ENet demos, three processes, `johto_day_care`, `gold_and_silver`. Not run: a
+  deposit and a withdrawal through the Day-Care's own menus in a window.
+  No open pull requests.
 
 ## M14 wave 1 (#189, closed)
 
@@ -92,8 +93,9 @@ each merge verified with `tools/verify.sh` before its push:
 ## Worktrees and background processes
 
 - Main checkout on `pokerecomp-online-coop`, up to date.
-- The Superset worktree `quilted-acoustic` holds `coop/196-day-care-uid`,
-  pushed (PR #197); remove it once #197 is merged. No background processes.
+- The Superset worktree `quilted-acoustic` is detached at the merge of #197
+  (its branch deleted); start the next issue from it or remove it in
+  Superset. No background processes.
 - #196's scratch and verify run are deleted. Left in scratch: `gut1.sh` and
   the D129 leftovers (`session-links/`, `pr-links.tsv`, `issue-links.tsv`,
   `coop7.txt`), which wait for GitHub Support.
@@ -126,6 +128,8 @@ each merge verified with `tools/verify.sh` before its push:
 - `git checkout -- '*.import'` after an editor import.
 
 ## Cleanup the owner may approve
+
+- The Superset worktree `quilted-acoustic` (detached at the merge of #197).
 
 - `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
   `issue-links.tsv` and `coop7.txt` once GitHub Support purged the old refs.

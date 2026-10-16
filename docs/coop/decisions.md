@@ -2192,6 +2192,6 @@ until the next party update, because the world patch that puts it in the day
 care may come after the party update; one no day care holds by then (released)
 is dropped. An egg's hatchling gets a new uid like any new Pokémon. The rule is
 the host's, not Johto's, so Red and Blue's Route 5 day care keeps a uid the same
-way. Costs: a Pokémon is matched by its fingerprint (trainer, DVs, catch data),
+way (the owner kept it for both, 2026-10-16). Costs: a Pokémon is matched by its fingerprint (trainer, DVs, catch data),
 as everywhere else, so a party Pokémon with the same fingerprint as one in the
 day care takes that one's uid.
