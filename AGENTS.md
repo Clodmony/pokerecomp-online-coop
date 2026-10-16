@@ -218,7 +218,7 @@ before pushing.
 | `tools/coop_session.gd` | `demo [gold]`, `check host\|p1\|p2`, `host [port] [game] [snapshots=<dir>]` and `client` runners |
 | `tools/coop_two_process.sh` | the three-process ENet check CI runs |
 | `tools/verify.sh` | one unattended check of a branch: CI's stages, then two-window scenarios and the private builds, with a short summary |
-| `tools/coop_play.gd` | one player's window on the real world screen |
+| `tools/coop_play.gd` | one player's window on the real world screen; a scripted one (`keys=`, `capture=`) takes no keyboard focus and follows no pad |
 | `tools/coop_screens.sh`, `tools/coop_screens/*.sh`, `tools/coop_resume.sh` | the two-window runner, its scenarios, and a rerun from a run's snapshot |
 | `tools/coop_relay.gd` | a UDP relay between one scenario window and the host that cuts the link on cue (`RELAY=p2`, `cut`) |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48); on Gold or Silver, its opening (#173) |
