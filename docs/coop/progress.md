@@ -21,7 +21,7 @@ are each player's own entries, and the host keeps the WEIRD TREE drawn as
 SUDOWOODO for the team. Each red GYARADOS
 hands its own player a RED SCALE, and once the team has helped LANCE a later
 GYARADOS no longer calls him back to the lake. The Rocket base's ELECTRODEs stay
-the team's (asked of the owner). `coop_seed.gd -- gold new` takes `level=` and
+the team's (the owner's choice). `coop_seed.gd -- gold new` takes `level=` and
 `item=`. Branch `coop/180-johto-legendaries`.
 
 | Verification | Result |

@@ -2196,7 +2196,7 @@ way (the owner kept it for both, 2026-10-16). Costs: a Pokémon is matched by it
 as everywhere else, so a party Pokémon with the same fingerprint as one in the
 day care takes that one's uid.
 
-## D138. Johto's beasts and one-off Pokémon are each player's (#180, 2026-10-16)
+## D138. Johto's beasts and one-off Pokémon are each player's (#180, owner, 2026-10-16)
 
 D128 gives each Gold and Silver player their own roaming RAIKOU, ENTEI and
 SUICUNE and their own story legendaries and one-off Pokémon, in place of D10's
@@ -2226,8 +2226,9 @@ released roamed both worlds, so one catch took RAIKOU from both. Johto's answers
   player's GYARADOS is dropped on the host (`STORY_HELD`), so LANCE does not
   come back to the lake and replay Mahogany's mart scene.
 - **The Rocket base's three ELECTRODEs stay the team's**: beating them ends the
-  base's story, which D91 shares and D132 contests. Asked of the owner in the
-  pull request.
+  base's story, which D91 shares and D132 contests; per player would replay
+  LANCE's ending and HM06 for the second player (the owner's choice,
+  2026-10-16).
 
 Costs: a Gold
 campaign hosted before this keeps the one-offs and the release it shared in
