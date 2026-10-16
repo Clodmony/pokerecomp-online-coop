@@ -39,6 +39,8 @@ var volume_scale: float = 1.0:
 		volume_scale = maxf(value, 0.0)
 		_apply_settings()
 
+static var music_scale: float = 1.0
+
 var _player: AudioStreamPlayer = null
 var _generator: AudioStreamGenerator = null
 var _playback: AudioStreamGeneratorPlayback = null
@@ -176,7 +178,7 @@ func _apply_settings() -> void:
 	_gen1.mono_stereo_offset = options.earphone * Gen1SoundEngine.NUM_CHANNELS
 	var music: float = float(options.music_volume) / float(Gen2Options.MAX_VOLUME)
 	var sfx: float = float(options.sfx_volume) / float(Gen2Options.MAX_VOLUME)
-	music *= volume_scale
+	music *= volume_scale * music_scale
 	sfx *= volume_scale
 	if not is_equal_approx(music, _engine.music_gain):
 		_engine.music_gain = music

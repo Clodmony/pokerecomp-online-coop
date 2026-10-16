@@ -2389,3 +2389,17 @@ Each window keeps its own judging draw, as each world rolls its own random
 numbers. A Gold campaign saved before this keeps any contest flag already in
 the campaign as the campaign's (the contestants start set there), so its players
 are judged alone; a campaign started with this build keeps them per player.
+
+## D141. A split screen plays the left half's music (#217, 2026-10-16)
+
+The owner's split-screen session heard the music twice: each half is a game
+process of its own with its own audio player, so on one map the tune played
+twice slightly out of step, and on two maps two tunes played at once. The
+left (top) half, the hosting window, now plays the music; the right (bottom)
+half plays its sound effects only, so each player still hears their own menus,
+steps and battles. `Gen2AudioPlayer.music_scale` is one factor for every player
+in the process, applied with the music volume (music and effects share the
+driver's four channels and one stream, so no audio bus can split them);
+`SplitScreen.take()` sets it to 0 for the right half and `end()` back to 1.
+Known: a battle both halves show (one joined from the other half) plays its
+effects in both.

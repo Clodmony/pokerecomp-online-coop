@@ -69,6 +69,7 @@ Wide screens and phones held upright, in the light and the dark theme: `coop_tab
 | K19 | In split screen, either layout, SELECT > QUIT BOTH (YES) on either half; also close the host's window | Both windows say goodbye, the campaign is saved, and both quit; closing the host's window does the same | `test_quit_both_closes_a_split_screens_right_half_with_the_code_its_host_reads`, `test_a_split_screens_host_quits_when_its_right_half_quit_both` | split_quit | |
 | K20 | In split screen, kill the host's process | The right half gives up at once ("host unreachable") and quits instead of redialling for two minutes | `test_a_split_screens_right_half_whose_host_is_gone_gives_up_at_once` | split_host_killed | |
 | K21 | With a cartridge "Re-import on Play" on the Co-op tab, import it again on the Play tab, then open the Co-op tab | The tile says Ready and HOST and JOIN play with it, without a restart | `test_a_cartridge_imported_while_the_tab_is_away_is_ready_when_the_tab_is_shown_again` | | |
+| K22 | In split screen, either layout: both halves on the same map, then on different maps; a menu and a wild battle in the right half | One tune, the left (top) half's, never two; the right (bottom) half plays its menus', steps' and battle's sound effects and no music; the host's window back on the whole screen plays on with its music | `test_a_split_screens_right_half_plays_its_effects_and_leaves_the_music_to_the_left` | | |
 
 ## Gold and Silver
 

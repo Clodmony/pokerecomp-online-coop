@@ -229,6 +229,22 @@ func test_a_split_screen_stacks_its_halves_top_and_bottom_when_asked() -> void:
 	assert_false(split.remembered_stacked())
 
 
+## #217: the shared speakers carry one tune, the left half's; the right half keeps its effects.
+func test_a_split_screens_right_half_plays_its_effects_and_leaves_the_music_to_the_left() -> void:
+	var player: Gen2AudioPlayer = add_child_autofree(Gen2AudioPlayer.new())
+	player.set_process(false)
+	PokeCoopLobby.SplitScreen.take(1, {}, 0)
+	player._apply_settings()
+	var right: Dictionary = player.audio_status()
+	PokeCoopLobby.SplitScreen.end()
+	player._apply_settings()
+	var whole: Dictionary = player.audio_status()
+
+	assert_almost_eq(float(right["music_gain"]), 0.0, 0.001, "no music in the right half")
+	assert_almost_eq(float(right["sfx_gain"]), float(whole["sfx_gain"]), 0.001, "its effects at the player's level")
+	assert_gt(float(whole["music_gain"]), 0.0, "a window back on the whole screen plays its music")
+
+
 func test_a_split_screen_gives_each_half_its_own_controller_over_the_one_settings_picked() -> void:
 	var first: Dictionary = {"guid": "030000005e0400008e02000010010000", "name": "Xbox 360 Controller", "serial": "", "nth": 0}
 	var second: Dictionary = first.merged({"nth": 1}, true)
