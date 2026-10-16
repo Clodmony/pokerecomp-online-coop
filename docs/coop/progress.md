@@ -11,6 +11,25 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
+
+The owner chose that a Pokémon left in a day care keeps its uid (#196). The
+host's team and PC still drop it while it is away, but `PokeCoopPlayer` now
+keeps its `{uid, mon}` in the player's `day_care`, saved with the campaign, and
+a withdrawn party row matching it by fingerprint takes that uid back. A
+Pokémon that just left the team or PC is kept until the next party update,
+because the world patch that puts it in the day care may come second; one no
+day care holds by then (a release) is dropped. An egg's hatchling gets a new
+uid. The rule is the host's, so Red and Blue's Route 5 day care gives the uid
+back too. Branch `coop/196-day-care-uid`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_day_care`) | 8/12 passing. `test_a_pokemon_keeps_its_uid_through_the_day_care` failed in both orders (the world patch first, the party first): the withdrawn CUBONE came back as `p1:3`, `[2, "p1:3", 104] != [2, "p1:2", 104]`; `..._across_a_save_and_a_new_host` the same after a reopen (`["p1:3"]` expected `["p1:2"]`); `test_a_hatched_egg_gets_a_uid_of_its_own` kept no parent's uid; `test_red_and_blues_day_care_gives_the_uid_back_too` failed as Gold did |
+| Tests after | `test_coop_johto_day_care` 12/12 |
+| `tools/verify.sh johto_day_care gold_and_silver` | import, GUT 5264/5264, gates, boot, ENet demo, ENet demo gold, three processes, `johto_day_care` and `gold_and_silver` ok (run `20261016-081327`); every capture looked at, unchanged from #178's run; the scenario host's autosave carries an empty `day_care` for each player, since the seed filled the day cares outside the host |
+| Not run | A deposit and a withdrawal through the Day-Care's own menus in a window (the uid is not on screen; the sessions' tests drive `Gen2WorldDayCare` on the windows' worlds); German Gold and Silver; Windows; played |
+
 ## Gold and Silver battles on their own screen (#176, D134, 2026-10-16)
 
 A shared battle on a Gold or Silver cartridge now plays as the Generation 2
@@ -103,7 +122,7 @@ filling one player's day care, with its egg a step from hatching. The new
 | Screens after, `johto_day_care` (imported Gold and Silver) | GOLD's window: GOLD's man by the pen with DITTO and CYNDAQUIL; "Ah, it's you! ... Your POKéMON had an EGG! ... You want it?" YES; "GOLD received the EGG!"; the man goes back indoors; one step south gives "Huh?", the egg cracks, CYNDAQUIL comes out, NO nickname; the party shows CHIKORITA and CYNDAQUIL L5. SILVER's window: no man outside, SENTRET alone in the pen; through the back door SILVER's man is indoors: "Huh? Back already? Your SENTRET needs a little more time with us. If you want your POKéMON back, it will cost ¥100." NO, "Come again." The host's autosave: GOLD's day care DITTO and CYNDAQUIL with the egg handed over, SILVER's SENTRET with SILVER's man, no pen flag in the campaign. Every capture looked at |
 | `tools/verify.sh johto_day_care gold_and_silver` | import, GUT 5222/5222, gates, boot, ENet demo, ENet demo gold, three processes, `johto_day_care` and `gold_and_silver` ok (run `20261016-010119`) |
 | Not run | A deposit and a withdrawal through the Day-Care's own menus in a window (the scenario seeds the day care); an egg laid by step counting in a window (the seed lays it); German Gold and Silver; Windows; played |
-| Left over | A Pokémon in a day care is in its player's world only: the host's team and PC drop it while it is away, and it comes back under a new uid (D135) |
+| Left over | A Pokémon in a day care is in its player's world only: the host's team and PC drop it while it is away, and it comes back under a new uid (D135); fixed by #196 |
 
 ## Gold and Silver's opening, starters, gifts and wild tables (#173, D131, 2026-10-16)
 
