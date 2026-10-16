@@ -10,6 +10,9 @@ const SEED_DIR: String = "user://coop_seed_test"
 const STORY_FLAG: int = 0x77
 const PALLET: Vector2i = Vector2i(0, 0)
 const ROUTE_1: Vector2i = Vector2i(0, 12)
+const VIOLET_GYM: Vector2i = Vector2i(10, 7)
+const EVENT_GOT_CYNDAQUIL_FROM_ELM: int = 27
+const JOHTO_STORY_FLAG: int = 0x200
 
 var _directory: String = ""
 var _data: GameData = null
@@ -260,6 +263,31 @@ func test_a_story_seed_is_a_campaign_where_p1_and_p2_each_hold_their_own_copy_of
 	assert_ne(players[0].trainer_id, players[1].trainer_id)
 	var known: Variant = JSON.parse_string(FileAccess.get_file_as_string(SEED_DIR.path_join("coop_identity.json")))
 	assert_eq(known.get("testgame/127.0.0.1:%d" % PokeCoopEnetTransport.DEFAULT_PORT), {"testgame": "p2"})
+
+
+func test_a_johto_story_seed_keeps_the_walked_world_past_the_opening_and_each_players_own_flags() -> void:
+	var directory: String = RomCache.directory_for(&"coopjohtoseed", "0123456789abcdef")
+	var gold: GameData = Fixture.build(directory, String(RomRegistry.GOLD), RomRegistry.GEN2)
+	var save := Gen2SaveData.new()
+	save.player_id = 0xFFFF
+	save.party.append(Gen2SaveBattleAdapter.from_battle_mon(Gen2BattleMon.create(gold, Fixture.CHARMANDER, 16, [Fixture.TACKLE])))
+	save.world = Gen2WorldSnapshot.new()
+	save.world.map_id = VIOLET_GYM
+	save.world.player_cell = Vector2i(5, 2)
+	save.world.world_state = Gen2WorldState.new({JOHTO_STORY_FLAG: true, EVENT_GOT_CYNDAQUIL_FROM_ELM: true}, {}, {}, {0: 3000})
+	save.world.world_state.set_engine_flag(PokeCoopOwnership.badge_flags(gold)[0])
+
+	assert_eq(Seed.write_seed(gold, save, SEED_DIR, Vector2i(4, 2)), OK)
+	var loaded: Dictionary = PokeCoopSave.read(SEED_DIR.path_join(PokeCoopSession.campaign_path(gold).trim_prefix("user://")))
+	var campaign: PokeCoopCampaign = loaded["campaign"]
+	PokeCoopJohto.start_campaign(campaign, gold)
+	RomCache.clear(directory)
+	assert_eq([campaign.has_flag(JOHTO_STORY_FLAG), campaign.has_badge(0), campaign.has_flag(EVENT_GOT_CYNDAQUIL_FROM_ELM)], [true, true, false])
+	assert_eq(PokeCoopJohto.OPENING_FLAGS.filter(campaign.has_flag), [],
+		"the opening's world comes from the walked story, which has cleared some of its flags since, not laid over it by a host")
+	for held: PokeCoopPlayer in loaded["players"]:
+		assert_eq([held.map, held.opening, (held.world.get("event_flags", {}) as Dictionary).has(EVENT_GOT_CYNDAQUIL_FROM_ELM)],
+			[VIOLET_GYM, {}, true], "both past the opening, each with their own starter's flag")
 
 
 func test_a_seed_with_a_full_party_gives_each_player_six_of_their_own_told_apart_the_same_each_time() -> void:

@@ -842,6 +842,42 @@ func _home_path(data: GameData) -> Array:
 func _story_path(data: GameData) -> Dictionary:
 	if data.generation == RomRegistry.GEN1:
 		return _gen1_story_path(data)
+	var story: Dictionary = _story_start(data)
+	if not story.has("world"):
+		return story
+	var world: Gen2WorldAPI = story["world"]
+	var save: Gen2SaveData = story["save"]
+	var random: RandomNumberGenerator = story["random"]
+	var path: Array = []
+
+	for leg: Callable in _story_legs():
+		var walked: Dictionary = leg.call(world, save, random, data, path)
+		if not bool(walked.get("ok", false)):
+			return walked
+		# PostCreditsSpawn is a map load, not a step, so the leg after the Hall
+		# of Fame answers with a world of its own; every leg after it reads that.
+		var crossed: Variant = walked.get("world", null)
+		if crossed is Gen2WorldAPI:
+			world = crossed
+
+	var party_summary: Array = []
+	for mon: Gen2SaveMon in save.party:
+		party_summary.append({
+			"species": mon.species,
+			"level": mon.level,
+			"item": mon.item,
+		})
+	return {
+		"ok": true,
+		"path": path,
+		"party": party_summary,
+		"event_flags": world.state.event_flags(),
+		"map_scenes": world.state.to_dict().get("map_scenes", {}),
+		"badge_count": world.state.badge_count(Gen2WorldState.is_crystal_profile(data)),
+	}
+
+
+func _story_start(data: GameData) -> Dictionary:
 	# The walked route is a new game, so it starts on the new game's own world
 	# state rather than a bare one: Gen2WorldSpawn is what the launcher hands the
 	# screen, and its SPAWN_HOME record carries the source start money. Without
@@ -870,39 +906,16 @@ func _story_path(data: GameData) -> Dictionary:
 	var schedule_random := RandomNumberGenerator.new()
 	schedule_random.seed = 11
 	world.schedule_random = schedule_random
-	var path: Array = []
+	return {"ok": true, "world": world, "save": save, "random": random}
 
-	var legs: Array[Callable] = [
+
+func _story_legs() -> Array[Callable]:
+	return [
 		_players_house_leg, _new_bark_starter_leg, _mystery_egg_leg, _elm_return_leg,
 		_zephyr_badge_path, _hive_badge_path, _plain_badge_path, _fog_badge_path,
 		_mineral_badge_path, _glacier_badge_path, _radio_tower_path, _blackthorn_path,
 		_rising_badge_path, _kanto_approach_path, _kanto_crossing_path,
 	]
-	for leg: Callable in legs:
-		var walked: Dictionary = leg.call(world, save, random, data, path)
-		if not bool(walked.get("ok", false)):
-			return walked
-		# PostCreditsSpawn is a map load, not a step, so the leg after the Hall
-		# of Fame answers with a world of its own; every leg after it reads that.
-		var crossed: Variant = walked.get("world", null)
-		if crossed is Gen2WorldAPI:
-			world = crossed
-
-	var party_summary: Array = []
-	for mon: Gen2SaveMon in save.party:
-		party_summary.append({
-			"species": mon.species,
-			"level": mon.level,
-			"item": mon.item,
-		})
-	return {
-		"ok": true,
-		"path": path,
-		"party": party_summary,
-		"event_flags": world.state.event_flags(),
-		"map_scenes": world.state.to_dict().get("map_scenes", {}),
-		"badge_count": world.state.badge_count(Gen2WorldState.is_crystal_profile(data)),
-	}
 
 
 ## The bedroom's callbacks, the stairs and Mom.
