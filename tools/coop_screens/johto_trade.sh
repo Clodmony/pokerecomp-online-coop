@@ -44,6 +44,6 @@ check() {
 import json, sys
 players = {player["player_id"]: player for player in json.load(open(sys.argv[1]))["players"]}
 def team(member): return [(row["uid"], row["mon"]["species"], row["mon"].get("item", 0)) for row in players[member]["team"]]
-assert team("p1") == [("p2:2", 161, 173)] and team("p2") == [("p1:2", 208, 0)], (team("p1"), team("p2"))
+assert team("p1") == [("p2:1", 161, 173)] and team("p2") == [("p1:1", 208, 0)], (team("p1"), team("p2"))
 PY
 }
