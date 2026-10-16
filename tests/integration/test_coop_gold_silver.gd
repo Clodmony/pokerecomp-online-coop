@@ -4,6 +4,7 @@ extends GutTest
 ## joins it, both stand in New Bark Town, fight, save and come back to it.
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
+const Session := preload("res://tools/coop_session.gd")
 const SAVE_PATH: String = "user://coop_gold_silver_test.json"
 const NEW_BARK: Vector2i = Vector2i(24, 4)
 const CHIKORITA: int = 152
@@ -30,6 +31,8 @@ const MYSTERY_EGG: int = 69
 const BICYCLE: int = 7
 const TM_MUD_SLAP: int = 223
 const MAX_REPEL: int = 43
+const POTION: int = 18
+const TM_DYNAMICPUNCH: int = 191
 
 var _directory: String = ""
 var _data: GameData = null
@@ -351,3 +354,23 @@ func test_a_wild_from_both_versions_takes_the_other_versions_slot_at_the_windows
 	assert_eq(PokeCoopPolicy.other_wild(water, gold_tables, own), {}, "the lower half of the roll is the cartridge's own")
 	RomCache.clear(silver.directory)
 	RomCache.clear(gold.directory)
+
+
+func test_a_gold_tool_host_hands_out_johtos_items_and_fights_johtos_wild_pokemon() -> void:
+	_write_wild(_data, Fixture.CHARMANDER, Fixture.GEODUDE, Fixture.PIKACHU)
+	var host: PokeCoopHost = PokeCoopHost.create(_data, PokeCoopCampaign.create("tool", _data.id, _data.sha1), PokeCoopTransport.new())
+	Session._cartridge_players(host, _data)
+	Session._cartridge_encounters(host, _data)
+
+	for player: PokeCoopPlayer in host.players.values():
+		assert_eq(player.items, {POKE_BALL: 5, POTION: 2, BICYCLE: 1, TM_DYNAMICPUNCH: 1}, "%s holds Gold's item numbers" % player.name)
+	var wild: Dictionary = {}
+	for encounter_id: String in host.encounters:
+		var descriptor: Dictionary = host.encounters[encounter_id]
+		if encounter_id.begins_with("wild:"):
+			wild[int(descriptor["species"])] = int(descriptor["level"])
+	assert_eq(wild, {Fixture.HOOTHOOT: 3, Fixture.CHARMANDER: 4, Fixture.GEODUDE: 5},
+		"Route 29's grass by morning, day and night, each at its lowest level, and nothing else wild")
+	assert_eq(host.encounters.keys().filter(func(id: String) -> bool: return id.begins_with("trainer:")), ["trainer:falkner"])
+	assert_eq(String(host.encounters["wild:%d" % Fixture.HOOTHOOT]["label"]),
+		"wild %s L3" % String(_data.species(Fixture.HOOTHOOT).get("name", "")), "the FIGHT list names it")

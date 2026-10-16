@@ -28,6 +28,7 @@ const POTION: int = 20
 const JOHTO_ITEMS: Dictionary = {5: 5, 18: 2, 7: 1, 191: 1}  ## Gold's numbers (#176): one item for each pocket
 const JOHTO_BERRY: int = 173
 const FALKNER_CLASS: int = 1
+const ROUTE_29: int = 24 * 256 + 3  ## beside New Bark Town: a Gold host offers its grass, by morning, day and night
 const SNAPSHOT_MSEC: int = 10000
 const SNAPSHOTS_ALL_SECONDS: int = 1800
 const SNAPSHOTS_OLD_EVERY: int = 300
@@ -153,8 +154,12 @@ func _new_host(port: int) -> bool:
 
 
 func _saved(species: int, level: int, moves: Array, ot: int) -> Gen2SaveMon:
+	return _mon(_data, species, level, moves, ot)
+
+
+static func _mon(data: GameData, species: int, level: int, moves: Array, ot: int) -> Gen2SaveMon:
 	var out: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(
-		Gen2BattleMon.create(_data, species, level, moves)
+		Gen2BattleMon.create(data, species, level, moves)
 	)
 	out.ot_id = ot
 	return out
@@ -202,49 +207,55 @@ func _start_host(port: int, game: String, bare: bool = false) -> void:
 		_host.seeds.seed = int(_rolls)
 	if loaded.is_empty():
 		if not bare:
-			_cartridge_players()
+			_cartridge_players(_host, _data)
 		PokeCoopPolicy.start_campaign(campaign, _data)
 	else:
 		_host.adopt_players(loaded["players"])
-	_cartridge_encounters()
+	_cartridge_encounters(_host, _data)
 	print("coop: %s host on port %d, %s campaign %s, players %s" % [
 		game, port, "fresh" if loaded.is_empty() else "reloaded", path, _host.players.keys(),
 	])
 
 
-func _cartridge_players() -> void:
-	var red: PokeCoopPlayer = _host.add_player("RED", 100)
-	red.place(PokeCoopPolicy.start_map(_data), PokeCoopPolicy.start_cells(_data)[0], Gen2WorldSprite.FACING_DOWN)
-	red.add_mon(_saved(CHARMANDER, 12, _data.moves_at_level(CHARMANDER, 12), 100))
-	red.add_mon(_saved(PIDGEY, 9, _data.moves_at_level(PIDGEY, 9), 100))
+static func _cartridge_players(host: PokeCoopHost, data: GameData) -> void:
+	var red: PokeCoopPlayer = host.add_player("RED", 100)
+	red.place(PokeCoopPolicy.start_map(data), PokeCoopPolicy.start_cells(data)[0], Gen2WorldSprite.FACING_DOWN)
+	red.add_mon(_mon(data, CHARMANDER, 12, data.moves_at_level(CHARMANDER, 12), 100))
+	red.add_mon(_mon(data, PIDGEY, 9, data.moves_at_level(PIDGEY, 9), 100))
 	red.give_item(POKE_BALL, 5)
 	red.give_item(POTION, 2)
-	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
-	blue.place(PokeCoopPolicy.start_map(_data), PokeCoopPolicy.start_cells(_data)[1], Gen2WorldSprite.FACING_DOWN)
-	blue.add_mon(_saved(SQUIRTLE, 12, _data.moves_at_level(SQUIRTLE, 12), 200))
-	blue.add_mon(_saved(RATTATA, 9, _data.moves_at_level(RATTATA, 9), 200))
+	var blue: PokeCoopPlayer = host.add_player("BLUE", 200)
+	blue.place(PokeCoopPolicy.start_map(data), PokeCoopPolicy.start_cells(data)[1], Gen2WorldSprite.FACING_DOWN)
+	blue.add_mon(_mon(data, SQUIRTLE, 12, data.moves_at_level(SQUIRTLE, 12), 200))
+	blue.add_mon(_mon(data, RATTATA, 9, data.moves_at_level(RATTATA, 9), 200))
 	blue.give_item(POKE_BALL, 5)
-	if PokeCoopJohto.plays(_data):
+	if PokeCoopJohto.plays(data):
 		for player: PokeCoopPlayer in [red, blue]:
 			player.items = {}
 			for item: int in JOHTO_ITEMS:
 				player.give_item(item, int(JOHTO_ITEMS[item]))
-		var lead: Gen2SaveMon = _saved(SQUIRTLE, 20, _data.moves_at_level(SQUIRTLE, 20), 200)
+		var lead: Gen2SaveMon = _mon(data, SQUIRTLE, 20, data.moves_at_level(SQUIRTLE, 20), 200)
 		lead.item = JOHTO_BERRY
 		lead.hp = 30
 		blue.team[0]["mon"] = lead
 
 
-func _cartridge_encounters() -> void:
-	_host.register_encounter("wild:pidgey", {"species": PIDGEY, "level": 5, "label": "wild PIDGEY L5"})
-	_host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
-	_host.register_encounter("wild:onix", {"species": ONIX, "level": 60, "label": "wild ONIX L60"})
-	if PokeCoopJohto.plays(_data):
-		_host.register_encounter("trainer:falkner", {
+static func _cartridge_encounters(host: PokeCoopHost, data: GameData) -> void:
+	if PokeCoopJohto.plays(data):
+		var lowest: Dictionary = {}
+		for slot: Array in (PokeCoopJohto.wild_tables(data)["grass"] as Dictionary).get(str(ROUTE_29), []):
+			lowest[slot[0]] = mini(int(lowest.get(slot[0], slot[1])), int(slot[1]))
+		for species: int in lowest:
+			var label: String = "wild %s L%d" % [String(data.species(species).get("name", "#%d" % species)), lowest[species]]
+			host.register_encounter("wild:%d" % species, {"species": species, "level": lowest[species], "label": label})
+		host.register_encounter("trainer:falkner", {
 			"kind": "trainer", "trainer_class": FALKNER_CLASS, "trainer_index": 0, "label": "FALKNER (Violet Gym)", "gym": true,
 		})
 		return
-	_host.register_encounter("trainer:brock", {
+	host.register_encounter("wild:pidgey", {"species": PIDGEY, "level": 5, "label": "wild PIDGEY L5"})
+	host.register_encounter("wild:rattata", {"species": RATTATA, "level": 4, "label": "wild RATTATA L4"})
+	host.register_encounter("wild:onix", {"species": ONIX, "level": 60, "label": "wild ONIX L60"})
+	host.register_encounter("trainer:brock", {
 		"kind": "trainer", "trainer_class": BROCK_CLASS, "trainer_index": 0,
 		"victory_flags": [EVENT_BEAT_BROCK], "badge": 0, "label": "BROCK (Pewter Gym)", "gym": true,
 	})

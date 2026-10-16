@@ -1,7 +1,7 @@
 extends "res://tools/coop_play.gd"
 
 ## The launcher's Co-op tab worked through its own cards, fields and buttons, then the world as coop_play.gd's:
-##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED] [starter=0..2] [split[=stacked]]
+##   Godot --path . -s res://tools/coop_launcher_play.gd -- <address> <port> <player> [game] host|join|partner [name=RED (empty: the tab's own)] [starter=0..2] [split[=stacked]]
 ##     [rival=1..3 (Oak's speech)] [rival_name=<NAME>] [both_versions] [clock=HH:MM[:D] (a new Gold campaign's)] [by_address [untouched]] [round=<frame>[:<TITLE>]]... [tour=<dir>] [keys=] [capture=]; `tour` shoots each screen in both themes, wide and upright; `split` presses Split screen (then Top and bottom with `=stacked`), whose window runs this tool as `partner` with $COOP_SPLIT_ARGS
 
 const LAUNCHER: String = "res://game/main/main.tscn"
@@ -15,6 +15,7 @@ const NOTCHED: Dictionary = {"left": 0.0, "top": 47.0, "right": 0.0, "bottom": 3
 var _role: String = ""
 var _game: StringName = &"red"
 var _trainer: String = ""
+var _tab_name: bool = false
 var _address: String = ""
 var _port: int = PokeCoopEnetTransport.DEFAULT_PORT
 var _starter: int = -1
@@ -77,6 +78,7 @@ func _read_option(arg: String) -> bool:
 			_layout = "Top and bottom" if value == "stacked" else _layout
 		"name":
 			_trainer = value.to_upper()
+			_tab_name = value.is_empty()
 		"starter":
 			_starter = clampi(value.to_int(), 0, PokeCoopPolicy.STARTERS.size() - 1)
 		"rival":
@@ -321,7 +323,7 @@ func _fill_new_campaign(campaign: String) -> bool:
 		_type("title", campaign)
 	if not _rival_name.is_empty():
 		_type("rival", _rival_name)
-	_type("name", _trainer)
+	_fill_name()
 	_choose_start()
 	if _both_versions:
 		_press("Wild Pokémon from both versions")
@@ -345,9 +347,19 @@ func _new_player_if_asked(verb: String) -> bool:
 
 
 func _fill_new_player() -> bool:
-	_type("name", _trainer)
+	_fill_name()
 	_choose_start()
 	return true
+
+
+func _fill_name() -> void:
+	var found: Array = PokeCoopPage._find(current_scene, func(node: Node) -> bool:
+		return node is LineEdit and node.name == "name" and (node as Control).is_visible_in_tree())
+	if not _tab_name or found.is_empty():
+		_type("name", _trainer)
+		return
+	_trainer = (found[0] as LineEdit).text
+	print("coop launcher: %s keeps the name the tab offers, %s" % [_player_id, _trainer])
 
 
 func _until_hosting() -> bool:
