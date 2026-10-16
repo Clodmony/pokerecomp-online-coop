@@ -6401,7 +6401,7 @@ func _open_battle_takeover(
 ) -> bool:
 	var values: Dictionary = request.get("values", {})
 	if not Gen2ModHost.has_battle_takeovers() \
-		or not StringName(values.get("kind", &"")) in [&"wild", &"trainer"] \
+		or not StringName(values.get("kind", &"")) in [&"wild", &"trainer", &"link_battle"] \
 		or bool(values.get("tutorial", false)) or int(values.get("battle_type", 0)) in [
 			Gen2Battle.BATTLETYPE_CONTEST, Gen2Battle.BATTLETYPE_SAFARI,
 		]:

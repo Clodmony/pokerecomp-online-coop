@@ -138,8 +138,9 @@ Peer 1 is the host.
 | `suggest` | `seq`, `battle`, `suggestion` (`type`, `value`) |
 | `join` | `seq`, `battle` |
 | `save` | `seq` |
-| `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL), `leave`, or `end` (leave a direct pairing, D100) |
-| `challenge` | `seq`, `partner`, `kind` (`battle` or `trade`), or `id`, `answer` (1 YES, 0 NO); host rechecks both players (protocol 6, D100) |
+| `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL), `leave`, or `end` (leave a direct pairing, D100); `colosseum` 1 with `partner`: seated at Gold and Silver's Colosseum table, or with `leave` gave up (protocol 10, D137) |
+| `challenge` | `seq`, `partner`, `kind` (`battle`, `trade`, or `gift` once both players' Mystery Gift is unlocked, protocol 10, D137), or `id`, `answer` (1 YES, 0 NO); host rechecks both players (protocol 6, D100) |
+| `mystery_gift` | `seq`, and `unlocked` 0 (Goldenrod Dept. Store 5F explained the machine) or `taken` (the item the delivery man handed over); anything else is `invalid_mystery_gift` (protocol 10, D137) |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
@@ -162,6 +163,7 @@ Peer 1 is the host.
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `state` (protocol 9) | adds `clock` on Gold and Silver: `day`, `hour`, `minute`, `second`, `cur_day` of the campaign's clock as sent; a window runs it on by its own time since (D133) |
+| `state` (protocol 10) | `you.trade_partner` adds the partner's `game_id`; `you.mystery_gift` carries the player's `section` (`sMysteryGiftData`) and the last exchange's `round` (`serial`, `outcome`, `gift`, `partner`); public players add `gift` (Mystery Gift unlocked) (D137) |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
@@ -174,7 +176,7 @@ carry `meeting` while paired. A `versus` battle view shows only the viewer's
 team as allies, their choices and learning offer, with events mirrored for
 the opponent. Friend battles stay private to their two participants.
 
-The protocol is version 9 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104; 9 the clock, D133); a peer of another version is
+The protocol is version 10 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104; 9 the clock, D133; 10 Gold and Silver's Cable Club and Mystery Gift, D137); a peer of another version is
 refused with `protocol_mismatch`. A hosting session also sends the lobby view with its
 ENet `port` as a JSON UDP beacon to port 24681 once a second (broadcast, each
 network's `.255` and 127.0.0.1); the Co-op tab's Join screen lists the hosts heard in
@@ -202,7 +204,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/save/save_battle_adapter.gd` | `keep_party_fields()` extracted from `from_battle_party` |
 | `game/save/save_prompt.gd` | the failure step draws no YES/NO (D70) |
 | `game/world/world_party_host.gd` | `roll_capture()`, a public wrapper over the capture roll; `commit_link_trade` builds the trade movie's context before the trade evolution, so the movie shows the Pokémon as it was sent (D64), and clears the item of a Pokémon arriving in a Generation 1 game (D120) |
-| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host, which on Generation 1 goes straight to the Pokémon Center once the co-op field has printed the blackout (D125); the takeover summary carries the trainer's name, win and loss text, gym marker and Gen 1 ghost kind (D68, D125); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2); `save_written`, called by `persist_world_snapshot` after any SAVE (D80); a takeover's `team_won` carried into the battle result skips Generation 1's after-battle blackout (D88) |
+| `game/world/world_screen.gd` | `evolve_after_battle()` and `white_out()` for battles fought on the host, which on Generation 1 goes straight to the Pokémon Center once the co-op field has printed the blackout (D125); the takeover summary carries the trainer's name, win and loss text, gym marker and Gen 1 ghost kind (D68, D125); on Generation 1 the player does not walk while a map script walks someone (L10); `save_gate`, asked before the START menu's SAVE writes, so a co-op window's SAVE the host would refuse ends in the prompt's own FAILED step (L2); `save_written`, called by `persist_world_snapshot` after any SAVE (D80); a takeover's `team_won` carried into the battle result skips Generation 1's after-battle blackout (D88); a link battle is offered to the takeover too, which takes Gold and Silver's Colosseum (D137) |
 | `game/world/nickname_prompt_screen.gd` | the text waits take B as well as A, as `WaitForTextScrollButtonPress` does (#26) |
 | `game/world/world_api.gd` | a Generation 1 press faces its direction even when it does not turn (L11); `_gen1_box_held` notes a box that owed no press (D76); `gen1_end_of_battle` sets both map-load bits, so a wild fight's reload redraws a switch's block (#88) |
 | `game/world/gen1_map_scripts.gd` | the link rooms' special warp and return close the wait box first (D71); a row's end closes a no-press box its tail held up (D76) |
@@ -212,7 +214,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/world/oak_speech_screen.gd` | `preset_names`: a name settled before the speech is said rather than asked |
 | `game/world/intro_screen.gd` | `writes_save`, `preset_names` and `spoken`, so a co-op window plays the opening without writing a save; `asks_clock` and `clock_set`, so only the hosting window asks the time and the host is told it (D133) |
 | `game/world/link_transport.gd` | `PENDING`, `answer_trade()` and `trade_answer()`, defaults that keep a save slot's peer as it was |
-| `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context |
+| `game/world/link_screen.gd` | the Gen 1 trade waits on `PENDING`, reports TRADE or CANCEL and cancels on the peer's CANCEL; its own slot rides in `choose_trade_slot`'s context; the Gen 2 trade does the same under WAITING..! (D137) |
 | `autoload/game_runtime.gd` | `coop` slot driven from `_process`, told when the window closes (it says goodbye, then quits) and when the app is paused and resumed; `restart()` first asks `coop.continue_after_reset()`, so the Hall of Fame's reset continues the co-op world (D88) |
 | `game/main/main.gd` | the Co-op tab |
 | `tests/unit/test_source_budget.gd` | comment ceiling raised for `game/coop` |

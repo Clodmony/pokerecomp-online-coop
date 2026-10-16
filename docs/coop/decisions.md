@@ -2195,3 +2195,53 @@ the host's, not Johto's, so Red and Blue's Route 5 day care keeps a uid the same
 way (the owner kept it for both, 2026-10-16). Costs: a Pokémon is matched by its fingerprint (trainer, DVs, catch data),
 as everywhere else, so a party Pokémon with the same fingerprint as one in the
 day care takes that one's uid.
+
+## D137. Gold and Silver's Cable Club and Mystery Gift between players (#181, protocol 10, 2026-10-16)
+
+D128 puts Gold and Silver's trades, link battles and Mystery Gift between the
+two players. Red and Blue's cable (D31, D55) carried on unchanged except where
+a Game Boy Color differs.
+
+- **The cable.** `trade_partner` now names the partner's game, and the window's
+  `PokeCoopLinkTransport` reports a Gold or Silver partner as a Generation 2
+  Game Boy, so the receptionist's "You can't link to the past here." (the
+  Time Capsule's test, #182) no longer refuses two Gold and Silver players.
+  The partner first by player id holds the internal clock, so
+  `CableClubCheckWhichChris` seats the two on opposite sides of the table and
+  the friend sprite on each side is the other player; partners' own sprites are
+  hidden in the Trade Center and Colosseum as in Red and Blue's. Gold's Trade
+  Center and Colosseum (CABLE_CLUB 2 and 3) join the rooms the host pairs by.
+- **Trades.** Gold's trade screen offered, confirmed and committed at once,
+  which a partner over the network cannot answer. It now waits on `PENDING`
+  under WAITING..! for the partner's row and TRADE as the Generation 1 screen
+  already did, and tells the partner its TRADE or CANCEL. The host's swap
+  already carried each Pokémon's held item and ran `TryEvolvingMon` with it, so
+  a Pokémon holding its trade item (METAL COAT, KING'S ROCK and the like)
+  evolves and the item is spent.
+- **Link battles.** The cartridge's Colosseum fights a copy of the partner's
+  party chosen by the battle AI. On Gold and Silver the battle takeover now
+  carries the Colosseum's battle to the host, which starts one `PokeCoopVersus`
+  (D100's friend battle, both sides human) once both partners at the table
+  asked. The cartridge's link rules hold, not D100's: `Gen2ToGen2LinkComms`
+  reloads the party saved at the receptionist after `StartBattle`
+  (`LoadPokemonData`), so both parties come back as they were, with no
+  experience, and each window records the win, loss or draw in its own link
+  record. A seat no partner joins within 60 seconds lets the window go as a
+  draw. Red and Blue's Colosseum keeps its rule (design.md).
+- **Mystery Gift.** The cartridge's MYSTERY GIFT is a row of the title menu,
+  which a co-op window never shows, and needs two Game Boys face to face. The
+  host now keeps each player's `sMysteryGiftData` in their record, saved with
+  the campaign; a window may only tell it the girl on Goldenrod Dept. Store 5F
+  explained the machine (`UnlockMysteryGift`) and that the delivery man handed a
+  gift over. Once both have been told, START > CO-OP offers GIFT and the
+  partner as an invitation (D100). On YES the host runs `DoMysteryGift`'s
+  exchange for both, each receiving what the other's staged block rolled, with
+  the campaign's clock (D133) as `wCurDay`, so one gift per partner a day and
+  five a day follow the shared clock; it then restores the section as a
+  Continue would, so each window's world finds the gift at the delivery man at
+  once, and both windows open the MYSTERY GIFT screen on the box the exchange
+  ended on.
+
+Costs: a Colosseum battle is fought on the co-op battle field and panel, not
+on the cartridge's own link battle screen; the Mystery Gift is chosen from the
+co-op menu, not the title menu.

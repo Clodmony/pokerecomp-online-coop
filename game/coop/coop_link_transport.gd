@@ -30,9 +30,16 @@ func refresh() -> void:
 		func(row: Dictionary) -> Dictionary: return (row["mon"] as Dictionary).duplicate(true))
 	peer = {
 		"name": String(partner.get("name", "")), "id": int(partner.get("trainer_id", 0)),
-		"generation": GENERATION_1, "party": party,
+		"generation": GENERATION_2 if PokeCoopJohto.is_game(StringName(partner.get("game_id", ""))) else GENERATION_1,
+		"party": party,
 		"player_id": String(partner.get("player_id", "")),
 	}
+
+
+func status() -> int:  ## two Game Boy Colors take opposite seats (`CableClubCheckWhichChris`): the first by id holds the internal clock
+	if connected() and clock == CONNECTION_NOT_ESTABLISHED and int(peer["generation"]) == GENERATION_2:
+		clock = USING_INTERNAL_CLOCK if client.player_id < String(peer["player_id"]) else USING_EXTERNAL_CLOCK
+	return super.status()
 
 
 func _round() -> Dictionary:

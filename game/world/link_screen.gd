@@ -371,6 +371,9 @@ func _wait_then(next: int) -> void:
 
 ## Each wait is followed by a hundred frames of its own.
 func _after_waiting_step() -> void:
+	if _after_waiting == STEP.TRADING and _transport.trade_answer() == Gen2LinkTransport.PENDING:
+		_frames = WAITING_FRAMES
+		return
 	_step = _after_waiting
 	_frames = OFFER_FRAMES
 	if _step == STEP.TRADING:
@@ -378,6 +381,12 @@ func _after_waiting_step() -> void:
 
 
 func _check_offer() -> void:
+	if _partner_choice == Gen2LinkTransport.PENDING:
+		_offer()
+		return
+	if _partner_choice < 0 and _transport.connected():
+		_cancel_trade()
+		return
 	if _incoming.is_empty() or not Gen2LinkSession.validate_ot_trademon(
 		_incoming, int(_incoming.get("species", 0)), bool(_incoming.get("is_egg", false)),
 		_link_mode()
@@ -397,6 +406,7 @@ func _check_offer() -> void:
 ## print their box, then `String_TooBadTheTradeWasCanceled` (waiting box, then a
 ## hundred frames) and go back to the listing.
 func _refuse(text: String) -> void:
+	_transport.answer_trade(false)
 	_partner_choice = -1
 	_step = STEP.RESULT
 	_print(text, true)
@@ -440,6 +450,7 @@ func _press_confirm(button: int) -> bool:
 					_gen1_start_trade()
 				else:
 					_message = []
+					_transport.answer_trade(true)
 					_wait_then(STEP.TRADING)
 					_refresh()
 			else:
@@ -455,6 +466,7 @@ func _cancel_trade() -> void:
 	if _gen1:
 		_gen1_cancel_trade()
 		return
+	_transport.answer_trade(false)
 	_place_message(Gen2LinkPage.TRADE_CANCELED)
 	_wait_then(STEP.RESULT)
 	_refresh()
@@ -464,6 +476,9 @@ func _cancel_trade() -> void:
 ## [method Gen2WorldPartyHost.commit_link_trade]. `SaveAfterLinkTrade` is the
 ## write that transaction already is; [method animation_closed] starts `.save`.
 func _commit() -> void:
+	if _transport.trade_answer() == 0:
+		_cancel_trade()
+		return
 	_confirm = 0
 	var result: Dictionary = Gen2WorldPartyHost.commit_link_trade(
 		_world, _save, _index, _partner_mon(_partner_choice),

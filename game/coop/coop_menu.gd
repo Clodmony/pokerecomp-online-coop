@@ -37,6 +37,8 @@ var _no: bool = false
 var _page: Gen2MenuPage = null
 var _picture: TextureRect = null
 var _shown: String = ""
+var _gift: GiftResult = null
+var _gift_seen: int = -1
 
 
 static func over(session: PokeCoopClient, game_data: GameData) -> PokeCoopMenu:
@@ -70,7 +72,7 @@ static func _session_menu() -> PokeCoopMenu:
 
 
 func is_open() -> bool:
-	return _open
+	return _open or _gift != null
 
 
 func open() -> void:
@@ -110,6 +112,9 @@ func _exit_tree() -> void:
 
 func _process(_delta: float) -> void:
 	_poll_challenges()
+	_poll_gift()
+	if _gift != null:
+		_gift.advance_frame()
 	if not _open:
 		return
 	if blocked.is_valid() and bool(blocked.call()):
@@ -121,6 +126,10 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var button: int = PokeButton.pressed_in(event)
 	if button == PokeButton.NONE or client == null:
+		return
+	if _gift != null:
+		_gift.handle_button(button)
+		get_viewport().set_input_as_handled()
 		return
 	if not _open:
 		if button == PokeButton.SELECT and (not select_allowed.is_valid() or bool(select_allowed.call())) \
@@ -169,7 +178,7 @@ func _choose() -> void:
 			client.start_battle(String(row["id"]))
 		"join":
 			client.join_battle(String(row["id"]))
-		"battle", "trade":
+		"battle", "trade", "gift":
 			if before_meet.is_valid():
 				before_meet.call()
 			client.challenge(String(row["id"]), String(row["action"]))
@@ -240,6 +249,27 @@ func _poll_challenges() -> void:
 		_asked_at = Time.get_ticks_msec()
 
 
+func _poll_gift() -> void:  ## a Mystery Gift the host made (#181), on `DoMysteryGift`'s own screen once the world is quiet
+	var told: Dictionary = (client.me().get("mystery_gift", {}) as Dictionary).get("round", {})
+	var serial: int = int(told.get("serial", 0))
+	if _gift_seen < 0 or serial < _gift_seen:
+		_gift_seen = serial
+	if serial == _gift_seen or _open or _gift != null or hardware == null or (ready_to_meet.is_valid() and not bool(ready_to_meet.call())):
+		return
+	_gift_seen = serial
+	var trainer := Gen2SaveData.new()
+	trainer.player_name = String(client.me().get("name", ""))
+	var window := Gen2MysteryGiftTransport.new()
+	window.peer = {"name": String(told.get("partner", ""))}
+	_gift = GiftResult.new()
+	_gift.told = told
+	_gift.set_context(data, trainer, window, 0, 0, null)
+	_gift.closed.connect(func() -> void:
+		Gen2Screen.drop(_gift)
+		_gift = null)
+	hardware.display(_gift)
+
+
 func _partner_rows() -> Array:
 	var out: Array = []
 	if not String(client.me().get("battle", "")).is_empty() or not (client.me().get("opening", {}) as Dictionary).is_empty() \
@@ -251,7 +281,10 @@ func _partner_rows() -> Array:
 		if id == client.player_id or bool(member.get("meeting", false)) or not bool(member.get("connected", false)) or member.get("opening") == true \
 				or not String(member.get("battle", "")).is_empty() or (not _partner.is_empty() and id != _partner):
 			continue
-		for kind: String in [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE]:
+		var kinds: Array = [PokeCoopPolicy.CHALLENGE_BATTLE, PokeCoopPolicy.CHALLENGE_TRADE]
+		if bool(member.get("gift", false)) and bool((everyone.get(client.player_id, {}) as Dictionary).get("gift", false)):
+			kinds.append(PokeCoopPolicy.CHALLENGE_GIFT)
+		for kind: String in kinds:
 			var label: String = _ui(kind.to_upper())
 			var member_name: String = String(member.get("name", id))
 			out.append({"text": "%s %s" % [kind.to_upper(), member_name], "label": label if not _partner.is_empty() else label + " " + member_name,
@@ -356,7 +389,7 @@ func _refresh() -> void:
 func _question_lines() -> Array:
 	if _incoming.is_empty():
 		return [_ui("Close both"), _ui("windows?")] if _quitting else [_ui("Leave the co-op"), _ui("session?")]
-	return [_name(String(_incoming["from"])), _ui("wants to battle!" if _incoming["kind"] == "battle" else "wants to trade!")]
+	return [_name(String(_incoming["from"])), _ui({"battle": "wants to battle!", "trade": "wants to trade!"}.get(_incoming["kind"], "MYSTERY GIFT?"))]
 
 
 func _draw_rows(indices: PackedByteArray, top: int) -> void:
@@ -396,3 +429,16 @@ func _name(player_id: Variant) -> String:
 
 func _ui(english: String) -> String:
 	return Gen1LayoutDe.ui(data.id if data != null else &"", english)
+
+
+class GiftResult extends Gen2MysteryGiftScreen:  ## the box `DoMysteryGift` ends on for the host's exchange, opened as if A was pressed
+	var told: Dictionary = {}
+
+	func _ready() -> void:
+		super._ready()
+		_step = STEP.EXCHANGING
+		_frames = EXCHANGE_FRAMES
+
+	func _exchange() -> void:
+		_result = {"outcome": StringName(told.get("outcome", "")), "name": String(told.get("gift", "")), "retry": false}
+		_show_result()

@@ -74,10 +74,13 @@ static func _distance(first: Vector2i, second: Vector2i) -> int:
 	return absi(first.x - second.x) + absi(first.y - second.y)
 
 
-## Nobody in a Cable Club room, whose own friend sprite is the partner there.
+func _in_cable_club() -> bool:  ## whose own friend sprite is the partner there
+	return _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB or PokeCoopTrades.LINK_ROOMS.has(_world.map_id())
+
+
 func _visible() -> Array[String]:
 	var out: Array[String] = []
-	if _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+	if _in_cable_club():
 		return out
 	for player_id: Variant in client.nearby():
 		var view: Dictionary = _view(String(player_id))
@@ -90,7 +93,7 @@ func _shown() -> Dictionary:
 	var out: Dictionary = {}
 	for player_id: String in _visible():
 		out[player_id] = Vector2.ZERO
-	if _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+	if _in_cable_club():
 		return out
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:
@@ -210,7 +213,7 @@ func show_marks(hardware: Gen2Screen, quiet: bool) -> void:
 
 func partner_marks() -> Array:
 	var out: Array = []
-	if _world == null or client == null or _world.current_map == null or _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB:
+	if _world == null or client == null or _world.current_map == null or _in_cable_club():
 		return out
 	var everyone: Dictionary = client.state.get("players", {})
 	for player_id: String in everyone:

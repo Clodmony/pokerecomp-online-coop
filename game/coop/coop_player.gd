@@ -36,6 +36,8 @@ var game_id: String = ""
 var via: String = ""
 var next_mon_serial: int = 1
 var day_care: Array = []  ## `{uid, mon}` of each Pokémon away in the player's day care, its uid given back on withdrawal (#196)
+var mystery_gift: Dictionary = Gen2MysteryGift.default_section()  ## `sMysteryGiftData` as the player's own cartridge keeps it (#181)
+var gift_round: Dictionary = {}  ## the last Mystery Gift's box for the window: serial, outcome, gift, partner; not saved
 ## While the player plays the opening: its stage, the story it runs on and the rival's name.
 var opening: Dictionary = {}
 ## The player's world state keys other than the bag and wallet ([member items], [member money]). See [PokeCoopOwnership].
@@ -357,6 +359,7 @@ func public_view() -> Dictionary:
 	var out: Dictionary = {
 		"player_id": player_id, "name": name, "map": map, "cell": cell, "facing": facing,
 		"battle": battle_id, "connected": connected, "opening": is_hidden(), "game": game_id,
+		"gift": PokeCoopJohto.gift_ready(self),
 	}
 	if not link_origin.is_empty():
 		out["rest"] = link_origin.duplicate()
@@ -377,6 +380,7 @@ func private_view() -> Dictionary:
 		"box": box.size(), "items": items.duplicate(), "money": money, "world": world_part(),
 		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box, "places": places.duplicate(),
 		"opening": {"stage": opening.get("stage", ""), "rival": opening.get("rival", "")} if not opening.is_empty() else {},
+		"mystery_gift": {"section": mystery_gift.duplicate(true), "round": gift_round.duplicate()},
 	}
 
 
@@ -394,6 +398,7 @@ func to_dict() -> Dictionary:
 		"map": [rest["map"].x, rest["map"].y], "cell": [rest["cell"].x, rest["cell"].y], "facing": int(rest["facing"]),
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true), "day_care": _rows_to_dicts(day_care),
 		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(), "game_id": game_id,
+		"mystery_gift": mystery_gift.duplicate(true),
 	}
 
 
@@ -452,6 +457,7 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	var cared: Variant = _rows_from_dicts(source.get("day_care", []))
 	out.day_care = cared if cared != null else []
 	out.game_id = PokeCoopTransport.text(source.get("game_id"))
+	out.mystery_gift = Gen2MysteryGift.normalize(source.get("mystery_gift", {}))
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:
 		out.world = PokeCoopOwnership.canonical(raw_world, PokeCoopOwnership.PLAYER)

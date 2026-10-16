@@ -3,7 +3,7 @@ extends "res://tools/preview_world_story.gd"
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
-## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag.
+## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [mon=<p1|p2>:<SPECIES>:<level>[:<ITEM>]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), mon= replacing one's starter (each next one joining) with a Pokémon holding ITEM, event= setting (or with - clearing) a campaign flag.
 
 const TRADER: String = "TRADER"
 const JOHTO_NEW: String = "new"
@@ -237,6 +237,7 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 		player.money = PokeCoopPolicy.new_player_money()
 		PokeCoopPolicy.set_up_new_player(data, player, 0, index)
 		players.append(player)
+	var dressed: Array = []
 	for option: String in options:
 		var parts: PackedStringArray = option.substr(option.find("=") + 1).split(":")
 		if option.begins_with("at="):
@@ -251,8 +252,12 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 				campaign.flags.erase(flag)
 			else:
 				campaign.flags[flag] = true
-		elif option.begins_with("care="):
-			var refused: String = _day_care(data, players[1 if parts[0] == "p2" else 0], parts.slice(1))
+		elif option.begins_with("care=") or option.begins_with("mon="):
+			var member: PokeCoopPlayer = players[1 if parts[0] == "p2" else 0]
+			if option.begins_with("mon=") and not dressed.has(member):
+				dressed.append(member)
+				member.team.clear()
+			var refused: String = _day_care(data, member, parts.slice(1)) if option.begins_with("care=") else _johto_mon(data, member, parts.slice(1))
 			if not refused.is_empty():
 				push_error("coop seed: %s: %s" % [option, refused])
 				return 1
@@ -290,6 +295,21 @@ static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStrin
 	for key: String in DAY_CARE_KEYS:
 		kept[key] = world[key]
 	player.apply_world_patch(PokeCoopOwnership.patch({}, kept))
+	return ""
+
+
+static func _johto_mon(data: GameData, player: PokeCoopPlayer, parts: PackedStringArray) -> String:
+	var species: int = named(data, "species", parts[0])
+	var level: int = int(parts[1]) if parts.size() > 1 else 5
+	var mon: Gen2BattleMon = Gen2BattleMon.create(data, species, level, data.moves_at_level(species, level)) if species > 0 else null
+	var item: int = named(data, "item", parts[2]) if parts.size() > 2 else 0
+	if mon == null or (parts.size() > 2 and item <= 0):
+		return "no species or item named in %s" % ":".join(parts)
+	var saved: Gen2SaveMon = Gen2SaveBattleAdapter.from_battle_mon(mon)
+	saved.ot_id = player.trainer_id
+	saved.original_trainer = player.name
+	saved.item = item
+	player.add_mon(saved)
 	return ""
 
 
