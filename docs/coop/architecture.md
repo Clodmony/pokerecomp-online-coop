@@ -163,6 +163,7 @@ Peer 1 is the host.
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `state` (protocol 9) | adds `clock` on Gold and Silver: `day`, `hour`, `minute`, `second`, `cur_day` of the campaign's clock as sent; a window runs it on by its own time since (D133) |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
+| `battle` (protocol 10) | a final view adds `mom`: on Gold and Silver the line Mom's savings print for each player whose Mom kept a share of their prize (`sent_some_to_mom`, `_half_`, `_all_`, D139) |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |

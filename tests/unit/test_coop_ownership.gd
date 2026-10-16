@@ -156,6 +156,27 @@ func test_johtos_unlocked_unown_and_the_rockets_hold_are_the_teams_and_its_walk_
 	assert_eq(unown, 42, "ENGINE_UNLOCKED_UNOWNS_A_TO_K at the pinned pokegold")
 
 
+func test_johtos_pokegear_phone_numbers_rematch_calls_and_moms_savings_are_each_players() -> void:
+	var joey_asked: int = 0x273  ## EVENT_JOEY_ASKED_FOR_PHONE_NUMBER, then _READY_FOR_REMATCH, at the pinned pokegold
+	var changes: Dictionary = {
+		"phone_contacts": {"set": {15: true}, "erase": []},
+		"event_flags": {"set": {joey_asked: true, joey_asked + 1: true, 0x25F: true}, "erase": [0x29E]},
+		"engine_flags": {"set": {0: true, 1: true, 2: true, 3: true, 4: true}, "erase": []},
+		"mom_savings_flags": {"value": 0x81}, "money": {"set": {1: 500}, "erase": []},
+	}
+
+	var badges: Array[int] = []
+	for badge: int in Gen2WorldState.BADGE_ENGINE_FLAGS_GOLD_SILVER.size():
+		badges.append(Gen2WorldState.badge_flag(badge, false))
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, badges, PokeCoopJohto.OWN_GIFTS)
+
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {}, "a number asked for, a rematch call, a card and Mom's bank are no team's (D128)")
+	assert_eq(halves[PokeCoopOwnership.PLAYER], changes, "JOEY's number and rematch, JACK's ask, ERIN's call, the cards, Mom's savings")
+	for key: String in ["radio_knob", "radio_channel", "map_music"]:
+		assert_false(PokeCoopOwnership.syncs(key), "each window's radio plays as alone: " + key)
+
+
 func test_red_and_blues_routing_is_unchanged_by_johtos_tables() -> void:
 	var changes: Dictionary = {"map_scenes": {"set": {"0:1": 2}, "erase": []}, "event_flags": {"set": {3: true}, "erase": []}}
 

@@ -171,7 +171,8 @@ opening hands everyone (#172, #173). The rules above carry over, with these choi
   sets it, and it runs on while the campaign is closed (D133).
 - Each player's own: the starter, so the rival's teams answer it in that
   player's window; the gift Pokémon (the TOGEPI egg, SHUCKLE, EEVEE, SPEAROW,
-  TYROGUE); Pokégear, phone contacts, calls and rematches; a day care
+  TYROGUE); Pokégear, phone contacts, calls and rematches (a phone trainer the
+  team beat fights each player's rematch on their own, D139); a day care
   that breeds only their Pokémon (its two places, steps, egg and Route 34's pen,
   D135); the roaming RAIKOU, ENTEI and SUICUNE; and
   the story legendaries and one-off Pokémon (LUGIA, HO-OH, the red GYARADOS,
@@ -235,7 +236,7 @@ them live in `PokeCoopPolicy`.
 
 | Question | Rule | Issue |
 |---|---|---|
-| Prize money | Every participant receives the full prize, Pay Day included (owner, D61). On Gold and Silver an Amulet Coin any participant's Pokémon carries in doubles it for every participant (owner, D134) | #36 |
+| Prize money | Every participant receives the full prize, Pay Day included (owner, D61). On Gold and Silver an Amulet Coin any participant's Pokémon carries in doubles it for every participant (owner, D134), and each player's Mom keeps her share of that player's prize (D139) | #36 |
 | Losing a battle | Each participant's own world whites them out and halves their own money (owner, D61) | #36 |
 | Gift Pokémon | One per player: EEVEE, LAPRAS, the Dojo's choice and the MAGIKARP sale are each player's own, as the fossils are (owner, D61) | #33 |
 | Capture recipient | Named by the thrower for each throw; the panel lists each ball once per participant | #35 |
