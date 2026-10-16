@@ -2181,5 +2181,17 @@ own day care on every load (the man indoors, the same man by the pen, the two
 Pokémon in the pen); those are each player's own entries, listed in
 `PokeCoopJohto.OWN_GIFTS`, so they never reach the campaign. A Pokémon in a
 day care is in its player's world only: the host's team and PC drop it while it
-is away and take it back under a new uid, as they do for any Pokémon a window
-adds. Red and Blue's day care (one place, Route 5) is unchanged.
+is away. Red and Blue's day care (one place, Route 5) is otherwise unchanged.
+
+**It keeps its uid (owner, 2026-10-16, #196).** The host remembers the uid of
+each Pokémon in a player's day care in that player's record
+(`PokeCoopPlayer.day_care`, saved with the campaign) and gives it back when a
+party row matches it on withdrawal, so its log history and a partner's
+suggestion naming it carry over. A Pokémon that leaves the team or PC is kept
+until the next party update, because the world patch that puts it in the day
+care may come after the party update; one no day care holds by then (released)
+is dropped. An egg's hatchling gets a new uid like any new Pokémon. The rule is
+the host's, not Johto's, so Red and Blue's Route 5 day care keeps a uid the same
+way. Costs: a Pokémon is matched by its fingerprint (trainer, DVs, catch data),
+as everywhere else, so a party Pokémon with the same fingerprint as one in the
+day care takes that one's uid.
