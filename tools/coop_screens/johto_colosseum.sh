@@ -12,28 +12,29 @@ DURATION=175
 press p1 4 U A
 press p1 7 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
 press p1 25 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
-press p1 46 U - U - L - U - R - A
-press p2 62 U - A
-press p2 65 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
-press p2 83 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
-press p2 104 U - U - R - R - U - L - A
-shot p2 110 silver_seat                # on the right of the table, the friend on the left
-shot p1 118 gold_battle               # GOLD's ONIX against SILVER's SENTRET
-shot p2 118 silver_battle             # the same fight from SILVER's side
-shot p1 128 gold_fight_1
-shot p2 128 silver_fight_1
-shot p1 132 gold_fight_2
-shot p2 132 silver_fight_2
-shot p1 136 gold_fight_3              # YOU WIN
-shot p2 136 silver_fight_3            # YOU LOSE
-shot p1 140 gold_fight_4              # GOLD's RECORD: SILVER 1 0 0
-shot p2 140 silver_fight_4            # SILVER's RECORD: GOLD 0 1 0
-press p1 144 B - - - - - - - - - - - - B - - - - - - - - - - - - B - - - - - - - - - - - - B
-press p2 144 B - - - - - - - - - - - - B - - - - - - - - - - - - B - - - - - - - - - - - - B
-shot p1 148 gold_fight_5
-shot p2 148 silver_fight_5
-shot p1 162 gold_back                 # back at the table
-shot p2 162 silver_back
+press p1 85 U - U - L - U - R - A
+press p2 50 U - A
+press p2 53 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
+press p2 71 A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A - - - - - - - - - A
+press p2 92 U - U - R - R - U - L - A
+shot p2 52 silver_talks                # "Welcome to CABLE CLUB COLOSSEUM."
+shot p2 98 silver_seat                # on the right of the table, the friend on the left
+shot p1 103 gold_battle               # GOLD's ONIX against SILVER's SENTRET, then the turns,
+shot p2 103 silver_battle             # YOU WIN and YOU LOSE and each window's link record as they come
+shot p1 107 gold_fight_1
+shot p2 107 silver_fight_1
+shot p1 111 gold_fight_2
+shot p2 111 silver_fight_2
+shot p1 115 gold_fight_3
+shot p2 115 silver_fight_3
+shot p1 119 gold_fight_4
+shot p2 119 silver_fight_4
+press p1 128 B - - - - - - - - - - - - B - - - - - - - - - - - - B - - - - - - - - - - - - B
+press p2 128 B - - - - - - - - - - - - B - - - - - - - - - - - - B - - - - - - - - - - - - B
+shot p1 123 gold_fight_5
+shot p2 123 silver_fight_5
+shot p1 150 gold_back                 # back at the table
+shot p2 150 silver_back
 # The battle finished on the host, and its autosave holds both parties as the seed saved them (`LoadPokemonData`).
 check() {
 	python3 -I - "$out/seed/coop_campaigns/gold/gold.json" "$user/coop_campaigns/gold/gold.json" <<'PY'
