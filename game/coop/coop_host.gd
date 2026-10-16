@@ -390,8 +390,7 @@ func _colosseum(sender: PokeCoopPlayer, message: Dictionary) -> StringName:  ## 
 	if session == null:
 		return &"no_fit_pokemon"
 	session.colosseum = true
-	battles[battle_id] = session
-	_log_battle_start(session)
+	_open_battle(session)
 	return &""
 
 
