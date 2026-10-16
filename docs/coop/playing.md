@@ -148,7 +148,9 @@ only). The controller picked in Settings > Controls plays on the left (top)
 half without asking. Each half then hears only its own controller, so a controller nobody
 pressed, a virtual one included, moves neither player. With no controller
 plugged in, both halves play by keyboard, each while it has the focus. The
-halves stay above other windows while you play. The second half remembers its
+halves stay above other windows while you play. The music comes from the left (top)
+half only, so the speakers carry one tune; the right (bottom) half plays its own
+sound effects. The second half remembers its
 player, so the same trainer comes back next time. The layout picked is offered
 first the next time you split, also after the game was closed.
 

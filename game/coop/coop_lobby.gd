@@ -518,6 +518,7 @@ class SplitScreen extends RefCounted:
 		Input.ignore_joypad_on_unfocused_application = false
 		PokePadChoice.held = pad
 		PokePadChoice.apply()
+		Gen2AudioPlayer.music_scale = 0.0 if side == 1 else 1.0
 		print("coop split: %s half at %s of screen %s, controller %s" % [named(side), rect, whole, pad.get("name", "every")])
 
 	static func active() -> bool:
@@ -545,4 +546,5 @@ class SplitScreen extends RefCounted:
 		_before = {}
 		PokePadChoice.held = {}
 		PokePadChoice.apply()
+		Gen2AudioPlayer.music_scale = 1.0
 		print("coop split: the window has the whole screen again, controller device %d" % PokePadChoice.device())
