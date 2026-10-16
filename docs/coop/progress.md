@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## German windows from the Co-op tab draw their umlauts (#218, 2026-10-16)
+
+The owner's split-screen session on Rote Edition showed ä, ö and ü as `?`.
+`Gen1Text`'s charmap is a process-wide choice that the last cache opened makes,
+and the Co-op tab opens every cartridge to list it (Gold and Silver last); the
+single-player start reopens its game, the co-op start did not. The session now
+sets its own game's charmap when it opens the opening or the world, which also
+brings back the German toasts (`_de`) the English table had turned English.
+`german_menus` passed before because scenario windows start without the tab.
+Branch `coop/218-umlauts`.
+
+| Verification | Result |
+|---|---|
+| Test before the fix | `test_a_rote_window_draws_its_umlauts_after_the_tab_opened_an_english_cartridge`: `["en"] expected to equal ["de"]: the window's own game picks the charmap`, `no umlaut draws as ?` |
+| Test after | passes |
+| `tools/verify.sh`, run `20261016-193713` on 636a02d6 | import, GUT 5298/5298, gates, boot, ENet demo, ENet demo gold, three processes ok |
+| Not run | Two windows from the Co-op tab (the scenarios open windows and the PC was in use); Windows; played |
+
 ## Gold and Silver seeds and playthroughs to FALKNER and BUGSY (#183, 2026-10-16)
 
 `tools/coop_seed.gd` walks Gold and Silver's story too: `gold list` names
