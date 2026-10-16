@@ -26,6 +26,8 @@ const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the
 		27, 28, 29, 1600, 1601, 1602, 1790, 1791, 118, 64,  ## the starter, the stolen ball, the Guide Gent's tour, Mom's bank
 		44, 45, 84, 85, 86, 119, 1792, 1793,  ## the TOGEPI egg: its aide, hatching, Elm's call and Everstone
 		69, 70, 79, 80, 81, 97,  ## SHUCKLE (EVENT_GOT_SHUCKIE, _MANIA_TOOK_), EEVEE, SPEAROW's mail (_GOT_KENYA, _GAVE_KENYA), TYROGUE
+		123, 1866, 1867,  ## one each (D138): the beasts' release (EVENT_RELEASED_THE_BEASTS, EVENT_BURNED_TOWER_B1F_BEASTS_*), and
+		42, 1784, 791, 1852, 792, 1853, 1872, 1904, 1873, 1888,  ## SUDOWOODO, HO-OH, LUGIA, SNORLAX (fought, gone), red GYARADOS, LAPRAS
 		1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
 		0, 1, 2, 3, 4, 5, 6, 7, 0x309, 0x30B, 0x30D, 0x30F, 0x311, 0x75F,  ## a map load's, the League's shut doors, LANCE's room
 	],
@@ -33,6 +35,7 @@ const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the
 		"24:4", "24:6", "24:5", "24:3", "26:10", "20:1", "20:2", "20:3", "20:4", "15:1", "15:2", "15:3", "15:7",  ## its ports,
 		"11:7", "25:9", "10:15", "10:17", "16:2", "16:3", "16:4", "16:5", "16:6", "16:7", "16:8",  ## the Magnet Train, contest, League,
 		"21:24", "21:26", "23:7", "3:22", "3:28", "9:4",  ## bike gates, Trainer House, Unown dex, Route 43's toll each walk
+		"3:14",  ## the Burned Tower's beasts, released in each player's world (D138)
 	],
 	PokeCoopOwnership.TEAM_ENGINE_FLAGS: [14, 18, 22, 42, 43, 44, 45],  ## ROCKET_SIGNAL_ON_CH20, ROCKETS_IN_*, UNLOCKED_UNOWNS_*
 }
@@ -232,6 +235,23 @@ static func scene_request(request: Variant) -> bool:
 		&"objects":
 			return (STORY_OBJECTS.get(map, []) as Array).has(int(event.get("event_flag", -1)))
 	return false
+
+
+const OWN_PRIZES: Array[int] = [66]  ## RED_SCALE: each player's red GYARADOS hands its own (D138), so no story share
+const STORY_HELD: Dictionary = {0x6D4: 96}  ## EVENT_LAKE_OF_RAGE_LANCE, which a later GYARADOS clears, once EVENT_DECIDED_TO_HELP_LANCE
+const HELD_SPRITES: Array[int] = [0xF4]  ## SPRITE_WEIRD_TREE: SUDOWOODO for the team, the TWIN only where that player's is gone
+
+
+static func keep_story(changes: Dictionary, campaign: PokeCoopCampaign) -> void:  ## what a one-off's script does beside it (D138)
+	if not is_game(campaign.game_id):
+		return
+	var erased: Array = (changes.get("event_flags", {}) as Dictionary).get("erase", [])
+	for flag: Variant in erased.duplicate():
+		if campaign.has_flag(int(STORY_HELD.get(int(flag), -1))):
+			erased.erase(flag)
+	var drawn: Dictionary = (changes.get("variable_sprites", {}) as Dictionary).get("set", {})
+	for slot: int in HELD_SPRITES:
+		drawn.erase(slot)
 
 
 static func prize_shares(battle: Gen2Battle, participants: Array) -> Dictionary:  ## D61, D134: one Amulet Coin doubles every share

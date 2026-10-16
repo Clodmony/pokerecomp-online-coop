@@ -3,7 +3,7 @@ extends "res://tools/preview_world_story.gd"
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
-## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag.
+## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]... [level=<n>] [item=<ITEM>:<n>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag, level= growing both starters, item= stocking both bags.
 
 const TRADER: String = "TRADER"
 const JOHTO_NEW: String = "new"
@@ -256,9 +256,28 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 			if not refused.is_empty():
 				push_error("coop seed: %s: %s" % [option, refused])
 				return 1
+		elif option.begins_with("level=") or option.begins_with("item="):
+			var stocked: String = _stock(data, players, option, parts)
+			if not stocked.is_empty():
+				push_error("coop seed: %s" % stocked)
+				return 1
 	var written: Error = _write(data, campaign, players, out_dir)
 	print("coop seed: Johto, %s, %s" % [(players as Array).map(func(member: PokeCoopPlayer) -> String: return "%s on %s %s" % [member.name, member.map, member.cell]), error_string(written)])
 	return 0 if written == OK else 1
+
+
+static func _stock(data: GameData, players: Array, option: String, parts: PackedStringArray) -> String:  ## level= or item=, for both
+	var item: int = named(data, "item", parts[0]) if option.begins_with("item=") else 0
+	if option.begins_with("item=") and item <= 0:
+		return "no item named %s" % parts[0]
+	for member: PokeCoopPlayer in players:
+		if item > 0:
+			member.give_item(item, int(parts[1]) if parts.size() > 1 else 1)
+			continue
+		var save := Gen2SaveData.new()
+		save.party = member.team.map(func(entry: Dictionary) -> Gen2SaveMon: return entry["mon"])
+		_raise(data, save, int(parts[0]))
+	return ""
 
 
 static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStringArray) -> String:

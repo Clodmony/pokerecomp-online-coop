@@ -11,6 +11,28 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Johto's beasts and one-off Pokémon, one per player (#180, D138, 2026-10-16)
+
+Each Gold and Silver player now releases their own RAIKOU, ENTEI and SUICUNE at
+the Burned Tower and meets them in their own world, and meets their own
+SUDOWOODO, HO-OH, LUGIA, SNORLAX, red GYARADOS and LAPRAS (D128). The roam
+structs are the player's, the release and the one-offs' fought and hide flags
+are each player's own entries, and the host keeps the WEIRD TREE drawn as
+SUDOWOODO for the team. Each red GYARADOS
+hands its own player a RED SCALE, and once the team has helped LANCE a later
+GYARADOS no longer calls him back to the lake. The Rocket base's ELECTRODEs stay
+the team's (asked of the owner). `coop_seed.gd -- gold new` takes `level=` and
+`item=`. Branch `coop/180-johto-legendaries`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_legendaries`) | 0/3 passing, 13/42 asserts: SILVER's world showed GOLD's release and GOLD's beasts (`ARRAY([243, 244, 245]) != ARRAY([])`), GOLD's catch took SILVER's RAIKOU (`ARRAY([0, 244, 245]) != ARRAY([243, 244, 245])`), SUDOWOODO was gone from SILVER's world and drawn as the TWIN (`[38] expected to equal [82]`), every one-off's flag was the campaign's, GOLD's RED SCALE reached SILVER (`[1] expected to equal [0]`) and SILVER's GYARADOS brought LANCE back |
+| Tests after | `test_coop_johto_legendaries` 3/3; the co-op suites (`-gselect=test_coop`) 383/383; `test_source_budget` 4/4 (comments net zero) |
+| `johto_legendaries` before the fix (the base commit with the new scenario and seed options) | the check failed (the campaign held `1784`); GOLD beat SUDOWOODO, and SILVER, walking into Route 36 afterwards, walked through the cell where the tree stood and A found nothing |
+| `johto_legendaries` after | ok, every capture looked at: GOLD's YES/NO to the SQUIRTBOTTLE, CHIKORITA L60's BODY SLAM on SUDOWOODO L20, GOLD's path north open; SILVER walks in from Violet City and finds the tree standing, drawn as SUDOWOODO, GOLD's actor below it, and SILVER's own tree asks for the SQUIRTBOTTLE |
+| `tools/verify.sh johto_legendaries gold_and_silver` | VERIFY |
+| Not run | The Burned Tower release, a roamer battle, HO-OH, LUGIA, SNORLAX, the red GYARADOS, LAPRAS and LANCE in a window (session tests only); a partner joining another player's legendary battle; German Gold and Silver; Windows; played |
+
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
 
 The owner chose that a Pokémon left in a day care keeps its uid (#196). The
