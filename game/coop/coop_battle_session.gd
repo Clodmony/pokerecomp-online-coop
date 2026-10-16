@@ -595,6 +595,8 @@ static func _battler_view(member: Gen2BattleMon) -> Dictionary:
 		"max_hp": member.max_hp(), "status": member.status, "moves": member.moves.duplicate(),
 		"pp": member.pp.duplicate(), "max_pp": range(member.moves.size()).map(member.max_pp), "disabled": member.disabled_slot,
 		"substitute": Gen2Substatus.has(member.substatus, Gen2Substatus.SUBSTITUTE), "minimized": member.minimized,
+		"item": member.item, "exp": member.exp, "gender": String(member.gender()), "shiny": Gen2Stats.is_shiny(member.dvs),
+		"unown_form": Gen2Battle.unown_form_of(member),
 	}
 
 

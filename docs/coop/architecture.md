@@ -98,8 +98,10 @@ Further findings that shape the design:
    drawn on the world's own screen (D99). In a shared battle
    `PokeCoopBattlePanel` holds the choices, who decides and the partners'
    suggestions, `PokeCoopBattleMenu` shows them as the cartridge's
-   FIGHT/PKMN/ITEM/RUN menus, and `PokeCoopBattleField` draws the battle inside
-   the world's 160x144 screen (D98), its pictures
+   FIGHT/PKMN/ITEM/RUN menus (on Gold and Silver `BattlePack`'s four pockets and
+   `ItemSubmenu`), and `PokeCoopBattleField` draws the battle inside
+   the world's 160x144 screen (D98), with Gold and Silver's own animations, panels
+   and lines where the cartridge's generation asks (#176), its pictures
    kept in a `PokeCoopBattleStage` tilemap (D39), and
    `PokeCoopLinkTransport` is the Cable Club's cable to the partner (D31).
    `tools/coop_play.gd` assembles a

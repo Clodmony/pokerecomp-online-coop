@@ -12,6 +12,7 @@ const RECIPIENT: StringName = &"recipient"
 const ASK: StringName = &"ask"
 const LEARN: StringName = &"learn"
 const MIMIC: StringName = &"mimic"
+const USE: StringName = &"use"
 const FIGHT: int = 0
 const PKMN: int = 1
 const ITEM: int = 2
@@ -42,6 +43,8 @@ var _menu_page: Gen2MenuPage = null
 var _party_page: Gen2PartyMenuPage = null
 var _mart_page: Gen2MartPage = null
 var _party_shown: Array = []
+var _pack_page: Gen2PackPage = null
+var _pocket: int = 0
 
 
 static func over(session: PokeCoopClient, game: GameData) -> PokeCoopBattleMenu:
@@ -71,6 +74,7 @@ func update(view: Dictionary, rows: Array) -> void:
 	if fresh:
 		_main = FIGHT
 		_moved = 0
+		_pocket = 0
 	_key = key
 	reopen()
 
@@ -209,6 +213,9 @@ func _press_list(button: int) -> Dictionary:
 			if page == MOVES:
 				_moved = cursor
 			return {"point": _pointed()}
+		PokeButton.LEFT, PokeButton.RIGHT:
+			var repeat: bool = Gen2InputRuntime.instance() != null and Gen2InputRuntime.instance().press_is_repeat
+			return _turn_pocket(1 if button == PokeButton.RIGHT else -1) if page == BAG and _pockets() and not repeat else {}
 		PokeButton.B:
 			return _back()
 		PokeButton.A:
@@ -217,9 +224,23 @@ func _press_list(button: int) -> Dictionary:
 	return {}
 
 
+func _turn_pocket(step: int) -> Dictionary:
+	_pocket = posmod(_pocket + step, Gen2WorldPack.pocket_order(data).size())
+	return _go(BAG, 0)
+
+
+func _pockets() -> bool:
+	return data != null and data.generation != RomRegistry.GEN1
+
+
+func pocket() -> int:
+	var order: Array[int] = Gen2WorldPack.pocket_order(data)
+	return order[posmod(_pocket, order.size())]
+
+
 func _back() -> Dictionary:
 	match page:
-		RECIPIENT:
+		RECIPIENT, USE:
 			return _go(BAG, _entry_of(_ball))
 		LEARN:
 			return _stop_learning()
@@ -242,12 +263,25 @@ func _pick() -> Dictionary:
 			var entries: Array = _entries()
 			if cursor >= entries.size():
 				return _go(MAIN, _main)
-			var entry: Dictionary = entries[cursor]
-			if (entry["rows"] as Array).size() > 1:
-				_ball = int(entry["item"])
-				return _go(RECIPIENT, maxi(0, _list(RECIPIENT).find_custom(_mine)))
-			return _chosen(int(entry["rows"][0]))
+			_ball = int(entries[cursor]["item"])
+			return _go(USE, 0) if _pockets() else _use_item(entries[cursor])
+		USE:
+			return _use_item(_entries()[_entry_of(_ball)]) if _use_labels()[cursor] == "USE" else _go(BAG, _entry_of(_ball))
 	return _chosen(current())
+
+
+func _use_item(entry: Dictionary) -> Dictionary:  ## `ItemSubmenu`'s USE: whom a ball is for, or why nothing can use it
+	var rows: Array = entry["rows"]
+	if rows.size() > 1:
+		return _go(RECIPIENT, maxi(0, _list(RECIPIENT).find_custom(_mine)))
+	if rows.is_empty():
+		return {"say": Gen2BattleScreen.BALL_BLOCKED_TEXT if Gen2WorldPartyHost.is_ball(data, _ball) and bool(_view.get("trainer", false))
+			else _de("It won't have any\neffect.")}
+	return _chosen(int(rows[0]))
+
+
+func _use_labels() -> Array:
+	return Gen2WorldPack.battle_submenu(data, _ball).map(func(entry: Dictionary) -> String: return String(entry["label"]))
 
 
 ## `.use_move`'s two refusals, said and then the list again.
@@ -302,7 +336,7 @@ func _ask_forget() -> Dictionary:
 
 func _stop_learning() -> Dictionary:
 	var move: String = _move_name(int((_view.get("learning", {}) as Dictionary).get("move", 0)))
-	return _question(Gen2MoveForget.stop_text(move, RomRegistry.GEN1), {"choose": _command("decline")}, {"forget_ask": true})
+	return _question(Gen2MoveForget.stop_text(move, data.generation), {"choose": _command("decline")}, {"forget_ask": true})
 
 
 func _question(text: String, yes: Dictionary, no: Dictionary, battle_box: bool = false) -> Dictionary:
@@ -321,7 +355,10 @@ func current() -> int:
 			return _ally_row(int(allies[cursor]["index"])) if cursor < allies.size() else -1
 		BAG:
 			var entries: Array = _entries()
-			return int(entries[cursor]["rows"][0]) if cursor < entries.size() and entries[cursor]["rows"].size() == 1 else -1
+			return int(entries[cursor]["rows"][0]) if not _pockets() and cursor < entries.size() and entries[cursor]["rows"].size() == 1 else -1
+		USE:
+			var rows: Array = _item_rows(_ball)
+			return int(rows[0]) if cursor == 0 and rows.size() == 1 and _use_labels()[0] == "USE" else -1
 		NONE:
 			return -1
 	var rows: Array = _list(page)
@@ -330,7 +367,7 @@ func current() -> int:
 
 func _pointed() -> int:
 	var entries: Array = _entries() if page == BAG else []
-	return int(entries[cursor]["rows"][0]) if cursor < entries.size() else current()
+	return int(entries[cursor]["rows"][0]) if cursor < entries.size() and not entries[cursor]["rows"].is_empty() else current()
 
 
 func _count() -> int:
@@ -343,6 +380,8 @@ func _count() -> int:
 			return (_view.get("allies", []) as Array).size()
 		BAG:
 			return _entries().size() + 1
+		USE:
+			return _use_labels().size()
 	return _list(page).size()
 
 
@@ -356,7 +395,10 @@ func _list(of: StringName) -> Array:
 	return out
 
 
-func _entries() -> Array:
+func _entries(in_pocket: int = -1) -> Array:
+	if _pockets():
+		return _pack_items(_pocket if in_pocket < 0 else in_pocket).map(func(item: int) -> Dictionary:
+			return {"item": item, "rows": _item_rows(item)})
 	var out: Array = []
 	for index: int in _rows.size():
 		var command: Dictionary = (_rows[index] as Dictionary).get("command", {})
@@ -370,8 +412,24 @@ func _entries() -> Array:
 	return out
 
 
-func _entry_of(item: int) -> int:
-	return maxi(0, _entries().find_custom(func(entry: Dictionary) -> bool: return int(entry["item"]) == item))
+func _entry_of(item: int, in_pocket: int = -1) -> int:
+	return maxi(0, _entries(in_pocket).find_custom(func(entry: Dictionary) -> bool: return int(entry["item"]) == item))
+
+
+func _pack_items(in_pocket: int) -> Array:
+	var bag: Dictionary = {}
+	var held: Dictionary = client.me().get("items", {})
+	for item: Variant in held:
+		bag[int(item)] = int(held[item])
+	var pockets: Array = Gen2WorldPack.build(data, Gen2WorldState.new({}, {}, bag, {}))
+	var listed: Array = (pockets[in_pocket] as Dictionary).get("items", []) if in_pocket < pockets.size() else []
+	return listed.map(func(row: Dictionary) -> int: return int(row["item"]))
+
+
+func _item_rows(item: int) -> Array:
+	return range(_rows.size()).filter(func(index: int) -> bool:
+		var command: Dictionary = (_rows[index] as Dictionary).get("command", {})
+		return String(command.get("type", "")) == "item" and int(command.get("item", 0)) == item)
 
 
 func _mine(row: int) -> bool:
@@ -424,6 +482,8 @@ func button_toward(target: int) -> int:
 		NONE:
 			return PokeButton.A if place.get("page") == ASK and _session("stand_in") >= 0 else (
 				PokeButton.B if place.get("main") == RUN else PokeButton.NONE)
+	if page in [BAG, USE] and place.has("pocket"):
+		return _pack_toward(place)
 	if page == BAG and place.get("page") == RECIPIENT:
 		return _step_toward(int(place["entry"]))
 	if page == place.get("page") and place.has("at"):
@@ -454,6 +514,12 @@ func _ask_toward(place: Dictionary, target: int) -> int:
 	return PokeButton.B
 
 
+func _pack_toward(place: Dictionary) -> int:
+	if page == USE:
+		return PokeButton.B if int(place["item"]) != _ball else (PokeButton.A if cursor == 0 else PokeButton.UP)
+	return PokeButton.RIGHT if int(place["pocket"]) != _pocket else _step_toward(int(place["entry"]))
+
+
 func _step_toward(at: int) -> int:
 	return PokeButton.A if at == cursor else (PokeButton.DOWN if at > cursor else PokeButton.UP)
 
@@ -470,11 +536,16 @@ func _place_of(target: int) -> Dictionary:
 			return {"page": PARTY, "main": PKMN,
 				"at": allies.find_custom(func(ally: Dictionary) -> bool: return int(ally["index"]) == int(command["index"]))}
 		"item":
-			var entry: int = _entry_of(int(command["item"]))
-			var rows: Array = _entries()[entry]["rows"] if not _entries().is_empty() else []
+			var item: int = int(command["item"])
+			var held: int = Gen2WorldPack.pocket_order(data).find(Gen2WorldPack.pocket_for(data, item)) if _pockets() else -1
+			var entry: int = _entry_of(item, held)
+			var rows: Array = _item_rows(item)
+			var out: Dictionary = {"page": BAG, "at": entry, "entry": entry, "main": ITEM, "item": item}
+			if _pockets():
+				out["pocket"] = held
 			if rows.size() > 1:
-				return {"page": RECIPIENT, "entry": entry, "at": rows.find(target), "main": ITEM}
-			return {"page": BAG, "at": entry, "main": ITEM}
+				out.merge({"page": RECIPIENT, "at": rows.find(target)}, true)
+			return out
 		"learn":
 			return {"page": LEARN, "at": _list(LEARN).find(target)}
 		"mimic":
@@ -587,7 +658,7 @@ func _row_at(at: int) -> int:
 
 
 func signature() -> String:
-	return "%s|%d|%d|%s|%s|%s|%d|%s|%s|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(), _ask.get("text", ""),
+	return "%s|%d|%d|%s|%s|%s|%d|%s|%s|%d|%s" % [page, cursor, _scroll, marks(), _note, _key, _spelling(), spelled(), _ask.get("text", ""), _pocket,
 		_party_page.animation_signature() if _party_page != null and page == PARTY else ""]
 
 
@@ -616,8 +687,9 @@ func image() -> Image:
 			_draw_moves(out)
 		PARTY:
 			_draw_party(out)
-		BAG, RECIPIENT:
-			_draw_bag(out)
+		BAG, RECIPIENT, USE:
+			if not _draw_pack(out):
+				_draw_bag(out)
 		ASK:
 			_text_box(out, _box_lines(String(_ask["text"])))
 			_put(out, _yes_no_box(), ["YES", "NO"], cursor)
@@ -660,10 +732,13 @@ func _mark_tile(at: int) -> Vector2i:
 			return _recipient_box().cursor_position(at)
 		PARTY:
 			var row: int = at - _scroll
-			return Vector2i(Gen2PartyMenuPage.CURSOR_COLUMN, Gen2PartyMenuPage.GEN1_CURSOR_ROW + row * Gen2PartyMenuPage.ROW_STEP) \
-				if row >= 0 and row < PARTY_ROWS else hidden
+			var top: int = _party_page.cursor_row if _party_page != null else Gen2PartyMenuPage.GEN1_CURSOR_ROW
+			return Vector2i(Gen2PartyMenuPage.CURSOR_COLUMN, top + row * Gen2PartyMenuPage.ROW_STEP) if row >= 0 and row < PARTY_ROWS else hidden
 		BAG:
 			var row: int = at - _scroll
+			if _pockets():
+				return Vector2i(Gen2PackPage.CURSOR_COLUMN, Gen2PackPage.FIRST_ROW + row * Gen2PackPage.ROW_SPACING) \
+					if row >= 0 and row < Gen2PackPage.LIST_HEIGHT else hidden
 			return Vector2i(Gen2MartPage.GEN1_CURSOR_COLUMN, Gen2MartPage.GEN1_NAME_AT.y + row * Gen2MartPage.ROW_STEP) \
 				if row >= 0 and row < Gen2MartPage.GEN1_CURSOR_ROWS else hidden
 	return hidden
@@ -740,7 +815,10 @@ func _party_prompt(allies: Array) -> String:
 		first = _de("%s decides.") % _name(String(_view.get("controller", "")))
 	if first.contains("\n") or cursor >= allies.size():
 		return first
-	return first + "\n" + _de("%s's POKéMON") % _name(String(allies[cursor].get("owner", "")))
+	var owner: String = String(allies[cursor].get("owner", ""))
+	if _pockets():
+		return first if owner == client.player_id or not _controls() else _de("%s's POKéMON") % _name(owner)
+	return first + "\n" + _de("%s's POKéMON") % _name(owner)
 
 
 ## `DisplayBagMenu`'s list, CANCEL last, and the players a ball could be thrown for over it.
@@ -768,6 +846,38 @@ func _draw_bag(out: Image) -> void:
 	out.blend_rect(list, Rect2i(Vector2i.ZERO, list.get_size()), Vector2i.ZERO)
 	if page == RECIPIENT:
 		_draw_recipients(out)
+
+
+func _draw_pack(out: Image) -> bool:  ## `BattlePack`'s own screen, `ItemSubmenu` or the ball's recipients over it
+	if _pack_page == null and _pockets():
+		_pack_page = Gen2PackPage.from_data(data)
+	if _pack_page == null or not _pack_page.ready():
+		return false
+	var entries: Array = _entries()
+	var at: int = cursor if page == BAG else _entry_of(_ball)
+	var bag: Dictionary = client.me().get("items", {})
+	var listed: Array = entries.map(func(entry: Dictionary) -> Dictionary: return {"item": entry["item"],
+		"name": data.item_name(int(entry["item"])), "quantity": int(bag.get(entry["item"], bag.get(str(entry["item"]), 1)))})
+	var scroll: int = Gen2BattleMenu.list_scrolled(_scroll if page == BAG else 0, at, listed.size() + 1, Gen2PackPage.LIST_HEIGHT)
+	_scroll = scroll if page == BAG else _scroll
+	var text: String = Gen2WorldPack.row_description(data, int(entries[at]["item"])) if at < entries.size() else ""
+	if page == RECIPIENT:
+		text = _de("Who gets\n%s?") % _species_name(int((_view.get("enemy", {}) as Dictionary).get("species", 0)))
+	var map: PackedInt32Array = _pack_page.pocket_map(_pocket, Gen2WorldPack.list_rows(data, pocket(), listed, scroll, true,
+		Gen2PackPage.LIST_HEIGHT), at - scroll if page == BAG else -1, text, data.pack_pocket_name(_pocket))
+	if page == USE:
+		_pack_page.draw_menu(map, _use_box(), _use_labels(), cursor)
+	elif page == RECIPIENT:
+		_pack_page.draw_menu(map, _recipient_box(), _recipients(), cursor)
+	var drawn: Image = _pack_page.image(data, map, _pocket)
+	out.blit_rect(drawn, Rect2i(Vector2i.ZERO, drawn.get_size()), Vector2i.ZERO)
+	return true
+
+
+func _use_box() -> Gen2MenuBox:
+	var bottom: int = Gen2StartMenuScreen.ITEM_MENU_BOTTOM
+	return Gen2MenuBox.from_coords(Gen2StartMenuScreen.GOLD_ITEM_MENU_LEFT, bottom - 2 * _use_labels().size(),
+		Gen2StartMenuScreen.GOLD_ITEM_MENU_RIGHT, bottom, Gen2StartMenuScreen.SUBMENU_FLAGS)
 
 
 func _draw_recipients(out: Image) -> void:
@@ -841,7 +951,7 @@ func _party_row(ally: Dictionary) -> Dictionary:
 	return {
 		"index": int(ally["index"]), "species": int(ally["species"]), "name": _ally_name(ally),
 		"level": int(ally["level"]), "hp": int(ally["hp"]), "max_hp": int(ally["max_hp"]),
-		"status": int(ally.get("status", 0)), "fainted": int(ally["hp"]) <= 0,
+		"status": int(ally.get("status", 0)), "fainted": int(ally["hp"]) <= 0, "item": int(ally.get("item", 0)) if _pockets() else 0,
 	}
 
 

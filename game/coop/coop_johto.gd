@@ -232,3 +232,15 @@ static func scene_request(request: Variant) -> bool:
 		&"objects":
 			return (STORY_OBJECTS.get(map, []) as Array).has(int(event.get("event_flag", -1)))
 	return false
+
+
+static func prize_shares(battle: Gen2Battle, participants: Array) -> Dictionary:  ## D61, D134: one Amulet Coin doubles every share
+	var out: Dictionary = {}
+	var amulet: bool = battle.amulet_coin
+	for player_id: Variant in participants:
+		var paid: int = int(Gen2Battle.prize_money_split(battle.battle_reward, amulet, 0, 0, Gen2WorldInventory.MAX_MONEY)["wallet"]) \
+			if battle.battle_reward > 0 else 0
+		paid += Gen2Battle.double_reward(battle.pay_day_money) if amulet else battle.pay_day_money
+		if paid > 0:
+			out[String(player_id)] = paid
+	return out

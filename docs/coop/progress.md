@@ -11,6 +11,43 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver battles on their own screen (#176, D134, 2026-10-16)
+
+A shared battle on a Gold or Silver cartridge now plays as the Generation 2
+battle screen does (D125's rule). `PokeCoopBattleField` starts Gold and Silver's
+own animation scripts (`ANIM_SEND_OUT_MON` and its shiny pass, every move, the
+after-animations with their hit sounds, the ball toss with its wobbles), plays
+their sounds, cries, menu click, RUN and victory music, and words the trainer's
+"<CLASS NAME> wants to battle!", "sent out" and "was defeated!" and the catch's
+"Gotcha!". The panels carry gender signs, shiny colours and the exp bar, which
+moves with each award and level; the player's panel comes up at `HUD_DRAWN`,
+and the player turns CHRIS's back. The menu's PACK is `BattlePack`: ITEMS,
+BALLS, KEY ITEMS and TM/HM turned with LEFT and RIGHT (a held direction's repeat
+does not turn them), each item's description, and `ItemSubmenu`'s USE and QUIT
+(QUIT only for a key item or a TM); a ball goes on to whom it is for. The party
+list shows each Pokémon's held item and, on a partner's Pokémon, its owner. The
+host's view carries each battler's held item, gender, shininess, Unown letter and
+exp; a BERRY works for whoever holds it and stays eaten in its owner's team.
+Prizes were one quarter on Gold and Silver: `PokeCoopJohto.prize_shares` pays
+`BattleWon.give_money`'s four quarters to every participant (D61), and an Amulet
+Coin any participant's Pokémon carries in doubles every share (the owner's
+choice, D134). A Gold tool host
+(`coop_session.gd host gold`) gives its players Johto items (a POTION, POKé
+BALLs, the BICYCLE, TM01), a BERRY on BLUE's level 20 SQUIRTLE and offers
+FALKNER, for the new `johto_battle` scenario. Red and Blue battles are
+unchanged. Branch `coop/176-johto-battles`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_battles`) | 1/8 passing (the POTION was already used from the pack): no `item` in the battle view; no pockets (`pocket()`); `[0, 0] != [0, 173]` (no held item in the party list); prizes `[1386, 1386]` where the cartridge pays `[5544, 5544]`, and `[5544, 11088]` with an Amulet Coin; no `player_shiny` in the field's view; the send-out `[null, send_out]` (Red and Blue's poof and grow) |
+| Screens before (Gold host, Silver joining a wild PIDGEY) | no back picture in the intro, no gender signs, no move animations (only Generation 1's were started), Red and Blue's POTION number (a REPEL on Gold) offered nothing to use |
+| Tests after | `test_coop_johto_battles` 8/8; the whole suite 5223/5223 (Red and Blue's co-op suites unchanged) |
+| D134 changed to the owner's rule | the coin test first failed `[5544, 11088] != [11088, 11088]` on the provisional per-carrier rule; now `test_coop_johto_battles` 9/9 with a coin on the opening Pokémon too; `tools/verify.sh johto_battle`: GUT 5224/5224 and every stage ok (run `20261016-012951`) |
+| Screens after, `johto_battle` (imported Gold and Silver) | RED's party list with the held-item mark on BLUE's SQUIRTLE; the switch, CHRIS's back, gender signs, Gold's move animations (WATER GUN, MUD-SLAP); BLUE's PACK on ITEMS (POTION x2, "Restores POKéMON HP by 20."), BALLS, KEY ITEMS (BICYCLE), TM/HM (TM01 DYNAMICPUNCH) and USE/QUIT; "SQUIRTLE recovered 20HP!" over BLUE's own two; the BERRY eaten once SQUIRTLE fell under half (host log); "LEADER FALKNER is about to use PIDGEOTTO" and NO; the exp bar after "gained 217 EXP. Points!"; "LEADER FALKNER was defeated!" as FALKNER slides back; "BLUE got ¥900 for winning!". Every capture looked at |
+| `tools/verify.sh johto_battle gold_and_silver start_coop_menu` | import, GUT 5223/5223, gates, boot, ENet demo, ENet demo gold, three processes, `johto_battle`, `gold_and_silver` and `start_coop_menu` ok (run `20261016-011228`); Red's battle unchanged (RED's back, FIGHT/PKMN/ITEM/RUN) |
+| Not run | Crystal (#185); German Gold and Silver (#50); a shiny or Unown on screen (tests only); weather on screen; a catch on Gold (the toss is tested, not looked at); Windows; played |
+| Left over | Mom's savings take nothing from a co-op prize; the exp bar jumps rather than fills; Baton Pass, SHIFT's Generation 2 wording, Mimic and the Gen 2 trainer AI stay with #149; the battle party list has no CANCEL row |
+
 ## Sharing Johto's world (#174, D132, 2026-10-16)
 
 Gold and Silver no longer run on Red and Blue's sharing tables. Johto's map

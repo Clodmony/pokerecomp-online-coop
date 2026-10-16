@@ -2158,6 +2158,18 @@ for that window's Pokégear; the clock itself does not move), and battles fought
 on the host keep their default time of day for Moonlight, Morning Sun and
 Synthesis until co-op battles on the Generation 2 screen (#176) pass it.
 
+## D134. One Amulet Coin doubles every participant's prize (#176, owner, 2026-10-16)
+
+D61 pays every participant the full prize. On Gold and Silver the engine's
+`amulet_coin` is one flag for the whole allied side, set when any Pokémon holding
+the coin comes in. Asked whether a partner's coin should double everyone's prize
+or only its carrier's player's, the owner chose everyone's: the players are a
+team, as with a story gate one clears (D91). `PokeCoopJohto.prize_shares` reads
+the side's flag and doubles the prize and Pay Day for every participant. The
+prize is `BattleWon.give_money`'s four quarters (the host paid one quarter
+before). Mom's savings are not taken from a co-op prize yet: the whole of it goes
+to the wallet.
+
 ## D135. A Johto day care lives in its player's world (2026-10-16)
 
 D128 gives each Gold and Silver player their own day care. The cartridge keeps
