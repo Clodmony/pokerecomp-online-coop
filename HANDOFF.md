@@ -39,11 +39,11 @@ branch and draft PR per issue; the owner approved merging them in this order.
   to a later team gate); a late joiner keeps the Pokégear, Pokédex, Potion and
   five Poké Balls (#191); an Amulet Coin carried in by any participant doubles
   every participant's prize (D134, in #194).
-- Open owner questions from the PRs: daylight saving stays each window's own
-  and does not move the shared clock (#190); battles fought on the host do not
-  yet use the campaign's time of day for Moonlight, Morning Sun, Synthesis
-  (#190, goes with #176 or #149); a Pokémon in the day care comes back under a
-  new uid (D135).
+- Owner's answers to the PRs' questions (2026-10-16): daylight saving stays
+  each window's own and never moves the shared clock (add "the owner's choice"
+  to D133 with the next docs change that touches it); battles fought on the
+  host take the campaign's time of day in a follow-up, #195 (after #194); a
+  Pokémon keeps its uid through the day care, #196 (changes D135).
 - Merging the last two: in the main checkout, `git merge --no-ff`, resolve the
   docs by keeping both sides (progress entries newest first, decisions by
   number, test cases by J number), run `tools/verify.sh` with the PR's
@@ -60,7 +60,8 @@ branch and draft PR per issue; the owner approved merging them in this order.
   autoplay of the opening exist), #180 roamers and legendaries (after #193),
   #181 Cable Club and Mystery Gift and #149 battle questions (after #194),
   #188 the Gold tool host's items and the tab's default name (small; #194
-  gives the Gold tool host Johto items and FALKNER already).
+  gives the Gold tool host Johto items and FALKNER already), #195 battle time
+  of day (after #194), #196 the day care keeps a uid.
 - Need the owner first: #182 the Time Capsule's design; #184 RED on Mt.
   Silver joined or per player. #185 Crystal comes last.
 - Outside M14: the owner's hand-played Red/Blue session (`readiness.md`), #140's
