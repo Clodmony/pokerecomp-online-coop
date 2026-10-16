@@ -11,6 +11,34 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver's Cable Club and Mystery Gift between players (#181, D137, 2026-10-16)
+
+Two Gold and Silver players now trade in the Trade Center, battle each other at
+the Colosseum's table and swap Mystery Gifts (D137). The cable named every
+partner a Generation 1 Game Boy, so Gold's receptionist answered "You can't
+link to the past here."; it now carries the partner's game, seats the two on
+opposite sides of the table (`CableClubCheckWhichChris`) and pairs players by
+Gold's own link rooms. Gold's trade screen waits on a partner over the network
+as the Generation 1 screen did; held items travel and a Pokémon holding its
+trade item evolves, spending it. The Colosseum's battle goes to the host as one
+battle between the two players (`PokeCoopVersus`, `colosseum`), after which both
+parties come back as saved and each window writes its link record. Mystery Gift
+is GIFT in the co-op menu once both have heard the girl on Goldenrod Dept. Store
+5F; the host keeps each player's `sMysteryGiftData`, makes the exchange for both
+on the campaign's clock and both windows show the MYSTERY GIFT screen's box.
+`coop_seed.gd gold new` takes `mon=` (with a held item). Protocol 10. Branch
+`coop/181-johto-cable-club`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_cable_club` on the base tree) | 1/5 passing. The receptionist's check failed (`other_player_link_mode` 0, "not \"You can't link to the past here.\""; the peer's generation 1); three Gold players paired by id, not by room (`["p2"] expected ["p3"]`); a GIFT invitation and the public `gift` key did not exist; the Colosseum's ask started no battle. The held item and the METAL COAT evolution already passed through the host's swap |
+| Tests after | `test_coop_johto_cable_club` 5/5; all `test_coop_johto*` 35/35 |
+| Screens (scripted), `johto_trade` | GOLD and SILVER save at Goldenrod's TRADE receptionist, come in, sit on opposite sides; both wait under WAITING..!, GOLD's movie "ONIX was sent to SILVER.", SILVER's "SENTRET was sent to GOLD.", "Take good care of ONIX." and ONIX evolves into STEELIX; the host's save: SILVER's STEELIX under GOLD's uid with no item, GOLD's SENTRET under SILVER's uid holding the BERRY |
+| Screens (scripted), `johto_mystery_gift` | Both hear "MYSTERY GIFT. With just a little beep, you get a gift."; the host saved both unlocked; GOLD picks GIFT SILVER, SILVER's window asks "GOLD / MYSTERY GIFT?", YES; GOLD's MYSTERY GIFT screen says "SILVER sent X ACCURACY.", SILVER's "GOLD sent ETHER." (another run: ICE BERRY, and DIGLETT DOLL "to SILVER's home."); the host's save counts each other once with the gift waiting |
+| Screens (scripted), `johto_colosseum` | Both save at the COLOSSEUM receptionist and sit down; ONIX against SENTRET on the co-op field from each side, "SILVER was defeated!", YOU LOSE, GOLD's RECORD SILVER 1 0 0 and SILVER's RECORD GOLD 0 1 0, back at the table; the host's save holds both parties as seeded |
+| Not run | A gift picked up from the delivery man in a window (the session test drives the window's world); a decoration's room; Gold's Colosseum between three players; German Gold and Silver; Windows; played |
+| Seen, not changed | The versus box's first frame prints `<BOLD_V><BOLD_S>` as text over the VS on Gold (upstream's `Gen2LinkPage.VERSUS_VS`); a Mystery Gift decoration's flag is the campaign's, as every decoration flag is (#174), so it reaches the partner's room too |
+
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
 
 The owner chose that a Pokémon left in a day care keeps its uid (#196). The
