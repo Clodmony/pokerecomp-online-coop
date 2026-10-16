@@ -855,7 +855,7 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	var trainer_class: int = PokeCoopTransport.number(message.get("trainer_class"))
 	var trainer_index: int = PokeCoopTransport.number(message.get("trainer_index"))
 	var encounter_id: String = "" if not initiator.opening.is_empty() else _window_encounter(
-		trainer, trainer_class, trainer_index, (enemies[0] as Gen2BattleMon).species, _vector(message.get("map")), data)
+		trainer, trainer_class, trainer_index, (enemies[0] as Gen2BattleMon).species, _vector(message.get("map")), data, campaign)
 	var unique: bool = not encounter_id.is_empty()
 	if unique and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_DONE:
 		return &"encounter_done"
@@ -886,12 +886,13 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	return &""
 
 
-## One encounter per campaign: a trainer by class and index, or a one-off wild Pokémon where it stands; empty for grass.
+## One encounter per campaign: a trainer by class and index, or a one-off wild Pokémon where it stands; empty for grass and a rematch (D139).
 static func _window_encounter(
-	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i, game_data: GameData = null
+	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i, game_data: GameData = null,
+	held: PokeCoopCampaign = null,
 ) -> String:
 	if trainer:
-		return "trainer:%d:%d" % [trainer_class, trainer_index]
+		return "" if PokeCoopJohto.rematch(game_data, held, trainer_class, trainer_index) else "trainer:%d:%d" % [trainer_class, trainer_index]
 	if PokeCoopPolicy.unique_wild(game_data).has(species):
 		return "static:%d:%d:%d" % [species, map.x, map.y]
 	return ""
@@ -1003,20 +1004,21 @@ func _finish(session: PokeCoopBattleSession) -> void:
 		player(player_id).apply_world_patch({"seen_species": {"set": session.seen.duplicate(), "erase": []}})
 	if outcome == PokeCoopBattleSession.CAUGHT:
 		_file_catch(session.catch, session.id)
-	var prizes: Dictionary = _pay(session) if outcome == &"won" else {}
+	var mom: Dictionary = {}
+	var prizes: Dictionary = _pay(session, mom) if outcome == &"won" else {}
 	if unique and (outcome == &"won" or outcome == PokeCoopBattleSession.CAUGHT):
 		var changes: Dictionary = _victory_changes(session.encounter, encounter_id)
 		var applied: bool = campaign.commit("victory:" + encounter_id, changes)
 		journal.add(PokeCoopLog.HOST, "commit", {"id": "victory:" + encounter_id, "changes": changes, "applied": applied})
 	elif unique:
 		campaign.release_encounter(encounter_id, session.id)
-	var final_view: Dictionary = session.view().merged({"evolvable": session.evolvable_uids(), "prizes": prizes}, true)
+	var final_view: Dictionary = session.view().merged({"evolvable": session.evolvable_uids(), "prizes": prizes, "mom": mom}, true)
 	for player_id: String in session.participants + session.pending_players():
 		var participant: PokeCoopPlayer = player(player_id)
 		participant.battle_id = ""
 		participant.resume_exploration()
 		var seen: Dictionary = session.view_for(player_id)
-		seen.merge({"evolvable": session.evolvable_uids(), "prizes": prizes}, true)
+		seen.merge({"evolvable": session.evolvable_uids(), "prizes": prizes, "mom": mom}, true)
 		(_finished.get_or_add(player_id, []) as Array).append(seen)
 	battles.erase(session.id)
 	_logged_views.erase(session.id)
@@ -1057,10 +1059,10 @@ func _file_catch(caught: Dictionary, battle_id: String) -> void:
 	})
 
 
-func _pay(session: PokeCoopBattleSession) -> Dictionary:
-	var total: int = session.battle.battle_reward + session.battle.pay_day_money
-	var split: Dictionary = PokeCoopJohto.prize_shares(session.battle, session.participants) \
-		if PokeCoopJohto.plays(data) else PokeCoopPolicy.prize_shares(total, session.participants)
+func _pay(session: PokeCoopBattleSession, mom_lines: Dictionary) -> Dictionary:
+	if PokeCoopJohto.plays(data):
+		return PokeCoopJohto.pay(session.battle, session.participants.map(player), mom_lines)
+	var split: Dictionary = PokeCoopPolicy.prize_shares(session.battle.battle_reward + session.battle.pay_day_money, session.participants)
 	for payee: String in split:
 		player(payee).add_money(int(split[payee]))
 	return split

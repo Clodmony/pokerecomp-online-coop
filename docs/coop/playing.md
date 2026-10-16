@@ -253,7 +253,14 @@ session for both and goes back to the Co-op tab.
   screen to move the cursor (one row per swipe of about a row) and tap to
   choose.
 - A won battle pays every participant the whole prize. One EXP.ALL in anyone's
-  bag shares experience over each player's own team, as it would alone.
+  bag shares experience over each player's own team, as it would alone. On
+  Gold and Silver, once you asked your Mom to save, she keeps her share of your
+  own prize ("Sent some to MOM!"); your partner's Mom saves from theirs.
+- **Pokégear and phone (Gold and Silver)**: your Pokégear, its cards and its
+  numbers are yours. A trainer who gives you their number calls only you, and
+  asks your partner for theirs as the first time. A rematch call readies that
+  trainer for you alone, and each of you fights a phone trainer's rematch on
+  your own once the team has beaten them.
 - Gift Pokémon (EEVEE, LAPRAS, a HITMON, the MAGIKARP for sale, fossils) can
   be had once by each player.
 - Evolutions and the whiteout after a loss happen in each owner's own world.

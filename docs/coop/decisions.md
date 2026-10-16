@@ -2169,11 +2169,11 @@ D61 pays every participant the full prize. On Gold and Silver the engine's
 `amulet_coin` is one flag for the whole allied side, set when any Pokémon holding
 the coin comes in. Asked whether a partner's coin should double everyone's prize
 or only its carrier's player's, the owner chose everyone's: the players are a
-team, as with a story gate one clears (D91). `PokeCoopJohto.prize_shares` reads
+team, as with a story gate one clears (D91). `PokeCoopJohto.pay` (`prize_shares` before D139) reads
 the side's flag and doubles the prize and Pay Day for every participant. The
 prize is `BattleWon.give_money`'s four quarters (the host paid one quarter
-before). Mom's savings are not taken from a co-op prize yet: the whole of it goes
-to the wallet.
+before). Mom's savings were not taken from a co-op prize at first, the whole of it going
+to the wallet; D139 gives each player's Mom her share.
 
 ## D135. A Johto day care lives in its player's world (2026-10-16)
 
@@ -2317,3 +2317,38 @@ Costs: a Gold
 campaign hosted before this keeps the one-offs and the release it shared in
 the campaign, so they stay gone for every player, and drops its roamers on
 load, since the campaign held them.
+
+## D139. Each player's own Pokégear (#177, protocol 10, 2026-10-16)
+
+D128 gives each Gold and Silver player their own Pokégear, contacts, calls and
+rematches. Most of it was already the player's: `PokeCoopOwnership` classes the
+phone list, the call timer, a pending special call, Mom's savings and the
+cards' engine flags as the player's, and the radio's knob and channel as each
+window's own. Three things were not:
+
+- **The phone trainers' flags.** On Gold and Silver a trainer's
+  `EVENT_<NAME>_ASKED_FOR_PHONE_NUMBER` and `_READY_FOR_REMATCH` are event
+  flags, which are the campaign's: a rematch call one player took readied the
+  trainer for both, and the partner was asked for the number "again". All 56
+  are each player's own entries in `PokeCoopJohto.OWN_GIFTS`.
+- **A rematch is each player's.** The host fought a trainer once per campaign
+  by class and party, and a refused window battle counts as won in the window,
+  so a phone trainer's rematch (before Goldenrod JOEY's is his first party
+  again) was skipped for everyone once anyone had beaten that party.
+  `PokeCoopJohto.rematch` names a battle with a phone trainer whose first fight
+  the team has won (same class, same party name as the phone list's entry) as
+  no unique encounter: each player fights it on their own, and the partner may
+  join as any battle. The first fight stays the team's.
+- **Mom's share of a prize.** D134 paid the whole prize to the wallet. Each
+  participant's own savings bits and Mom's account now split their prize as
+  `.CheckMomSavings` does (a quarter, half or all to Mom, nothing when her
+  account is full), into that player's world, and the battle's last view
+  names her line per player (`mom`), which the field prints as the cartridge
+  does ("Sent some to MOM!"). **Protocol 10** (the one bump, shared with
+  D137), since a protocol 9 window would leave the line out.
+
+Costs: a trainer beaten before a campaign was hosted (an imported save) has no
+encounter record, so the first rematch after it is the team's once more, then
+each player's. Story calls follow the window whose script queued them: a call
+one player's battle sets up (Elm's about his aide after FALKNER) rings in that
+player's window only.

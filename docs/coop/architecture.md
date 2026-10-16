@@ -165,6 +165,7 @@ Peer 1 is the host.
 | `state` (protocol 9) | adds `clock` on Gold and Silver: `day`, `hour`, `minute`, `second`, `cur_day` of the campaign's clock as sent; a window runs it on by its own time since (D133) |
 | `state` (protocol 10) | `you.trade_partner` adds the partner's `game_id`; `you.mystery_gift` carries the player's `section` (`sMysteryGiftData`) and the last exchange's `round` (`serial`, `outcome`, `gift`, `partner`); public players add `gift` (Mystery Gift unlocked) (D137) |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
+| `battle` (protocol 10) | a final view adds `mom`: on Gold and Silver the line Mom's savings print for each player whose Mom kept a share of their prize (`sent_some_to_mom`, `_half_`, `_all_`, D139) |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
 | `log` | `lines`: other devices' session-log lines, for a device that shares (D59) |

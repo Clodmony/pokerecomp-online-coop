@@ -596,8 +596,12 @@ func _queue_victory(view: Dictionary) -> void:
 	var defeated: String = "" if _gen1() else _screen_text("BattleText_EnemyWasDefeated", view)
 	defeated = _de(data, "%s defeated\n%s!") % [me, _trainer_name(view)] if defeated.is_empty() else defeated
 	var lines: Array = [defeated, said] if trainer else []
-	if prize > 0:
-		lines.append(_de(data, "%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize])
+	var mom: String = String((view.get("mom", {}) as Dictionary).get(panel.client.player_id, ""))  ## `.SentToMomTexts` (D139)
+	if prize > 0 and mom in [String(Gen2Battle.PRIZE_SENT_HALF_TO_MOM), String(Gen2Battle.PRIZE_SENT_ALL_TO_MOM)]:
+		lines.append("Sent half to MOM!" if mom == String(Gen2Battle.PRIZE_SENT_HALF_TO_MOM) else "Sent all to MOM!")
+	elif prize > 0:
+		lines.append(_de(data, "%s got ¥%d\nfor winning!" if trainer else "%s picked up\n¥%d!") % [me, prize]
+			+ ("\nSent some to MOM!" if mom == String(Gen2Battle.PRIZE_SENT_SOME_TO_MOM) else ""))
 	for line: int in lines.size():
 		for page: String in pages(lines[line]):
 			_messages.append({"text": page})

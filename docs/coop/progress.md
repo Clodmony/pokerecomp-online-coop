@@ -11,6 +11,33 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Each Gold and Silver player's own Pokégear (#177, D139, protocol 10, 2026-10-16)
+
+The phone list, call timer, Mom's savings and the Pokégear's cards were already
+each player's. Three gaps: a phone trainer's `_ASKED_FOR_PHONE_NUMBER` and
+`_READY_FOR_REMATCH` event flags were the campaign's, so one player's rematch
+call readied the trainer for both and the partner was asked for the number
+"again"; a phone trainer's rematch was refused by the host as a trainer the team
+had beaten (before Goldenrod JOEY's rematch is his first party), and a window
+counts a refused fight as won, so the rematch was skipped unfought; and the
+host paid a co-op prize all to the wallet, never Mom's share. The 56 phone flags
+are now each player's own entries in `PokeCoopJohto.OWN_GIFTS`;
+`PokeCoopJohto.rematch` makes a battle with a phone trainer whose first fight
+the team won each player's own (no unique encounter); `PokeCoopJohto.pay`
+splits each participant's prize by their own savings bits into their wallet and
+Mom's account, and the battle's last view names Mom's line (`mom`), which the
+field prints. The Johto seed gained `phone=` and `event=<p1|p2>:`; its `level=`
+is #180's (one implementation).
+Branch `coop/177-johto-phone`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix | `test_coop_johto_phone` 0/5: SILVER saw GOLD's `EVENT_JOEY_ASKED_FOR_PHONE_NUMBER` and `_READY_FOR_REMATCH`; both players' juggler rematches were refused (`["encounter_done"] expected to equal [""]`); Mom's share went to the wallet (`[5544, 5544] != [4158, 5544]`, Mom's account `[100, 0] != [1486, 0]`, no `mom` line); `test_coop_ownership` 11/12 (the phone flags routed to the campaign) |
+| Tests after | `test_coop_johto_phone` 5/5, `test_coop_ownership` 12/12, `test_coop_session` 179/179, `test_source_budget` 4/4 |
+| Scenario before the fix | `johto_rematch` on the unfixed host: GOLD's fight with JOEY was won, SILVER's was refused (`rejected ... encounter_done`) and SILVER's window went from "I was waiting for you. Let's battle!" straight to JOEY's after-battle line; check failed (`battles won: 1; rematches of a player's own: 0`) |
+| `tools/verify.sh johto_phone johto_rematch gold_and_silver` | import, GUT 5270/5270, gates, boot, ENet demo, ENet demo gold, three processes, `johto_phone`, `johto_rematch` and `gold_and_silver` ok (run `20261016-122537`); every capture looked at: GOLD's phone card lists MOM, PROF.ELM and JOEY and GOLD calls him ("Hello. This is JOEY... How's it going, GOLD?"), SILVER's lists MOM and PROF.ELM; GOLD beats JOEY's RATTATA as the team's fight, then SILVER fights a rematch of SILVER's own ("SILVER got ¥64 for winning!", host encounter `window:b2`, not unique) |
+| Not run | An incoming call on screen (a world waits 20 game minutes after it opens before the first, `InitCallReceiveDelay`; the session test checks which callers each world may pick); Mom's share on screen (her question is in the opening; the field's line is a test); a rematch at a later party (JOEY2 after Goldenrod); Crystal; Windows; played |
+
 ## Johto's beasts and one-off Pokémon, one per player (#180, D138, 2026-10-16)
 
 Each Gold and Silver player now releases their own RAIKOU, ENTEI and SUICUNE at

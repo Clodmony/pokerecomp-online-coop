@@ -30,6 +30,9 @@ const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the
 		42, 1784, 791, 1852, 792, 1853, 1872, 1904, 1873, 1888,  ## SUDOWOODO, HO-OH, LUGIA, SNORLAX (fought, gone), red GYARADOS, LAPRAS
 		1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
 		0, 1, 2, 3, 4, 5, 6, 7, 0x309, 0x30B, 0x30D, 0x30F, 0x311, 0x75F,  ## a map load's, the League's shut doors, LANCE's room
+		607, 608, 609, 610, 611, 612, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631,  ## each phone trainer's
+		632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 649, 650, 651, 652,  ## _ASKED_FOR_PHONE_NUMBER
+		653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670,  ## and _READY_FOR_REMATCH (D139)
 	],
 	"map_scenes": [  ## the opening's (New Bark Town, the house, Elm's lab, Route 29, Mr. Pokémon), the link rooms, the Fast Ship and
 		"24:4", "24:6", "24:5", "24:3", "26:10", "20:1", "20:2", "20:3", "20:4", "15:1", "15:2", "15:3", "15:7",  ## its ports,
@@ -258,15 +261,21 @@ static func keep_story(changes: Dictionary, campaign: PokeCoopCampaign) -> void:
 		drawn.erase(slot)
 
 
-static func prize_shares(battle: Gen2Battle, participants: Array) -> Dictionary:  ## D61, D134: one Amulet Coin doubles every share
+static func pay(battle: Gen2Battle, members: Array, mom_lines: Dictionary) -> Dictionary:  ## D61, D134: one Amulet Coin doubles every share
 	var out: Dictionary = {}
 	var amulet: bool = battle.amulet_coin
-	for player_id: Variant in participants:
-		var paid: int = int(Gen2Battle.prize_money_split(battle.battle_reward, amulet, 0, 0, Gen2WorldInventory.MAX_MONEY)["wallet"]) \
-			if battle.battle_reward > 0 else 0
-		paid += Gen2Battle.double_reward(battle.pay_day_money) if amulet else battle.pay_day_money
-		if paid > 0:
-			out[String(player_id)] = paid
+	for member: PokeCoopPlayer in members:
+		var savings: int = int((member.world.get("money", {}) as Dictionary).get(Gen2WorldScriptRunner.ACCOUNT_MOMS_MONEY, 0))
+		var split: Dictionary = Gen2Battle.prize_money_split(battle.battle_reward, amulet, int(member.world.get("mom_savings_flags", 0)), savings,
+			Gen2WorldInventory.MAX_MONEY) if battle.battle_reward > 0 else {"wallet": 0, "mom": 0, "shown": 0}
+		var coins: int = Gen2Battle.double_reward(battle.pay_day_money) if amulet else battle.pay_day_money
+		member.add_money(int(split["wallet"]) + coins)
+		if int(split["mom"]) > 0:  ## each player's own Mom saves her share of their prize (D139)
+			member.apply_world_patch({"money": {"set": {Gen2WorldScriptRunner.ACCOUNT_MOMS_MONEY:
+				mini(savings + int(split["mom"]), Gen2WorldInventory.MAX_MONEY)}, "erase": []}})
+			mom_lines[member.player_id] = String(split["line"])
+		if int(split["shown"]) + coins > 0:
+			out[member.player_id] = int(split["shown"]) + coins
 	return out
 
 
@@ -304,3 +313,15 @@ static func note_mystery_gift(data: GameData, member: PokeCoopPlayer, message: D
 	section["backup_item"] = 0
 	Gen2MysteryGift.restore(section)
 	return &""
+
+
+static func rematch(data: GameData, campaign: PokeCoopCampaign, trainer_class: int, trainer_index: int) -> bool:  ## each player's (D139)
+	var name: String = String(data.trainer_party(trainer_class, trainer_index).get("name", "")) if plays(data) else ""
+	for index: int in data.world_phone_contact_count() if plays(data) and trainer_class > 0 and campaign != null else 0:
+		var contact: Dictionary = data.world_phone_contact(index)
+		var first: int = int(contact.get("trainer_number", 0)) - 1  ## the party a phone trainer's first fight, which the team shares, used
+		if int(contact.get("trainer_class", 0)) == trainer_class and first >= 0 \
+				and String(data.trainer_party(trainer_class, first).get("name", "")) == name \
+				and campaign.encounter_state("trainer:%d:%d" % [trainer_class, first]) == PokeCoopCampaign.ENCOUNTER_DONE:
+			return true
+	return false
