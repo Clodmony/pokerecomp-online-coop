@@ -19,6 +19,7 @@ var _blue: PokeCoopClient = null
 var _clients: Array = []
 var _links: Array = []
 var _journals: Array = []
+var _gold_directory: String = ""
 
 
 func before_each() -> void:
@@ -49,6 +50,9 @@ func after_each() -> void:
 		journal.close()
 	_journals = []
 	RomCache.clear(_directory)
+	if not _gold_directory.is_empty():
+		RomCache.clear(_gold_directory)
+		_gold_directory = ""
 	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -502,3 +506,35 @@ func test_friend_invitations_forfeits_and_direct_trade_cancellation_replay() -> 
 	_host.shutdown("host_shutdown", 0)
 	var replayed: Dictionary = LogTool.replay(_lines(_host.journal), _data)
 	assert_eq([replayed["mismatches"], replayed["end"]], [[], "match"], JSON.stringify(replayed))
+
+
+## A battle's Moonlight reads the campaign's clock (#195), so a replay runs each line at the host's second it was logged at.
+func test_a_gold_host_log_replays_moonlight_at_the_time_of_day_it_was_logged() -> void:
+	_gold_directory = RomCache.directory_for(&"coopsessionlogsgold", "0123456789abcdef")
+	_data = Fixture.build(_gold_directory, String(RomRegistry.GOLD), RomRegistry.GEN2)
+	_data.sha1 = RomRegistry.sha1_for(RomRegistry.GOLD)
+	PokeCoopJohto.first_reading = {"day": 5, "hour": 21, "minute": 30, "second": 0}
+	_host = PokeCoopHost.create(_data, PokeCoopCampaign.create("gold1", _data.id, _data.sha1), PokeCoopTransport.new())
+	PokeCoopJohto.first_reading = {}
+	_host.save_path = SAVE_PATH
+	_host.journal = _journal("host", "HOST", true)
+	var lead: Gen2SaveMon = _saved(Fixture.CHARMANDER, 30, [Fixture.MOONLIGHT], 100)
+	lead.hp = 1
+	_host.add_player("GOLD", 100).add_mon(lead)
+	_host.register_encounter("wild:stall", {"species": Fixture.GEODUDE, "level": 30, "moves": [Fixture.GROWL]})
+	var gold: PokeCoopClient = _connect(1, "p1")
+	gold.start_battle("wild:stall")
+	_pump()
+	var battle_id: String = String(gold.current_battle().get("battle", ""))
+	gold.act(battle_id, {"type": "move", "slot": 0})
+	_pump()
+	var max_hp: int = int((gold.battle(battle_id)["allies"] as Array)[0]["max_hp"])
+	assert_eq(int((gold.battle(battle_id)["allies"] as Array)[0]["hp"]), 1 + floori(max_hp / 2.0), "half at 21:30")
+	_host.shutdown("host_shutdown", 0)
+
+	Gen2WorldClock.host_seconds_override = Time.get_unix_time_from_system() + 12 * 3600.0
+	var replayed: Dictionary = LogTool.replay(_lines(_host.journal), _data)
+	var after: float = Gen2WorldClock.host_seconds_override
+	Gen2WorldClock.host_seconds_override = -1.0
+	assert_eq([replayed["mismatches"], replayed["end"]], [[], "match"], "replayed at 9:30 the next morning: " + JSON.stringify(replayed))
+	assert_gt(after, 0.0, "the replay leaves a test's own clock as it found it")

@@ -1,11 +1,16 @@
 extends GutTest
 
 ## Co-op battles on Gold's synthetic Generation 2 fixture (#176): held items,
-## the pack's pockets, the prize and what the field draws for a joined battle.
+## the pack's pockets, the prize and what the field draws for a joined battle;
+## the campaign's time of day in a battle on the host (#195).
 
 const Fixture := preload("res://tests/unit/battle_fixture.gd")
 const SAVE_PATH: String = "user://coop_johto_battles_test.json"
 const NEW_BARK: Vector2i = Vector2i(24, 4)
+const T0: float = 1_800_000_000.0
+const FRIDAY_NIGHT: Dictionary = {"day": 5, "hour": 21, "minute": 30, "second": 0}
+const TO_NOON: float = 14.5 * 3600.0
+const TO_MORNING: float = 9.5 * 3600.0
 
 var _directory: String = ""
 var _data: GameData = null
@@ -36,6 +41,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	Gen2WorldClock.host_seconds_override = -1.0
 	RomCache.clear(_directory)
 	for path: String in [SAVE_PATH, SAVE_PATH + PokeCoopSave.BACKUP_SUFFIX, SAVE_PATH + PokeCoopSave.JOURNAL_SUFFIX]:
 		if FileAccess.file_exists(path):
@@ -236,3 +242,37 @@ func test_an_amulet_coin_on_the_pokemon_that_opens_the_battle_counts_too() -> vo
 	_fight_out(battle_id)
 	assert_eq([_host.player(_gold.player_id).money - int(before[0]), _host.player(_silver.player_id).money - int(before[1])],
 		[99 * 14 * 8, 99 * 14 * 8], "GOLD's lead brought the coin in before anything was sent out")
+
+
+## [param client]'s lead at 1 HP knowing only [param move], once it used it on the first turn of the battle [param start] opens.
+func _after_heal(client: PokeCoopClient, move: int, start: Callable) -> Dictionary:
+	var lead: Gen2SaveMon = _host.player(client.player_id).team[0]["mon"]
+	lead.moves = [move, 0, 0, 0]
+	lead.pp = [5, 0, 0, 0]
+	lead.hp = 1
+	_send(start)
+	var battle_id: String = _battle_of(client)
+	_send(func() -> void: client.act(battle_id, {"type": "move", "slot": 0}))
+	return _ally(client.battle(battle_id), client.player_id)
+
+
+func test_moonlight_heals_by_the_campaigns_time_of_day_in_a_host_battle() -> void:
+	Gen2WorldClock.host_seconds_override = T0
+	_host.campaign.clock = PokeCoopJohto.set_to(FRIDAY_NIGHT, T0)
+	var at_night: Dictionary = _after_heal(_gold, Fixture.MOONLIGHT, func() -> void: _gold.start_battle("wild:stall"))
+	Gen2WorldClock.host_seconds_override = T0 + TO_NOON
+	var at_noon: Dictionary = _after_heal(_silver, Fixture.MOONLIGHT, func() -> void: _silver.start_battle("wild:stall"))
+
+	assert_eq(int(at_night["hp"]), 1 + floori(int(at_night["max_hp"]) / 2.0), "half at 21:30, Moonlight's own time of day (D133)")
+	assert_eq(int(at_noon["hp"]), 1 + floori(int(at_noon["max_hp"]) / 4.0), "a quarter at noon the next day, the clock run on")
+
+
+func test_a_battle_the_window_opened_reads_the_campaigns_clock_too() -> void:
+	Gen2WorldClock.host_seconds_override = T0 + TO_MORNING
+	_host.campaign.clock = PokeCoopJohto.set_to(FRIDAY_NIGHT, T0)
+	var geodude: Dictionary = Gen2SaveBattleAdapter.from_battle_mon(Gen2BattleMon.create(_data, Fixture.GEODUDE, 30, [Fixture.GROWL])).to_dict()
+	var at_seven: Dictionary = _after_heal(_gold, Fixture.MORNING_SUN, func() -> void:
+		_gold.send({"type": "window_battle", "kind": "wild", "enemy": [geodude], "map": [-1, -1], "shift": false}))
+
+	assert_eq(_gold.last_rejection(), &"")
+	assert_eq(int(at_seven["hp"]), 1 + floori(int(at_seven["max_hp"]) / 2.0), "half at 7:00, Morning Sun's own time of day")

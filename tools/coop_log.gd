@@ -214,8 +214,11 @@ static func replay(timeline: Array, data: GameData) -> Dictionary:
 		return line.get("device") == starts[0].get("device") and not line.has("relay"))
 	lines.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return float(first["n"]) < float(second["n"]))
 	var out: Dictionary = {"ok": true, "messages": 0, "mismatches": [], "end": "not logged", "differences": []}
+	var pinned: float = Gen2WorldClock.host_seconds_override
 	for line: Dictionary in lines:
+		Gen2WorldClock.host_seconds_override = float(line.get("ms", -1)) / 1000.0  ## the second it was logged at: a battle's Moonlight reads the campaign's clock
 		_replay_line(host, line, out)
+	Gen2WorldClock.host_seconds_override = pinned
 	var ends: Array = lines.filter(func(line: Dictionary) -> bool: return line.get("kind") == "host_end")
 	var summaries: Array = lines.filter(func(line: Dictionary) -> bool: return line.get("kind") == "campaign")
 	if not ends.is_empty():

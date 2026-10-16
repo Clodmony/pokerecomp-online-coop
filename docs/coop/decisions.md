@@ -2151,12 +2151,17 @@ D128 makes the host's clock the campaign's one clock. How it travels:
   a joiner's opening goes straight to Oak's speech), and any jump the hosting
   window's own scripts make, such as Mom's weekday. A joiner's own jump is put
   back to the host's clock.
+- **Battles on the host read it** (#195). Every Gold or Silver battle the
+  host builds, from the session menu, a window's own or a friend battle, starts
+  at the clock's time of day, as a world's battle screen starts at the world's,
+  so Moonlight, Morning Sun and Synthesis heal by it. A friend battle is a link
+  battle, which skips the time step as the cartridge's do. A replayed host log
+  runs each line at the host second it was logged at.
 - **Protocol 9**, since a window of protocol 8 would keep its own clock.
 
-Left out: daylight saving time stays each window's flag (Mom's question sets it
-for that window's Pokégear; the clock itself does not move), and battles fought
-on the host keep their default time of day for Moonlight, Morning Sun and
-Synthesis until co-op battles on the Generation 2 screen (#176) pass it.
+Left out, the owner's choice (2026-10-16): daylight saving time stays each
+window's flag (Mom's question sets it for that window's Pokégear) and never
+moves the shared clock.
 
 ## D134. One Amulet Coin doubles every participant's prize (#176, owner, 2026-10-16)
 

@@ -113,6 +113,10 @@ static func reading(clock: Dictionary, now: float) -> Dictionary:
 	return moved(clock, now - float(clock.get("stamp", now)))
 
 
+static func time_of_day(clock: Dictionary, now: float) -> int:  ## `wTimeOfDay` on the campaign's clock, what a battle's timed heals read; midday without one
+	return Gen2WorldPalette.TIME_DAY if clock.is_empty() else Gen2WorldClock.time_of_day_at(int(reading(clock, now)["hour"]))
+
+
 static func moved(from: Dictionary, seconds: float) -> Dictionary:  ## the reading [param seconds] later; never earlier
 	var day: int = int(from.get("day", 0))
 	var total: float = fposmod(_seconds(from) + maxf(seconds, 0.0), CLOCK_CYCLE)

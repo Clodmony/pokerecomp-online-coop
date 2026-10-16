@@ -11,6 +11,26 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Battles on the host use the campaign's time of day (#195, D133, 2026-10-16)
+
+Every Gold or Silver battle the host builds (from the session menu, a battle a
+window opened, a friend battle) now starts at the time of day of the
+campaign's clock (`PokeCoopJohto.time_of_day`, set in `PokeCoopHost._open_battle`),
+as a world's own battle screen starts at the world's, so Moonlight, Morning Sun
+and Synthesis heal by the campaign's time (D133). Before, every host battle
+stood at the battle's default, midday. Red and Blue keep no clock and their
+battles stay at that default, which nothing in Generation 1 reads. A friend
+battle is a link battle and skips the time step, as on the cartridge. Because a
+host battle now reads the clock, `tools/coop_log.gd replay` runs each line at
+the host second it was logged at, so a replay at another time of day still
+matches. Branch `coop/195-host-battle-clock`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix | `test_coop_johto_battles` 9/11: Moonlight at 21:30 and Morning Sun at 7:00 healed a quarter, `[19] expected to equal [37]` for both (noon's quarter passed); `test_coop_logs_session` 14/15 with the replay test: a Gold host log replayed at 9:30 the next morning ended `differs` on `players.p1.team` |
+| Tests after | `test_coop_johto_battles` 11/11, `test_coop_logs_session` 15/15, all co-op suites (`test_coop`) 383/383 |
+| Not run | A scenario: the heal shows only as the amount on a host battle's HP bar, and one needs a Gold seed with a Pokémon knowing a timed heal (`coop_seed.gd gold new` has no `mon=` yet, #183) and the tool host at a named clock; `johto_battle` and `gold_and_silver` run unchanged in verify. German Gold and Silver; Windows; played |
+
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
 
 The owner chose that a Pokémon left in a day care keeps its uid (#196). The
@@ -183,7 +203,7 @@ photographs both windows at night. Branch `coop/175-host-clock`.
 | Screens after, `gold_and_silver_night` (imported Gold and Silver, `clock=21:30:5`) | both windows draw New Bark Town in the night palette with lit windows, hint bar "time 21:30"; every capture line reads "at FRIDAY 9:30 PM NITE" in both windows; SILVER's steps south seen from GOLD's window. Every capture looked at |
 | `tools/verify.sh gold_and_silver_night gold_and_silver launcher_host_join` | import, GUT 5224/5224, gates, boot, ENet demo, ENet demo gold, three processes, the three scenarios ok (run `20261016-010134`); `gold_and_silver` now opens at the hosting device's own time (00:49, the night palette), and Red's `launcher_host_join` is unchanged ("time 06:00", Oak's speech). An earlier run found `demo gold`'s "the save reloads both players" failing now and then: the clock's fractional host second did not survive the file's JSON, so the clock is kept in whole seconds and a test reads a saved clock back. Two runs under the load of four other agents also had `test_a_link_the_host_still_holds_is_waited_out_as_the_same_trainer` (ENet timing) and `gold_and_silver` (p1's window never started) fail; both passed alone (`test_coop_device` 41/41) |
 | Not run | Gold's opening in two windows (#173 offers it); Mom's weekday and DST questions in a played window; Windows; played |
-| Left over | daylight saving time stays each window's flag; battles fought on the host keep their default time of day (Moonlight, Morning Sun, Synthesis) until #176 |
+| Left over | daylight saving time stays each window's flag (the owner's choice); battles fought on the host keep their default time of day (Moonlight, Morning Sun, Synthesis) until #176 (done in #195) |
 
 ## Gold and Silver on the Co-op tab (#172, D130, 2026-10-16)
 
