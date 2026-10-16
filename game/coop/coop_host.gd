@@ -748,8 +748,7 @@ func _meet(asked: Dictionary) -> StringName:
 	var session: PokeCoopVersus = PokeCoopVersus.pit(data, battle_id, seeds.randi(), first, second)
 	if session == null:
 		return &"no_fit_pokemon"
-	battles[battle_id] = session
-	_log_battle_start(session)
+	_open_battle(session)
 	return &""
 
 
@@ -799,8 +798,7 @@ func start_battle(initiator: PokeCoopPlayer, encounter_id: String) -> StringName
 		if unique:
 			campaign.release_encounter(encounter_id, battle_id)
 		return &"cannot_start"
-	battles[battle_id] = session
-	_log_battle_start(session)
+	_open_battle(session)
 	return &""
 
 
@@ -849,8 +847,7 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 		if unique:
 			campaign.release_encounter(encounter_id, battle_id)
 		return &"cannot_start"
-	battles[battle_id] = session
-	_log_battle_start(session)
+	_open_battle(session)
 	return &""
 
 
@@ -935,6 +932,12 @@ func join_battle(joiner: PokeCoopPlayer, battle_id: String) -> StringName:
 	if session != null and bool(session.encounter.get("private", false)):
 		return &"private_battle"
 	return &"unknown_battle" if session == null else session.request_join(data, joiner)
+
+
+func _open_battle(session: PokeCoopBattleSession) -> void:  ## Morning Sun, Synthesis and Moonlight read the campaign's clock, as in the world (D133)
+	session.battle.time_of_day = PokeCoopJohto.time_of_day(campaign.clock, Gen2WorldClock.host_seconds())
+	battles[session.id] = session
+	_log_battle_start(session)
 
 
 func _log_battle_start(session: PokeCoopBattleSession) -> void:
