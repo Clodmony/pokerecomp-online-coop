@@ -104,7 +104,12 @@ each merge verified with `tools/verify.sh` before its push:
 
 - Merge, when the owner says so: in the main checkout on
   `pokerecomp-online-coop`, `git merge --no-ff <branch> -m "Merge #N: ..."`,
-  push, delete the merged branch. Never `gh pr merge`.
+  push, delete the merged branch. Never `gh pr merge`. The owner's push guard
+  refuses a merge whose tree equals the branch tip (a branch cut from the
+  integration branch's tip): its review sees no commit. The owner pushed #197's
+  merge with `--no-verify`; a guard fix waits for the owner in
+  `~/dev-scratch/pokerecomp-online-coop/push-guard-merge-fix.md`. The guard's
+  files are the owner's to change.
 - `gh` and `git`: always pass `-R Clodmony/pokerecomp-online-coop`.
 - No session links in commits or PR bodies (D129); PR bodies end with the
   "Generated with Claude Code" line only. The owner's GitHub Support ticket
@@ -131,6 +136,8 @@ each merge verified with `tools/verify.sh` before its push:
 
 - The Superset worktree `quilted-acoustic` (detached at the merge of #197).
 
+- `~/dev-scratch/pokerecomp-online-coop/push-guard-merge-fix.md` once the
+  owner applied or declined it.
 - `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
   `issue-links.tsv` and `coop7.txt` once GitHub Support purged the old refs.
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
