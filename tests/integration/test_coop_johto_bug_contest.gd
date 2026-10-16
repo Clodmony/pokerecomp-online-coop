@@ -286,3 +286,9 @@ func test_a_seed_adds_a_pokemon_to_one_players_party() -> void:
 	var saved: Gen2SaveMon = Seed._johto_mon(_data, player, String(_data.species(Fixture.HOOTHOOT).get("name", "")), 4)
 	assert_eq([saved.species, saved.level, saved.original_trainer, saved.ot_id], [Fixture.HOOTHOOT, 4, "GOLD", 17800])
 	assert_null(Seed._johto_mon(_data, player, "NOBODY", 5), "an unknown species is refused")
+	var campaign := PokeCoopCampaign.create("gold9", _data.id, _data.sha1)
+	var players: Array = [player, PokeCoopPlayer.create("p2", "SILVER", 17801)]
+	assert_true(Seed._johto_option(_data, campaign, players, "mon=p2:%s:6" % _data.species(Fixture.CUBONE).get("name", "")))
+	assert_eq([player.team.size(), (players[1] as PokeCoopPlayer).team.size()], [0, 1], "mon=p2 joins SILVER's party")
+	assert_true(Seed._johto_option(_data, campaign, players, "clock=10:00:2"))
+	assert_eq([campaign.clock["day"], campaign.clock["hour"], campaign.clock["minute"]], [2, 10, 0], "a TUESDAY morning")

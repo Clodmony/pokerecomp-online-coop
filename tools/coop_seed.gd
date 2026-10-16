@@ -256,14 +256,8 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 			if not refused.is_empty():
 				push_error("coop seed: %s: %s" % [option, refused])
 				return 1
-		elif option.begins_with("mon="):
-			var member: PokeCoopPlayer = players[1 if parts[0] == "p2" else 0]
-			if parts.size() != 3 or member.add_mon(_johto_mon(data, member, parts[1], int(parts[2]))).is_empty():
-				push_error("coop seed: %s: no such Pokémon, or no room" % option)
-				return 1
-		elif option.begins_with("clock="):
-			var pin: Dictionary = Gen2WorldClock.parse_pin(PackedStringArray([Gen2WorldClock.PIN_ARGUMENT + option.trim_prefix("clock=")]))
-			campaign.clock = PokeCoopJohto.set_to(pin, Gen2WorldClock.host_seconds()) if not pin.is_empty() else campaign.clock
+		elif not _johto_option(data, campaign, players, option):
+			return 1
 	var written: Error = _write(data, campaign, players, out_dir)
 	print("coop seed: Johto, %s, %s" % [(players as Array).map(func(member: PokeCoopPlayer) -> String: return "%s on %s %s" % [member.name, member.map, member.cell]), error_string(written)])
 	return 0 if written == OK else 1
@@ -294,6 +288,19 @@ static func _day_care(data: GameData, player: PokeCoopPlayer, parts: PackedStrin
 		kept[key] = world[key]
 	player.apply_world_patch(PokeCoopOwnership.patch({}, kept))
 	return ""
+
+
+static func _johto_option(data: GameData, campaign: PokeCoopCampaign, players: Array, option: String) -> bool:  ## mon= and clock=
+	var parts: PackedStringArray = option.substr(option.find("=") + 1).split(":")
+	if option.begins_with("mon="):
+		var member: PokeCoopPlayer = players[1 if parts[0] == "p2" else 0]
+		if parts.size() != 3 or member.add_mon(_johto_mon(data, member, parts[1], int(parts[2]))).is_empty():
+			push_error("coop seed: %s: no such Pokémon, or no room" % option)
+			return false
+	elif option.begins_with("clock="):
+		var pin: Dictionary = Gen2WorldClock.parse_pin(PackedStringArray([Gen2WorldClock.PIN_ARGUMENT + option.trim_prefix("clock=")]))
+		campaign.clock = PokeCoopJohto.set_to(pin, Gen2WorldClock.host_seconds()) if not pin.is_empty() else campaign.clock
+	return true
 
 
 static func _johto_mon(data: GameData, player: PokeCoopPlayer, species_name: String, level: int) -> Gen2SaveMon:
