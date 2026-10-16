@@ -4036,6 +4036,7 @@ func _runtime_variable_readers() -> Dictionary:
 		0x0E: _var_unown_count, # VAR_UNOWNCOUNT
 		0x0F: func() -> Variant: return int(_request.get("environment", -1)), # VAR_ENVIRONMENT
 		0x10: _var_box_free_space, # VAR_BOXSPACE
+		0x11: func() -> Variant: return Gen2WorldBugContest.minutes_remaining(state.bug_contest_started(), clock) if state != null else 0, # VAR_CONTESTMINUTES
 		0x12: func() -> Variant: return _player_cell().x, # VAR_XCOORD
 		0x13: func() -> Variant: return _player_cell().y, # VAR_YCOORD
 		0x14: func() -> Variant: return _current_special_phone_call(), # VAR_SPECIALPHONECALL

@@ -29,6 +29,9 @@ const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the
 		123, 1866, 1867,  ## one each (D138): the beasts' release (EVENT_RELEASED_THE_BEASTS, EVENT_BURNED_TOWER_B1F_BEASTS_*), and
 		42, 1784, 791, 1852, 792, 1853, 1872, 1904, 1873, 1888,  ## SUDOWOODO, HO-OH, LUGIA, SNORLAX (fought, gone), red GYARADOS, LAPRAS
 		1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
+		722, 776, 787, 788, 789, 790, 1844, 1861, 1862, 1863, 1864,  ## the Bug-Catching Contest's (D140): the warp to the judging, the
+		1814, 1815, 1816, 1817, 1818, 1819, 1820, 1821, 1822, 1823,  ## kept party, the prizes the officer holds, the gates' officers and
+		1824, 1825, 1826, 1827, 1828, 1829, 1830, 1831, 1832, 1833,  ## youngster, and the contestants in the park and at the judging
 		0, 1, 2, 3, 4, 5, 6, 7, 0x309, 0x30B, 0x30D, 0x30F, 0x311, 0x75F,  ## a map load's, the League's shut doors, LANCE's room
 		607, 608, 609, 610, 611, 612, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631,  ## each phone trainer's
 		632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 649, 650, 651, 652,  ## _ASKED_FOR_PHONE_NUMBER

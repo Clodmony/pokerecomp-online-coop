@@ -8408,6 +8408,34 @@ func test_the_contest_ends_when_the_park_balls_run_out() -> void:
 	assert_false(world.check_bug_contest_timer().is_empty())
 
 
+## `VAR_BUGCONTEST_MINS_REMAINING`, which both National Park gates read when a player walks out of the contest
+## early: unsupported, it stopped the scene that asks whether to finish, so nobody could leave before the timer.
+## The request's clock carries the second, as `CheckBugContestTimer` counts from the second the contest began.
+func test_readvar_contest_minutes_reads_the_running_timer() -> void:
+	var scripts: Dictionary = RomCache.read_json(RomCache.world_scripts_path(_directory))
+	scripts["48:6660"] = [
+		Gen2WorldScript.READVAR, 0x11,
+		Gen2WorldScript.IFEQUAL, 12, 0x70, 0x66,
+		Gen2WorldScript.END,
+	]
+	scripts["48:6670"] = [Gen2WorldScript.SETEVENT, 41, 0, Gen2WorldScript.END]
+	RomCache.write_json(RomCache.world_scripts_path(_directory), scripts)
+	var data: GameData = GameData.open_directory(_directory)
+
+	var state := Gen2WorldState.new()
+	state.set_bug_contest_started({"day": 2, "hour": 10, "minute": 0, "second": 30})
+	var runner := Gen2WorldScriptRunner.begin(data, state, {
+		"kind": &"test", "bank": 48, "script": 0x6660,
+		"clock": {"day": 2, "hour": 10, "minute": 7, "second": 40},
+	})
+	var answer: Dictionary = runner.advance()
+	assert_eq(answer["status"], &"complete", JSON.stringify(answer))
+	assert_true(state.is_event_flag_active(41), "seven minutes ten seconds in, twelve whole minutes are left")
+	var world := _contest_world()
+	world.world_second = 42
+	assert_eq(int(world._request_defaults()["clock"]["second"]), 42, "a world's script hears the second")
+
+
 func test_ending_the_contest_clears_the_flag_and_keeps_what_was_caught() -> void:
 	var world := _contest_world()
 	world.start_bug_contest()

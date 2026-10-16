@@ -5539,7 +5539,7 @@ func _completed_request(request: Dictionary) -> Dictionary:
 ## is `wXCoord`/`wYCoord`, where "cell" is the one the script hangs off.
 func _request_defaults() -> Dictionary:
 	var defaults: Dictionary = {
-		"clock": world_clock(), "facing": player_facing, "player_cell": player_cell,
+		"clock": _clock_to_the_second(), "facing": player_facing, "player_cell": player_cell,
 		"object_event_flags": _object_event_flags(),
 	}
 	if current_map != null:

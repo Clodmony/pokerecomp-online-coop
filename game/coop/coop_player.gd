@@ -38,6 +38,7 @@ var next_mon_serial: int = 1
 var day_care: Array = []  ## `{uid, mon}` of each Pokémon away in the player's day care, its uid given back on withdrawal (#196)
 var mystery_gift: Dictionary = Gen2MysteryGift.default_section()  ## `sMysteryGiftData` as the player's own cartridge keeps it (#181)
 var gift_round: Dictionary = {}  ## the last Mystery Gift's box for the window: serial, outcome, gift, partner; not saved
+var contest_kept: Array = []  ## `{uid, mon}` of the party the Bug-Catching Contest's officer holds while the lead competes (D140)
 ## While the player plays the opening: its stage, the story it runs on and the rival's name.
 var opening: Dictionary = {}
 ## The player's world state keys other than the bag and wallet ([member items], [member money]). See [PokeCoopOwnership].
@@ -253,22 +254,24 @@ func replace_team(rows: Array) -> bool:
 
 
 ## A window's team and, unless [param stored] is null, its PC, taken only on the latest [member holdings_rev]: the missing were released.
-func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: int) -> StringName:
+func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: int, kept: Variant = null) -> StringName:
 	if based_on != holdings_rev:
 		return &"outdated"
-	var held: Array = team + (box if stored != null else [])
+	var held: Array = team + (box if stored != null else []) + (contest_kept if kept != null else [])
 	var pool: Array = held + day_care
 	var used: Dictionary = {}
 	var next_team: Variant = _matched(rows, pool, used)
 	var next_box: Variant = _matched(stored, pool, used) if stored is Array else box
-	if rows.is_empty() or rows.size() > MAX_TEAM or next_team == null or next_box == null \
-			or _box_counts(next_box).any(func(count: int) -> bool: return count > BOX_CAPACITY):
+	var next_kept: Variant = _matched(kept, pool, used) if kept is Array else contest_kept
+	if rows.is_empty() or rows.size() > MAX_TEAM or next_team == null or next_box == null or next_kept == null \
+			or (next_kept as Array).size() >= MAX_TEAM or _box_counts(next_box).any(func(count: int) -> bool: return count > BOX_CAPACITY):
 		return &"invalid_party"
 	if stored != null and _rows_to_dicts(next_box) != _rows_to_dicts(box):
 		box_rev += 1
 	day_care = _away(pool, held.size(), used)
 	team = next_team
 	box = next_box
+	contest_kept = next_kept
 	current_box = clampi(wanted_box, 0, BOXES - 1)
 	return &""
 
@@ -376,7 +379,7 @@ func private_view() -> Dictionary:
 			"exp": saved.exp, "is_egg": saved.is_egg,
 		})
 	return {
-		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team),
+		"name": name, "trainer_id": trainer_id, "team": rows, "party": _rows_to_dicts(team), "kept": _rows_to_dicts(contest_kept),
 		"box": box.size(), "items": items.duplicate(), "money": money, "world": world_part(),
 		"holdings_rev": holdings_rev, "box_rev": box_rev, "current_box": current_box, "places": places.duplicate(),
 		"opening": {"stage": opening.get("stage", ""), "rival": opening.get("rival", "")} if not opening.is_empty() else {},
@@ -397,6 +400,7 @@ func to_dict() -> Dictionary:
 		"items": item_rows, "money": money,
 		"map": [rest["map"].x, rest["map"].y], "cell": [rest["cell"].x, rest["cell"].y], "facing": int(rest["facing"]),
 		"next_mon_serial": next_mon_serial, "world": world.duplicate(true), "day_care": _rows_to_dicts(day_care),
+		"contest_kept": _rows_to_dicts(contest_kept),
 		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(), "game_id": game_id,
 		"mystery_gift": mystery_gift.duplicate(true),
 	}
@@ -456,6 +460,8 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	out.next_mon_serial = maxi(int(source.get("next_mon_serial", 1)), 1)
 	var cared: Variant = _rows_from_dicts(source.get("day_care", []))
 	out.day_care = cared if cared != null else []
+	var kept: Variant = _rows_from_dicts(source.get("contest_kept", []))
+	out.contest_kept = kept if kept != null and (kept as Array).size() < MAX_TEAM else []
 	out.game_id = PokeCoopTransport.text(source.get("game_id"))
 	out.mystery_gift = Gen2MysteryGift.normalize(source.get("mystery_gift", {}))
 	var raw_world: Variant = source.get("world", {})

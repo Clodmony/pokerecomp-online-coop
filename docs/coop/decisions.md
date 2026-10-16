@@ -2352,3 +2352,40 @@ encounter record, so the first rematch after it is the team's once more, then
 each player's. Story calls follow the window whose script queued them: a call
 one player's battle sets up (Elm's about his aide after FALKNER) rings in that
 player's window only.
+
+## D140. Each player's own Bug-Catching Contest (#179, protocol 10, 2026-10-16)
+
+D128 lets both Gold and Silver players enter the same contest, each judged on
+their own catch for their own prize. Upstream's contest already keeps its
+timer, PARK BALLs, catch and kept party in world state that `PokeCoopOwnership`
+classes as the player's, and its two engine flags (the timer, the day's
+contest) are no badge, so they were each player's too. Three things were not:
+
+- **The contest's event flags are each player's own entries** in
+  `PokeCoopJohto.OWN_GIFTS`: the party left with the officer (776), the warp to
+  the judging (722), the prizes the officer holds for a full bag (787 to 790),
+  the gates' officers and youngster (1844, 1861 to 1864), and the ten
+  contestants in the park and at the judging (1814 to 1833). Shared, a second
+  player entering with one Pokémon cleared the officer's hold on the first
+  player's party, which then never came back; one player's draw replaced the
+  other's park; and one player's results, which withdraw every contestant,
+  left the other judged alone and first.
+- **The party the officer keeps stays on the host.** The cartridge masks the
+  party to its lead and keeps the rest in the save (`contest_stashed_party`);
+  the host saw only a team of one and forgot the rest at the next party update,
+  so a save or a new host during a contest lost them, and a returned Pokémon
+  came back under a new uid. `PokeCoopPlayer.contest_kept` holds them with
+  their uids, saved with the campaign; a window sends them with its party
+  (`kept`) and opens its save on them. **Protocol 10** (the one bump, shared
+  with D137 and D139), since a window of protocol 9 would not send them.
+- **The gates' finish-early question runs.** Both gates read
+  `VAR_CONTESTMINUTES`, which upstream's script runner did not know, so the
+  scene stopped and nobody could leave the park before the timer, alone too.
+  The runner reads it from the contest's start and the request's clock, which
+  now carries the second (two lines in upstream files, listed in
+  `architecture.md`).
+
+Each window keeps its own judging draw, as each world rolls its own random
+numbers. A Gold campaign saved before this keeps any contest flag already in
+the campaign as the campaign's (the contestants start set there), so its players
+are judged alone; a campaign started with this build keeps them per player.
