@@ -327,8 +327,6 @@ func _dispatch(sender: PokeCoopPlayer, kind: String, message: Dictionary) -> Str
 			return name_catch(sender, battle_id, PokeCoopTransport.text(message.get("nickname")).left(MAX_NICKNAME))
 		"clock":
 			return set_clock(sender, message)
-		"mystery_gift":
-			return PokeCoopJohto.note_mystery_gift(sender, message) if PokeCoopJohto.plays(data) else &"unknown_message"
 	return &"unknown_message"
 
 
@@ -737,6 +735,8 @@ func apply_party(sender: PokeCoopPlayer, message: Dictionary) -> StringName:
 
 
 func challenge(sender: PokeCoopPlayer, message: Dictionary, now: int = Time.get_ticks_msec()) -> StringName:
+	if message.has("mystery_gift"):
+		return PokeCoopJohto.note_mystery_gift(data, sender, message)
 	if message.has("answer"):
 		var asked: Dictionary = challenges.get(PokeCoopTransport.text(message.get("id")), {})
 		if asked.is_empty() or String(asked["to"]) != sender.player_id:

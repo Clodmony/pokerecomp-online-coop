@@ -140,7 +140,7 @@ Peer 1 is the host.
 | `save` | `seq` |
 | `trade` | `seq`, `partner`, and `slot` (an offer), `answer` (1 TRADE, 0 CANCEL), `leave`, or `end` (leave a direct pairing, D100); `colosseum` 1 with `partner`: seated at Gold and Silver's Colosseum table, or with `leave` gave up (protocol 10, D137) |
 | `challenge` | `seq`, `partner`, `kind` (`battle`, `trade`, or `gift` once both players' Mystery Gift is unlocked, protocol 10, D137), or `id`, `answer` (1 YES, 0 NO); host rechecks both players (protocol 6, D100) |
-| `mystery_gift` | `seq`, and `unlocked` 0 (Goldenrod Dept. Store 5F explained the machine) or `taken` (the item the delivery man handed over); anything else is `invalid_mystery_gift` (protocol 10, D137) |
+| `challenge` (Mystery Gift) | `seq`, `mystery_gift` 1, and `unlocked` 0 (Goldenrod Dept. Store 5F explained the machine) or `taken` (the item the delivery man handed over); anything else is `invalid_mystery_gift`, and `unknown_message` on Red and Blue (protocol 10, D137) |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |

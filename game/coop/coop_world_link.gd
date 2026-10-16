@@ -151,9 +151,9 @@ func _tend_mystery_gift() -> void:  ## the host keeps `sMysteryGiftData` (#181):
 		return
 	var report: Dictionary = {}
 	if int(state.mystery_gift()["unlocked"]) == 0 and int(told["unlocked"]) == Gen2MysteryGift.LOCKED:
-		report = {"type": "mystery_gift", "unlocked": 0}
+		report = {"type": "challenge", "mystery_gift": 1, "unlocked": 0}
 	elif int(state.mystery_gift()["item"]) == 0 and int(told["item"]) > 0:
-		report = {"type": "mystery_gift", "taken": int(told["item"])}
+		report = {"type": "challenge", "mystery_gift": 1, "taken": int(told["item"])}
 	if not report.is_empty() and report != _gift_report:
 		_gift_report = report
 		client.send(report)

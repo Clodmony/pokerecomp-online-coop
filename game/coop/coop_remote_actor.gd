@@ -74,7 +74,8 @@ static func _distance(first: Vector2i, second: Vector2i) -> int:
 	return absi(first.x - second.x) + absi(first.y - second.y)
 
 
-func _in_cable_club() -> bool:  ## whose own friend sprite is the partner there
+## Nobody in a Cable Club room, whose own friend sprite is the partner there.
+func _in_cable_club() -> bool:
 	return _world.gen1_link_state() == Gen1Layout.LINK_STATE_IN_CABLE_CLUB or PokeCoopTrades.LINK_ROOMS.has(_world.map_id())
 
 

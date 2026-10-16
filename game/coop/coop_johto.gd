@@ -269,8 +269,10 @@ static func gift_ready(member: PokeCoopPlayer) -> bool:  ## `MainMenu_GetWhichMe
 	return member != null and Gen2MysteryGift.menu_row_unlocked(member.mystery_gift)
 
 
-static func note_mystery_gift(member: PokeCoopPlayer, message: Dictionary) -> StringName:  ## what a window may change: Carrie's unlock, a gift taken
+static func note_mystery_gift(data: GameData, member: PokeCoopPlayer, message: Dictionary) -> StringName:  ## what a window may change: Carrie's unlock, a gift taken
 	var section: Dictionary = member.mystery_gift
+	if not plays(data):
+		return &"unknown_message"
 	if PokeCoopTransport.number(message.get("unlocked"), -1) == 0 and not gift_ready(member):
 		section["daily_partners"] = 0
 	elif PokeCoopTransport.number(message.get("taken")) <= 0 or PokeCoopTransport.number(message.get("taken")) != int(section["backup_item"]):
