@@ -91,14 +91,15 @@ final head passed.
   Silver joined or per player. #185 Crystal comes last.
 - Outside M14: #140's retest (P11, K17), K21 (#161); M10 (#44, #45, #46), M0
   #15, M13 (#55, #56), M12 German (#50).
-- Possible issues, ask before filing: `test_coop_device` listens on a fixed
-  port (24791), so two test runs at once fail it; `local_split` and other
-  scenarios take the first connected pad, virtual ones included; the session
+- Test harness (filed): #215 `test_coop_device`'s fixed port breaks parallel
+  runs; #216 scripted scenario windows use whatever controller is connected.
+- Possible issues, ask before filing: the session
   menu's FIGHT list on Red and Blue is fixed (BROCK, ONIX L60, PIDGEY L5,
   RATTATA L4), not the map's wild table; a mouse with a joystick interface is
   listed twice as a pad; `partner_tracker_cabins`' `p2_hall` never photographs
   both in the hall from BLUE's side; the autoplay can't recover from a
-  blackout (a lost wild battle on Route 32 stalled `playthrough_bugsy` once).
+  blackout (a lost wild battle on Route 32 stalled `playthrough_bugsy` once;
+  the owner chose not to file it for now).
 
 ## Worktrees and background processes
 
