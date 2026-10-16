@@ -61,8 +61,7 @@ func _join(peer: int, player_name: String, game: StringName) -> PokeCoopClient:
 
 
 ## [param client]'s window: its own world state and save, standing on Route 34.
-func _window(client: PokeCoopClient) -> PokeCoopWorldLink:
-	var state := Gen2WorldState.new()
+func _window(client: PokeCoopClient, state: Gen2WorldState = Gen2WorldState.new()) -> PokeCoopWorldLink:
 	var link: PokeCoopWorldLink = PokeCoopWorldLink.over(client, state, PokeCoopWorldLink.local_save(client, _data), _data)
 	var map := Gen2WorldMap.new()
 	map.group = ROUTE_34.x
@@ -121,6 +120,36 @@ func _egg_waiting(link: PokeCoopWorldLink) -> Gen2SaveMon:
 	link.state.set_day_care_egg(egg)
 	_pump()
 	return egg
+
+
+## [param mon] into [param link]'s party, and the uid the host gives it.
+func _joined_party(link: PokeCoopWorldLink, mon: Gen2SaveMon) -> String:
+	link.save.party.append(mon)
+	link.push_party()
+	_pump()
+	return _uid_of(link, mon)
+
+
+func _uid_of(link: PokeCoopWorldLink, mon: Gen2SaveMon) -> String:
+	for entry: Dictionary in _host.player(link.client.player_id).team + _host.player(link.client.player_id).box:
+		if PokeCoopPlayer.fingerprint(entry["mon"]) == PokeCoopPlayer.fingerprint(mon):
+			return String(entry["uid"])
+	return ""
+
+
+## The uids the host keeps with [param link]'s player's day care.
+func _kept(link: PokeCoopWorldLink) -> Array:
+	var kept: Variant = _host.player(link.client.player_id).get("day_care")
+	return (kept as Array).map(func(entry: Dictionary) -> String: return entry["uid"]) if kept is Array else []
+
+
+## A day care's hand-over: the world's patch first, as a window sends both when its scene ends, or the party first.
+func _handed_over(link: PokeCoopWorldLink, party_first: bool) -> void:
+	if party_first:
+		link.push_party()
+	_pump()
+	link.push_party()
+	_pump()
 
 
 func _species(rows: Array) -> Array:
@@ -289,6 +318,111 @@ func test_each_day_care_survives_a_checkpoint_and_a_new_host() -> void:
 	assert_null(silver_world.day_care_egg(), "SILVER has none")
 	assert_null(silver_world.day_care_mon(Gen2WorldDayCare.SLOT_MAN))
 	assert_eq(silver_world.day_care_mon(Gen2WorldDayCare.SLOT_LADY).species, Fixture.HOOTHOOT)
+
+
+func test_a_pokemon_keeps_its_uid_through_the_day_care() -> void:
+	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
+	var gold_window: PokeCoopWorldLink = _window(gold)
+	for party_first: bool in [false, true]:
+		var mon: Gen2SaveMon = _mon(Fixture.CUBONE, MALE_DVS if party_first else FEMALE_DVS, gold_window)
+		var uid: String = _joined_party(gold_window, mon)
+		assert_false(uid.is_empty(), "the host names it")
+		assert_true(Gen2WorldDayCare.deposit(gold_window.state, gold_window.save, Gen2WorldDayCare.SLOT_MAN, 1))
+		_handed_over(gold_window, party_first)
+		assert_eq(_uid_of(gold_window, mon), "", "away from GOLD's team and PC")
+		assert_eq(_kept(gold_window), [uid], "the host keeps its uid with GOLD's day care")
+
+		assert_false(Gen2WorldDayCare.retrieve(gold_window.state, gold_window.save, _data, Gen2WorldDayCare.SLOT_MAN).is_empty())
+		_handed_over(gold_window, party_first)
+		var team: Array = _host.player(gold.player_id).team
+		assert_eq([team.size(), String(team[1]["uid"]), (team[1]["mon"] as Gen2SaveMon).species], [2, uid, Fixture.CUBONE],
+			"back under its own uid, the party's first: %s" % party_first)
+		assert_eq(_kept(gold_window), [])
+		gold_window.save.party.remove_at(1)
+		gold_window.push_party()
+		_pump()
+
+
+func test_a_released_pokemon_is_not_kept_with_the_day_care() -> void:
+	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
+	var gold_window: PokeCoopWorldLink = _window(gold)
+	var mon: Gen2SaveMon = _mon(Fixture.CUBONE, MALE_DVS, gold_window)
+	_joined_party(gold_window, mon)
+	gold_window.save.party.remove_at(1)
+	gold_window.push_party()
+	_pump()
+	gold_window.save.party[0].hp -= 1
+	gold_window.push_party()
+	_pump()
+	assert_eq(_kept(gold_window), [], "a Pokémon no day care holds is forgotten with the next party")
+
+
+func test_a_pokemon_in_the_day_care_keeps_its_uid_across_a_save_and_a_new_host() -> void:
+	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
+	var gold_window: PokeCoopWorldLink = _window(gold)
+	var mon: Gen2SaveMon = _mon(Fixture.CUBONE, MALE_DVS, gold_window)
+	var uid: String = _joined_party(gold_window, mon)
+	assert_true(Gen2WorldDayCare.deposit(gold_window.state, gold_window.save, Gen2WorldDayCare.SLOT_LADY, 1))
+	_handed_over(gold_window, false)
+	gold.request_save()
+	_pump()
+
+	var loaded: Dictionary = PokeCoopSave.read(SAVE_PATH)
+	var id: String = gold.player_id
+	_host.shutdown()
+	_pump()
+	_clients = []
+	_links = []
+	_host = _hosting(loaded["campaign"])
+	_host.adopt_players(loaded["players"])
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, 1)
+	var client: PokeCoopClient = PokeCoopClient.over(link)
+	client.greet("", RomRegistry.GOLD, RomRegistry.sha1_for(RomRegistry.GOLD), id)
+	_clients.append(client)
+	_pump()
+	var window: PokeCoopWorldLink = _window(client, PokeCoopWorldLink.continued_world(client).world_state)
+	assert_eq(window.state.day_care_mon(Gen2WorldDayCare.SLOT_LADY).species, Fixture.CUBONE, "still with GOLD's lady")
+
+	assert_false(Gen2WorldDayCare.retrieve(window.state, window.save, _data, Gen2WorldDayCare.SLOT_LADY).is_empty())
+	_handed_over(window, false)
+	assert_eq(_uid_of(window, mon), uid, "the uid came back with the saved campaign")
+
+
+func test_a_hatched_egg_gets_a_uid_of_its_own() -> void:
+	var gold: PokeCoopClient = _join(1, "GOLD", RomRegistry.GOLD)
+	var gold_window: PokeCoopWorldLink = _window(gold)
+	_egg_waiting(gold_window)
+	var parents: Array = _kept(gold_window)
+	assert_eq(parents.size(), 2, "both parents' uids are kept")
+	Gen2WorldDayCare.give_egg(gold_window.state, gold_window.save)
+	gold_window.push_party()
+	_pump()
+	var egg: String = String(_host.player(gold.player_id).team[1]["uid"])
+	assert_false(egg in parents, "the egg is a new Pokémon")
+	assert_eq(_kept(gold_window), parents, "its parents stay in the day care")
+
+
+func test_red_and_blues_day_care_gives_the_uid_back_too() -> void:
+	var red_directory: String = RomCache.directory_for(&"coopjohtodaycarered", "0123456789abcdef")
+	_data = Fixture.build(red_directory, "testgame", RomRegistry.GEN1)
+	_host = _hosting(PokeCoopCampaign.create("red1", _data.id, _data.sha1))
+	var link := PokeCoopTransport.new()
+	PokeCoopTransport.link(_host.transport, link, 1)
+	var red: PokeCoopClient = PokeCoopClient.over(link)
+	red.greet("RED", _data.id, _data.sha1)
+	_clients.append(red)
+	_pump()
+	var red_window: PokeCoopWorldLink = _window(red)
+	var mon: Gen2SaveMon = _mon(Fixture.CUBONE, MALE_DVS, red_window)
+	var uid: String = _joined_party(red_window, mon)
+	assert_true(Gen2WorldDayCare.deposit(red_window.state, red_window.save, Gen2WorldDayCare.SLOT_MAN, 1))
+	_handed_over(red_window, false)
+	assert_eq(_kept(red_window), [uid], "Route 5's day care keeps it")
+	assert_false(Gen2WorldDayCare.retrieve(red_window.state, red_window.save, _data, Gen2WorldDayCare.SLOT_MAN).is_empty())
+	_handed_over(red_window, false)
+	assert_eq(_uid_of(red_window, mon), uid)
+	RomCache.clear(red_directory)
 
 
 func test_a_gold_host_leaves_johto_flags_alone_that_red_and_blues_walks_share_a_number_with() -> void:

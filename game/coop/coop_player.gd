@@ -35,6 +35,7 @@ var connected: bool = false
 var game_id: String = ""
 var via: String = ""
 var next_mon_serial: int = 1
+var day_care: Array = []  ## `{uid, mon}` of each Pokémon away in the player's day care, its uid given back on withdrawal (#196)
 ## While the player plays the opening: its stage, the story it runs on and the rival's name.
 var opening: Dictionary = {}
 ## The player's world state keys other than the bag and wallet ([member items], [member money]). See [PokeCoopOwnership].
@@ -253,7 +254,8 @@ func replace_team(rows: Array) -> bool:
 func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: int) -> StringName:
 	if based_on != holdings_rev:
 		return &"outdated"
-	var pool: Array = team + (box if stored != null else [])
+	var held: Array = team + (box if stored != null else [])
+	var pool: Array = held + day_care
 	var used: Dictionary = {}
 	var next_team: Variant = _matched(rows, pool, used)
 	var next_box: Variant = _matched(stored, pool, used) if stored is Array else box
@@ -262,10 +264,24 @@ func replace_holdings(rows: Array, stored: Variant, wanted_box: int, based_on: i
 		return &"invalid_party"
 	if stored != null and _rows_to_dicts(next_box) != _rows_to_dicts(box):
 		box_rev += 1
+	day_care = _away(pool, held.size(), used)
 	team = next_team
 	box = next_box
 	current_box = clampi(wanted_box, 0, BOXES - 1)
 	return &""
+
+
+func _away(pool: Array, left: int, used: Dictionary) -> Array:  ## in the day care, or just left: its world patch may come next
+	var cared: Array = []
+	for row: Variant in world.get("day_care_mons", []) as Array:
+		if row is Dictionary and not (row as Dictionary).is_empty():
+			cared.append(fingerprint(Gen2SaveMon.from_dict(row)))
+	var out: Array = []
+	for index: int in pool.size():
+		var entry: Dictionary = pool[index]
+		if not used.has(entry["uid"]) and (index < left or cared.has(fingerprint(entry["mon"]))):
+			out.append(entry)
+	return out
 
 
 func _matched(rows: Array, pool: Array, used: Dictionary) -> Variant:
@@ -376,7 +392,7 @@ func to_dict() -> Dictionary:
 		"team": _rows_to_dicts(team), "box": _rows_to_dicts(box),
 		"items": item_rows, "money": money,
 		"map": [rest["map"].x, rest["map"].y], "cell": [rest["cell"].x, rest["cell"].y], "facing": int(rest["facing"]),
-		"next_mon_serial": next_mon_serial, "world": world.duplicate(true),
+		"next_mon_serial": next_mon_serial, "world": world.duplicate(true), "day_care": _rows_to_dicts(day_care),
 		"current_box": current_box, "opening": opening.duplicate(true), "places": _resting_places(), "game_id": game_id,
 	}
 
@@ -433,6 +449,8 @@ static func from_dict(raw: Variant) -> PokeCoopPlayer:
 	out.facing = int(source.get("facing", 0))
 	out.keep_places(source.get("places", {}))
 	out.next_mon_serial = maxi(int(source.get("next_mon_serial", 1)), 1)
+	var cared: Variant = _rows_from_dicts(source.get("day_care", []))
+	out.day_care = cared if cared != null else []
 	out.game_id = PokeCoopTransport.text(source.get("game_id"))
 	var raw_world: Variant = source.get("world", {})
 	if raw_world is Dictionary:

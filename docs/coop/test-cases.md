@@ -111,6 +111,7 @@ Needs Gold and Silver imported; the rules are `PokeCoopJohto`'s (D130).
 | J52 | Walk with the egg in the party, the partner walking elsewhere | The egg hatches in its owner's party after its owner's steps ("Huh?", then the Pokémon), in its owner's Pokédex; the partner's steps never count | `test_an_egg_hatches_in_its_owners_party_by_its_owners_steps` | johto_day_care | |
 | J53 | Save with Pokémon and an egg in the day cares, stop, host again | Each day care, egg and counter comes back with its own player | `test_each_day_care_survives_a_checkpoint_and_a_new_host` | | |
 | J54 | Host a Gold campaign whose story set Johto flags that share a number with Red and Blue's Safari and Seafoam walks | The flags stay set | `test_a_gold_host_leaves_johto_flags_alone_that_red_and_blues_walks_share_a_number_with` | | |
+| J55 | Leave a Pokémon with the Day-Care man (or Route 5's on Red and Blue), save, host again, take it back | While it is away the host's autosave keeps its uid in the player's `day_care`; it comes back to the team under that uid; an egg's hatchling gets a new uid | `test_a_pokemon_keeps_its_uid_through_the_day_care`, `test_a_pokemon_in_the_day_care_keeps_its_uid_across_a_save_and_a_new_host`, `test_a_hatched_egg_gets_a_uid_of_its_own`, `test_red_and_blues_day_care_gives_the_uid_back_too` | | |
 
 ## Wild Pokémon from both versions
 

@@ -6,18 +6,30 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-16 (M14 wave 1 done: five issues merged).
+Last updated 2026-10-16 (#196 done, PR #197 merged).
 
 ## Repository state
 
 - Default branch `pokerecomp-online-coop` at the merge of #194 (dfd0641f)
-  plus handoff commits.
-  `main` = upstream main (ed886823, 0.1.78). No open pull requests.
+  plus handoff commits (32038f95).
+  `main` = upstream main (ed886823, 0.1.78).
 - Next free decision number: D136.
 - Co-op protocol 9 (#175). Gold and Silver (USA/Europe) are imported in this
   machine's own user folder, so Gold and Silver scenarios run here.
 - History rewritten once (D129): the old co-op history is backed up in
   `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
+
+## #196 (merged, 2026-10-16)
+
+- PR #197 `coop/196-day-care-uid`, merged on the owner's word: a Pokémon keeps
+  its uid through the day care. `PokeCoopPlayer.day_care` keeps `{uid, mon}`
+  of each Pokémon away in the player's day care (saved with the campaign), and
+  a withdrawn row matching it takes the uid back. The rule is the host's, so
+  Red and Blue's Route 5 day care keeps a uid too (the owner kept it for both;
+  D135 updated, no new decision; J55). Verify all passed: GUT 5264/5264, both
+  ENet demos, three processes, `johto_day_care`, `gold_and_silver`. Not run: a
+  deposit and a withdrawal through the Day-Care's own menus in a window.
+  No open pull requests.
 
 ## M14 wave 1 (#189, closed)
 
@@ -57,13 +69,15 @@ each merge verified with `tools/verify.sh` before its push:
 ## Next candidates
 
 - Wave 2, all unblocked now (prerequisites merged), one agent each as in
-  wave 1: #177 phone per player, #179 Bug-Catching Contest, #180 roamers and
-  legendaries, #181 Cable Club, link battles and Mystery Gift, #183 seeds and
-  autoplay (`coop_seed.gd -- gold new` with `at=`, `at2=`, `event=`, `care=`
-  and Johto autoplay of the opening exist), #149 Generation 2 battle
-  questions, #195 host battles use the campaign's time of day, #196 the day
-  care keeps a uid, #188 small leftovers (tab default name, the Gold tool
-  host's items, `johto_day_care`'s party capture). Likely overlaps: #181 and
+  wave 1, or one per session: #177 phone per player, #179 Bug-Catching
+  Contest, #180 roamers and legendaries, #181 Cable Club, link battles and
+  Mystery Gift, #183 seeds and autoplay (`coop_seed.gd -- gold new` with
+  `at=`, `at2=`, `event=`, `care=` and Johto autoplay of the opening exist),
+  #149 Generation 2 battle questions, #195 host battles use the campaign's
+  time of day (small: pass `PokeCoopJohto.reading(campaign.clock)` into each
+  Gold battle the host builds; a session test with Moonlight), #188 small
+  leftovers (tab default name, the Gold tool host's items,
+  `johto_day_care`'s party capture). Likely overlaps: #181 and
   #149 and #195 in the battle files; #177 and #179 in the clock and ownership.
 - Need the owner first: #182 the Time Capsule's design; #184 RED on Mt.
   Silver joined or per player. #185 Crystal comes last.
@@ -79,11 +93,12 @@ each merge verified with `tools/verify.sh` before its push:
 ## Worktrees and background processes
 
 - Main checkout on `pokerecomp-online-coop`, up to date.
-- The Superset worktree is detached at the merge of #187 (no branch).
-- Wave 1's worktrees and branches are removed. No background processes.
-- Wave 1's scratch (verify runs, Gold captures) is deleted. Left in scratch:
-  `gut1.sh` and the D129 leftovers (`session-links/`, `pr-links.tsv`,
-  `issue-links.tsv`, `coop7.txt`), which wait for GitHub Support.
+- The Superset worktree `quilted-acoustic` is detached at the merge of #197
+  (its branch deleted); start the next issue from it or remove it in
+  Superset. No background processes.
+- #196's scratch and verify run are deleted. Left in scratch: `gut1.sh` and
+  the D129 leftovers (`session-links/`, `pr-links.tsv`, `issue-links.tsv`,
+  `coop7.txt`), which wait for GitHub Support.
 
 ## Working notes (stable, keep short)
 
@@ -114,10 +129,10 @@ each merge verified with `tools/verify.sh` before its push:
 
 ## Cleanup the owner may approve
 
+- The Superset worktree `quilted-acoustic` (detached at the merge of #197).
+
 - `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
   `issue-links.tsv` and `coop7.txt` once GitHub Support purged the old refs.
-- The Superset worktree `quilted-acoustic` (detached at the merge of #187):
-  remove it in Superset or start the next issue's workspace from it.
 - `builds/140-picked-pad-only-490f0aad` once #140 is retested;
   `builds/pokerecomp-online-coop-0c6da178` and its two zips.
 - Superset's workspace of the retired repository (`honeysuckle-seahorse`).
