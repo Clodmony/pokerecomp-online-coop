@@ -648,6 +648,28 @@ func test_a_blaue_cartridge_lists_and_hosts_a_rote_campaign_from_its_own_folder(
 	RomCache.clear(blaue_cache)
 
 
+## #218: the tab lists every cartridge, and the last cache opened picks Gen1Text's charmap.
+func test_a_rote_window_draws_its_umlauts_after_the_tab_opened_an_english_cartridge() -> void:
+	var rote_cache: String = RomCache.directory_for(&"coopdevicerote", "")
+	var rote: GameData = Fixture.build(rote_cache, String(RomRegistry.RED_DE), RomRegistry.GEN1)
+	var gold_cache: String = RomCache.directory_for(&"coopdevicegoldlisted", "")
+	Fixture.build(gold_cache, String(RomRegistry.GOLD), RomRegistry.GEN2)
+	var hosting: PokeCoopSession = PokeCoopSession.hosting(rote, PORT, "ROT", Fixture.CHARMANDER)
+	_sessions.append(hosting)
+	assert_true(_until_ready([hosting]))
+	GameData.open_directory(gold_cache)
+	assert_eq(Gen1Text.language(), "en", "listing Gold leaves the English charmap")
+
+	var start: Control = hosting.open_start()
+	assert_eq(Gen1Text.language(), "de", "the window's own game picks the charmap")
+	assert_false(Array(Gen1Text.encode("ÄÖÜäöü")).has(Gen1Text.UNKNOWN), "no umlaut draws as ?")
+	start.free()
+	_close_all()
+	Gen1Text.use_language("en")
+	RomCache.clear(rote_cache)
+	RomCache.clear(gold_cache)
+
+
 func test_a_gold_cartridge_hosts_in_new_bark_town_with_johtos_starters() -> void:
 	var cache: String = RomCache.directory_for(&"coopdevicegold", "")
 	var gold: GameData = Fixture.build(cache, String(RomRegistry.GOLD), RomRegistry.GEN2)
