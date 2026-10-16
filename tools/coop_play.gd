@@ -32,7 +32,10 @@ func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if not _read_option(arg):
 			positional.append(arg)
-	root.unfocusable = not (_keys.is_empty() and _captures.is_empty())  ## a scripted window leaves the keyboard to whoever is typing
+	if not (_keys.is_empty() and _captures.is_empty()):  ## a scripted window leaves the keyboard and every pad to whoever plays
+		root.unfocusable = true
+		PokePadChoice.held = PokeCoopLobby.SplitScreen.NO_PAD
+		PokePadChoice.apply()
 	if positional.size() < 2:
 		push_error("usage: <address> [port] <player_id> [game] [keys=R,A] [capture=<png>@<frames>]")
 		quit(2)
