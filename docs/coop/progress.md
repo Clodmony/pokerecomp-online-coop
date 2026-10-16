@@ -11,6 +11,22 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## A split screen plays one tune (#217, D141, 2026-10-16)
+
+The owner's split-screen session (Rote Edition, two controllers) heard the
+music twice: each half is its own process with its own audio player. The right
+(bottom) half now plays its sound effects and no music
+(`Gen2AudioPlayer.music_scale`, set by `SplitScreen.take()`), so the left (top)
+half's tune is the only one; a window back on the whole screen plays its music
+again. Branch `coop/217-split-music`.
+
+| Verification | Result |
+|---|---|
+| Test before the fix | `test_a_split_screens_right_half_plays_its_effects_and_leaves_the_music_to_the_left`: `[0.7] expected to equal [0.0]: no music in the right half` |
+| Test after | passes; `test_coop_lobby` whole |
+| `tools/verify.sh`, run `20261016-193256` on bb738b9b | import, GUT 5298/5298, gates, boot, ENet demo, ENet demo gold, three processes ok |
+| Not run | Two windows (the scenarios open windows and the PC was in use); a joined battle's effects, which both halves still play; Windows; played |
+
 ## Gold and Silver seeds and playthroughs to FALKNER and BUGSY (#183, 2026-10-16)
 
 `tools/coop_seed.gd` walks Gold and Silver's story too: `gold list` names
