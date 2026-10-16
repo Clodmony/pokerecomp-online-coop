@@ -6,7 +6,7 @@ GAME=gold
 P2_GAME=silver
 SEED_ARGS="gold new at=11:16:9,2:10,2 event=31"
 HOST_ARGS=bare
-DURATION=60
+DURATION=68
 press p1 4 U - A
 shot p1 6 gold_explained              # "MYSTERY GIFT."
 press p1 7 A
@@ -16,22 +16,22 @@ press p2 4 U - L - A
 press p2 8 A
 press p2 11 A
 press p2 14 A
-press p1 18 SELECT
-press p1 20 @GIFT.SILVER
-shot p2 24 silver_invited             # "GOLD / MYSTERY GIFT?" YES
-press p2 25 A
-shot p1 27 gold_screen                # the MYSTERY GIFT screen
-shot p1 31 gold_box                   # "SILVER sent <item>." (or a decoration home)
-shot p2 31 silver_box
-press p1 33 A
+press p1 26 SELECT                     # once both unlocks reached the host
+press p1 28 @GIFT.SILVER
+shot p2 32 silver_invited             # "GOLD / MYSTERY GIFT?" YES
 press p2 33 A
-shot p1 35 gold_box_more
-shot p2 35 silver_box_more
-press p1 37 A
-press p2 37 A
+shot p1 35 gold_screen                # the MYSTERY GIFT screen
+shot p1 39 gold_box                   # "SILVER sent <item>." (or a decoration home)
+shot p2 39 silver_box
 press p1 41 A
 press p2 41 A
-shot p1 43 gold_after                 # back on 5F
+shot p1 43 gold_box_more
+shot p2 43 silver_box_more
+press p1 45 A
+press p2 45 A
+press p1 49 A
+press p2 49 A
+shot p1 51 gold_after                 # back on 5F
 # The host's autosave: each counted the other once today and holds the gift the other's block rolled.
 check() {
 	python3 -I - "$user/coop_campaigns/gold/gold.json" <<'PY'
