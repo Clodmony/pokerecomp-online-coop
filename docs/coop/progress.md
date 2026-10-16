@@ -32,7 +32,7 @@ has since #173, so `gold_party` shows the party. Branch `coop/188-gold-tool-host
 | Tests before the fix | `test_a_gold_tool_host_hands_out_johtos_items_and_fights_johtos_wild_pokemon`: the items held (#176), the encounters `{16: 5, 19: 4, 95: 60} != {163: 3, 4: 4, 74: 5}`; `test_the_name_field_starts_at_the_cartridges_own_name`: `["RED", "RED", "RED"] != ["RED", "GOLD", "SILVER"]`, and a remembered RED stayed RED on Gold |
 | Tests after | `test_coop_gold_silver` 14/14; `test_the_name_field_starts_at_the_cartridges_own_name` passes |
 | Screens (scripted), Gold and Silver | `gold_and_silver` with `name=` (nothing typed): Gold's New campaign form reads GOLD, Silver's New in JOHTO form SILVER, "Join as SILVER"; both in New Bark Town as before. `johto_battle`: the session menu offers FIGHT wild PIDGEY, SENTRET, RATTATA and HOOTHOOT (L2, the imported Gold's Route 29) and FALKNER, no BROCK or ONIX; the PACK holds POKé BALL x5, POTION x2, BICYCLE and TM01; FALKNER beaten, POTION used (check: items used 18, won 1). `johto_day_care`: `gold_party` shows CHIKORITA and the hatched CYNDAQUIL. Every capture looked at |
-VERIFY
+| `tools/verify.sh gold_and_silver johto_day_care johto_battle` | import, GUT 5266/5266, gates, boot, ENet demo, ENet demo gold, three processes and the three scenarios ok (run `20261016-115714`) |
 | Not run | Crystal (no co-op yet, #185); German Gold and Silver; Windows; played |
 
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
