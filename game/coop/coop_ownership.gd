@@ -12,6 +12,7 @@ const LOCAL: StringName = &"local"
 ## Gym's locks among the Gen 1 bytes, every event flag and object but a player's own, and every map script but one walk's,
 ## the gyms' and the Elite Four's. The drink's bit sits in a Generation 1 run no Generation 2 world sets.
 const BY_FLAG: StringName = &"by_flag"
+const TEAM_ENGINE_FLAGS: String = "team_engine_flags"  ## an own-entries list of engine flags the campaign keeps beside the badges
 const SAFFRON_DRINK_BIT: int = 6
 const CAMPAIGN_BYTES: Array[String] = [
 	Gen2WorldAPI.GEN1_FIRST_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK, Gen2WorldAPI.GEN1_SECOND_LOCK_ALT,
@@ -29,7 +30,7 @@ const KANTO_BADGES: int = 8
 const WORLD_STATE: Dictionary = {
 	"beat_red": CAMPAIGN, "starter_species": CAMPAIGN, "gs_ball_stage": CAMPAIGN,
 	"gs_ball_wait": CAMPAIGN, "event_flags": BY_FLAG, "engine_flags": BY_FLAG,
-	"map_scenes": CAMPAIGN, "items": PLAYER, "pc_items": PLAYER, "money": PLAYER,
+	"map_scenes": BY_FLAG, "items": PLAYER, "pc_items": PLAYER, "money": PLAYER,
 	"coins": PLAYER, "phone_contacts": PLAYER, "just_battled": LOCAL,
 	"repel_steps": PLAYER, "wild_encounter_cooldown": LOCAL, "step_count": PLAYER,
 	"poison_step_count": PLAYER, "happiness_step_count": PLAYER,
@@ -99,7 +100,7 @@ static func badge_flags(data: GameData) -> Array[int]:
 	return out
 
 
-const TEXT_KEYED: Array[String] = ["gen1_starters", "gen1_bytes"]
+const TEXT_KEYED: Array[String] = ["gen1_starters", "gen1_bytes", "map_scenes"]
 static var _reference: Dictionary = {}
 
 
@@ -200,7 +201,7 @@ static func route(changes: Dictionary, badges: Array[int], own: Dictionary = {})
 	for key: String in changes:
 		var owner: StringName = StringName(WORLD_STATE.get(key, LOCAL))
 		if owner == BY_FLAG:
-			_split_flags(key, changes[key], badges, own.get(key, []), out)
+			_split_flags(key, changes[key], badges, own, out)
 		elif owner != LOCAL:
 			(out[owner] as Dictionary)[key] = changes[key]
 	return out
@@ -210,14 +211,18 @@ static func campaign_engine_flag(flag: int, badges: Array[int]) -> bool:
 	return badges.has(flag) or flag == Gen1Layout.status_flag_1(SAFFRON_DRINK_BIT)
 
 
-static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Array, out: Dictionary) -> void:
+static func _split_flags(key: String, change: Dictionary, badges: Array[int], own: Dictionary, out: Dictionary) -> void:
 	var halves: Dictionary = {CAMPAIGN: {"set": {}, "erase": []}, PLAYER: {"set": {}, "erase": []}}
+	var kept: Array = own.get(key, [])
+	var team: Array = own.get(TEAM_ENGINE_FLAGS, [])
 	var shared: Callable = func(flag: Variant) -> bool:
 		if key == "gen1_bytes":
 			return CAMPAIGN_BYTES.has(flag)
 		if key == "gen1_map_scripts":
 			return not PLAYER_MAP_SCRIPTS.values().has(int(flag))
-		return campaign_engine_flag(int(flag), badges) if key == "engine_flags" else not own.has(int(flag))
+		if key == "engine_flags":
+			return campaign_engine_flag(int(flag), badges) or team.has(int(flag))
+		return not kept.has(flag if TEXT_KEYED.has(key) else int(flag))
 	var entries: Dictionary = change.get("set", change.get("value", {}))
 	for flag: Variant in entries:
 		var half: Dictionary = halves[CAMPAIGN if shared.call(flag) else PLAYER]

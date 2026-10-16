@@ -44,6 +44,8 @@ var world: Gen2WorldAPI = null
 var state: Gen2WorldState = null
 var save: Gen2SaveData = null
 var badge_flags: Array[int] = []
+var johto: bool = false
+var _rival_scenes: Dictionary = PokeCoopPolicy.RIVAL_SCENES
 var _baseline: Dictionary = {}
 var _host_seen: Dictionary = {}
 var _dirty: bool = true
@@ -85,6 +87,8 @@ static func over(
 	out.state = world_state
 	out.save = window_save
 	out.badge_flags = PokeCoopOwnership.badge_flags(data)
+	out.johto = PokeCoopJohto.plays(data)
+	out._rival_scenes = PokeCoopPolicy.rival_scenes(data)
 	out._rev_seen = int(session.me().get("holdings_rev", -1))
 	out._holdings_sent = out._holdings()
 	out._world_saved()
@@ -194,8 +198,9 @@ func _partner_on(maps: Array, key: String = "map") -> String:
 ## A rival scene this world plays is claimed as it starts and given back once its result is out (#24).
 func _tend_scene(resting: bool) -> void:
 	var map: Vector2i = world.map_id() if world != null else NO_SCENE
-	var states: Array = PokeCoopPolicy.RIVAL_SCENES.get(map, [])
-	var playing: bool = states.has(Gen1MapScripts.gen1_map_script_state(world)) if not states.is_empty() else false
+	var states: Array = _rival_scenes.get(map, [])
+	var playing: bool = PokeCoopJohto.scene_playing(world) if johto \
+		else states.has(Gen1MapScripts.gen1_map_script_state(world)) if not states.is_empty() else false
 	if playing and (_scene != map or _scene_welcome != client.welcomes):
 		_scene = map
 		_scene_welcome = client.welcomes
@@ -360,6 +365,11 @@ func _release_switches() -> void:
 
 
 func _owe_map_loads(flags_set: Dictionary) -> void:
+	if johto:
+		if world != null and flags_set.keys().any(func(flag: Variant) -> bool:
+				return bool(flags_set[flag]) and PokeCoopJohto.REDRAWN_BY_FLAG.get(int(flag)) == world.map_id()):
+			world.reload_current_map()
+		return
 	var redrawn: Dictionary = MAP_LOADS_OWED_BY_FLAG.merged(LEAGUE_EXITS_REDRAWN)
 	for flag: int in redrawn:
 		var owed: Array = redrawn[flag]

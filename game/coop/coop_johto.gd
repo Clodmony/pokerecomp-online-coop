@@ -21,12 +21,22 @@ const OPENING_ENGINE: Array[int] = [2, 4, 11]  ## ENGINE_PHONE_CARD, ENGINE_POKE
 const OPENING_PHONE: Array[int] = [1, 4]  ## PHONE_MOM, PHONE_ELM
 const OPENING_ITEMS: Dictionary = {5: 5, 18: 1}  ## the aide's five POKE_BALLs and POTION
 const INTRO_COMMIT: String = "intro:johto"
-const OWN_GIFTS: Dictionary = {"event_flags": [  ## each player's own (D61, D131)
-	27, 28, 29, 1600, 1601, 1602, 1790, 1791, 118, 64,  ## the starter, the stolen ball, the Guide Gent's tour, Mom's bank
-	44, 45, 84, 85, 86, 119, 1792, 1793,  ## the TOGEPI egg: its aide, hatching, Elm's call and Everstone
-	69, 70, 79, 80, 81, 97,  ## SHUCKLE (EVENT_GOT_SHUCKIE, _MANIA_TOOK_), EEVEE, SPEAROW's mail (_GOT_KENYA, _GAVE_KENYA), TYROGUE
-	1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
-]}
+const OWN_GIFTS: Dictionary = {  ## each player's own (D61, D131, D132), and the engine flags the team shares beside the badges
+	"event_flags": [
+		27, 28, 29, 1600, 1601, 1602, 1790, 1791, 118, 64,  ## the starter, the stolen ball, the Guide Gent's tour, Mom's bank
+		44, 45, 84, 85, 86, 119, 1792, 1793,  ## the TOGEPI egg: its aide, hatching, Elm's call and Everstone
+		69, 70, 79, 80, 81, 97,  ## SHUCKLE (EVENT_GOT_SHUCKIE, _MANIA_TOOK_), EEVEE, SPEAROW's mail (_GOT_KENYA, _GAVE_KENYA), TYROGUE
+		1765, 1766, 1767, 1768,  ## DAY_CARE_FLAGS: the day care's man and pen (D135)
+		0, 1, 2, 3, 4, 5, 6, 7, 0x309, 0x30B, 0x30D, 0x30F, 0x311, 0x75F,  ## a map load's, the League's shut doors, LANCE's room
+	],
+	"map_scenes": [  ## the opening's (New Bark Town, the house, Elm's lab, Route 29, Mr. Pokémon), the link rooms, the Fast Ship and
+		"24:4", "24:6", "24:5", "24:3", "26:10", "20:1", "20:2", "20:3", "20:4", "15:1", "15:2", "15:3", "15:7",  ## its ports,
+		"11:7", "25:9", "10:15", "10:17", "16:2", "16:3", "16:4", "16:5", "16:6", "16:7", "16:8",  ## the Magnet Train, contest, League,
+		"21:24", "21:26", "23:7", "3:22", "3:28", "9:4",  ## bike gates, Trainer House, Unown dex, Route 43's toll each walk
+	],
+	PokeCoopOwnership.TEAM_ENGINE_FLAGS: [14, 18, 22, 42, 43, 44, 45],  ## ROCKET_SIGNAL_ON_CH20, ROCKETS_IN_*, UNLOCKED_UNOWNS_*
+}
+const OWN_WALKS: Array[int] = [0, 1, 2, 3, 4, 5, 6, 7]  ## EVENT_TEMPORARY_UNTIL_MAP_RELOAD_*, which an older save may hold
 const SHARED_ITEMS: Array[int] = [  ## kept for good, so everyone gets one: BICYCLE, COIN_CASE, ITEMFINDER, rods, keys, tickets, SQUIRTBOTTLE, HMs
 	7, 54, 55, 58, 59, 61, 68, 127, 133, 134, 175, 243, 244, 245, 246, 247, 248, 249,
 ]
@@ -37,6 +47,35 @@ const GIFT_TMS: Dictionary = {  ## EVENT_GOT_TMxx (and _SUNNY_DAY_FROM_RADIO_TOW
 const OWN_FOSSILS: Array[int] = []  ## Johto revives none
 const TIME_SLOTS: int = 7  ## a grass table's slots per time of day; the wild tables flatten morning, day and night
 const DAY_CARE_FLAGS: Array[int] = [1765, 1766, 1767, 1768]  ## EVENT_DAY_CARE_MAN_IN_DAY_CARE, _ON_ROUTE_34, EVENT_DAY_CARE_MON_1, _2 (D135)
+const STORY_SCENES: Dictionary = {  ## The contested scenes the first player in drives (D72), with the scenes whose events run them.
+	Vector2i(8, 7): [1],  # AZALEA_TOWN, the rival after Slowpoke Well
+	Vector2i(3, 3): [0],  # SPROUT_TOWER_3F
+	Vector2i(3, 13): [0],  # BURNED_TOWER_1F
+	Vector2i(1, 14): [0],  # OLIVINE_CITY
+	Vector2i(3, 40): [1],  # MAHOGANY_MART_1F, LANCE after the Lake of Rage
+	Vector2i(3, 42): [0, 1, 2],  # TEAM_ROCKET_BASE_B2F
+	Vector2i(3, 43): [0, 1, 2],  # TEAM_ROCKET_BASE_B3F
+	Vector2i(3, 21): [0, 1],  # RADIO_TOWER_5F
+	Vector2i(3, 46): [0],  # GOLDENROD_UNDERGROUND_SWITCH_ROOM_ENTRANCES
+	Vector2i(3, 82): [0],  # VICTORY_ROAD
+	Vector2i(3, 76): [0],  # MOUNT_MOON
+}
+const STORY_OBJECTS: Dictionary = {  ## The contested scenes a talk starts, by the hide flag of whom the player talks to.
+	Vector2i(3, 32): [0x6FC, 0x740],  # SLOWPOKE_WELL_B1F, Team Rocket and KURT
+	Vector2i(9, 6): [0x6D4],  # LAKE_OF_RAGE, LANCE
+	Vector2i(3, 73): [0x6A8],  # DRAGONS_DEN_B1F, the DRAGON FANG and CLAIR
+}
+const ELITE_FOUR_RUN: Array[int] = [0x5B8, 0x5B9, 0x5BA, 0x5BB, 0x5BC, 0x30A, 0x30C, 0x30E, 0x310, 0x312]  ## beaten, exits open
+const LEAGUE_MAPS: Array[Vector2i] = [
+	Vector2i(16, 3), Vector2i(16, 4), Vector2i(16, 5), Vector2i(16, 6), Vector2i(16, 7), Vector2i(16, 8),
+]
+const EVENT_BEAT_CHAMPION: int = 0x5BC
+const LEAGUE_TRAINER_CLASSES: Array[int] = [11, 13, 14, 15, 16]  ## WILL, BRUNO, KAREN, KOGA, CHAMPION
+const REDRAWN_BY_FLAG: Dictionary = {  ## The team's win and the map whose tiles callback it redraws in a window standing there.
+	0x30A: Vector2i(16, 3), 0x30C: Vector2i(16, 4), 0x30E: Vector2i(16, 5), 0x310: Vector2i(16, 6), 0x312: Vector2i(16, 7),
+	0x2A0: Vector2i(3, 23), 0x2A1: Vector2i(3, 24), 0x2A2: Vector2i(3, 25), 0x2A3: Vector2i(3, 26),  ## EVENT_SOLVED_*_PUZZLE
+}
+
 
 
 static func plays(data: GameData) -> bool:
@@ -174,3 +213,22 @@ static func wild_tables(data: GameData) -> Dictionary:
 						func(slot: Dictionary) -> Array: return [int(slot["species"]), int(slot["level"])])
 		out[table] = maps
 	return out
+
+
+static func scene_playing(world: Gen2WorldAPI) -> bool:  ## a contested scene its coordinate events, its entry or a talk started
+	var runner: Object = world.get("_active_script") if world != null else null
+	return runner != null and scene_request(runner.get("_request"))
+
+
+static func scene_request(request: Variant) -> bool:
+	var row: Dictionary = request if request is Dictionary else {}
+	var map := Vector2i(int(row.get("map_group", -1)), int(row.get("map_number", -1)))
+	var event: Dictionary = row.get("event", {})
+	match StringName(row.get("kind", &"")):
+		&"scene":
+			return (STORY_SCENES.get(map, []) as Array).has(int(row.get("scene", -1)))
+		&"coord_events":
+			return (STORY_SCENES.get(map, []) as Array).has(int(event.get("scene", -1)))
+		&"objects":
+			return (STORY_OBJECTS.get(map, []) as Array).has(int(event.get("event_flag", -1)))
+	return false

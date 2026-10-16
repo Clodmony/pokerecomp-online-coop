@@ -75,7 +75,7 @@ static func create(
 	out.transport = link
 	out._badge_flags = PokeCoopOwnership.badge_flags(game_data)
 	out._own_entries = PokeCoopPolicy.own_entries(game_data)
-	for flag: int in PokeCoopPolicy.OWN_WALKS if game_data.generation == RomRegistry.GEN1 else []:
+	for flag: int in PokeCoopPolicy.own_walks(game_data) if not out._own_entries.is_empty() else []:
 		run.flags.erase(flag)
 	out.trades = PokeCoopTrades.create(game_data)
 	if PokeCoopJohto.is_game(run.game_id):
@@ -619,7 +619,7 @@ func apply_world(sender: PokeCoopPlayer, changes: Dictionary) -> StringName:
 	var flags_before: Dictionary = campaign.flags.duplicate()
 	var held_before: Dictionary = sender.items.duplicate()
 	var money_before: int = sender.money
-	if PokeCoopPolicy.take_league_clear(halves[PokeCoopOwnership.CAMPAIGN]):
+	if PokeCoopPolicy.take_league_clear(halves[PokeCoopOwnership.CAMPAIGN], campaign.game_id):
 		_league_cleared = true
 		journal.add(PokeCoopLog.HOST, "league_clear", {"held": PokeCoopPolicy.league_held(campaign, players.values())}, sender.player_id)
 	var story_moved: bool = campaign.apply_world_patch(halves[PokeCoopOwnership.CAMPAIGN], _badge_flags)
@@ -640,7 +640,7 @@ static func _sets_entries(changes: Dictionary) -> bool:
 ## The first window into a rival scene drives it and a later one plays its own copy, the battle being one (#24).
 func claim_scene(sender: PokeCoopPlayer, map: Vector2i, on: bool) -> StringName:
 	var driver: String = String(scenes.get(map, ""))
-	if not PokeCoopPolicy.RIVAL_SCENES.has(map):
+	if not PokeCoopPolicy.rival_scenes(data).has(map):
 		return &"not_a_scene"
 	if on and not driver.is_empty() and driver != sender.player_id:
 		return &"scene_taken"
@@ -822,7 +822,7 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 	var trainer_class: int = PokeCoopTransport.number(message.get("trainer_class"))
 	var trainer_index: int = PokeCoopTransport.number(message.get("trainer_index"))
 	var encounter_id: String = "" if not initiator.opening.is_empty() else _window_encounter(
-		trainer, trainer_class, trainer_index, (enemies[0] as Gen2BattleMon).species, _vector(message.get("map")))
+		trainer, trainer_class, trainer_index, (enemies[0] as Gen2BattleMon).species, _vector(message.get("map")), data)
 	var unique: bool = not encounter_id.is_empty()
 	if unique and campaign.encounter_state(encounter_id) == PokeCoopCampaign.ENCOUNTER_DONE:
 		return &"encounter_done"
@@ -856,11 +856,11 @@ func start_window_battle(initiator: PokeCoopPlayer, message: Dictionary) -> Stri
 
 ## One encounter per campaign: a trainer by class and index, or a one-off wild Pokémon where it stands; empty for grass.
 static func _window_encounter(
-	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i
+	trainer: bool, trainer_class: int, trainer_index: int, species: int, map: Vector2i, game_data: GameData = null
 ) -> String:
 	if trainer:
 		return "trainer:%d:%d" % [trainer_class, trainer_index]
-	if PokeCoopPolicy.UNIQUE_WILD.has(species):
+	if PokeCoopPolicy.unique_wild(game_data).has(species):
 		return "static:%d:%d:%d" % [species, map.x, map.y]
 	return ""
 

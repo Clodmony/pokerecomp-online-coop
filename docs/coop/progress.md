@@ -11,6 +11,37 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Sharing Johto's world (#174, D132, 2026-10-16)
+
+Gold and Silver no longer run on Red and Blue's sharing tables. Johto's map
+scenes, which the host's well-formed check dropped (their keys are
+`group:number`), now reach the campaign and every window, owned scene by scene
+in the one table #173 and #178 started (`PokeCoopJohto.OWN_GIFTS`): story gates
+such as LANCE's staircase in Mahogany's mart are the team's (D91); a walk's
+scenes (link rooms, Fast Ship, Magnet Train, contest gates, League rooms, Unown
+dex, Route 43's toll) and, by the owner's decision with per-window openings, the
+opening's (New Bark Town's teacher, Elm's lab, Mom, Mr. POKéMON) each player's.
+The flags a map load clears and the League rooms' shut doors are each player's;
+the Ruins' unlocked Unown sets and the Rockets' hold are engine flags the team
+shares, so a puzzle one player solves is solved for both while the Unown caught
+stay each player's (D128). Johto's contested scenes lock by the scene or story
+talk a running script came from (the rival's after the opening, Slowpoke Well,
+the Radio Tower, the Rocket base, the Lake of Rage, the Dragon's Den), the Elite
+Four is one run for the team with Johto's flags, rooms and classes, and Red's
+one-off wild Pokémon stay out of Johto. `tools/coop_seed.gd`'s Gold seed takes
+`at2=` (the second player elsewhere) and `event=[-]<flag>`. Merged with #173,
+#175 and #178 (one set of Johto tables). Branch `coop/174-johto-world`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_world` on 55ca6928, the API-only lines left out) | 0/7 passing, 8/23 asserts: SILVER's map scene `[<null>] expected to equal [1]`; unlocked Unown `[0] expected to equal [1]`; GOLD's own Pokémon Center scene `[<null>]` (dropped), a temporary flag shared; the door shut behind GOLD shared and the lobby's clear not held; Red's flag 41 handed SILVER TM item 242, commits `["gift:242", "gift:5"]`; the BICYCLE reached nobody; Johto's rival maps `not_a_scene` and Route 22 a scene |
+| Screens before the fix (`johto_gate` on 6731fdc0, with this branch's seed options) | GOLD tells LANCE YES and he flies off, but SILVER walking into the mart again finds LANCE and DRAGONITE standing there and no stairs: SILVER's window pulled the flags and an empty `map_scenes`; the check fails |
+| Tests after | `test_coop_johto_world` 9/9 (the mart's scene shared, the opening's four each player's, Azalea's rival contested and Cherrygrove's not); `test_coop_ownership` 11/11 with three Johto routing tests; every co-op suite (`-gselect=test_coop_`) 366/366 |
+| Screens after, `johto_gate` (imported Gold and Silver, a `gold new` seed) | GOLD below LANCE at the Lake of Rage (night, the host's clock): "...are being forced to evolve", YES, LANCE gone; SILVER in Mahogany's mart first: a plain shop, no stairs; SILVER walks out and in again: LANCE in the mart, then SILVER beside the uncovered staircase, the guard shoved aside, LANCE gone; the check finds `3:40` = 1 pulled by SILVER's window and the staircase's flag 738 in the campaign. Every capture looked at |
+| `tools/verify.sh johto_gate gold_opening johto_day_care gold_and_silver` | import, GUT 5250/5250, gates, boot, ENet demo, ENet demo gold, three processes, `johto_gate`, `gold_opening`, `johto_day_care` and `gold_and_silver` ok (run `20261016-015925`) |
+| Not run | A Ruins puzzle, a Johto rival scene, the League and the Fast Ship on a cartridge: the redraw of a League exit or a chamber floor in a window standing there is written, not seen; Silver hosting; Windows; played |
+| Left over | The Burned Tower's beasts wait for #180; a campaign hosted before this keeps the opening's scenes it was given, which each player's own now hide |
+
 ## Gold and Silver: a day care and eggs per player (#178, D135, 2026-10-16)
 
 Each player has their own day care (D128). The Day-Care's two places, its step
@@ -19,7 +50,7 @@ keys in `PokeCoopOwnership`, so each window breeds, steps and hatches on its own
 world. Route 34's callback still wrote four event flags (the man indoors or by
 the pen, the two Pokémon in the pen) into the campaign, so each load of Route 34
 or the Day-Care sent one player's pen to the partner's world and left it in the
-team's story. They are now each player's own (`PokeCoopJohto.OWN_ENTRIES`, which
+team's story. They are now each player's own (`PokeCoopJohto.OWN_GIFTS`, which
 `PokeCoopPolicy.own_entries` answers for Gold and Silver). The host no longer
 clears Red and Blue's Safari and Seafoam flags by number from a Gold campaign
 once Gold and Silver have own entries. `tools/coop_seed.gd -- gold new <dir>`

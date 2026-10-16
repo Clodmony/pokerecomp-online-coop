@@ -3,7 +3,7 @@ extends "res://tools/preview_world_story.gd"
 ## A two-player co-op campaign at a point of the Generation 1 story, the `SEED=<out dir>` of tools/coop_screens.sh:
 ##   Godot --headless --path . -s res://tools/coop_seed.gd -- <game> <last leg>|list <out dir> [level=<n>] [party=<n>] [both] [mon=<SPECIES>:<level>[:moves=A/B][:nick=X][:traded][:status=PSN|BRN|PAR|SLP|FRZ][:hp=<n>][:exp=<n>]]... [item=<ITEM>:<n>]... [at=<group>:<number>:<x>,<y>[:<partner x>,<partner y>]]
 ## walks preview_world_story.gd's legs through <last leg>, the party filled to party= lead copies and grown to level=, the first mon= replacing the lead and each next one joining; p1 imports it, p2 a copy; `both` turns on wild Pokémon from both versions (D104).
-## `gold new <out dir> [at=...] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]...` seats two new Johto players, care= filling one's day care (`egg`: the pair's egg waits a step from hatching).
+## `gold new <out dir> [at=...] [at2=<group>:<number>:<x>,<y>] [care=<p1|p2>:<SPECIES>:<level>[:<SPECIES>:<level>][:egg]]... [event=[-]<flag>]...` seats two new Johto players, at2= putting the second elsewhere, care= filling one's day care (`egg`: the pair's egg waits a step from hatching), event= setting (or with - clearing) a campaign flag.
 
 const TRADER: String = "TRADER"
 const JOHTO_NEW: String = "new"
@@ -243,6 +243,14 @@ func _johto_seed(data: GameData, out_dir: String, options: Array) -> int:
 			for index: int in 2:
 				var cell: Vector2i = _cell(parts[2 + index]) if parts.size() > 2 + index else _cell(parts[2]) + Vector2i.LEFT * index
 				(players[index] as PokeCoopPlayer).place(Vector2i(int(parts[0]), int(parts[1])), cell, Gen2WorldSprite.FACING_DOWN)
+		elif option.begins_with("at2="):
+			(players[1] as PokeCoopPlayer).place(Vector2i(int(parts[0]), int(parts[1])), _cell(parts[2]), Gen2WorldSprite.FACING_DOWN)
+		elif option.begins_with("event="):
+			var flag: int = absi(parts[0].to_int())
+			if parts[0].begins_with("-"):
+				campaign.flags.erase(flag)
+			else:
+				campaign.flags[flag] = true
 		elif option.begins_with("care="):
 			var refused: String = _day_care(data, players[1 if parts[0] == "p2" else 0], parts.slice(1))
 			if not refused.is_empty():

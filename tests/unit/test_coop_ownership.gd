@@ -115,3 +115,51 @@ func test_each_players_own_gift_flags_and_objects_stay_with_them() -> void:
 	})
 	assert_eq((PokeCoopOwnership.route(changes, []) [PokeCoopOwnership.CAMPAIGN] as Dictionary).size(), 2,
 		"a game with no such gifts shares them all")
+
+
+func test_johtos_map_scenes_travel_by_name_and_a_walks_own_stay_with_its_player() -> void:
+	var changes: Dictionary = PokeCoopOwnership.well_formed({
+		"map_scenes": {"set": {"3:40": 1, "20:1": 1, "3:27": 1, "24:4": 1, "9:4": 1}, "erase": ["16:3"]},
+	})
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, [], PokeCoopJohto.OWN_GIFTS)
+
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {"map_scenes": {"set": {"3:40": 1, "3:27": 1}, "erase": []}},
+		"LANCE's stairs in Mahogany and the Ruins' inner chamber are the team's")
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {"map_scenes": {"set": {"20:1": 1, "24:4": 1, "9:4": 1}, "erase": ["16:3"]}},
+		"the link floor, New Bark Town's teacher (the opening, owner 2026-10-16), Route 43's toll and WILL's room are each player's")
+
+
+func test_johtos_unlocked_unown_and_the_rockets_hold_are_the_teams_and_its_walk_flags_each_players() -> void:
+	var crystal: bool = false
+	var badges: Array[int] = []
+	for badge: int in Gen2WorldState.BADGE_ENGINE_FLAGS_GOLD_SILVER.size():
+		badges.append(Gen2WorldState.badge_flag(badge, crystal))
+	var unown: int = Gen2WorldState.engine_flag(Gen2WorldState.ENGINE_UNLOCKED_UNOWNS_FIRST, crystal)
+	var radio: int = Gen2WorldState.ENGINE_ROCKETS_IN_RADIO_TOWER_GOLD_SILVER
+	var pokegear: int = 4
+	var changes: Dictionary = {
+		"engine_flags": {"set": {unown: true, radio: true, pokegear: true, badges[0]: true}, "erase": []},
+		"event_flags": {"set": {3: true, 0x309: true, 0x30A: true, 0x2A1: true}, "erase": []},
+	}
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, badges, PokeCoopJohto.OWN_GIFTS)
+
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], {
+		"engine_flags": {"set": {unown: true, radio: true, badges[0]: true}, "erase": []},
+		"event_flags": {"set": {0x30A: true, 0x2A1: true}, "erase": []},
+	}, "the Kabuto puzzle's Unown, the Radio Tower's Rockets, a badge, a League exit and a solved puzzle")
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {
+		"engine_flags": {"set": {pokegear: true}, "erase": []},
+		"event_flags": {"set": {3: true, 0x309: true}, "erase": []},
+	}, "the POKéGEAR, a flag a map load clears and the door shut behind one player")
+	assert_eq(unown, 42, "ENGINE_UNLOCKED_UNOWNS_A_TO_K at the pinned pokegold")
+
+
+func test_red_and_blues_routing_is_unchanged_by_johtos_tables() -> void:
+	var changes: Dictionary = {"map_scenes": {"set": {"0:1": 2}, "erase": []}, "event_flags": {"set": {3: true}, "erase": []}}
+
+	var halves: Dictionary = PokeCoopOwnership.route(changes, PokeCoopOwnership.badge_flags(null), PokeCoopPolicy.OWN_GIFTS)
+
+	assert_eq(halves[PokeCoopOwnership.CAMPAIGN], changes, "a Generation 1 world shares both, as before")
+	assert_eq(halves[PokeCoopOwnership.PLAYER], {})

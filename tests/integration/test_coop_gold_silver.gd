@@ -212,7 +212,9 @@ func _world(client: PokeCoopClient) -> Dictionary:
 	var mine: Dictionary = client.me().get("world", {})
 	var flags: Dictionary = (view.get("event_flags", {}) as Dictionary).duplicate()
 	flags.merge(mine.get("event_flags", {}), true)
-	return {"event_flags": flags, "map_scenes": view.get("map_scenes", {}), "engine_flags": mine.get("engine_flags", {})}
+	var scenes: Dictionary = (view.get("map_scenes", {}) as Dictionary).duplicate()
+	scenes.merge(mine.get("map_scenes", {}), true)  ## the opening's scenes are each player's (D132)
+	return {"event_flags": flags, "map_scenes": scenes, "engine_flags": mine.get("engine_flags", {})}
 
 
 func test_a_gold_opening_ends_once_the_egg_is_with_elm_and_the_lab_is_left() -> void:

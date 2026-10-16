@@ -191,7 +191,7 @@ before pushing.
 | `game/coop/coop_battle_session.gd` | `PokeCoopBattleSession`: one battle, turn authority, suggestions, joins, results |
 | `game/coop/coop_versus.gd` | `PokeCoopVersus`: friend battle, both human sides, mirrored views and post-fight healing/experience |
 | `game/coop/coop_policy.gd` | `PokeCoopPolicy`: provisional rules kept out of the simulation |
-| `game/coop/coop_johto.gd` | `PokeCoopJohto`: Gold and Silver's own rules (D130), asked by `PokeCoopPolicy`: the opening's end, its story and a late joiner's (D131), each player's gifts, Johto's gift items, the wild tables by time of day; the campaign's one clock (D133) |
+| `game/coop/coop_johto.gd` | `PokeCoopJohto`: Gold and Silver's own rules (D130), asked by `PokeCoopPolicy`: the opening's end, its story and a late joiner's (D131), each player's gifts, Johto's gift items, the wild tables by time of day; the campaign's one clock (D133); each player's own flags and map scenes, the team's engine flags, contested scenes and League run (D132) |
 | `game/coop/coop_host.gd` | `PokeCoopHost`: authoritative validation, protocol, save checkpoints, lifecycle |
 | `game/coop/coop_client.gd` | `PokeCoopClient`: intentions out, authoritative state in |
 | `game/coop/coop_transport.gd` | `PokeCoopTransport`: message transport base and in-memory loopback |
@@ -223,8 +223,8 @@ before pushing.
 | `tools/coop_relay.gd` | a UDP relay between one scenario window and the host that cuts the link on cue (`RELAY=p2`, `cut`) |
 | `tools/coop_autoplay.gd` | a window that plays itself with `tools/checks/played.gd`'s legs (#48); on Gold or Silver, its opening (#173) |
 | `tools/coop_launcher_play.gd` | one player's window on the launcher's Co-op tab, then the world (D69); `tour=` photographs every screen, `clock=HH:MM[:D]` starts a new Gold campaign's clock there |
-| `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead, `mon=` and `item=` shape it, `at=<group>:<number>:<x>,<y>` puts both players there (beside a trainer); `gold new` seats two Johto players, `care=` fills one's day care |
-| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/unit/test_coop_lobby.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd`, `tests/integration/test_coop_gold_silver.gd`, `tests/integration/test_coop_johto_day_care.gd` | co-op tests |
+| `tools/coop_seed.gd` | a two-player campaign at any leg of upstream's Gen 1 story walk, for `SEED=` (D78); `level=<n>` grows the party, `party=<n>` fills it to n with copies of the lead, `mon=` and `item=` shape it, `at=<group>:<number>:<x>,<y>` puts both players there (beside a trainer); `gold new` seats two Johto players, `at2=` puts the second elsewhere, `care=` fills one's day care, `event=[-]<flag>` sets or clears a campaign flag |
+| `tests/unit/test_coop_state.gd`, `tests/unit/test_coop_battle.gd`, `tests/unit/test_coop_ownership.gd`, `tests/unit/test_coop_log.gd`, `tests/unit/test_coop_lobby.gd`, `tests/integration/test_coop_session.gd`, `tests/integration/test_coop_device.gd`, `tests/integration/test_coop_three_players.gd`, `tests/integration/test_coop_save_refusal.gd`, `tests/integration/test_coop_logs_session.gd`, `tests/integration/test_coop_gold_silver.gd`, `tests/integration/test_coop_johto_day_care.gd`, `tests/integration/test_coop_johto_world.gd` | co-op tests |
 
 ## Conventions specific to the fork
 
