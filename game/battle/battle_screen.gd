@@ -4253,46 +4253,11 @@ func take_turn_with(player_slot: int, enemy_slot: int) -> void:
 
 
 func _random_slot(side: int) -> int:
-	var mon: Gen2BattleMon = _battle.mon(side)
-	var usable: Array = []
-	for slot: int in mon.moves.size():
-		if mon.can_use(slot):
-			usable.append(slot)
-	return usable[_rng.randi_range(0, usable.size() - 1)] if not usable.is_empty() else 0
+	return Gen2BattleAI.random_slot(_battle.mon(side), _rng)
 
 
-## [Gen2BattleAI] against a trainer's AI flags, or [method _random_slot] for
-## [method show_matchup]'s invented pairing, which has no flags to read.
 func _enemy_slot() -> int:
-	if _generation() == RomRegistry.GEN1:
-		return Gen1TrainerAI.select_slot(_battle, _rng)
-	if _enemy_trainer_class == 0:
-		return _random_slot(Gen2Battle.ENEMY)
-	var policy: Dictionary = Gen2BattleAI.trainer_policy(
-		_data, _enemy_trainer_class, _battle.in_battle_tower
-	)
-	var weights: int = _rules().ai_move_weights(int(policy["move_weights"]))
-	return Gen2BattleAI.choose_slot(
-		_battle.mon(Gen2Battle.ENEMY), _battle.mon(Gen2Battle.PLAYER), _data, weights, _rng,
-		_battle.mon(Gen2Battle.ENEMY).turns_taken, _battle.mon(Gen2Battle.PLAYER).turns_taken,
-		_battle.weather,
-		_battle.screens[Gen2Battle.ENEMY], _battle.screens[Gen2Battle.PLAYER],
-		Gen2AISwitch.has_bench(_battle), Gen2AISwitch.matchup_score(_battle),
-		Gen2AISwitch.has_bench(_battle, Gen2Battle.PLAYER), _battle.player_used_moves,
-		_party_status_mask(Gen2Battle.ENEMY), _battle.is_link_battle
-	)
-
-
-## `AI_Smart_HealBell`'s walk of `wOTPartyMon1HP`: every living party member's
-## status byte ored together, the one that is out included.
-func _party_status_mask(side: int) -> int:
-	var party: Gen2Party = _battle.party(side)
-	var mask: int = Gen2Status.NONE
-	for index: int in party.size():
-		var member: Gen2BattleMon = party.at(index)
-		if member != null and not member.is_fainted():
-			mask |= member.status
-	return mask
+	return Gen2BattleAI.enemy_slot(_battle, _enemy_trainer_class, _rules(), _rng)
 
 
 ## The enemy's move, picked when the turn opened, with its trainer's flags for
@@ -4301,14 +4266,7 @@ func _enemy_action() -> Dictionary:
 	var slot: int = _enemy_turn_slot if _enemy_turn_slot >= 0 and _battle.turn_begun() \
 		else _enemy_slot()
 	_enemy_turn_slot = -1
-	var action: Dictionary = Gen2Battle.use_move(slot)
-	if _enemy_trainer_class == 0 or _generation() == RomRegistry.GEN1:
-		return action
-	var policy: Dictionary = Gen2BattleAI.trainer_policy(
-		_data, _enemy_trainer_class, _battle.in_battle_tower
-	)
-	action["ai_item_switch"] = _rules().ai_item_switch(int(policy["item_switch"]))
-	return action
+	return Gen2BattleAI.enemy_action(_battle, _enemy_trainer_class, _rules(), slot)
 
 
 ## `BattleTurn` before `BattleMenu`: the opening's lines, then `AIChooseMove`

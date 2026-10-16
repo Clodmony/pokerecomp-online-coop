@@ -11,6 +11,28 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## Gold and Silver's battle questions (#149, D136, 2026-10-16)
+
+D121's owners carry over to Generation 2, now with session tests for each
+question (`test_coop_johto_questions`). A Baton Pass goes to the passer's
+owner, who picks any standing ally, and the stages go with it. The view's new
+`use_next` makes a pass in the wild open the party list at once with no RUN;
+before, both windows asked "Use next POKéMON?" and the host refused NO.
+SHIFT's offer goes to the owner of the Pokémon that is out, by their own
+setting, in Gold's words. Mimic asks nobody on Generation 2 and the Pokémon
+keeps MIMIC. A move to learn is asked of the learner's owner, a partner's
+benched EXP.SHARE holder included. The battle screen's enemy choice moved into
+`Gen2BattleAI.enemy_slot` and `enemy_action`, which a session calls too, so a
+Gold trainer in a session scores its moves with its class's weights.
+`coop_seed.gd -- gold new` takes `mon=`. Branch `coop/149-gen2-battle-questions`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_questions`) | 4/8 passing: a wild pass's view had no `use_next` and both windows' menus opened ASK, not PARTY; a wild faint's view lacked `use_next`; the offer read `["FALKNER is\nabout to use", "HOOTHOOT!"]`; a trainer under every layer used `[79, 33, 86]` against a paralysed Pokémon, not only TACKLE |
+| Tests after | `test_coop_johto_questions` 8/8; `test_coop` 388, `test_ai` 127, `test_trainer` 21 passing |
+| `tools/verify.sh johto_baton_pass johto_battle` | import, GUT 5272/5272, gates, boot, ENet demo, ENet demo gold, three processes, `johto_baton_pass` and `johto_battle` ok (run `20261016-120025`). Every capture looked at: after BATON PASS, GOLD's window shows "Which PKMN?" at once and SILVER's shows "GOLD decides." over the same list, with SILVER's pointer on GEODUDE as the hollow mark on GOLD's list; GEODUDE takes the pass and wins for SILVER. `johto_battle`'s FALKNER line now reads "LEADER FALKNER / is about" in Gold's layout; the page naming PIDGEOTTO fell between captures |
+| Not run | A move to learn or Mimic in a Gold window; a Gold trainer's item or switch in a session window; German Gold and Silver; Windows; played |
+
 ## The Gold tool host's encounters and the tab's own name (#188, 2026-10-16)
 
 Three leftovers of #172 and #173. A Gold or Silver host from

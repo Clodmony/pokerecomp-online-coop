@@ -1201,8 +1201,8 @@ static func message(
 		PokeCoopBattleSession.BALL_THROWN:
 			return _throw_line(event, who_acted, _species_name(game, int(out.get(Gen2Battle.ENEMY, 0))), game)
 		Gen2Battle.SWITCH_OFFERED:
-			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "", true) \
-				.get_slice(Gen2TextStream.PAGE_BREAK, 0)
+			return Gen2BattleSwitchMenu.offer_text(trainer, _species_name(game, int(event.get("species", 0))), "",
+				game.generation == RomRegistry.GEN1).get_slice(Gen2TextStream.PAGE_BREAK, 0)
 	return ""
 
 

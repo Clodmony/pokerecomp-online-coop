@@ -205,9 +205,9 @@ func _battle_rows(view: Dictionary) -> Array:
 				{"text": "RUN", "label": "Run", "section": " ", "command": {"type": "run"}, "suggest": "run", "value": 0},
 			] + _leave_rows(view)
 		"send_out":
-			return _switch_rows(view, "send_out") + [
+			return _switch_rows(view, "send_out") + ([
 				{"text": "RUN", "label": "Run", "section": " ", "command": {"type": "run"}, "suggest": "run", "value": 0},
-			] + _leave_rows(view)
+			] if bool(view.get("use_next", true)) else []) + _leave_rows(view)
 		"learn":
 			return _learn_rows(view)
 		"mimic":

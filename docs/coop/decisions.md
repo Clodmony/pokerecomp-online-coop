@@ -2200,3 +2200,31 @@ the host's, not Johto's, so Red and Blue's Route 5 day care keeps a uid the same
 way (the owner kept it for both, 2026-10-16). Costs: a Pokémon is matched by its fingerprint (trainer, DVs, catch data),
 as everywhere else, so a party Pokémon with the same fingerprint as one in the
 day care takes that one's uid.
+
+## D136. Gold and Silver's battle questions have owners too; the session picks moves as the screen does (#149, 2026-10-16)
+
+D121's rule carries over to Generation 2 unchanged: each question goes to the
+owner of the Pokémon it is about, and the partner may suggest its answer.
+Session tests now cover each Generation 2 case. **Baton Pass**: the passer's
+owner picks the receiver from the whole allied party, the partner's Pokémon
+included, and the stages go with it. The session's view now says whether
+"Use next POKéMON?" stands (`use_next`), so a pass in the wild (and a forced
+choice after a failed run) opens the party list at once and offers no RUN the
+host would refuse; before, both windows asked "Use next POKéMON?" and NO was
+refused. **SHIFT**: Generation 2 asks it as Generation 1 does, by the setting
+of the player whose Pokémon is out (D113); the field and the YES/NO box now
+use Gold's words ("FALKNER / is about to use", a full stop) instead of Red's.
+**Mimic** asks nobody on Generation 2: it copies the foe's last move for the
+battle, and the owner's Pokémon goes home knowing MIMIC. **A move to learn**
+goes to the learner's owner, which on Generation 2 can be a partner's benched
+Pokémon holding EXP.SHARE.
+
+D126's Generation 2 half: the battle screen's enemy choice moved into
+`Gen2BattleAI.enemy_slot` and `enemy_action`, which the screen and
+`PokeCoopBattleSession` both call, so a session's Gold or Silver trainer
+scores its moves with its class's weights under the host's rules and takes its
+class's item and switch flags into the turn, where it used a random usable move
+before. The upstream change is a move, not a rewrite (`architecture.md`).
+Costs: the session picks the enemy's move when the controller's command
+arrives, not when the turn opens as the screen does; nothing between the two
+moves anything the scoring reads except a Berserk Gene's first turn.

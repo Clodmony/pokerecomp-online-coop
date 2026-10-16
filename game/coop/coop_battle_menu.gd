@@ -100,7 +100,7 @@ func _open_phase() -> void:
 		"action":
 			_go(NONE if bool(_view.get("paused", false)) else MAIN, _main)
 		"send_out":
-			if bool(_view.get("trainer", false)):
+			if bool(_view.get("trainer", false)) or not bool(_view.get("use_next", true)):
 				_go(PARTY, 0)
 			else:
 				_question(Gen2BattleSwitchMenu.use_next_text(), {"page": PARTY},
@@ -934,7 +934,7 @@ func _yes_no_box() -> Gen2MenuBox:
 
 
 func _offer_text() -> String:
-	return Gen2BattleSwitchMenu.offer_text("", "", _name(String(_view.get("controller", ""))), true) \
+	return Gen2BattleSwitchMenu.offer_text("", "", _name(String(_view.get("controller", ""))), data.generation == RomRegistry.GEN1) \
 		.get_slice(Gen2TextStream.PAGE_BREAK, 1)
 
 
