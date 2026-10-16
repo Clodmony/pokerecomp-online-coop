@@ -123,6 +123,13 @@ Elm's lab after that. The officer asks the rival's name only of the first player
 to reach him; a later player's officer hears the name the campaign already has.
 The rival's later teams answer your own starter in your window.
 
+The Bug-Catching Contest in the National Park (Tuesdays, Thursdays and
+Saturdays on the campaign's clock) takes both of you at once (D140): each
+talks to the officer, gets their own twenty PARK BALLs and timer, and leaves
+the rest of their party with the officer. In the park you see each other but
+catch and are judged alone, against your own contestants, for your own prize;
+one of you walking out early or being judged leaves the other's contest running.
+
 ## Split screen on one PC
 
 On Linux or Windows, two players can share one computer: press **Split

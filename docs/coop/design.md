@@ -190,7 +190,8 @@ opening hands everyone (#172, #173). The rules above carry over, with these choi
   Rage's LANCE, the Dragon's Den's DRAGON FANG. The Elite Four is one run for
   the team (D91, D132).
 - The Bug-Catching Contest takes both players at once; each is judged on their
-  own catch.
+  own catch, against their own contestants, with their own timer, PARK BALLs and
+  kept party, and neither holds the other at the gate (D140).
 - Mystery Gift works between the two players; the Time Capsule trades between
   a Gold or Silver player and a Red or Blue player.
 - The campaign runs through Johto to Kanto and RED on Mt. Silver.

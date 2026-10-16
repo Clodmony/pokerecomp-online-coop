@@ -11,6 +11,28 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The Bug-Catching Contest for two (#179, D140, 2026-10-16)
+
+Both Gold and Silver players can enter the same Bug-Catching Contest, each with
+their own contestants, timer, PARK BALLs, kept party and prize. The contest's
+event flags (the kept party, the warp to the judging, the prizes the officer
+holds, the gates' officers and youngster, the contestants in the park and at the
+judging) are each player's own entries; the party the officer keeps stays on the
+host with its uids (`PokeCoopPlayer.contest_kept`, protocol 10); and the gates'
+finish-early question reads `VAR_CONTESTMINUTES`, which stopped the scene on an
+unsupported variable, alone too. `coop_seed.gd`'s `gold new` takes `mon=` and
+`clock=`, and `johto_bug_contest` plays both players through one contest. Branch
+`coop/179-bug-contest`.
+
+| Verification | Result |
+|---|---|
+| Tests before the fix (`test_coop_johto_bug_contest`) | 0/3 passing, 30/41 asserts. SILVER's draw replaced GOLD's park (`{2, 3, 4, 6, 7} != {6, 0, 3, 4, 2}`); SILVER entering with one Pokémon cleared the officer's hold on GOLD's party, which never came back (GOLD's team `["p1:1"]`, expected `["p1:1", "p1:2", "p1:3"]`); GOLD's results withdrew every contestant from SILVER's park, so SILVER, with no catch, placed first, and GOLD's SUN STONE was also copied into SILVER's bag as a found item (`[2, 0] != [0, 1]`); after a save and a new host the officer held nothing (`[] != [104, 163]`); the SUN STONE the officer held for GOLD was SILVER's to take. `test_readvar_contest_minutes_reads_the_running_timer` failed with `unsupported_runtime_variable` 17 |
+| Tests after | `test_coop_johto_bug_contest` 4/4 (with the seed's `mon=` and `clock=`); `test_world_api` 428/428; the whole suite 5269/5269 in verify |
+| Screens before the runner fix | the scenario's first runs: GOLD walked out of the park and the Route 35 gate's scene stopped ("Script stopped: unsupported runtime variable"), so the next A talked to the officer and entered GOLD again |
+| `tools/verify.sh johto_bug_contest gold_and_silver` | run `20261016-125921` on the branch's code: import, GUT 5269/5269, gates, boot, ENet demo, three processes, `johto_bug_contest` and `gold_and_silver` ok; `enet-demo-gold` failed at "red beats the leader" (the step the handoff watches under load) and passed 3 of 3 runs alone. The run before (`20261016-124827`) had every stage ok but GUT, where `_johto_seed` was over the complexity ceiling (fixed by moving `mon=` and `clock=` into `_johto_option`) |
+| Screens (scripted), `johto_bug_contest` | GOLD and SILVER enter one contest from the Route 35 gate on TUESDAY 10:00 (the seed's clock); the officer keeps GOLD's SENTRET and asks SILVER nothing about a party; in the park each window shows the other; GOLD walks out ("You still have 20 minute(s) left."), is judged against GOLD's contestants while SILVER's contest runs on, then SILVER is judged against other contestants and scores; the host's last autosave has a BERRY in each bag, both done for the day, GOLD's SENTRET back under `p1:2` and no contest flag in the campaign. On a loaded machine (other windows running) a text capture lands early or late; every capture looked at |
+| Not run | A catch in the contest and a placing prize on screen (the session test covers both; a scripted catch depends on the encounter and the ball's roll); a full bag's prize held by the officer on screen; the timer running out; German Gold and Silver; Windows; played |
+
 ## A Pokémon keeps its uid through the day care (#196, D135, 2026-10-16)
 
 The owner chose that a Pokémon left in a day care keeps its uid (#196). The

@@ -142,6 +142,7 @@ Peer 1 is the host.
 | `challenge` | `seq`, `partner`, `kind` (`battle` or `trade`), or `id`, `answer` (1 YES, 0 NO); host rechecks both players (protocol 6, D100) |
 | `world` | `seq`, `patch` (synced world-state keys, `{set, erase}` or `{value}` each) |
 | `party` | `seq`, `rows` (`uid` hint and `mon` per party member, in the window's order), `rev` (the `holdings_rev` the copy is based on), `current_box`, and `boxes` (`uid` hint, `mon` and `box` per stored Pokémon) when the PC changed; without `rev` only the team is replaced and nobody is released |
+| `party` (protocol 10) | adds `kept` (`uid` hint and `mon` per Pokémon the Bug-Catching Contest's officer holds while the lead competes), always sent (D140) |
 | `window_battle` | `seq`, `kind`, `trainer_class`, `trainer_index`, `enemy` (the world's enemy party as save-mon rows) |
 | `hello` (new player) | adds `starter`, the species a new player chose, `opening` (true to play the opening, D50), `save` (a brought trainer), and `known` (this device's player in each campaign of the host, D49) |
 | `hello` (protocol 3) | adds `logs` (`device`, `share`) for the debug stream (D59) |
@@ -162,6 +163,7 @@ Peer 1 is the host.
 | `box` | `rev`, `rows` (`uid`, `mon`, `box`): the player's PC, sent before `state` whenever its revision changed |
 | `state` | `campaign` summary with `world` (the shared world-state keys), `players` (public views, with `scene`: the map of the rival scene that player drives), `you` (private view, with the player's own `party` rows, `world` keys, `holdings_rev`, `box_rev`, `current_box`, `trade` (round `serial`, last `outcome`, the partner's offered `partner_slot`) and `trade_partner` (id, name, trainer id and party of whoever the Cable Club links to)), `nearby` (connected players on the same map), `battles` (running), `encounters` (id and label), `last_seq` |
 | `state` (protocol 9) | adds `clock` on Gold and Silver: `day`, `hour`, `minute`, `second`, `cur_day` of the campaign's clock as sent; a window runs it on by its own time since (D133) |
+| `state` (protocol 10) | `you` adds `kept`: the player's Pokémon the contest's officer holds, with their uids, which a window opens its save on (D140) |
 | `battle` | `view`: id, revision, phase, controller, paused, participants, pending, active, allies (owner, uid, species, level, HP, status, moves, PP), enemy, suggestions, last events, outcome, `left`, `attached` (whose world opened the fight) and `stand_in_due`; a final view adds `evolvable` and `prizes` |
 | `rejected` | `seq`, `reason` |
 | `ended` | `reason` |
@@ -174,7 +176,7 @@ carry `meeting` while paired. A `versus` battle view shows only the viewer's
 team as allies, their choices and learning offer, with events mirrored for
 the opponent. Friend battles stay private to their two participants.
 
-The protocol is version 9 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104; 9 the clock, D133); a peer of another version is
+The protocol is version 10 (`PokeCoopHost.PROTOCOL`; 8 added `wild_tables`, D104; 9 the clock, D133; 10 the contest's kept party, D140); a peer of another version is
 refused with `protocol_mismatch`. A hosting session also sends the lobby view with its
 ENet `port` as a JSON UDP beacon to port 24681 once a second (broadcast, each
 network's `.255` and 127.0.0.1); the Co-op tab's Join screen lists the hosts heard in
@@ -238,6 +240,7 @@ Kept small so upstream merges stay cheap (#14):
 | `game/battle/battle_anim_player.gd`, `game/battle/battle_screen_map.gd`, `tests/unit/test_battle_anim_player.gd` | Generation 1's `_AnimationSlideMonUp` rises from below into its box and ends home (DIG drew a second picture at the top of the screen); a picture slid up or down stays inside its box's rows, as `CopyPicTiles` with fewer rows does |
 | `game/world/world_pack.gd` | `gen1_bag_capacity`, the Generation 1 bag rows `receive_check` allows; the cartridge's twenty unless a co-op run raises it (D109) |
 | `game/battle/battle_screen.gd` | `add_trainer_hud`, a static split out of `_add_trainer_hud`, so the co-op field lays out the party balls the same way (D108) |
+| `game/world/world_script_runner.gd`, `game/world/world_api.gd`, `tests/unit/test_world_api.gd` | `VAR_CONTESTMINUTES` (0x11) is read and a world's script request carries the clock's second, so both National Park gates' finish-early question runs; it stopped on an unsupported variable, alone too (D140) |
 | `.gutconfig.json` | `pre_run_script`: `tests/coop_test_folders.gd` keeps every run's co-op campaigns and session logs out of the player's folders |
 | `README.md` | AI-authorship notice at the top |
 
