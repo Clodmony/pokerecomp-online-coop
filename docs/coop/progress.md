@@ -11,6 +11,24 @@ what is blocked. Verification levels are kept apart on purpose:
   cartridge, driven by scripted button presses and checked from screenshots;
 - **played**: people played it by hand.
 
+## The Gold ENet demo no longer stalls on a spent move (#206, 2026-10-17)
+
+`coop_session.gd -- demo gold` failed now and then at "red beats the leader"
+or "the shared battle is won". The demo always chose move slot 0; a long
+battle against the L50 GEODUDE could use up SLASH's PP, the host refused the
+slot (`invalid_move`) while GROWL still had PP, and the demo never chose
+again until the step ran out of frames. The demo now picks the first move
+with PP that isn't disabled, RED's CHARMANDER starts with a spent GROWL first
+so every run takes that path, and a failing step prints each battle's
+outcome, phase, revision, HP, PP, events and refusals. Branch
+`coop/206-gold-demo-leader`.
+
+| Verification | Result |
+|---|---|
+| Before the fix | 192 Gold demo runs in parallel, private user folders: 10 failed (`FAIL  red beats the leader after 601 frames` 6, `FAIL  the shared battle is won after 601 frames` 4) |
+| After | 96 of 96 runs passed, same load |
+| `tools/verify.sh`, run `20261017-113244` on 5250e71b | import, GUT 5299/5299, gates, boot, ENet demo, ENet demo gold, three processes ok |
+
 ## German windows from the Co-op tab draw their umlauts (#218, 2026-10-16)
 
 The owner's split-screen session on Rote Edition showed ä, ö and ü as `?`.

@@ -6,7 +6,7 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-16 (the owner's first split-screen session: #217 and #218 found, fixed and merged as #219 and #220).
+Last updated 2026-10-18 (#206 the Gold demo's stalled move: draft PR open; before it, the owner's first split-screen session: #217 and #218 merged as #219 and #220).
 
 ## Repository state
 
@@ -20,6 +20,14 @@ Last updated 2026-10-16 (the owner's first split-screen session: #217 and #218 f
   can't run here), the German Rote and Blaue are.
 - History rewritten once (D129): the old co-op history is backed up in
   `~/dev-scratch/pokerecomp-online-coop/session-links/backup-20261015.git`.
+
+## Open pull requests
+
+- #206's PR from `coop/206-gold-demo-leader` (draft, `Closes #206`): the
+  Gold ENet demo chose move slot 0 always and stalled once SLASH ran out of
+  PP (10 of 192 runs failed); it now picks a move with PP, and a failing step
+  prints each battle's state. Tools only (`tools/coop_session.gd`). Verify on
+  5250e71b: all passed. Needs the owner's word to merge.
 
 ## M14 wave 2 (#198, merged 2026-10-16)
 
@@ -91,7 +99,6 @@ final head passed.
   split screen) and G11 (umlauts) by hand; a joined battle still plays its
   effects in both halves (D141), a follow-up if it bothers.
 - #183's remaining stretches (WHITNEY to Johto's Elite Four, from seeds).
-- #206 the Gold demo's leader step (log the outcome, then fix the rolls).
 - Filed during the wave, owner-approved: #208 no friend battles or trades
   during the contest; #209 Red and Blue's Colosseum as a link battle; #210
   Mystery Gift decorations per player; #211 Elm's call and TOGEPI egg for
@@ -115,7 +122,7 @@ final head passed.
 
 - Main checkout on `pokerecomp-online-coop`, behind the pushed merges (pull
   when convenient; its `builds/` holds the session builds).
-- The Superset worktree `quilted-acoustic` (local branch `session/red-fallback` at 59016792, the fallback build's commit) and `~/dev-scratch/pokerecomp-online-coop/worktrees/wave2-merge` (branch `wave2/merge`, pushed): remove both after the session.
+- The Superset worktree `quilted-acoustic` (now on `coop/206-gold-demo-leader`; the local branch `session/red-fallback` at 59016792, the fallback build's commit, is still there) and `~/dev-scratch/pokerecomp-online-coop/worktrees/wave2-merge` (branch `wave2/merge`, pushed): remove both after the session.
 - No background processes.
 
 ## Working notes (stable, keep short)
@@ -157,8 +164,8 @@ final head passed.
 
 ## Cleanup the owner may approve
 
-- After the session: the Superset worktree `quilted-acoustic` and its branch
-  `session/red-fallback`; the worktree `wave2-merge` and branch `wave2/merge`;
+- After the session: the Superset worktree `quilted-acoustic` once #206's PR
+  is merged, and the branch `session/red-fallback`; the worktree `wave2-merge` and branch `wave2/merge`;
   `~/dev-scratch/pokerecomp-online-coop/session/` (the page's source) and
   `session-backup-20261016/`; the three session builds and their zips in
   `builds/`.
