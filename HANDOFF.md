@@ -23,7 +23,7 @@ Last updated 2026-10-18 (#206 the Gold demo's stalled move: draft PR open; befor
 
 ## Open pull requests
 
-- #206's PR from `coop/206-gold-demo-leader` (draft, `Closes #206`): the
+- #221 from `coop/206-gold-demo-leader` (draft, `Closes #206`): the
   Gold ENet demo chose move slot 0 always and stalled once SLASH ran out of
   PP (10 of 192 runs failed); it now picks a move with PP, and a failing step
   prints each battle's state. Tools only (`tools/coop_session.gd`). Verify on
@@ -164,7 +164,7 @@ final head passed.
 
 ## Cleanup the owner may approve
 
-- After the session: the Superset worktree `quilted-acoustic` once #206's PR
+- After the session: the Superset worktree `quilted-acoustic` once #221
   is merged, and the branch `session/red-fallback`; the worktree `wave2-merge` and branch `wave2/merge`;
   `~/dev-scratch/pokerecomp-online-coop/session/` (the page's source) and
   `session-backup-20261016/`; the three session builds and their zips in
