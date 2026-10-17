@@ -138,7 +138,9 @@ func _new_host(port: int) -> bool:
 	_host.journal = _journal("host", "HOST", port)
 	var red: PokeCoopPlayer = _host.add_player("RED", 100)
 	red.place(_town, Vector2i(5, 5), 0)
-	red.add_mon(_saved(Fixture.CHARMANDER, 60, [Fixture.SLASH, Fixture.GROWL], 100))
+	var lead: Gen2SaveMon = _saved(Fixture.CHARMANDER, 60, [Fixture.GROWL, Fixture.SLASH], 100)
+	lead.pp[0] = 0  ## the host refuses a move without PP while another has some: the demo must pick SLASH (#206)
+	red.add_mon(lead)
 	red.add_mon(_saved(Fixture.PIKACHU, 20, [Fixture.TACKLE], 100))
 	var blue: PokeCoopPlayer = _host.add_player("BLUE", 200)
 	blue.place(_town, Vector2i(6, 5), 0)
@@ -454,9 +456,28 @@ func _advance_steps() -> void:
 		_step += 1
 		_begun = false
 	elif _frames > STEP_FRAMES and Time.get_ticks_msec() - _begun_at >= _patience_msec:
-		print("FAIL  %s" % row[0])
+		print("FAIL  %s after %d frames, %d ms" % [row[0], _frames, Time.get_ticks_msec() - _begun_at])
+		_print_battles()
 		_finish(1)
 	_frames += 1
+
+
+func _print_battles() -> void:
+	for client: PokeCoopClient in [_red, _blue]:
+		if client == null:
+			continue
+		print("  %s: rejections %s" % [client.player_id, client.rejections.slice(-3)])
+		for battle_id: String in client.battles:
+			var view: Dictionary = client.battles[battle_id]
+			var allies: Array = (view.get("allies", []) as Array).map(
+				func(ally: Dictionary) -> String: return "%s %d/%d pp %s" % [ally["name"], ally["hp"], ally["max_hp"], ally["pp"]]
+			)
+			print("    %s %s: outcome '%s', phase %s, revision %d, controller %s, allies %s, enemy %s %d/%d, events %s" % [
+				battle_id, view.get("encounter", ""), view.get("outcome", ""), view.get("phase", ""), int(view.get("revision", -1)),
+				view.get("controller", ""), allies, (view.get("enemy", {}) as Dictionary).get("name", ""),
+				int((view.get("enemy", {}) as Dictionary).get("hp", -1)), int((view.get("enemy", {}) as Dictionary).get("max_hp", -1)),
+				(view.get("events", []) as Array).slice(-4),
+			])
 
 
 func _watch_client() -> void:
@@ -543,11 +564,18 @@ func _won(client: PokeCoopClient, battle_id: String) -> bool:
 
 static func _next_command(view: Dictionary) -> Dictionary:
 	if String(view.get("phase", "")) != String(PokeCoopBattleSession.AWAITING_SEND_OUT):
-		return {"type": "move", "slot": 0}
+		return {"type": "move", "slot": _usable_slot((view["allies"] as Array)[int(view["active"])])}
 	for ally: Dictionary in view["allies"]:
 		if int(ally["hp"]) > 0 and int(ally["index"]) != int(view["active"]):
 			return {"type": "send_out", "index": int(ally["index"])}
 	return {"type": "run"}
+
+
+static func _usable_slot(mon: Dictionary) -> int:
+	for slot: int in (mon["pp"] as Array).size():
+		if int(mon["pp"][slot]) > 0 and slot != int(mon.get("disabled", -1)):
+			return slot
+	return 0
 
 
 func _both_gained() -> bool:
