@@ -6,7 +6,7 @@ survives any worktree path and any tool; per-checkout agent memory is not read
 by a session that starts in another worktree. State goes here; stable recipes
 go into `docs/coop/`; personal data and hardware never.
 
-Last updated 2026-10-18 (#206 the Gold demo's stalled move: draft PR open; before it, the owner's first split-screen session: #217 and #218 merged as #219 and #220).
+Last updated 2026-10-18 (#206 the Gold demo's stalled move: #221 merged; before it, the owner's first split-screen session: #217 and #218 merged as #219 and #220).
 
 ## Repository state
 
@@ -23,11 +23,10 @@ Last updated 2026-10-18 (#206 the Gold demo's stalled move: draft PR open; befor
 
 ## Open pull requests
 
-- #221 from `coop/206-gold-demo-leader` (draft, `Closes #206`): the
-  Gold ENet demo chose move slot 0 always and stalled once SLASH ran out of
-  PP (10 of 192 runs failed); it now picks a move with PP, and a failing step
-  prints each battle's state. Tools only (`tools/coop_session.gd`). Verify on
-  5250e71b: all passed. Needs the owner's word to merge.
+- None. #221 (#206: the Gold ENet demo chose move slot 0 always and stalled
+  once SLASH ran out of PP, 10 of 192 runs failed; it now picks a move with PP
+  and a failing step prints each battle's state) merged on the owner's word,
+  2026-10-18.
 
 ## M14 wave 2 (#198, merged 2026-10-16)
 
@@ -86,8 +85,9 @@ final head passed.
   (only `HANDOFF.md` differs). Verify with `--builds` passed (GUT 5299/5299,
   Linux and Windows boot). Fallback:
   `builds/session-red-wave2-b2aae3cf`. The private Superset page points at both.
-- The owner's campaigns, settings and save slots are backed up in
-  `~/dev-scratch/pokerecomp-online-coop/session-backup-20261016/`.
+- The backup of the owner's campaigns, settings and save slots from that
+  session was deleted on the owner's word (2026-10-18); back up again before
+  another session that touches the owner's user folder.
 - Virtual game controllers from other software can be connected to this
   machine and press buttons. Godot sees them: scripted scenario windows and
   the launcher can be moved by them, and `local_split` hands its right half
@@ -122,7 +122,10 @@ final head passed.
 
 - Main checkout on `pokerecomp-online-coop`, behind the pushed merges (pull
   when convenient; its `builds/` holds the session builds).
-- The Superset worktree `quilted-acoustic` (now on `coop/206-gold-demo-leader`; the local branch `session/red-fallback` at 59016792, the fallback build's commit, is still there) and `~/dev-scratch/pokerecomp-online-coop/worktrees/wave2-merge` (branch `wave2/merge`, pushed): remove both after the session.
+- The Superset worktree `quilted-acoustic` (#206's, merged): remove it. The
+  worktree `wave2-merge`, the branches `wave2/merge` and
+  `session/red-fallback`, and the session page's source and backup were
+  removed on 2026-10-18.
 - No background processes.
 
 ## Working notes (stable, keep short)
@@ -164,11 +167,8 @@ final head passed.
 
 ## Cleanup the owner may approve
 
-- After the session: the Superset worktree `quilted-acoustic` once #221
-  is merged, and the branch `session/red-fallback`; the worktree `wave2-merge` and branch `wave2/merge`;
-  `~/dev-scratch/pokerecomp-online-coop/session/` (the page's source) and
-  `session-backup-20261016/`; the three session builds and their zips in
-  `builds/`.
+- The Superset worktree `quilted-acoustic`; the three session builds and
+  their zips in `builds/`.
 - `~/dev-scratch/pokerecomp-online-coop/push-guard-merge-fix.md` once the
   owner applied or declined it.
 - `~/dev-scratch/pokerecomp-online-coop/session-links/`, `pr-links.tsv`,
